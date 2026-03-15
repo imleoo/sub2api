@@ -467,7 +467,7 @@ func (s *AccountTestService) testOpenAIAccountConnection(c *gin.Context, account
 		if err != nil {
 			return s.sendErrorAndEnd(c, fmt.Sprintf("Invalid base URL: %s", err.Error()))
 		}
-		
+
 		// Attempt standard /v1/chat/completions first
 		apiURL = strings.TrimSuffix(normalizedBaseURL, "/") + "/v1/chat/completions"
 		err = s.doOpenAIAccountTest(c, ctx, account, testModelID, chatgptAccountID, authToken, isOAuth, apiURL, false)
@@ -541,7 +541,7 @@ func (s *AccountTestService) doOpenAIAccountTest(c *gin.Context, ctx context.Con
 		if isFallback {
 			return s.sendErrorAndEnd(c, fmt.Sprintf("Request failed: %s", err.Error()))
 		}
-		return fmt.Errorf("Request failed: %w", err)
+		return fmt.Errorf("request failed: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
