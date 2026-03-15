@@ -450,8 +450,8 @@ func (s *AccountTestService) testOpenAIAccountConnection(c *gin.Context, account
 		}
 
 		// OAuth uses ChatGPT internal API
-		apiURL = chatgptCodexAPIURL
 		chatgptAccountID = account.GetChatGPTAccountID()
+		return s.doOpenAIAccountTest(c, ctx, account, testModelID, chatgptAccountID, authToken, isOAuth, "/responses", false)
 	} else if account.Type == "apikey" {
 		// API Key - use Platform API
 		authToken = account.GetOpenAIApiKey()
@@ -467,28 +467,54 @@ func (s *AccountTestService) testOpenAIAccountConnection(c *gin.Context, account
 		if err != nil {
 			return s.sendErrorAndEnd(c, fmt.Sprintf("Invalid base URL: %s", err.Error()))
 		}
-		apiURL = strings.TrimSuffix(normalizedBaseURL, "/") + "/responses"
+		
+		// Attempt standard /v1/chat/completions first
+		apiURL = strings.TrimSuffix(normalizedBaseURL, "/") + "/v1/chat/completions"
+		err = s.doOpenAIAccountTest(c, ctx, account, testModelID, chatgptAccountID, authToken, isOAuth, apiURL, false)
+		if err != nil {
+			// If we got a 404/400 and we haven't started streaming to the client
+			if strings.Contains(err.Error(), "API returned 404") || strings.Contains(err.Error(), "API returned 400") || strings.Contains(err.Error(), "API returned 405") {
+				// Fallback to /responses
+				apiURL = strings.TrimSuffix(normalizedBaseURL, "/") + "/responses"
+				return s.doOpenAIAccountTest(c, ctx, account, testModelID, chatgptAccountID, authToken, isOAuth, apiURL, true)
+			}
+		}
+		return err
 	} else {
 		return s.sendErrorAndEnd(c, fmt.Sprintf("Unsupported account type: %s", account.Type))
 	}
+}
 
-	// Set SSE headers
-	c.Writer.Header().Set("Content-Type", "text/event-stream")
-	c.Writer.Header().Set("Cache-Control", "no-cache")
-	c.Writer.Header().Set("Connection", "keep-alive")
-	c.Writer.Header().Set("X-Accel-Buffering", "no")
-	c.Writer.Flush()
-
-	// Create OpenAI Responses API payload
-	payload := createOpenAITestPayload(testModelID, isOAuth)
+// doOpenAIAccountTest handles the actual HTTP request to the specified apiURL
+func (s *AccountTestService) doOpenAIAccountTest(c *gin.Context, ctx context.Context, account *Account, testModelID, chatgptAccountID, authToken string, isOAuth bool, apiURL string, isFallback bool) error {
+	// Create API payload depending on endpoint
+	var payload map[string]any
+	if strings.HasSuffix(apiURL, "/responses") {
+		payload = createOpenAITestPayload(testModelID, isOAuth)
+	} else {
+		payload = createOpenAIStandardChatPayload(testModelID)
+	}
 	payloadBytes, _ := json.Marshal(payload)
+	// During fallback, we don't need to re-send SSE headers
+	if !isFallback {
+		c.Writer.Header().Set("Content-Type", "text/event-stream")
+		c.Writer.Header().Set("Cache-Control", "no-cache")
+		c.Writer.Header().Set("Connection", "keep-alive")
+		c.Writer.Header().Set("X-Accel-Buffering", "no")
+		c.Writer.Flush()
+	}
 
-	// Send test_start event
-	s.sendEvent(c, TestEvent{Type: "test_start", Model: testModelID})
+	// Only send test_start event on the first attempt
+	if !isFallback {
+		s.sendEvent(c, TestEvent{Type: "test_start", Model: testModelID})
+	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewReader(payloadBytes))
 	if err != nil {
-		return s.sendErrorAndEnd(c, "Failed to create request")
+		if isFallback {
+			return s.sendErrorAndEnd(c, "Failed to create request")
+		}
+		return fmt.Errorf("failed to create request: %w", err)
 	}
 
 	// Set common headers
@@ -512,7 +538,10 @@ func (s *AccountTestService) testOpenAIAccountConnection(c *gin.Context, account
 
 	resp, err := s.httpUpstream.DoWithTLS(req, proxyURL, account.ID, account.Concurrency, account.IsTLSFingerprintEnabled())
 	if err != nil {
-		return s.sendErrorAndEnd(c, fmt.Sprintf("Request failed: %s", err.Error()))
+		if isFallback {
+			return s.sendErrorAndEnd(c, fmt.Sprintf("Request failed: %s", err.Error()))
+		}
+		return fmt.Errorf("Request failed: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
@@ -537,7 +566,10 @@ func (s *AccountTestService) testOpenAIAccountConnection(c *gin.Context, account
 				account.RateLimitResetAt = resetAt
 			}
 		}
-		return s.sendErrorAndEnd(c, fmt.Sprintf("API returned %d: %s", resp.StatusCode, string(body)))
+		if isFallback {
+			return s.sendErrorAndEnd(c, fmt.Sprintf("API returned %d: %s", resp.StatusCode, string(body)))
+		}
+		return fmt.Errorf("API returned %d: %s", resp.StatusCode, string(body))
 	}
 
 	// Process SSE stream
@@ -1622,6 +1654,21 @@ func createOpenAITestPayload(modelID string, isOAuth bool) map[string]any {
 	return payload
 }
 
+// createOpenAIStandardChatPayload creates a test payload for standard OpenAI API (e.g. /v1/chat/completions)
+func createOpenAIStandardChatPayload(modelID string) map[string]any {
+	return map[string]any{
+		"model": modelID,
+		"messages": []map[string]any{
+			{
+				"role":    "user",
+				"content": "hi",
+			},
+		},
+		"stream":     true,
+		"max_tokens": 10,
+	}
+}
+
 // processClaudeStream processes the SSE stream from Claude API
 func (s *AccountTestService) processClaudeStream(c *gin.Context, body io.Reader) error {
 	reader := bufio.NewReader(body)
@@ -1707,6 +1754,20 @@ func (s *AccountTestService) processOpenAIStream(c *gin.Context, body io.Reader)
 		}
 
 		eventType, _ := data["type"].(string)
+
+		// Handle standard OpenAI chat/completions stream
+		if eventType == "" {
+			if choices, _ := data["choices"].([]any); len(choices) > 0 {
+				if choice, _ := choices[0].(map[string]any); choice != nil {
+					if delta, _ := choice["delta"].(map[string]any); delta != nil {
+						if content, _ := delta["content"].(string); content != "" {
+							s.sendEvent(c, TestEvent{Type: "content", Text: content})
+						}
+					}
+					// Handle finish_reason if needed, but [DONE] usually indicates completion
+				}
+			}
+		}
 
 		switch eventType {
 		case "response.output_text.delta":
