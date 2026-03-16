@@ -21,9 +21,8 @@ import (
 
 // ForwardAsChatCompletions accepts a Chat Completions request body, converts it
 // to OpenAI Responses API format, forwards to the OpenAI upstream, and converts
-// the response back to Chat Completions format. All account types (OAuth and API
-// Key) go through the Responses API conversion path since the upstream only
-// exposes the /v1/responses endpoint.
+// the response back to Chat Completions format. Supports dual-mode API endpoint
+// fallback: tries /responses first, falls back to /v1/chat/completions on error.
 func (s *OpenAIGatewayService) ForwardAsChatCompletions(
 	ctx context.Context,
 	c *gin.Context,
@@ -31,6 +30,53 @@ func (s *OpenAIGatewayService) ForwardAsChatCompletions(
 	body []byte,
 	promptCacheKey string,
 	defaultMappedModel string,
+) (*OpenAIForwardResult, error) {
+	// Only API Key accounts with custom base URL support dual-mode fallback
+	if account.Type == AccountTypeAPIKey && account.GetOpenAIBaseURL() != "" {
+		return s.forwardWithDualMode(ctx, c, account, body, promptCacheKey, defaultMappedModel)
+	}
+	return s.forwardAsResponses(ctx, c, account, body, promptCacheKey, defaultMappedModel, false)
+}
+
+// forwardWithDualMode tries /responses first, falls back to /v1/chat/completions
+func (s *OpenAIGatewayService) forwardWithDualMode(
+	ctx context.Context,
+	c *gin.Context,
+	account *Account,
+	body []byte,
+	promptCacheKey string,
+	defaultMappedModel string,
+) (*OpenAIForwardResult, error) {
+	// Try /responses endpoint first
+	result, err := s.forwardAsResponses(ctx, c, account, body, promptCacheKey, defaultMappedModel, true)
+	if err == nil {
+		return result, nil
+	}
+
+	// Check if error is suitable for fallback
+	errMsg := err.Error()
+	if !strings.Contains(errMsg, "API returned") && !strings.Contains(errMsg, "request failed") {
+		return nil, err
+	}
+
+	logger.L().Info("openai chat_completions: fallback to standard API",
+		zap.Int64("account_id", account.ID),
+		zap.String("error", errMsg),
+	)
+
+	// Fallback to standard /v1/chat/completions
+	return s.forwardAsStandardChatCompletions(ctx, c, account, body, promptCacheKey, defaultMappedModel)
+}
+
+// forwardAsResponses forwards request using /responses endpoint
+func (s *OpenAIGatewayService) forwardAsResponses(
+	ctx context.Context,
+	c *gin.Context,
+	account *Account,
+	body []byte,
+	promptCacheKey string,
+	defaultMappedModel string,
+	isDualMode bool,
 ) (*OpenAIForwardResult, error) {
 	startTime := time.Now()
 
@@ -43,8 +89,7 @@ func (s *OpenAIGatewayService) ForwardAsChatCompletions(
 	clientStream := chatReq.Stream
 	includeUsage := chatReq.StreamOptions != nil && chatReq.StreamOptions.IncludeUsage
 
-	// 2. Convert to Responses and forward
-	// ChatCompletionsToResponses always sets Stream=true (upstream always streams).
+	// 2. Convert to Responses
 	responsesReq, err := apicompat.ChatCompletionsToResponses(&chatReq)
 	if err != nil {
 		return nil, fmt.Errorf("convert chat completions to responses: %w", err)
@@ -61,7 +106,7 @@ func (s *OpenAIGatewayService) ForwardAsChatCompletions(
 		zap.Bool("stream", clientStream),
 	)
 
-	// 4. Marshal Responses request body, then apply OAuth codex transform
+	// 4. Marshal Responses request body
 	responsesBody, err := json.Marshal(responsesReq)
 	if err != nil {
 		return nil, fmt.Errorf("marshal responses request: %w", err)
@@ -108,21 +153,23 @@ func (s *OpenAIGatewayService) ForwardAsChatCompletions(
 	resp, err := s.httpUpstream.Do(upstreamReq, proxyURL, account.ID, account.Concurrency)
 	if err != nil {
 		safeErr := sanitizeUpstreamErrorMessage(err.Error())
-		setOpsUpstreamError(c, 0, safeErr, "")
-		appendOpsUpstreamError(c, OpsUpstreamErrorEvent{
-			Platform:           account.Platform,
-			AccountID:          account.ID,
-			AccountName:        account.Name,
-			UpstreamStatusCode: 0,
-			Kind:               "request_error",
-			Message:            safeErr,
-		})
-		writeChatCompletionsError(c, http.StatusBadGateway, "upstream_error", "Upstream request failed")
+		if !isDualMode {
+			setOpsUpstreamError(c, 0, safeErr, "")
+			appendOpsUpstreamError(c, OpsUpstreamErrorEvent{
+				Platform:           account.Platform,
+				AccountID:          account.ID,
+				AccountName:        account.Name,
+				UpstreamStatusCode: 0,
+				Kind:               "request_error",
+				Message:            safeErr,
+			})
+			writeChatCompletionsError(c, http.StatusBadGateway, "upstream_error", "Upstream request failed")
+		}
 		return nil, fmt.Errorf("upstream request failed: %s", safeErr)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	// 8. Handle error response with failover
+	// 8. Handle error response
 	if resp.StatusCode >= 400 {
 		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
 		_ = resp.Body.Close()
@@ -130,6 +177,12 @@ func (s *OpenAIGatewayService) ForwardAsChatCompletions(
 
 		upstreamMsg := strings.TrimSpace(extractUpstreamErrorMessage(respBody))
 		upstreamMsg = sanitizeUpstreamErrorMessage(upstreamMsg)
+
+		// In dual mode, return error for fallback
+		if isDualMode && (resp.StatusCode == 404 || resp.StatusCode == 400 || resp.StatusCode == 405) {
+			return nil, fmt.Errorf("API returned %d", resp.StatusCode)
+		}
+
 		if s.shouldFailoverOpenAIUpstreamResponse(resp.StatusCode, upstreamMsg, respBody) {
 			upstreamDetail := ""
 			if s.cfg != nil && s.cfg.Gateway.LogUpstreamErrorBody {
@@ -190,6 +243,104 @@ func (s *OpenAIGatewayService) ForwardAsChatCompletions(
 	}
 
 	return result, handleErr
+}
+
+// forwardAsStandardChatCompletions forwards request using standard /v1/chat/completions endpoint
+func (s *OpenAIGatewayService) forwardAsStandardChatCompletions(
+	ctx context.Context,
+	c *gin.Context,
+	account *Account,
+	body []byte,
+	promptCacheKey string,
+	defaultMappedModel string,
+) (*OpenAIForwardResult, error) {
+	startTime := time.Now()
+
+	// Parse request
+	var chatReq apicompat.ChatCompletionsRequest
+	if err := json.Unmarshal(body, &chatReq); err != nil {
+		return nil, fmt.Errorf("parse chat completions request: %w", err)
+	}
+	originalModel := chatReq.Model
+	mappedModel := resolveOpenAIForwardModel(account, originalModel, defaultMappedModel)
+	chatReq.Model = mappedModel
+
+	// Marshal request
+	reqBody, err := json.Marshal(chatReq)
+	if err != nil {
+		return nil, fmt.Errorf("marshal chat completions request: %w", err)
+	}
+
+	// Get token
+	token, _, err := s.GetAccessToken(ctx, account)
+	if err != nil {
+		return nil, fmt.Errorf("get access token: %w", err)
+	}
+
+	// Build URL
+	baseURL := account.GetOpenAIBaseURL()
+	validatedURL, err := s.validateUpstreamBaseURL(baseURL)
+	if err != nil {
+		return nil, err
+	}
+	targetURL := buildStandardChatCompletionsURL(validatedURL)
+
+	// Build request
+	req, err := http.NewRequestWithContext(ctx, "POST", targetURL, bytes.NewReader(reqBody))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("authorization", "Bearer "+token)
+	req.Header.Set("content-type", "application/json")
+
+	// Send request
+	proxyURL := ""
+	if account.Proxy != nil {
+		proxyURL = account.Proxy.URL()
+	}
+	resp, err := s.httpUpstream.Do(req, proxyURL, account.ID, account.Concurrency)
+	if err != nil {
+		safeErr := sanitizeUpstreamErrorMessage(err.Error())
+		setOpsUpstreamError(c, 0, safeErr, "")
+		writeChatCompletionsError(c, http.StatusBadGateway, "upstream_error", "Upstream request failed")
+		return nil, fmt.Errorf("upstream request failed: %s", safeErr)
+	}
+	defer resp.Body.Close()
+
+	// Handle error
+	if resp.StatusCode >= 400 {
+		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
+		resp.Body = io.NopCloser(bytes.NewReader(respBody))
+		return s.handleChatCompletionsErrorResponse(resp, c, account)
+	}
+
+	// Copy response
+	if s.responseHeaderFilter != nil {
+		responseheaders.WriteFilteredHeaders(c.Writer.Header(), resp.Header, s.responseHeaderFilter)
+	}
+	c.Status(resp.StatusCode)
+	_, err = io.Copy(c.Writer, resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return &OpenAIForwardResult{
+		RequestID:    resp.Header.Get("x-request-id"),
+		Model:        originalModel,
+		BillingModel: mappedModel,
+		Stream:       chatReq.Stream,
+		Duration:     time.Since(startTime),
+		Usage:        OpenAIUsage{},
+	}, nil
+}
+
+// buildStandardChatCompletionsURL builds /v1/chat/completions URL
+func buildStandardChatCompletionsURL(base string) string {
+	normalized := strings.TrimRight(strings.TrimSpace(base), "/")
+	if strings.HasSuffix(normalized, "/v1") {
+		return normalized + "/chat/completions"
+	}
+	return normalized + "/v1/chat/completions"
 }
 
 // handleChatCompletionsErrorResponse reads an upstream error and returns it in
