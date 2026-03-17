@@ -1,0 +1,91 @@
+name: Sync Upstream
+
+on:
+  schedule:
+    # 每天 UTC 00:00 (北京时间 08:00) 自动检查更新
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    # 支持手动触发
+
+jobs:
+  sync-main:
+    name: Sync upstream to main
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream remote
+        run: |
+          git remote add upstream https://github.com/Wei-Shaw/sub2api.git || true
+          git fetch upstream main
+
+      - name: Check for updates
+        id: check
+        run: |
+          BEHIND=$(git rev-list --count HEAD..upstream/main)
+          echo "behind=$BEHIND" >> $GITHUB_OUTPUT
+          echo "Main branch is $BEHIND commits behind upstream"
+
+      - name: Merge upstream changes
+        if: steps.check.outputs.behind != '0'
+        run: |
+          git merge upstream/main --no-edit -m "chore: sync from upstream Wei-Shaw/sub2api:main"
+
+      - name: Push to origin main
+        if: steps.check.outputs.behind != '0'
+        run: |
+          git push origin main
+
+  sync-zhiguofan:
+    name: Sync main to zhiguofan
+    needs: sync-main
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: zhiguofan
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch main branch
+        run: |
+          git fetch origin main
+
+      - name: Check for updates
+        id: check
+        run: |
+          BEHIND=$(git rev-list --count HEAD..origin/main)
+          echo "behind=$BEHIND" >> $GITHUB_OUTPUT
+          echo "zhiguofan branch is $BEHIND commits behind main"
+
+      - name: Merge main changes
+        if: steps.check.outputs.behind != '0'
+        run: |
+          git merge origin/main --no-edit -m "chore: sync from origin/main"
+
+      - name: Push to origin zhiguofan
+        if: steps.check.outputs.behind != '0'
+        run: |
+          git push origin zhiguofan
