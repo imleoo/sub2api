@@ -368,6 +368,10 @@ type ProxyExitInfoProber interface {
 	ProbeProxy(ctx context.Context, proxyURL string) (*ProxyExitInfo, int64, error)
 }
 
+type groupExistenceBatchReader interface {
+	ExistsByIDs(ctx context.Context, ids []int64) (map[int64]bool, error)
+}
+
 type proxyQualityTarget struct {
 	Target          string
 	URL             string
@@ -443,10 +447,6 @@ type adminServiceImpl struct {
 
 type userGroupRateBatchReader interface {
 	GetByUserIDs(ctx context.Context, userIDs []int64) (map[int64]map[int64]float64, error)
-}
-
-type groupExistenceBatchReader interface {
-	ExistsByIDs(ctx context.Context, ids []int64) (map[int64]bool, error)
 }
 
 // NewAdminService creates a new AdminService
@@ -1516,6 +1516,7 @@ func (s *adminServiceImpl) UpdateAccount(ctx context.Context, id int64, input *U
 	if err != nil {
 		return nil, err
 	}
+	wasOveragesEnabled := account.IsOveragesEnabled()
 
 	if input.Name != "" {
 		account.Name = input.Name
@@ -1529,7 +1530,9 @@ func (s *adminServiceImpl) UpdateAccount(ctx context.Context, id int64, input *U
 	if len(input.Credentials) > 0 {
 		account.Credentials = input.Credentials
 	}
-	if len(input.Extra) > 0 {
+	// Extra 使用 map：需要区分“未提供(nil)”与“显式清空({})”。
+	// 关闭配额限制时前端会删除 quota_* 键并提交 extra:{}，此时也必须落库。
+	if input.Extra != nil {
 		// 保留配额用量字段，防止编辑账号时意外重置
 		for _, key := range []string{"quota_used", "quota_daily_used", "quota_daily_start", "quota_weekly_used", "quota_weekly_start"} {
 			if v, ok := account.Extra[key]; ok {
@@ -1537,6 +1540,17 @@ func (s *adminServiceImpl) UpdateAccount(ctx context.Context, id int64, input *U
 			}
 		}
 		account.Extra = input.Extra
+		if account.Platform == PlatformAntigravity && wasOveragesEnabled && !account.IsOveragesEnabled() {
+			delete(account.Extra, "antigravity_credits_overages") // 清理旧版 overages 运行态
+			// 清除 AICredits 限流 key
+			if rawLimits, ok := account.Extra[modelRateLimitsKey].(map[string]any); ok {
+				delete(rawLimits, creditsExhaustedKey)
+			}
+		}
+		if account.Platform == PlatformAntigravity && !wasOveragesEnabled && account.IsOveragesEnabled() {
+			delete(account.Extra, modelRateLimitsKey)
+			delete(account.Extra, "antigravity_credits_overages") // 清理旧版 overages 运行态
+		}
 		// 校验并预计算固定时间重置的下次重置时间
 		if err := ValidateQuotaResetConfig(account.Extra); err != nil {
 			return nil, err

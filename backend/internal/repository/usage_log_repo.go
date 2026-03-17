@@ -2161,7 +2161,9 @@ func (r *usageLogRepository) GetUserSpendingRanking(ctx context.Context, startTi
 				actual_cost,
 				requests,
 				tokens,
-				COALESCE(SUM(actual_cost) OVER (), 0) as total_actual_cost
+				COALESCE(SUM(actual_cost) OVER (), 0) as total_actual_cost,
+				COALESCE(SUM(requests) OVER (), 0) as total_requests,
+				COALESCE(SUM(tokens) OVER (), 0) as total_tokens
 			FROM user_spend
 			ORDER BY actual_cost DESC, tokens DESC, user_id ASC
 			LIMIT $3
@@ -2172,7 +2174,9 @@ func (r *usageLogRepository) GetUserSpendingRanking(ctx context.Context, startTi
 			actual_cost,
 			requests,
 			tokens,
-			total_actual_cost
+			total_actual_cost,
+			total_requests,
+			total_tokens
 		FROM ranked
 		ORDER BY actual_cost DESC, tokens DESC, user_id ASC
 	`
@@ -2190,9 +2194,11 @@ func (r *usageLogRepository) GetUserSpendingRanking(ctx context.Context, startTi
 
 	ranking := make([]UserSpendingRankingItem, 0)
 	totalActualCost := 0.0
+	totalRequests := int64(0)
+	totalTokens := int64(0)
 	for rows.Next() {
 		var row UserSpendingRankingItem
-		if err = rows.Scan(&row.UserID, &row.Email, &row.ActualCost, &row.Requests, &row.Tokens, &totalActualCost); err != nil {
+		if err = rows.Scan(&row.UserID, &row.Email, &row.ActualCost, &row.Requests, &row.Tokens, &totalActualCost, &totalRequests, &totalTokens); err != nil {
 			return nil, err
 		}
 		ranking = append(ranking, row)
@@ -2204,6 +2210,8 @@ func (r *usageLogRepository) GetUserSpendingRanking(ctx context.Context, startTi
 	return &UserSpendingRankingResponse{
 		Ranking:         ranking,
 		TotalActualCost: totalActualCost,
+		TotalRequests:   totalRequests,
+		TotalTokens:     totalTokens,
 	}, nil
 }
 
@@ -2992,6 +3000,85 @@ func (r *usageLogRepository) GetGroupStatsWithFilters(ctx context.Context, start
 	return results, nil
 }
 
+// GetUserBreakdownStats returns per-user usage breakdown within a specific dimension.
+func (r *usageLogRepository) GetUserBreakdownStats(ctx context.Context, startTime, endTime time.Time, dim usagestats.UserBreakdownDimension, limit int) (results []usagestats.UserBreakdownItem, err error) {
+	query := `
+		SELECT
+			COALESCE(ul.user_id, 0) as user_id,
+			COALESCE(u.email, '') as email,
+			COUNT(*) as requests,
+			COALESCE(SUM(ul.input_tokens + ul.output_tokens + ul.cache_creation_tokens + ul.cache_read_tokens), 0) as total_tokens,
+			COALESCE(SUM(ul.total_cost), 0) as cost,
+			COALESCE(SUM(ul.actual_cost), 0) as actual_cost
+		FROM usage_logs ul
+		LEFT JOIN users u ON u.id = ul.user_id
+		WHERE ul.created_at >= $1 AND ul.created_at < $2
+	`
+	args := []any{startTime, endTime}
+
+	if dim.GroupID > 0 {
+		query += fmt.Sprintf(" AND ul.group_id = $%d", len(args)+1)
+		args = append(args, dim.GroupID)
+	}
+	if dim.Model != "" {
+		query += fmt.Sprintf(" AND ul.model = $%d", len(args)+1)
+		args = append(args, dim.Model)
+	}
+	if dim.Endpoint != "" {
+		col := resolveEndpointColumn(dim.EndpointType)
+		query += fmt.Sprintf(" AND %s = $%d", col, len(args)+1)
+		args = append(args, dim.Endpoint)
+	}
+
+	query += " GROUP BY ul.user_id, u.email ORDER BY actual_cost DESC"
+	if limit > 0 {
+		query += fmt.Sprintf(" LIMIT %d", limit)
+	}
+
+	rows, err := r.sql.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil && err == nil {
+			err = closeErr
+			results = nil
+		}
+	}()
+
+	results = make([]usagestats.UserBreakdownItem, 0)
+	for rows.Next() {
+		var row usagestats.UserBreakdownItem
+		if err := rows.Scan(
+			&row.UserID,
+			&row.Email,
+			&row.Requests,
+			&row.TotalTokens,
+			&row.Cost,
+			&row.ActualCost,
+		); err != nil {
+			return nil, err
+		}
+		results = append(results, row)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return results, nil
+}
+
+// resolveEndpointColumn maps endpoint type to the corresponding DB column name.
+func resolveEndpointColumn(endpointType string) string {
+	switch endpointType {
+	case "upstream":
+		return "ul.upstream_endpoint"
+	case "path":
+		return "ul.inbound_endpoint || ' -> ' || ul.upstream_endpoint"
+	default:
+		return "ul.inbound_endpoint"
+	}
+}
+
 // GetGlobalStats gets usage statistics for all users within a time range
 func (r *usageLogRepository) GetGlobalStats(ctx context.Context, startTime, endTime time.Time) (*UsageStats, error) {
 	query := `
@@ -3004,7 +3091,7 @@ func (r *usageLogRepository) GetGlobalStats(ctx context.Context, startTime, endT
 			COALESCE(SUM(actual_cost), 0) as total_actual_cost,
 			COALESCE(AVG(duration_ms), 0) as avg_duration_ms
 		FROM usage_logs
-		WHERE created_at >= $1 AND created_at <= $2
+		WHERE created_at >= $1 AND created_at < $2
 	`
 
 	stats := &UsageStats{}
