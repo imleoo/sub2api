@@ -179,7 +179,7 @@ func (s *OpenAIGatewayService) forwardAsResponses(
 		upstreamMsg = sanitizeUpstreamErrorMessage(upstreamMsg)
 
 		// In dual mode, return error for fallback
-		if isDualMode && (resp.StatusCode == 404 || resp.StatusCode == 400 || resp.StatusCode == 405) {
+		if isDualMode && (resp.StatusCode == 404 || resp.StatusCode == 400 || resp.StatusCode == 405 || resp.StatusCode == 503) {
 			return nil, fmt.Errorf("API returned %d", resp.StatusCode)
 		}
 
