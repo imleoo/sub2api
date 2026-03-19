@@ -22,6 +22,32 @@ require_clean_worktree() {
   fi
 }
 
+merge_with_conflict_help() {
+  local target_branch="$1"
+  local source_ref="$2"
+  local merge_msg="$3"
+  local conflict_policy="$4"
+
+  echo "Merging ${source_ref} into ${target_branch}..."
+  if git merge "$source_ref" --no-edit -m "$merge_msg"; then
+    return 0
+  fi
+
+  echo
+  echo "Merge conflict detected while merging ${source_ref} into ${target_branch}."
+  echo
+  echo "Suggested handling:"
+  echo "- Treat ${target_branch} as the base branch."
+  echo "- Resolve the conflicted files manually."
+  echo "- Current policy: ${conflict_policy}"
+  echo "- Then run: git add <files> && git merge --continue"
+  echo "- To give up on this merge: git merge --abort"
+  echo
+  echo "Conflicted files:"
+  git status --short
+  exit 1
+}
+
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 [[ -n "$repo_root" ]] || die "Run this script inside a git repository."
 cd "$repo_root"
@@ -29,8 +55,10 @@ cd "$repo_root"
 require_clean_worktree
 
 original_branch="$(git branch --show-current)"
+switched_branch=false
+completed=false
 cleanup() {
-  if [[ -n "${original_branch:-}" ]] && [[ "$(git branch --show-current)" != "$original_branch" ]]; then
+  if [[ "$completed" == "true" && "$switched_branch" == "true" ]] && [[ -n "${original_branch:-}" ]] && [[ "$(git branch --show-current)" != "$original_branch" ]]; then
     git switch "$original_branch" >/dev/null 2>&1 || true
   fi
 }
@@ -44,11 +72,15 @@ git fetch "$UPSTREAM_REMOTE" "$UPSTREAM_BRANCH"
 
 echo "Switching to ${MAIN_BRANCH}..."
 git switch "$MAIN_BRANCH"
+switched_branch=true
 
 main_behind="$(git rev-list --count "HEAD..${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH}")"
 if [[ "$main_behind" != "0" ]]; then
-  echo "Merging ${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH} into ${MAIN_BRANCH} (${main_behind} commit(s) behind)..."
-  git merge "${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH}" --no-edit -m "$UPSTREAM_MERGE_MSG"
+  merge_with_conflict_help \
+    "$MAIN_BRANCH" \
+    "${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH}" \
+    "$UPSTREAM_MERGE_MSG" \
+    "For upstream sync, prefer the upstream version when conflicts are only about keeping main aligned with upstream."
 else
   echo "${MAIN_BRANCH} is already up to date with ${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH}."
 fi
@@ -61,11 +93,15 @@ git fetch "$GITHUB_REMOTE" "$MAIN_BRANCH"
 
 echo "Switching to ${WORK_BRANCH}..."
 git switch "$WORK_BRANCH"
+switched_branch=true
 
 work_behind="$(git rev-list --count "HEAD..${GITHUB_REMOTE}/${MAIN_BRANCH}")"
 if [[ "$work_behind" != "0" ]]; then
-  echo "Merging ${GITHUB_REMOTE}/${MAIN_BRANCH} into ${WORK_BRANCH} (${work_behind} commit(s) behind)..."
-  git merge "${GITHUB_REMOTE}/${MAIN_BRANCH}" --no-edit -m "$WORK_MERGE_MSG"
+  merge_with_conflict_help \
+    "$WORK_BRANCH" \
+    "${GITHUB_REMOTE}/${MAIN_BRANCH}" \
+    "$WORK_MERGE_MSG" \
+    "For zhiguofan sync, keep main as the shared baseline and re-apply zhiguofan-only changes where needed."
 else
   echo "${WORK_BRANCH} is already up to date with ${GITHUB_REMOTE}/${MAIN_BRANCH}."
 fi
@@ -74,3 +110,4 @@ echo "Pushing ${WORK_BRANCH} to ${GITHUB_REMOTE}..."
 git push "$GITHUB_REMOTE" "$WORK_BRANCH"
 
 echo "Sync complete."
+completed=true
