@@ -468,12 +468,9 @@ func (s *AccountTestService) testOpenAIAccountConnection(c *gin.Context, account
 			return s.sendErrorAndEnd(c, fmt.Sprintf("Invalid base URL: %s", err.Error()))
 		}
 
-		// Attempt /responses or /v1/responses first (OpenAI internal API)
-		apiURL = strings.TrimSuffix(normalizedBaseURL, "/") + "/responses"
-		// If base URL ends with /v1, try to use /v1/responses instead of /v1/responses
-		// Actually, if normalizedBaseURL is "https://api.openai.com/v1", then apiURL becomes "https://api.openai.com/v1/responses"
-		// If normalizedBaseURL is "https://api.openai.com", then apiURL becomes "https://api.openai.com/responses"
-		// This matches typical reverse proxy behavior.
+		// Attempt /responses or /v1/responses first (OpenAI Responses API)
+		// Use the same URL construction logic as the gateway service (buildOpenAIResponsesURL)
+		apiURL = buildOpenAIResponsesURL(normalizedBaseURL)
 
 		err = s.doOpenAIAccountTest(c, ctx, account, testModelID, chatgptAccountID, authToken, isOAuth, apiURL, false)
 		if err != nil {
@@ -483,27 +480,8 @@ func (s *AccountTestService) testOpenAIAccountConnection(c *gin.Context, account
 			errMsg := err.Error()
 			if strings.Contains(errMsg, "API returned") || strings.Contains(errMsg, "request failed") {
 				// Fallback to standard /v1/chat/completions
-				apiURL = strings.TrimSuffix(normalizedBaseURL, "/") + "/v1/chat/completions"
-				// Note: if normalizedBaseURL already has /v1, this might result in /v1/v1/chat/completions?
-				// validateUpstreamBaseURL typically returns URL without trailing slash.
-				// If user input is "https://api.openai.com/v1", then we append "/v1/chat/completions" -> ".../v1/v1/..." which might be wrong.
-				// However, existing code used: strings.TrimSuffix(normalizedBaseURL, "/") + "/v1/chat/completions"
-				// Let's stick to the existing logic for standard API path construction.
-
-				// But wait, if normalizedBaseURL is "https://api.openai.com/v1", the previous code:
-				// apiURL = strings.TrimSuffix(normalizedBaseURL, "/") + "/v1/chat/completions"
-				// would produce ".../v1/v1/chat/completions". This seems potentially wrong if user provided /v1.
-				// But we are just swapping the order here, so we should trust the previous logic's path construction for now,
-				// or maybe improve it. The previous logic was:
-				// apiURL = strings.TrimSuffix(normalizedBaseURL, "/") + "/v1/chat/completions"
-
-				// Let's refine the path construction to be safer:
-				base := strings.TrimSuffix(normalizedBaseURL, "/")
-				if strings.HasSuffix(base, "/v1") {
-					apiURL = base + "/chat/completions"
-				} else {
-					apiURL = base + "/v1/chat/completions"
-				}
+				// Use the same URL construction logic as the gateway service
+				apiURL = buildStandardChatCompletionsURL(normalizedBaseURL)
 
 				return s.doOpenAIAccountTest(c, ctx, account, testModelID, chatgptAccountID, authToken, isOAuth, apiURL, true)
 			}
