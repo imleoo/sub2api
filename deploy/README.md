@@ -106,6 +106,8 @@ docker-compose -f docker-compose.local.yml logs -f sub2api
 
 **Recommendation:** Use `docker-compose.local.yml` (deployed by `docker-deploy.sh`) for easier data management and migration.
 
+Both Compose variants honor `DOCKERHUB_REPOSITORY`, and the default now points at `ioke/myrepo`, so you can deploy the same image name the release workflow publishes.
+
 ### How Auto-Setup Works
 
 When using Docker Compose with `AUTO_SETUP=true`:
