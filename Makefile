@@ -1,4 +1,4 @@
-.PHONY: build build-backend build-frontend build-datamanagementd test test-backend test-frontend test-datamanagementd secret-scan
+.PHONY: build build-backend build-frontend build-datamanagementd test test-backend test-frontend test-datamanagementd secret-scan dev-up dev-down dev-status dev-logs
 
 # 一键编译前后端
 build: build-backend build-frontend
@@ -30,3 +30,16 @@ test-datamanagementd:
 
 secret-scan:
 	@python3 tools/secret_scan.py
+
+# 本地调试环境
+dev-up:
+	@./script/dev_local.sh up
+
+dev-down:
+	@./script/dev_local.sh down
+
+dev-status:
+	@./script/dev_local.sh status
+
+dev-logs:
+	@./script/dev_local.sh logs
