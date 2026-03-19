@@ -167,12 +167,24 @@ func (s *OpenAIGatewayService) forwardAsResponses(
 		}
 		return nil, fmt.Errorf("upstream request failed: %s", safeErr)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			logger.L().Warn("openai chat_completions: failed to close upstream response body",
+				zap.Int64("account_id", account.ID),
+				zap.Error(err),
+			)
+		}
+	}()
 
 	// 8. Handle error response
 	if resp.StatusCode >= 400 {
 		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
-		_ = resp.Body.Close()
+		if err := resp.Body.Close(); err != nil {
+			logger.L().Warn("openai chat_completions: failed to close upstream response body before reread",
+				zap.Int64("account_id", account.ID),
+				zap.Error(err),
+			)
+		}
 		resp.Body = io.NopCloser(bytes.NewReader(respBody))
 
 		upstreamMsg := strings.TrimSpace(extractUpstreamErrorMessage(respBody))
@@ -305,7 +317,14 @@ func (s *OpenAIGatewayService) forwardAsStandardChatCompletions(
 		writeChatCompletionsError(c, http.StatusBadGateway, "upstream_error", "Upstream request failed")
 		return nil, fmt.Errorf("upstream request failed: %s", safeErr)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			logger.L().Warn("openai chat_completions: failed to close standard upstream response body",
+				zap.Int64("account_id", account.ID),
+				zap.Error(err),
+			)
+		}
+	}()
 
 	// Handle error
 	if resp.StatusCode >= 400 {
