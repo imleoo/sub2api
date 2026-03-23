@@ -585,13 +585,32 @@ func (s *AccountTestService) doOpenAIAccountTest(c *gin.Context, ctx context.Con
 			}
 		}
 		if isFallback {
-			return s.sendErrorAndEnd(c, fmt.Sprintf("API returned %d: %s", resp.StatusCode, string(body)))
+			return s.sendErrorAndEnd(c, formatOpenAIAccountTestUpstreamError(resp.StatusCode, testModelID, body))
 		}
 		return fmt.Errorf("API returned %d: %s", resp.StatusCode, string(body))
 	}
 
 	// Process SSE stream
 	return s.processOpenAIStream(c, resp.Body)
+}
+
+func formatOpenAIAccountTestUpstreamError(statusCode int, testModelID string, body []byte) string {
+	upstreamMsg := strings.TrimSpace(extractUpstreamErrorMessage(body))
+	lowerMsg := strings.ToLower(upstreamMsg)
+	if (statusCode == http.StatusBadRequest || statusCode == http.StatusServiceUnavailable || statusCode == http.StatusNotFound) &&
+		(strings.Contains(lowerMsg, "model_not_found") || strings.Contains(lowerMsg, "no available channel for model")) {
+		if testModelID == "" {
+			return "Upstream model is unavailable for current group/channel. Please configure an available model or model mapping."
+		}
+		return fmt.Sprintf("Upstream model %q is unavailable for current group/channel. Please configure an available model or model mapping.", testModelID)
+	}
+	if upstreamMsg == "" {
+		upstreamMsg = strings.TrimSpace(string(body))
+	}
+	if upstreamMsg == "" {
+		return fmt.Sprintf("API returned %d", statusCode)
+	}
+	return fmt.Sprintf("API returned %d: %s", statusCode, truncateString(upstreamMsg, 512))
 }
 
 // testGeminiAccountConnection tests a Gemini account's connection

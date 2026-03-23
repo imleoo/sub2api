@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
@@ -99,4 +100,36 @@ func TestAccountTestService_OpenAI429PersistsSnapshotAndRateLimit(t *testing.T) 
 	if account.RateLimitResetAt != nil && repo.rateLimitedAt != nil {
 		require.WithinDuration(t, *repo.rateLimitedAt, *account.RateLimitResetAt, time.Second)
 	}
+}
+
+func TestAccountTestService_OpenAIModelNotFoundOnFallbackReturnsFriendlyError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	ctx, recorder := newSoraTestContext()
+
+	first := newJSONResponse(http.StatusNotFound, `{"error":{"message":"responses endpoint not found"}}`)
+	second := newJSONResponse(http.StatusServiceUnavailable, `{"error":{"code":"model_not_found","message":"No available channel for model gpt-3.5-turbo-0125 under group default (distributor)"}}`)
+	upstream := &queuedHTTPUpstream{responses: []*http.Response{first, second}}
+	svc := &AccountTestService{
+		httpUpstream: upstream,
+		cfg: &config.Config{
+			Security: config.SecurityConfig{
+				URLAllowlist: config.URLAllowlistConfig{
+					Enabled: false,
+				},
+			},
+		},
+	}
+	account := &Account{
+		ID:          90,
+		Platform:    PlatformOpenAI,
+		Type:        AccountTypeAPIKey,
+		Concurrency: 1,
+		Credentials: map[string]any{"api_key": "test-key"},
+	}
+
+	err := svc.testOpenAIAccountConnection(ctx, account, "gpt-3.5-turbo-0125")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), `Upstream model "gpt-3.5-turbo-0125" is unavailable`)
+	require.Contains(t, recorder.Body.String(), `"type":"error"`)
+	require.Contains(t, recorder.Body.String(), `model or model mapping`)
 }
