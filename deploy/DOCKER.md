@@ -10,10 +10,10 @@ docker run -d \
   -p 8080:8080 \
   -e DATABASE_URL="postgres://user:pass@host:5432/sub2api" \
   -e REDIS_URL="redis://host:6379" \
-  ioke/myrepo:latest
+  harbor-test.brainwm.com:21143/infra/test_uds_backend:latest
 ```
 
-If you publish your own image, set `DOCKERHUB_REPOSITORY=ioke/myrepo` and use that image name in your Compose files.
+If you publish your own image, set `DOCKER_REGISTRY=harbor-test.brainwm.com:21143`, `DOCKER_NAMESPACE=infra`, and `DOCKER_IMAGE=test_uds_backend` and use that image name in your Compose files.
 
 ## Docker Compose
 
@@ -22,7 +22,7 @@ version: '3.8'
 
 services:
   sub2api:
-    image: ioke/myrepo:latest
+    image: ${DOCKER_REGISTRY}/${DOCKER_NAMESPACE}/${DOCKER_IMAGE}:${DOCKER_TAG}
     ports:
       - "8080:8080"
     environment:

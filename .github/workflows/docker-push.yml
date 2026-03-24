@@ -15,16 +15,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Resolve DockerHub repository
+      - name: Resolve Docker Registry
         env:
-          DOCKERHUB_REPOSITORY: ${{ vars.DOCKERHUB_REPOSITORY }}
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKER_REGISTRY: ${{ vars.DOCKER_REGISTRY || 'harbor-test.brainwm.com:21143' }}
+          DOCKER_NAMESPACE: ${{ vars.DOCKER_NAMESPACE || 'infra' }}
+          DOCKER_IMAGE: ${{ vars.DOCKER_IMAGE || 'test_uds_backend' }}
         run: |
-          if [ -n "${DOCKERHUB_REPOSITORY:-}" ]; then
-            echo "DOCKERHUB_REPOSITORY=${DOCKERHUB_REPOSITORY}" >> "$GITHUB_ENV"
-          else
-            echo "DOCKERHUB_REPOSITORY=ioke/myrepo" >> "$GITHUB_ENV"
-          fi
+          echo "DOCKER_REGISTRY=${DOCKER_REGISTRY}" >> "$GITHUB_ENV"
+          echo "DOCKER_IMAGE_PATH=${DOCKER_REGISTRY}/${DOCKER_NAMESPACE}/${DOCKER_IMAGE}" >> "$GITHUB_ENV"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -32,25 +30,24 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
-        if: ${{ env.DOCKERHUB_REPOSITORY != 'skip' }}
+      - name: Login to Docker Registry
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ secrets.DOCKERHUB_USERNAME || 'builder' }}
+          password: ${{ secrets.DOCKERHUB_TOKEN || 'eqmBnPZhcrL12wwO' }}
 
       - name: Extract metadata (tags, labels) for Docker
-        if: ${{ env.DOCKERHUB_REPOSITORY != 'skip' }}
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.DOCKERHUB_REPOSITORY }}
+          images: ${{ env.DOCKER_IMAGE_PATH }}
           tags: |
             type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'zhiguofan') }}
             type=sha,format=short
+            type=ref,event=tag
 
       - name: Build and push Docker image
-        if: ${{ env.DOCKERHUB_REPOSITORY != 'skip' }}
         uses: docker/build-push-action@v6
         with:
           context: .
