@@ -15,6 +15,12 @@ print_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 print_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
+# 0. Check if Docker daemon is running
+if ! docker info >/dev/null 2>&1; then
+    print_error "Docker daemon is not running. Please start Docker Desktop first."
+    exit 1
+fi
+
 REPOSITORY="ioke/myrepo"
 TAG="${1:-latest}"
 IMAGE_FULL_NAME="${REPOSITORY}:${TAG}"
