@@ -33,6 +33,27 @@ merge_with_conflict_help() {
     return 0
   fi
 
+  # Auto-resolve conflict in backend/cmd/server/VERSION
+  local version_file="backend/cmd/server/VERSION"
+  if git status --porcelain | grep -q "^UU ${version_file}"; then
+    echo "Conflict detected in ${version_file}. Auto-resolving..."
+    local main_v
+    main_v=$(git show "${MAIN_BRANCH}:${version_file}" 2>/dev/null || echo "0.0.0")
+    local new_v
+    new_v=$(echo "$main_v" | awk -F. 'BEGIN{OFS="."} {$1=$1+1; print $0}')
+    echo "$new_v" > "$version_file"
+    git add "$version_file"
+    echo "Resolved ${version_file} to ${new_v} (incremented from ${MAIN_BRANCH} version)."
+
+    # Check if there are any other conflicts remaining
+    if ! git status --porcelain | grep -q "^UU "; then
+      echo "All conflicts resolved automatically. Completing merge..."
+      if git commit --no-edit; then
+        return 0
+      fi
+    fi
+  fi
+
   echo
   echo "Merge conflict detected while merging ${source_ref} into ${target_branch}."
   echo
