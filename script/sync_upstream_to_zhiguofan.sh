@@ -30,6 +30,11 @@ merge_with_conflict_help() {
 
   echo "Merging ${source_ref} into ${target_branch}..."
   if git merge "$source_ref" --no-edit -m "$merge_msg"; then
+    if [[ -f "backend/cmd/server/VERSION" ]]; then
+      echo ">>> Successfully merged ${source_ref} into ${target_branch}. Current version: $(cat backend/cmd/server/VERSION)"
+    else
+      echo "Successfully merged ${source_ref} into ${target_branch}."
+    fi
     return 0
   fi
 
@@ -49,6 +54,9 @@ merge_with_conflict_help() {
     if ! git status --porcelain | grep -q "^UU "; then
       echo "All conflicts resolved automatically. Completing merge..."
       if git commit --no-edit; then
+        if [[ -f "backend/cmd/server/VERSION" ]]; then
+          echo ">>> Merge completed after auto-resolution. Current version: $(cat backend/cmd/server/VERSION)"
+        fi
         return 0
       fi
     fi
@@ -131,4 +139,7 @@ echo "Pushing ${WORK_BRANCH} to ${GITHUB_REMOTE}..."
 git push "$GITHUB_REMOTE" "$WORK_BRANCH"
 
 echo "Sync complete."
+if [[ -f "backend/cmd/server/VERSION" ]]; then
+  echo ">>> Final version in ${WORK_BRANCH}: $(cat backend/cmd/server/VERSION)"
+fi
 completed=true
