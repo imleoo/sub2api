@@ -40,7 +40,7 @@ var headerWireCasing = map[string]string{
 	// Claude Code 2.1.87+ 新增 header
 	"x-claude-code-session-id": "X-Claude-Code-Session-Id",
 	"x-client-request-id":      "x-client-request-id",
-	"content-length":            "content-length",
+	"content-length":           "content-length",
 }
 
 // headerWireOrder 定义真实 Claude CLI 发送 header 的顺序（基于抓包）。
