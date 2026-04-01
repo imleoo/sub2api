@@ -157,24 +157,17 @@ export async function getUserApiKeys(id: number): Promise<PaginatedResponse<ApiK
 /**
  * Get user's usage statistics
  * @param id - User ID
- * @param period - Time period
+ * @param days - Number of days (default 30, max 90)
  * @returns User usage statistics
  */
 export async function getUserUsageStats(
   id: number,
-  period: string = 'month'
-): Promise<{
-  total_requests: number
-  total_cost: number
-  total_tokens: number
-}> {
-  const { data } = await apiClient.get<{
-    total_requests: number
-    total_cost: number
-    total_tokens: number
-  }>(`/admin/users/${id}/usage`, {
-    params: { period }
-  })
+  days: number = 30
+): Promise<import('@/types').AccountUsageStatsResponse> {
+  const { data } = await apiClient.get<import('@/types').AccountUsageStatsResponse>(
+    `/admin/users/${id}/usage`,
+    { params: { days } }
+  )
   return data
 }
 

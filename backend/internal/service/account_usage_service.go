@@ -71,6 +71,9 @@ type UsageLogRepository interface {
 	// Account stats
 	GetAccountUsageStats(ctx context.Context, accountID int64, startTime, endTime time.Time) (*usagestats.AccountUsageStatsResponse, error)
 
+	// User stats
+	GetUserUsageStats(ctx context.Context, userID int64, startTime, endTime time.Time) (*usagestats.AccountUsageStatsResponse, error)
+
 	// Aggregated stats (optimized)
 	GetUserStatsAggregated(ctx context.Context, userID int64, startTime, endTime time.Time) (*usagestats.UsageStats, error)
 	GetAPIKeyStatsAggregated(ctx context.Context, apiKeyID int64, startTime, endTime time.Time) (*usagestats.UsageStats, error)
@@ -1139,6 +1142,14 @@ func (s *AccountUsageService) GetAccountUsageStats(ctx context.Context, accountI
 	stats, err := s.usageLogRepo.GetAccountUsageStats(ctx, accountID, startTime, endTime)
 	if err != nil {
 		return nil, fmt.Errorf("get account usage stats failed: %w", err)
+	}
+	return stats, nil
+}
+
+func (s *AccountUsageService) GetUserUsageStats(ctx context.Context, userID int64, startTime, endTime time.Time) (*usagestats.AccountUsageStatsResponse, error) {
+	stats, err := s.usageLogRepo.GetUserUsageStats(ctx, userID, startTime, endTime)
+	if err != nil {
+		return nil, fmt.Errorf("get user usage stats failed: %w", err)
 	}
 	return stats, nil
 }

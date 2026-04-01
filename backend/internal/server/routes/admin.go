@@ -3,6 +3,7 @@ package routes
 
 import (
 	"github.com/Wei-Shaw/sub2api/internal/handler"
+	"github.com/Wei-Shaw/sub2api/internal/plugin/promptanalytics"
 	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -13,6 +14,7 @@ func RegisterAdminRoutes(
 	v1 *gin.RouterGroup,
 	h *handler.Handlers,
 	adminAuth middleware.AdminAuthMiddleware,
+	promptAnalyticsHandler *promptanalytics.Handler,
 ) {
 	admin := v1.Group("/admin")
 	admin.Use(gin.HandlerFunc(adminAuth))
@@ -87,6 +89,9 @@ func RegisterAdminRoutes(
 
 		// 定时测试计划
 		registerScheduledTestRoutes(admin, h)
+
+		// 提示词分析（词云）
+		registerPromptAnalyticsRoutes(admin, promptAnalyticsHandler)
 	}
 }
 
@@ -565,5 +570,15 @@ func registerTLSFingerprintProfileRoutes(admin *gin.RouterGroup, h *handler.Hand
 		profiles.POST("", h.Admin.TLSFingerprintProfile.Create)
 		profiles.PUT("/:id", h.Admin.TLSFingerprintProfile.Update)
 		profiles.DELETE("/:id", h.Admin.TLSFingerprintProfile.Delete)
+	}
+}
+
+func registerPromptAnalyticsRoutes(admin *gin.RouterGroup, h *promptanalytics.Handler) {
+	if h == nil {
+		return
+	}
+	pa := admin.Group("/prompt-analytics")
+	{
+		pa.GET("/top-keywords", h.GetTopKeywords)
 	}
 }

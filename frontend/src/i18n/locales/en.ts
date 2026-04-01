@@ -341,6 +341,7 @@ export default {
     redeemCodes: 'Redeem Codes',
     ops: 'Ops',
     promoCodes: 'Promo Codes',
+    promptAnalytics: 'Prompt Analytics',
     settings: 'Settings',
     myAccount: 'My Account',
     lightMode: 'Light Mode',
@@ -1438,6 +1439,10 @@ export default {
       failedToLoadBalanceHistory: 'Failed to load balance history',
       createdAt: 'Created',
       totalRecharged: 'Total Recharged',
+      // Usage Stats
+      viewStats: 'View Stats',
+      usageStatistics: 'Usage Statistics',
+      last30DaysUsage: 'Last 30 days usage statistics (based on actual usage days)',
       roles: {
         admin: 'Admin',
         user: 'User'
@@ -2864,6 +2869,27 @@ export default {
       maxResultsTooltipRange: 'Recommended range: usually 20 to 200. Use 20-50 when you only care about recent health status, or 100-200 if you want a longer trend history.',
       autoRecover: 'Auto Recover',
       autoRecoverHelp: 'Automatically recover account from error/rate-limited state on successful test'
+    },
+
+    // Prompt Analytics
+    promptAnalytics: {
+      title: 'Prompt Analytics',
+      description: 'Keyword statistics extracted from user prompts',
+      wordCloud: 'Word Cloud',
+      topKeywords: 'Top Keywords',
+      period: 'Period',
+      globalView: 'Global View',
+      userView: 'User View',
+      noData: 'No keyword data yet. Keywords are sampled from user prompts.',
+      refresh: 'Refresh',
+      limit: 'Show Top',
+      userId: 'User ID',
+      userIdPlaceholder: 'Filter by user ID (leave blank for global)',
+      rank: 'Rank',
+      keyword: 'Keyword',
+      count: 'Count',
+      currentPeriod: 'Current Period',
+      allTime: 'All Time'
     },
 
     // Proxies

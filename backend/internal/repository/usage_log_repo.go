@@ -3495,12 +3495,24 @@ func (r *usageLogRepository) GetUpstreamEndpointStatsWithFilters(ctx context.Con
 
 // GetAccountUsageStats returns comprehensive usage statistics for an account over a time range
 func (r *usageLogRepository) GetAccountUsageStats(ctx context.Context, accountID int64, startTime, endTime time.Time) (resp *AccountUsageStatsResponse, err error) {
+	return r.getEntityUsageStats(ctx, "account_id", accountID, startTime, endTime)
+}
+
+// GetUserUsageStats returns comprehensive usage statistics for a user over a time range
+func (r *usageLogRepository) GetUserUsageStats(ctx context.Context, userID int64, startTime, endTime time.Time) (resp *AccountUsageStatsResponse, err error) {
+	return r.getEntityUsageStats(ctx, "user_id", userID, startTime, endTime)
+}
+
+// getEntityUsageStats returns comprehensive usage statistics for an entity (account or user) over a time range.
+// column must be either "account_id" or "user_id" (controlled internally, not user input).
+func (r *usageLogRepository) getEntityUsageStats(ctx context.Context, column string, entityID int64, startTime, endTime time.Time) (resp *AccountUsageStatsResponse, err error) {
 	daysCount := int(endTime.Sub(startTime).Hours()/24) + 1
 	if daysCount <= 0 {
 		daysCount = 30
 	}
 
-	query := `
+	// #nosec G201 -- column is controlled internally, only "account_id" or "user_id"
+	query := fmt.Sprintf(`
 		SELECT
 			TO_CHAR(created_at, 'YYYY-MM-DD') as date,
 			COUNT(*) as requests,
@@ -3509,12 +3521,12 @@ func (r *usageLogRepository) GetAccountUsageStats(ctx context.Context, accountID
 			COALESCE(SUM(total_cost * COALESCE(account_rate_multiplier, 1)), 0) as actual_cost,
 			COALESCE(SUM(actual_cost), 0) as user_cost
 		FROM usage_logs
-		WHERE account_id = $1 AND created_at >= $2 AND created_at < $3
+		WHERE %s = $1 AND created_at >= $2 AND created_at < $3
 		GROUP BY date
 		ORDER BY date ASC
-	`
+	`, column)
 
-	rows, err := r.sql.QueryContext(ctx, query, accountID, startTime, endTime)
+	rows, err := r.sql.QueryContext(ctx, query, entityID, startTime, endTime)
 	if err != nil {
 		return nil, err
 	}
@@ -3578,9 +3590,10 @@ func (r *usageLogRepository) GetAccountUsageStats(ctx context.Context, accountID
 		actualDaysUsed = 1
 	}
 
-	avgQuery := "SELECT COALESCE(AVG(duration_ms), 0) as avg_duration_ms FROM usage_logs WHERE account_id = $1 AND created_at >= $2 AND created_at < $3"
+	// #nosec G201 -- column is controlled internally
+	avgQuery := fmt.Sprintf("SELECT COALESCE(AVG(duration_ms), 0) as avg_duration_ms FROM usage_logs WHERE %s = $1 AND created_at >= $2 AND created_at < $3", column)
 	var avgDuration float64
-	if err := scanSingleRow(ctx, r.sql, avgQuery, []any{accountID, startTime, endTime}, &avgDuration); err != nil {
+	if err := scanSingleRow(ctx, r.sql, avgQuery, []any{entityID, startTime, endTime}, &avgDuration); err != nil {
 		return nil, err
 	}
 
@@ -3651,18 +3664,26 @@ func (r *usageLogRepository) GetAccountUsageStats(ctx context.Context, accountID
 		}
 	}
 
-	models, err := r.GetModelStatsWithFilters(ctx, startTime, endTime, 0, 0, accountID, 0, nil, nil, nil)
+	// Build model/endpoint stats – pass the correct column filter
+	var filterUserID, filterAccountID int64
+	if column == "user_id" {
+		filterUserID = entityID
+	} else {
+		filterAccountID = entityID
+	}
+
+	models, err := r.GetModelStatsWithFilters(ctx, startTime, endTime, filterUserID, 0, filterAccountID, 0, nil, nil, nil)
 	if err != nil {
 		models = []ModelStat{}
 	}
-	endpoints, endpointErr := r.GetEndpointStatsWithFilters(ctx, startTime, endTime, 0, 0, accountID, 0, "", nil, nil, nil)
+	endpoints, endpointErr := r.GetEndpointStatsWithFilters(ctx, startTime, endTime, filterUserID, 0, filterAccountID, 0, "", nil, nil, nil)
 	if endpointErr != nil {
-		logger.LegacyPrintf("repository.usage_log", "GetEndpointStatsWithFilters failed in GetAccountUsageStats: %v", endpointErr)
+		logger.LegacyPrintf("repository.usage_log", "GetEndpointStatsWithFilters failed in getEntityUsageStats(%s=%d): %v", column, entityID, endpointErr)
 		endpoints = []EndpointStat{}
 	}
-	upstreamEndpoints, upstreamEndpointErr := r.GetUpstreamEndpointStatsWithFilters(ctx, startTime, endTime, 0, 0, accountID, 0, "", nil, nil, nil)
+	upstreamEndpoints, upstreamEndpointErr := r.GetUpstreamEndpointStatsWithFilters(ctx, startTime, endTime, filterUserID, 0, filterAccountID, 0, "", nil, nil, nil)
 	if upstreamEndpointErr != nil {
-		logger.LegacyPrintf("repository.usage_log", "GetUpstreamEndpointStatsWithFilters failed in GetAccountUsageStats: %v", upstreamEndpointErr)
+		logger.LegacyPrintf("repository.usage_log", "GetUpstreamEndpointStatsWithFilters failed in getEntityUsageStats(%s=%d): %v", column, entityID, upstreamEndpointErr)
 		upstreamEndpoints = []EndpointStat{}
 	}
 

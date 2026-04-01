@@ -20,8 +20,8 @@ type UserWithConcurrency struct {
 
 // UserHandler handles admin user management
 type UserHandler struct {
-	adminService       service.AdminService
-	concurrencyService *service.ConcurrencyService
+	adminService        service.AdminService
+	concurrencyService  *service.ConcurrencyService
 }
 
 // NewUserHandler creates a new admin user handler
@@ -317,9 +317,14 @@ func (h *UserHandler) GetUserUsage(c *gin.Context) {
 		return
 	}
 
-	period := c.DefaultQuery("period", "month")
+	days := 30
+	if daysStr := c.Query("days"); daysStr != "" {
+		if d, err := strconv.Atoi(daysStr); err == nil && d > 0 && d <= 90 {
+			days = d
+		}
+	}
 
-	stats, err := h.adminService.GetUserUsageStats(c.Request.Context(), userID, period)
+	stats, err := h.adminService.GetUserUsageStats(c.Request.Context(), userID, days)
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return

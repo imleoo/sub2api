@@ -454,6 +454,18 @@ func (w *opsCaptureWriter) WriteString(s string) (int, error) {
 
 // OpsErrorLoggerMiddleware records error responses (status >= 400) into ops_error_logs.
 //
+// GetOpsRequestBody retrieves the pre-parsed request body stored by OpsErrorLoggerMiddleware
+// (via setOpsRequestContext). Returns the raw bytes and true if present, else nil and false.
+// This allows downstream plugins to access the body without re-reading the stream.
+func GetOpsRequestBody(c *gin.Context) ([]byte, bool) {
+	v, ok := c.Get(opsRequestBodyKey)
+	if !ok {
+		return nil, false
+	}
+	b, ok := v.([]byte)
+	return b, ok
+}
+
 // Notes:
 // - It buffers response bodies only when status >= 400 to avoid overhead for successful traffic.
 // - Streaming errors after the response has started (SSE) may still need explicit logging.

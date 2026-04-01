@@ -136,7 +136,7 @@ func (s *stubAdminService) GetUserAPIKeys(ctx context.Context, userID int64, pag
 	return s.apiKeys, int64(len(s.apiKeys)), nil
 }
 
-func (s *stubAdminService) GetUserUsageStats(ctx context.Context, userID int64, period string) (any, error) {
+func (s *stubAdminService) GetUserUsageStats(ctx context.Context, userID int64, days int) (any, error) {
 	return map[string]any{"user_id": userID}, nil
 }
 

@@ -567,6 +567,15 @@
                 {{ t('admin.users.balanceHistory') }}
               </button>
 
+              <!-- View Stats -->
+              <button
+                @click="handleViewStats(user); closeActionMenu()"
+                class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
+              >
+                <Icon name="chartBar" size="sm" class="text-blue-500" :stroke-width="2" />
+                {{ t('admin.users.viewStats') }}
+              </button>
+
               <div class="my-1 border-t border-gray-100 dark:border-dark-700"></div>
 
               <!-- Delete (not for admin) -->
@@ -593,6 +602,7 @@
     <UserBalanceHistoryModal :show="showBalanceHistoryModal" :user="balanceHistoryUser" @close="closeBalanceHistoryModal" @deposit="handleDepositFromHistory" @withdraw="handleWithdrawFromHistory" />
     <GroupReplaceModal :show="showGroupReplaceModal" :user="groupReplaceUser" :old-group="groupReplaceOldGroup" :all-groups="allGroups" @close="closeGroupReplaceModal" @success="loadUsers" />
     <UserAttributesConfigModal :show="showAttributesModal" @close="handleAttributesModalClose" />
+    <UserStatsModal :show="showStatsModal" :user="statsUser" @close="closeStatsModal" />
   </AppLayout>
 </template>
 
@@ -626,6 +636,7 @@ import UserAllowedGroupsModal from '@/components/admin/user/UserAllowedGroupsMod
 import UserBalanceModal from '@/components/admin/user/UserBalanceModal.vue'
 import UserBalanceHistoryModal from '@/components/admin/user/UserBalanceHistoryModal.vue'
 import GroupReplaceModal from '@/components/admin/user/GroupReplaceModal.vue'
+import UserStatsModal from '@/components/admin/user/UserStatsModal.vue'
 
 const appStore = useAppStore()
 
@@ -1332,6 +1343,20 @@ const handleBalanceHistory = (user: AdminUser) => {
 const closeBalanceHistoryModal = () => {
   showBalanceHistoryModal.value = false
   balanceHistoryUser.value = null
+}
+
+// Usage Stats modal state
+const showStatsModal = ref(false)
+const statsUser = ref<AdminUser | null>(null)
+
+const handleViewStats = (user: AdminUser) => {
+  statsUser.value = user
+  showStatsModal.value = true
+}
+
+const closeStatsModal = () => {
+  showStatsModal.value = false
+  statsUser.value = null
 }
 
 // Handle deposit from balance history modal

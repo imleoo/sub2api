@@ -374,6 +374,18 @@ const routes: RouteRecordRaw[] = [
       descriptionKey: 'admin.usage.description'
     }
   },
+  {
+    path: '/admin/prompt-analytics',
+    name: 'AdminPromptAnalytics',
+    component: () => import('@/views/admin/PromptAnalyticsView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Prompt Analytics',
+      titleKey: 'admin.promptAnalytics.title',
+      descriptionKey: 'admin.promptAnalytics.description'
+    }
+  },
 
   // ==================== 404 Not Found ====================
   {
