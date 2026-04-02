@@ -205,7 +205,7 @@
             <table class="w-full text-sm">
               <thead class="sticky top-0 bg-gray-50 dark:bg-dark-800">
                 <tr class="text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  <th class="px-6 py-3 w-12">{{ t('admin.promptAnalytics.rank') }}</th>
+                  <th class="w-16 whitespace-nowrap px-6 py-3">{{ t('admin.promptAnalytics.rank') }}</th>
                   <th class="px-4 py-3">{{ t('admin.promptAnalytics.keyword') }}</th>
                   <th class="px-6 py-3 text-right">{{ t('admin.promptAnalytics.count') }}</th>
                 </tr>
@@ -216,7 +216,7 @@
                   :key="item.keyword"
                   class="group transition-colors hover:bg-gray-50 dark:hover:bg-dark-800/50"
                 >
-                  <td class="px-6 py-3">
+                  <td class="w-16 px-6 py-3">
                     <span
                       class="flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold"
                       :class="rankClass(index)"
@@ -226,7 +226,7 @@
                   </td>
                   <td class="px-4 py-3">
                     <span
-                      class="inline-block max-w-[200px] truncate rounded-full px-2.5 py-0.5 text-xs font-medium"
+                      class="inline-block max-w-[200px] truncate whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium"
                       :style="keywordBadgeStyle(index, item.count)"
                     >
                       {{ item.keyword }}
@@ -370,6 +370,8 @@ function renderWordCloud() {
       cursor: default;
       transition: transform 0.15s;
       line-height: 1.3;
+      white-space: nowrap;
+      word-break: keep-all;
     `
     span.title = `${item.keyword}: ${item.count}`
     span.addEventListener('mouseenter', () => { span.style.transform = 'scale(1.15)' })
@@ -403,6 +405,8 @@ async function loadData() {
     keywords.value = []
   } finally {
     loading.value = false
+    await nextTick()
+    renderWordCloud()
   }
 }
 

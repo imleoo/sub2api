@@ -81,23 +81,27 @@ func (p *Plugin) Middleware() gin.HandlerFunc {
 		c.Next()
 
 		// Only sample a fraction of requests.
-		if rand.Float64() > p.cfg.SamplingRate {
+		sample := rand.Float64()
+		if sample > p.cfg.SamplingRate {
 			return
 		}
 
 		// Retrieve the pre-buffered body from context (set by OpsErrorLoggerMiddleware).
 		body, ok := getOpsRequestBody(c)
 		if !ok || len(body) == 0 {
+			slog.Info("promptanalytics: no body in context", "path", c.Request.URL.Path)
 			return
 		}
 
 		// Extract IDs from context (set during API key auth).
 		apiKey, ok2 := middleware.GetAPIKeyFromContext(c)
 		if !ok2 || apiKey == nil {
+			slog.Info("promptanalytics: no API key in context", "path", c.Request.URL.Path)
 			return
 		}
 		userID := apiKey.UserID
 		if userID == 0 {
+			slog.Info("promptanalytics: user ID is 0", "path", c.Request.URL.Path)
 			return
 		}
 		apiKeyID := apiKey.ID
@@ -105,6 +109,8 @@ func (p *Plugin) Middleware() gin.HandlerFunc {
 		if apiKey.GroupID != nil {
 			groupID = *apiKey.GroupID
 		}
+
+		slog.Info("promptanalytics: enqueueing task", "user_id", userID, "body_len", len(body), "sample", sample)
 
 		// Non-blocking enqueue – drop silently if queue is full.
 		select {
@@ -134,8 +140,11 @@ func (p *Plugin) worker() {
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
+		slog.Info("promptanalytics: flushing batch", "count", len(batch))
 		if err := p.repo.UpsertKeywords(ctx, batch); err != nil {
 			slog.Warn("promptanalytics: failed to upsert keywords", "error", err)
+		} else {
+			slog.Info("promptanalytics: upserted keywords", "count", len(batch))
 		}
 		batch = batch[:0]
 	}
@@ -150,6 +159,7 @@ func (p *Plugin) worker() {
 			// Refresh period at process time (not enqueue time).
 			period = currentPeriod()
 			keywords := p.extractor.ExtractKeywords(t.body)
+			slog.Info("promptanalytics: extracted keywords", "count", len(keywords), "keywords", keywords)
 			for _, kw := range keywords {
 				batch = append(batch, KeywordRecord{
 					UserID:   t.userID,

@@ -87,14 +87,16 @@ require_port_free() {
 
   if command -v lsof >/dev/null 2>&1; then
     if lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then
-      die "${label} 端口 ${port} 已被占用，请先释放它或通过环境变量改端口。"
+      echo "${label} 端口 ${port} 已被占用，正在自动释放..."
+      kill_port "$port" "$label"
     fi
     return 0
   fi
 
   if command -v nc >/dev/null 2>&1; then
     if nc -z 127.0.0.1 "$port" >/dev/null 2>&1; then
-      die "${label} 端口 ${port} 已被占用，请先释放它或通过环境变量改端口。"
+      echo "${label} 端口 ${port} 已被占用，但当前环境无法自动释放（缺少 lsof），请手动释放或通过环境变量改端口。"
+      exit 1
     fi
   fi
 }
@@ -428,12 +430,32 @@ logs() {
   esac
 }
 
+kill_port() {
+  local port="$1"
+  local label="$2"
+
+  if command -v lsof >/dev/null 2>&1; then
+    local pids
+    pids=$(lsof -t -i:"$port" 2>/dev/null) || true
+    if [[ -n "$pids" ]]; then
+      echo "正在停止 ${label} 端口 ${port} 上的进程: $pids"
+      kill -9 $pids 2>/dev/null || true
+      sleep 1
+    fi
+  fi
+}
+
 down() {
   initialize_env
 
   stop_pid_file "$TAIL_PID_FILE"
   stop_pid_file "$FRONTEND_PID_FILE"
   stop_pid_file "$BACKEND_PID_FILE"
+
+  # 强制释放端口，确保其他地方启动的进程也能被停止
+  kill_port "$BACKEND_PORT" "后端"
+  kill_port "$FRONTEND_PORT" "前端"
+
   echo "本地调试进程已停止。"
 }
 

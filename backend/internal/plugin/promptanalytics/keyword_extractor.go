@@ -124,16 +124,17 @@ func (e *KeywordExtractor) tokenize(text string) []string {
 		if isAllDigits(tok) {
 			continue
 		}
-		// For CJK characters, we extract 2-gram pairs to form meaningful units.
+		// For CJK text, use non-overlapping 2-char terms to avoid cross-boundary noise
+		// like “经网/器学”, and keep short full terms when useful.
 		if isCJK([]rune(tok)[0]) {
-			cjkPairs := extractCJKPairs(tok)
-			for _, pair := range cjkPairs {
+			terms := extractCJKTerms(tok)
+			for _, term := range terms {
 				if len(result) >= e.maxKeywords {
 					break
 				}
-				if !seen[pair] && !stopWords[pair] {
-					seen[pair] = true
-					result = append(result, pair)
+				if !seen[term] && !stopWords[term] {
+					seen[term] = true
+					result = append(result, term)
 				}
 			}
 		} else {
@@ -159,15 +160,26 @@ func isCJK(r rune) bool {
 	return (r >= 0x4e00 && r <= 0x9fff) || (r >= 0x3400 && r <= 0x4dbf)
 }
 
-// extractCJKPairs extracts consecutive 2-gram pairs from a CJK string.
-func extractCJKPairs(s string) []string {
+// extractCJKTerms extracts CJK terms using a conservative strategy:
+//   - for short phrases (2~4 chars), keep the whole phrase;
+//   - split long phrases into non-overlapping 2-char terms.
+// This avoids overlapping cross-boundary fragments such as “经网/器学”.
+func extractCJKTerms(s string) []string {
 	runes := []rune(s)
-	if len(runes) < 2 {
+	n := len(runes)
+	if n < 2 {
 		return nil
 	}
-	pairs := make([]string, 0, len(runes)-1)
-	for i := 0; i < len(runes)-1; i++ {
-		pairs = append(pairs, string(runes[i:i+2]))
+
+	terms := make([]string, 0, n/2+1)
+
+	if n >= 2 && n <= 4 {
+		terms = append(terms, s)
 	}
-	return pairs
+
+	for i := 0; i+1 < n; i += 2 {
+		terms = append(terms, string(runes[i:i+2]))
+	}
+
+	return terms
 }
