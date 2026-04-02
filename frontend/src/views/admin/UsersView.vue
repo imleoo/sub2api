@@ -249,8 +249,16 @@
             </div>
           </template>
 
-          <template #cell-username="{ value }">
-            <span class="text-sm text-gray-700 dark:text-gray-300">{{ value || '-' }}</span>
+          <template #cell-username="{ value, row }">
+            <button
+              v-if="value"
+              class="text-sm font-medium text-primary-600 underline decoration-dashed decoration-primary-300 underline-offset-4 transition-colors hover:text-primary-700 dark:text-primary-400 dark:decoration-primary-500/50 dark:hover:text-primary-300"
+              :title="t('admin.users.viewStats')"
+              @click="handleViewStats(row)"
+            >
+              {{ value }}
+            </button>
+            <span v-else class="text-sm text-gray-400">-</span>
           </template>
 
           <template #cell-notes="{ value }">
