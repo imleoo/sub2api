@@ -20,14 +20,14 @@ FRONTEND_HOST="${FRONTEND_HOST:-127.0.0.1}"
 FRONTEND_PORT="${FRONTEND_PORT:-3091}"
 
 DATABASE_HOST="${DATABASE_HOST:-127.0.0.1}"
-DATABASE_PORT="${DATABASE_PORT:-5432}"
-DATABASE_USER="${DATABASE_USER:-sub2api}"
-DATABASE_PASSWORD="${DATABASE_PASSWORD:-sub2api}"
-DATABASE_DBNAME="${DATABASE_DBNAME:-sub2api}"
+DATABASE_PORT="${DATABASE_PORT:-59117}"
+DATABASE_USER="${DATABASE_USER:-postgres}"
+DATABASE_PASSWORD="${DATABASE_PASSWORD:-postgres}"
+DATABASE_DBNAME="${DATABASE_DBNAME:-uds}"
 DATABASE_SSLMODE="${DATABASE_SSLMODE:-disable}"
 
 REDIS_HOST="${REDIS_HOST:-127.0.0.1}"
-REDIS_PORT="${REDIS_PORT:-6379}"
+REDIS_PORT="${REDIS_PORT:-59116}"
 REDIS_PASSWORD="${REDIS_PASSWORD:-}"
 REDIS_DB="${REDIS_DB:-0}"
 ADMIN_EMAIL="${ADMIN_EMAIL:-admin@sub2api.local}"
@@ -50,7 +50,7 @@ detect_docker_credentials() {
   local postgres_container=""
   local redis_container=""
 
-  for candidate in sub2api-postgres-dev sub2api-postgres; do
+  for candidate in uds-postgres-stage uds-postgres sub2api-postgres-dev sub2api-postgres; do
     if docker inspect "$candidate" >/dev/null 2>&1; then
       postgres_container="$candidate"
       break
@@ -67,7 +67,7 @@ detect_docker_credentials() {
     [[ -n "$value" ]] && DATABASE_DBNAME="$value"
   fi
 
-  for candidate in sub2api-redis-dev sub2api-redis; do
+  for candidate in uds-redis-stage uds-redis sub2api-redis-dev sub2api-redis; do
     if docker inspect "$candidate" >/dev/null 2>&1; then
       redis_container="$candidate"
       break
@@ -126,11 +126,29 @@ initialize_env() {
   mkdir -p "$DEV_DIR"
   mkdir -p "$DATA_DIR"
 
+  # 保存用户显式设置的端口（通过环境变量传入）
+  local user_db_port="${DATABASE_PORT:-}"
+  local user_redis_port="${REDIS_PORT:-}"
+
   if [[ -f "$ENV_FILE" ]]; then
     # shellcheck disable=SC1090
     set -a
     source "$ENV_FILE"
     set +a
+  fi
+
+  # 端口优先级：用户显式设置 > 脚本默认值 > ENV_FILE 缓存
+  # 如果当前值是常见的默认端口（5432/6379），强制使用脚本定义的新默认值
+  if [[ "$user_db_port" != "" ]]; then
+    DATABASE_PORT="$user_db_port"
+  elif [[ "${DATABASE_PORT:-}" == "5432" ]]; then
+    DATABASE_PORT="59117"
+  fi
+
+  if [[ "$user_redis_port" != "" ]]; then
+    REDIS_PORT="$user_redis_port"
+  elif [[ "${REDIS_PORT:-}" == "6379" ]]; then
+    REDIS_PORT="59116"
   fi
 
   if command -v docker >/dev/null 2>&1; then
@@ -502,14 +520,16 @@ main() {
 
 默认会连接你本机已有的 PostgreSQL / Redis 容器：
   DATABASE_HOST=127.0.0.1
-  DATABASE_PORT=5432
+  DATABASE_PORT=59117
   REDIS_HOST=127.0.0.1
-  REDIS_PORT=6379
+  REDIS_PORT=59116
 
 可用环境变量:
-  BACKEND_PORT=8082
-  FRONTEND_PORT=3002
-  DATABASE_PASSWORD=your_password_here
+  BACKEND_PORT=8091
+  FRONTEND_PORT=3091
+  DATABASE_USER=postgres
+  DATABASE_PASSWORD=postgres
+  DATABASE_DBNAME=uds
   REDIS_PASSWORD=
   START_FRONTEND=true
 EOF
