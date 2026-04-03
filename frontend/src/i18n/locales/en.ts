@@ -1994,6 +1994,7 @@ export default {
       privacyAntigravityFailed: 'Privacy setting failed',
       setPrivacy: 'Set Privacy',
       subscriptionAbnormal: 'Abnormal',
+      subscriptionExpires: 'Expires',
       // Capacity status tooltips
       capacity: {
         windowCost: {
