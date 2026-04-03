@@ -3,6 +3,8 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/service"
@@ -151,6 +153,49 @@ func (r *scheduledTestResultRepository) PruneOldResults(ctx context.Context, pla
 		)
 	`, planID, keepCount)
 	return err
+}
+
+// GetLatestResultsByAccountIDs returns the latest test result for each model across given accounts.
+func (r *scheduledTestResultRepository) GetLatestResultsByAccountIDs(ctx context.Context, accountIDs []int64) (map[string]*service.ModelTestStatus, error) {
+	if len(accountIDs) == 0 {
+		return map[string]*service.ModelTestStatus{}, nil
+	}
+
+	// Build placeholders for IN clause
+	placeholders := make([]string, len(accountIDs))
+	args := make([]any, len(accountIDs))
+	for i, id := range accountIDs {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+
+	query := fmt.Sprintf(`
+		SELECT DISTINCT ON (p.model_id)
+			p.model_id,
+			r.status,
+			r.latency_ms,
+			r.finished_at
+		FROM scheduled_test_plans p
+		JOIN scheduled_test_results r ON r.plan_id = p.id
+		WHERE p.account_id IN (%s)
+		ORDER BY p.model_id, r.finished_at DESC
+	`, strings.Join(placeholders, ", "))
+
+	rows, err := r.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	result := make(map[string]*service.ModelTestStatus)
+	for rows.Next() {
+		var m service.ModelTestStatus
+		if err := rows.Scan(&m.ModelID, &m.Status, &m.LatencyMs, &m.FinishedAt); err != nil {
+			return nil, err
+		}
+		result[m.ModelID] = &m
+	}
+	return result, rows.Err()
 }
 
 // --- scan helpers ---

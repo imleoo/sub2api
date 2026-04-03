@@ -5243,6 +5243,8 @@ export default {
     availability: '可用性',
     available: '可用',
     unavailable: '不可用',
+    testPassed: '测试通过',
+    testFailed: '测试失败',
     inputPrice: '输入价格 (/1K)',
     outputPrice: '输出价格 (/1K)',
     contextWindow: '上下文窗口',

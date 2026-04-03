@@ -4,6 +4,13 @@
 
 import { apiClient } from './client'
 
+export interface ModelTestStatus {
+  model_id: string
+  status: string
+  latency_ms: number
+  finished_at: string | null
+}
+
 export interface ModelInfo {
   id: string
   provider: string
@@ -13,6 +20,7 @@ export interface ModelInfo {
   supports_prompt_caching: boolean
   long_context_input_token_threshold?: number
   is_available: boolean
+  test_status?: ModelTestStatus
 }
 
 export interface ModelsResponse {

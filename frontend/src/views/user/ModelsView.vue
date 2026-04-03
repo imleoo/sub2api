@@ -192,24 +192,52 @@
 
                 <!-- Availability Status -->
                 <td class="px-4 py-3.5 text-center">
-                  <span
-                    v-if="model.is_available"
-                    class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                  >
-                    <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                    </svg>
-                    {{ t('models.available') }}
-                  </span>
-                  <span
-                    v-else
-                    class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-                  >
-                    <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                    </svg>
-                    {{ t('models.unavailable') }}
-                  </span>
+                  <div class="flex flex-col items-center gap-1">
+                    <!-- Availability Badge -->
+                    <span
+                      v-if="model.is_available"
+                      class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                    >
+                      <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                      </svg>
+                      {{ t('models.available') }}
+                    </span>
+                    <span
+                      v-else
+                      class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+                    >
+                      <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                      </svg>
+                      {{ t('models.unavailable') }}
+                    </span>
+                    <!-- Test Status Badge (only if available and has test result) -->
+                    <span
+                      v-if="model.is_available && model.test_status"
+                      :class="[
+                        'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium',
+                        model.test_status.status === 'success'
+                          ? 'bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400'
+                          : model.test_status.status === 'failed'
+                            ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'
+                            : 'bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+                      ]"
+                    >
+                      <span
+                        class="h-1.5 w-1.5 rounded-full"
+                        :class="[
+                          model.test_status.status === 'success'
+                            ? 'bg-green-500'
+                            : model.test_status.status === 'failed'
+                              ? 'bg-red-500'
+                              : 'bg-gray-400'
+                        ]"
+                      ></span>
+                      {{ model.test_status.status === 'success' ? t('models.testPassed') : model.test_status.status === 'failed' ? t('models.testFailed') : model.test_status.status }}
+                      <span v-if="model.test_status.latency_ms" class="opacity-70">{{ model.test_status.latency_ms }}ms</span>
+                    </span>
+                  </div>
                 </td>
 
                 <!-- Input Price -->

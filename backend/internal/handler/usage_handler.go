@@ -18,17 +18,27 @@ import (
 
 // UsageHandler handles usage-related requests
 type UsageHandler struct {
-	usageService  *service.UsageService
-	apiKeyService *service.APIKeyService
-	pricingService *service.PricingService
+	usageService       *service.UsageService
+	apiKeyService      *service.APIKeyService
+	pricingService     *service.PricingService
+	testResultRepo     service.ScheduledTestResultRepository
+	groupRepo          service.GroupRepository
 }
 
 // NewUsageHandler creates a new UsageHandler
-func NewUsageHandler(usageService *service.UsageService, apiKeyService *service.APIKeyService, pricingService *service.PricingService) *UsageHandler {
+func NewUsageHandler(
+	usageService *service.UsageService,
+	apiKeyService *service.APIKeyService,
+	pricingService *service.PricingService,
+	testResultRepo service.ScheduledTestResultRepository,
+	groupRepo service.GroupRepository,
+) *UsageHandler {
 	return &UsageHandler{
-		usageService:  usageService,
-		apiKeyService: apiKeyService,
+		usageService:   usageService,
+		apiKeyService:  apiKeyService,
 		pricingService: pricingService,
+		testResultRepo: testResultRepo,
+		groupRepo:      groupRepo,
 	}
 }
 
@@ -430,12 +440,14 @@ func (h *UsageHandler) ListModels(c *gin.Context) {
 
 	// Get user's available groups to determine which platforms/models are accessible
 	availablePlatforms := make(map[string]bool)
+	var groupIDs []int64
 	if h.apiKeyService != nil {
 		groups, err := h.apiKeyService.GetAvailableGroups(c.Request.Context(), subject.UserID)
 		if err == nil {
 			for _, g := range groups {
 				if g.Status == service.StatusActive {
 					availablePlatforms[g.Platform] = true
+					groupIDs = append(groupIDs, g.ID)
 				}
 			}
 		}
@@ -457,18 +469,29 @@ func (h *UsageHandler) ListModels(c *gin.Context) {
 		}
 	}
 
+	// Get test results for user's available accounts
+	testStatusMap := make(map[string]*service.ModelTestStatus)
+	if h.testResultRepo != nil && h.groupRepo != nil && len(groupIDs) > 0 {
+		accountIDs, err := h.groupRepo.GetAccountIDsByGroupIDs(c.Request.Context(), groupIDs)
+		if err == nil && len(accountIDs) > 0 {
+			testStatusMap, _ = h.testResultRepo.GetLatestResultsByAccountIDs(c.Request.Context(), accountIDs)
+		}
+	}
+
 	models := h.pricingService.ListAllModels()
 
-	// Enrich each model with availability status
+	// Enrich each model with availability and test status
 	type ModelWithAvailability struct {
 		service.ModelInfo
-		IsAvailable bool `json:"is_available"`
+		IsAvailable bool                  `json:"is_available"`
+		TestStatus  *service.ModelTestStatus `json:"test_status,omitempty"`
 	}
 	enrichedModels := make([]ModelWithAvailability, 0, len(models))
 	for _, m := range models {
 		enrichedModels = append(enrichedModels, ModelWithAvailability{
 			ModelInfo:   m,
 			IsAvailable: availableProviders[m.LiteLLMProvider],
+			TestStatus:  testStatusMap[m.ID],
 		})
 	}
 

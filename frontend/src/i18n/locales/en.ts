@@ -5054,6 +5054,8 @@ export default {
     availability: 'Availability',
     available: 'Available',
     unavailable: 'Unavailable',
+    testPassed: 'Test Passed',
+    testFailed: 'Test Failed',
     inputPrice: 'Input Price (/1K)',
     outputPrice: 'Output Price (/1K)',
     contextWindow: 'Context Window',

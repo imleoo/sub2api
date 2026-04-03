@@ -44,9 +44,19 @@ type ScheduledTestPlanRepository interface {
 	UpdateAfterRun(ctx context.Context, id int64, lastRunAt time.Time, nextRunAt time.Time) error
 }
 
+// ModelTestStatus represents the latest test status for a model.
+type ModelTestStatus struct {
+	ModelID    string     `json:"model_id"`
+	Status     string     `json:"status"`
+	LatencyMs  int64      `json:"latency_ms"`
+	FinishedAt *time.Time `json:"finished_at"`
+}
+
 // ScheduledTestResultRepository defines the data access interface for test results.
 type ScheduledTestResultRepository interface {
 	Create(ctx context.Context, result *ScheduledTestResult) (*ScheduledTestResult, error)
 	ListByPlanID(ctx context.Context, planID int64, limit int) ([]*ScheduledTestResult, error)
 	PruneOldResults(ctx context.Context, planID int64, keepCount int) error
+	// GetLatestResultsByAccountIDs returns the latest test result for each model across given accounts.
+	GetLatestResultsByAccountIDs(ctx context.Context, accountIDs []int64) (map[string]*ModelTestStatus, error)
 }
