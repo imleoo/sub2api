@@ -353,7 +353,8 @@ export default {
     mySubscriptions: 'My Subscriptions',
     buySubscription: 'Recharge / Subscription',
     docs: 'Docs',
-    sora: 'Sora Studio'
+    sora: 'Sora Studio',
+    models: 'Models',
   },
 
   // Auth
@@ -5035,5 +5036,25 @@ export default {
     examplePrompt2: 'Drone aerial view, green aurora reflecting on a glacial lake in Iceland, slow push-in',
     examplePrompt3: 'Cyberpunk futuristic city, neon lights reflected in rain puddles, nightscape, cinematic colors',
     examplePrompt4: 'Chinese ink painting style, a small boat drifting among misty mountains and rivers, classical atmosphere'
-  }
+  },
+
+  // Models
+  models: {
+    title: 'Supported Models',
+    description: 'View all available AI models, pricing, and features',
+    refresh: 'Refresh',
+    modelsAvailable: 'models available',
+    searchPlaceholder: 'Search model name...',
+    allProviders: 'All Providers',
+    allModes: 'All Modes',
+    noResults: 'No matching models found',
+    showing: 'Showing {count} / {total} models',
+    modelName: 'Model Name',
+    provider: 'Provider',
+    inputPrice: 'Input Price (/1K)',
+    outputPrice: 'Output Price (/1K)',
+    contextWindow: 'Context Window',
+    features: 'Features',
+    promptCaching: 'Cache',
+  },
 }

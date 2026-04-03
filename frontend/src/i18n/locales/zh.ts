@@ -353,7 +353,8 @@ export default {
     mySubscriptions: '我的订阅',
     buySubscription: '充值/订阅',
     docs: '文档',
-    sora: 'Sora 创作'
+    sora: 'Sora 创作',
+    models: '模型列表',
   },
 
   // Auth
@@ -5224,5 +5225,25 @@ export default {
     examplePrompt2: '无人机航拍视角，冰岛极光下的冰川湖面反射绿色光芒，慢速推进',
     examplePrompt3: '赛博朋克风格的未来城市，霓虹灯倒映在雨后积水中，夜景，电影级色彩',
     examplePrompt4: '水墨画风格，一叶扁舟在山水间漂泊，薄雾缭绕，中国古典意境'
-  }
+  },
+
+  // 模型列表
+  models: {
+    title: '支持的模型',
+    description: '查看所有可用 AI 模型、定价及功能特性',
+    refresh: '刷新',
+    modelsAvailable: '个模型可用',
+    searchPlaceholder: '搜索模型名称...',
+    allProviders: '全部提供商',
+    allModes: '全部类型',
+    noResults: '未找到匹配的模型',
+    showing: '显示 {count} / {total} 个模型',
+    modelName: '模型名称',
+    provider: '提供商',
+    inputPrice: '输入价格 (/1K)',
+    outputPrice: '输出价格 (/1K)',
+    contextWindow: '上下文窗口',
+    features: '特性',
+    promptCaching: '缓存',
+  },
 }

@@ -68,6 +68,9 @@ func RegisterUserRoutes(
 			usage.POST("/dashboard/api-keys-usage", h.Usage.DashboardAPIKeysUsage)
 		}
 
+		// 模型列表（用户可见的全部模型 + 定价信息）
+		authenticated.GET("/models", h.Usage.ListModels)
+
 		// 公告（用户可见）
 		announcements := authenticated.Group("/announcements")
 		{

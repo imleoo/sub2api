@@ -467,6 +467,20 @@ const SoraIcon = {
     )
 }
 
+const ModelGridIcon = {
+  render: () =>
+    h(
+      'svg',
+      { fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor', 'stroke-width': '1.5' },
+      [
+        h('rect', { x: '3', y: '3', width: '7', height: '7', rx: '1.5' }),
+        h('rect', { x: '14', y: '3', width: '7', height: '7', rx: '1.5' }),
+        h('rect', { x: '3', y: '14', width: '7', height: '7', rx: '1.5' }),
+        h('rect', { x: '14', y: '14', width: '7', height: '7', rx: '1.5' }),
+      ]
+    )
+}
+
 const ChevronDoubleRightIcon = {
   render: () =>
     h(
@@ -507,6 +521,7 @@ const userNavItems = computed((): NavItem[] => {
   const items: NavItem[] = [
     { path: '/dashboard', label: t('nav.dashboard'), icon: DashboardIcon },
     { path: '/keys', label: t('nav.apiKeys'), icon: KeyIcon },
+    { path: '/models', label: t('nav.models'), icon: ModelGridIcon },
     { path: '/usage', label: t('nav.usage'), icon: ChartIcon, hideInSimpleMode: true },
     { path: '/subscriptions', label: t('nav.mySubscriptions'), icon: CreditCardIcon, hideInSimpleMode: true },
     ...(appStore.cachedPublicSettings?.sora_client_enabled

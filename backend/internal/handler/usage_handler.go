@@ -20,13 +20,15 @@ import (
 type UsageHandler struct {
 	usageService  *service.UsageService
 	apiKeyService *service.APIKeyService
+	pricingService *service.PricingService
 }
 
 // NewUsageHandler creates a new UsageHandler
-func NewUsageHandler(usageService *service.UsageService, apiKeyService *service.APIKeyService) *UsageHandler {
+func NewUsageHandler(usageService *service.UsageService, apiKeyService *service.APIKeyService, pricingService *service.PricingService) *UsageHandler {
 	return &UsageHandler{
 		usageService:  usageService,
 		apiKeyService: apiKeyService,
+		pricingService: pricingService,
 	}
 }
 
@@ -410,4 +412,18 @@ func (h *UsageHandler) DashboardAPIKeysUsage(c *gin.Context) {
 	}
 
 	response.Success(c, gin.H{"stats": stats})
+}
+
+// ListModels returns all available models with pricing info for the current user
+// GET /api/v1/models
+func (h *UsageHandler) ListModels(c *gin.Context) {
+	if h.pricingService == nil {
+		response.Success(c, gin.H{"models": []any{}, "total": 0})
+		return
+	}
+	models := h.pricingService.ListAllModels()
+	response.Success(c, gin.H{
+		"models": models,
+		"total":  len(models),
+	})
 }
