@@ -148,10 +148,10 @@
                   {{ t('models.availability') }}
                 </th>
                 <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  {{ t('models.inputPrice') }}
+                  {{ t('models.inputPrice') }}/M
                 </th>
                 <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  {{ t('models.outputPrice') }}
+                  {{ t('models.outputPrice') }}/M
                 </th>
                 <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                   {{ t('models.contextWindow') }}
@@ -380,7 +380,8 @@ async function loadData() {
   loading.value = true
   try {
     const res = await getModels()
-    allModels.value = res.models ?? []
+    // Filter models based on version requirements
+    allModels.value = (res.models ?? []).filter(shouldShowModel)
   } catch (err) {
     console.error('[ModelsView] Failed to load models:', err)
     allModels.value = []
@@ -389,13 +390,168 @@ async function loadData() {
   }
 }
 
+/**
+ * Determine if a model should be shown to users based on version requirements:
+ * - Claude: 4.5+
+ * - GPT: 5.2+
+ * - Gemini: 3+
+ * - GLM: 5+
+ * - Others: hidden
+ * - Unavailable models: hidden
+ */
+function shouldShowModel(model: ModelInfo): boolean {
+  // Hide unavailable models
+  if (!model.is_available) {
+    return false
+  }
+
+  const id = model.id.toLowerCase()
+  const provider = model.provider?.toLowerCase() || ''
+
+  // Claude models (anthropic provider or model id starts with claude)
+  if (provider === 'anthropic' || id.startsWith('claude-')) {
+    return isClaudeVersionAtLeast(id, 4.5)
+  }
+
+  // GPT models (openai provider or model id starts with gpt-/o1/o3/o4)
+  if (provider === 'openai' || id.startsWith('gpt-') || id.match(/^o[1-4]/)) {
+    return isGPTVersionAtLeast(id, 5.2)
+  }
+
+  // Gemini models (google provider or model id starts with gemini)
+  if (provider === 'google' || id.startsWith('gemini-')) {
+    return isGeminiVersionAtLeast(id, 3)
+  }
+
+  // GLM models (zhipu provider or model id starts with glm)
+  if (provider === 'zhipu' || id.startsWith('glm-')) {
+    return isGLMVersionAtLeast(id, 5)
+  }
+
+  // Other providers: hidden
+  return false
+}
+
+/**
+ * Parse Claude model version from id
+ * Returns version number (e.g., 4.5, 4.6, 3.5) or 0 if cannot parse
+ */
+function parseClaudeVersion(id: string): number {
+  // claude-sonnet-4-5-20250929 -> 4.5
+  // claude-sonnet-4-6 -> 4.6
+  // claude-opus-4-6 -> 4.6
+  // claude-3-5-sonnet-20241022 -> 3.5
+  // claude-3-opus-20240229 -> 3.0
+
+  // Match pattern: claude-{major}-{minor}-{...} or claude-{family}-{major}-{minor}
+  const match = id.match(/claude-(?:\w+-)?(\d+)(?:[-.](\d+))?/)
+  if (match) {
+    const major = parseInt(match[1], 10)
+    const minor = match[2] ? parseInt(match[2], 10) : 0
+    return major + minor / 10
+  }
+  return 0
+}
+
+function isClaudeVersionAtLeast(id: string, minVersion: number): boolean {
+  return parseClaudeVersion(id) >= minVersion
+}
+
+/**
+ * Parse GPT model version from id
+ * Returns version number (e.g., 5.2, 5.4) or 0 if cannot parse
+ */
+function parseGPTVersion(id: string): number {
+  // gpt-5.2 -> 5.2
+  // gpt-5.4 -> 5.4
+  // gpt-5 -> 5.0
+  // gpt-4o -> 4.0 (o series counted as 4.x)
+  // o1, o3, o4-mini -> treat as legacy/o-series, return 0
+
+  // Match gpt-{major}.{minor} or gpt-{major}
+  const gptMatch = id.match(/gpt-(\d+)(?:\.(\d+))?/)
+  if (gptMatch) {
+    const major = parseInt(gptMatch[1], 10)
+    const minor = gptMatch[2] ? parseInt(gptMatch[2], 10) : 0
+    return major + minor / 10
+  }
+
+  // o-series (o1, o3, o4-mini) are below 5.2 threshold
+  if (id.match(/^o[1-4]/)) {
+    return 0
+  }
+
+  return 0
+}
+
+function isGPTVersionAtLeast(id: string, minVersion: number): boolean {
+  return parseGPTVersion(id) >= minVersion
+}
+
+/**
+ * Parse Gemini model version from id
+ * Returns version number (e.g., 3.0, 3.1, 2.5) or 0 if cannot parse
+ */
+function parseGeminiVersion(id: string): number {
+  // gemini-3-flash -> 3.0
+  // gemini-3.1-flash-image -> 3.1
+  // gemini-2.5-flash -> 2.5
+  // gemini-3-pro-preview -> 3.0
+
+  const match = id.match(/gemini-(\d+)(?:\.(\d+))?/)
+  if (match) {
+    const major = parseInt(match[1], 10)
+    const minor = match[2] ? parseInt(match[2], 10) : 0
+    return major + minor / 10
+  }
+  return 0
+}
+
+function isGeminiVersionAtLeast(id: string, minVersion: number): boolean {
+  return parseGeminiVersion(id) >= minVersion
+}
+
+/**
+ * Parse GLM model version from id
+ * Returns version number (e.g., 5.0, 4.5) or 0 if cannot parse
+ */
+function parseGLMVersion(id: string): number {
+  // glm-4 -> 4.0
+  // glm-4.5 -> 4.5
+  // glm-4.6 -> 4.6
+  // glm-5 -> 5.0
+
+  const match = id.match(/glm-(\d+)(?:\.(\d+))?/)
+  if (match) {
+    const major = parseInt(match[1], 10)
+    const minor = match[2] ? parseInt(match[2], 10) : 0
+    return major + minor / 10
+  }
+  return 0
+}
+
+function isGLMVersionAtLeast(id: string, minVersion: number): boolean {
+  return parseGLMVersion(id) >= minVersion
+}
+
 // ─── Formatters ──────────────────────────
 function formatPrice(costPerToken: number): string {
   if (!costPerToken || costPerToken <= 0) return '--'
-  const per1k = costPerToken * 1000
-  if (per1k >= 0.01) return `$${per1k.toFixed(2)}`
-  if (per1k >= 0.0001) return `$${(per1k * 1000).toFixed(2)}`
-  return `$${(per1k * 1000000).toFixed(0)} / MTok`
+  
+  // costPerToken is the price per single token
+  // Convert to price per 1M tokens for display
+  const per1m = costPerToken * 1_000_000
+  
+  if (per1m >= 1) {
+    // >= $1/1M tokens: show as $X.XX
+    return `$${per1m.toFixed(2)}`
+  } else if (per1m >= 0.1) {
+    // >= $0.1/1M tokens: show as $0.XX
+    return `$${per1m.toFixed(2)}`
+  } else {
+    // < $0.1/1M tokens: show more precision
+    return `$${per1m.toFixed(3)}`
+  }
 }
 
 function formatNumber(n: number | undefined): string {
