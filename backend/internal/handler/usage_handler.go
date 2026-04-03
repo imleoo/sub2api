@@ -417,13 +417,70 @@ func (h *UsageHandler) DashboardAPIKeysUsage(c *gin.Context) {
 // ListModels returns all available models with pricing info for the current user
 // GET /api/v1/models
 func (h *UsageHandler) ListModels(c *gin.Context) {
-	if h.pricingService == nil {
-		response.Success(c, gin.H{"models": []any{}, "total": 0})
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
 		return
 	}
+
+	if h.pricingService == nil {
+		response.Success(c, gin.H{"models": []any{}, "total": 0, "available_platforms": []string{}})
+		return
+	}
+
+	// Get user's available groups to determine which platforms/models are accessible
+	availablePlatforms := make(map[string]bool)
+	if h.apiKeyService != nil {
+		groups, err := h.apiKeyService.GetAvailableGroups(c.Request.Context(), subject.UserID)
+		if err == nil {
+			for _, g := range groups {
+				if g.Status == service.StatusActive {
+					availablePlatforms[g.Platform] = true
+				}
+			}
+		}
+	}
+
+	// Map platform names to provider names for matching
+	// platform: anthropic/openai/gemini/antigravity -> provider: anthropic/openai/google/antigravity
+	platformToProvider := map[string]string{
+		service.PlatformAnthropic:   "anthropic",
+		service.PlatformOpenAI:      "openai",
+		service.PlatformGemini:      "google",
+		service.PlatformAntigravity: "antigravity",
+	}
+
+	availableProviders := make(map[string]bool)
+	for platform := range availablePlatforms {
+		if provider, ok := platformToProvider[platform]; ok {
+			availableProviders[provider] = true
+		}
+	}
+
 	models := h.pricingService.ListAllModels()
+
+	// Enrich each model with availability status
+	type ModelWithAvailability struct {
+		service.ModelInfo
+		IsAvailable bool `json:"is_available"`
+	}
+	enrichedModels := make([]ModelWithAvailability, 0, len(models))
+	for _, m := range models {
+		enrichedModels = append(enrichedModels, ModelWithAvailability{
+			ModelInfo:   m,
+			IsAvailable: availableProviders[m.LiteLLMProvider],
+		})
+	}
+
+	// Convert availablePlatforms map to slice for response
+	platformSlice := make([]string, 0, len(availablePlatforms))
+	for p := range availablePlatforms {
+		platformSlice = append(platformSlice, p)
+	}
+
 	response.Success(c, gin.H{
-		"models": models,
-		"total":  len(models),
+		"models":              enrichedModels,
+		"total":               len(enrichedModels),
+		"available_platforms": platformSlice,
 	})
 }

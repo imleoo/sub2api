@@ -12,20 +12,22 @@ export interface ModelInfo {
   output_cost_per_token: number
   supports_prompt_caching: boolean
   long_context_input_token_threshold?: number
+  is_available: boolean
 }
 
 export interface ModelsResponse {
   models: ModelInfo[]
   total: number
+  available_platforms: string[]
 }
 
 /**
- * 获取当前用户可见的全部模型列表（含定价信息）
+ * 获取当前用户可见的全部模型列表（含定价信息和可用性）
  * GET /api/v1/models
  */
 export async function getModels(): Promise<ModelsResponse> {
   const { data } = await apiClient.get<ModelsResponse>('/models')
-  return data ?? { models: [], total: 0 }
+  return data ?? { models: [], total: 0, available_platforms: [] }
 }
 
 export const modelsAPI = { getModels }
