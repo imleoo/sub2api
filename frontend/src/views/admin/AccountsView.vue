@@ -654,6 +654,7 @@ const debouncedReload = () => {
   hasPendingListSync.value = false
   resetAutoRefreshCache()
   pendingTodayStatsRefresh.value = true
+  pagination.page = 1  // 立即重置页码，避免防抖期间使用旧页码
   baseDebouncedReload()
 }
 

@@ -53,7 +53,7 @@ npm install -g pnpm
 
 ### CI 要求
 
-- Go 版本必须是 **1.25.7**
+- Go 版本必须是 **1.26.1**（由 `backend/go.mod` 指定，CI 通过 `go-version-file` 自动读取）
 - 前端使用 `pnpm install --frozen-lockfile`，必须提交 `pnpm-lock.yaml`
 
 ### 本地测试命令
