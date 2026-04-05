@@ -238,6 +238,9 @@ else
   echo "${MAIN_BRANCH} is already up to date with ${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH}."
 fi
 
+echo "Syncing ${MAIN_BRANCH} with ${GITHUB_REMOTE} before push..."
+git pull "$GITHUB_REMOTE" "$MAIN_BRANCH" --rebase
+
 echo "Pushing ${MAIN_BRANCH} to ${GITHUB_REMOTE}..."
 git push "$GITHUB_REMOTE" "$MAIN_BRANCH"
 
