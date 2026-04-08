@@ -20,8 +20,8 @@ type UserWithConcurrency struct {
 
 // UserHandler handles admin user management
 type UserHandler struct {
-	adminService        service.AdminService
-	concurrencyService  *service.ConcurrencyService
+	adminService       service.AdminService
+	concurrencyService *service.ConcurrencyService
 }
 
 // NewUserHandler creates a new admin user handler

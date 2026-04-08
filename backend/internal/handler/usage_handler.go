@@ -18,11 +18,11 @@ import (
 
 // UsageHandler handles usage-related requests
 type UsageHandler struct {
-	usageService       *service.UsageService
-	apiKeyService      *service.APIKeyService
-	pricingService     *service.PricingService
-	testResultRepo     service.ScheduledTestResultRepository
-	groupRepo          service.GroupRepository
+	usageService   *service.UsageService
+	apiKeyService  *service.APIKeyService
+	pricingService *service.PricingService
+	testResultRepo service.ScheduledTestResultRepository
+	groupRepo      service.GroupRepository
 }
 
 // NewUsageHandler creates a new UsageHandler
@@ -483,7 +483,7 @@ func (h *UsageHandler) ListModels(c *gin.Context) {
 	// Enrich each model with availability and test status
 	type ModelWithAvailability struct {
 		service.ModelInfo
-		IsAvailable bool                  `json:"is_available"`
+		IsAvailable bool                     `json:"is_available"`
 		TestStatus  *service.ModelTestStatus `json:"test_status,omitempty"`
 	}
 	enrichedModels := make([]ModelWithAvailability, 0, len(models))

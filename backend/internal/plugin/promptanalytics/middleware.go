@@ -132,7 +132,7 @@ func (p *Plugin) worker() {
 	defer ticker.Stop()
 
 	batch := make([]KeywordRecord, 0, 64)
-	period := currentPeriod()
+	var period string
 
 	flush := func() {
 		if len(batch) == 0 {

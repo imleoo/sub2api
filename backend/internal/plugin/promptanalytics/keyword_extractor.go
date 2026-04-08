@@ -81,8 +81,8 @@ func extractTextFromBody(body []byte) string {
 		// Try string first.
 		var str string
 		if json.Unmarshal(msg.Content, &str) == nil {
-			sb.WriteString(str)
-			sb.WriteByte(' ')
+			_, _ = sb.WriteString(str)
+			_ = sb.WriteByte(' ')
 			continue
 		}
 		// Try array of content blocks.
@@ -93,8 +93,8 @@ func extractTextFromBody(body []byte) string {
 		if json.Unmarshal(msg.Content, &blocks) == nil {
 			for _, b := range blocks {
 				if b.Type == "text" {
-					sb.WriteString(b.Text)
-					sb.WriteByte(' ')
+					_, _ = sb.WriteString(b.Text)
+					_ = sb.WriteByte(' ')
 				}
 			}
 		}
@@ -163,6 +163,7 @@ func isCJK(r rune) bool {
 // extractCJKTerms extracts CJK terms using a conservative strategy:
 //   - for short phrases (2~4 chars), keep the whole phrase;
 //   - split long phrases into non-overlapping 2-char terms.
+//
 // This avoids overlapping cross-boundary fragments such as “经网/器学”.
 func extractCJKTerms(s string) []string {
 	runes := []rune(s)

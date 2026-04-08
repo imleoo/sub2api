@@ -67,7 +67,7 @@ func (r *repository) UpsertKeywords(ctx context.Context, records []KeywordRecord
 	if err != nil {
 		return fmt.Errorf("promptanalytics: prepare upsert: %w", err)
 	}
-	defer stmt.Close()
+	defer func() { _ = stmt.Close() }()
 
 	for _, rec := range records {
 		if _, err := stmt.ExecContext(ctx, rec.UserID, rec.APIKeyID, rec.GroupID, rec.Keyword, rec.Period); err != nil {
@@ -120,7 +120,7 @@ func (r *repository) queryKeywordCounts(ctx context.Context, query string, args 
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	return scanKeywordCounts(rows)
 }
 
@@ -129,7 +129,7 @@ func (r *repository) queryKeywordCountsGlobal(ctx context.Context, query string,
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	return scanKeywordCounts(rows)
 }
 

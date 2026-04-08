@@ -865,13 +865,13 @@ func isNumeric(s string) bool {
 
 // ModelInfo 公开的模型信息（用于用户端展示）
 type ModelInfo struct {
-	ID                     string  `json:"id"`
-	LiteLLMProvider        string  `json:"provider"`
-	Mode                   string  `json:"mode"`
-	InputCostPerToken      float64 `json:"input_cost_per_token"`
-	OutputCostPerToken     float64 `json:"output_cost_per_token"`
-	SupportsPromptCaching  bool    `json:"supports_prompt_caching"`
-	LongContextInputTokenThreshold int `json:"long_context_input_token_threshold,omitempty"`
+	ID                             string  `json:"id"`
+	LiteLLMProvider                string  `json:"provider"`
+	Mode                           string  `json:"mode"`
+	InputCostPerToken              float64 `json:"input_cost_per_token"`
+	OutputCostPerToken             float64 `json:"output_cost_per_token"`
+	SupportsPromptCaching          bool    `json:"supports_prompt_caching"`
+	LongContextInputTokenThreshold int     `json:"long_context_input_token_threshold,omitempty"`
 }
 
 // ListAllModels 返回全部模型的基本信息和定价（供用户端模型列表页使用）
@@ -882,12 +882,12 @@ func (s *PricingService) ListAllModels() []ModelInfo {
 	result := make([]ModelInfo, 0, len(s.pricingData))
 	for name, p := range s.pricingData {
 		result = append(result, ModelInfo{
-			ID:                            name,
-			LiteLLMProvider:               p.LiteLLMProvider,
-			Mode:                          p.Mode,
-			InputCostPerToken:             p.InputCostPerToken,
-			OutputCostPerToken:            p.OutputCostPerToken,
-			SupportsPromptCaching:         p.SupportsPromptCaching,
+			ID:                             name,
+			LiteLLMProvider:                p.LiteLLMProvider,
+			Mode:                           p.Mode,
+			InputCostPerToken:              p.InputCostPerToken,
+			OutputCostPerToken:             p.OutputCostPerToken,
+			SupportsPromptCaching:          p.SupportsPromptCaching,
 			LongContextInputTokenThreshold: p.LongContextInputTokenThreshold,
 		})
 	}
