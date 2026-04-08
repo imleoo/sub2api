@@ -8,6 +8,7 @@ MAIN_BRANCH="${MAIN_BRANCH:-main}"
 WORK_BRANCH="${WORK_BRANCH:-zhiguofan}"
 UPSTREAM_MERGE_MSG="${UPSTREAM_MERGE_MSG:-chore: sync from upstream Wei-Shaw/sub2api:main}"
 WORK_MERGE_MSG="${WORK_MERGE_MSG:-chore: sync from origin/main}"
+WORK_REMOTE_SYNC_MSG="${WORK_REMOTE_SYNC_MSG:-chore: sync with origin/zhiguofan}"
 
 # Whether to attempt AI-assisted conflict resolution (default: yes)
 AI_RESOLVE="${AI_RESOLVE:-true}"
@@ -223,9 +224,15 @@ git remote get-url "$GITHUB_REMOTE" >/dev/null 2>&1 || die "Missing remote: $GIT
 echo "Fetching ${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH}..."
 git fetch "$UPSTREAM_REMOTE" "$UPSTREAM_BRANCH"
 
+echo "Fetching ${GITHUB_REMOTE}/${MAIN_BRANCH} and ${GITHUB_REMOTE}/${WORK_BRANCH}..."
+git fetch "$GITHUB_REMOTE" "$MAIN_BRANCH" "$WORK_BRANCH"
+
 echo "Switching to ${MAIN_BRANCH}..."
 git switch "$MAIN_BRANCH"
 switched_branch=true
+
+echo "Fast-forwarding ${MAIN_BRANCH} to ${GITHUB_REMOTE}/${MAIN_BRANCH} (if possible)..."
+git merge --ff-only "${GITHUB_REMOTE}/${MAIN_BRANCH}" >/dev/null 2>&1 || true
 
 main_behind="$(git rev-list --count "HEAD..${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH}")"
 if [[ "$main_behind" != "0" ]]; then
@@ -238,19 +245,26 @@ else
   echo "${MAIN_BRANCH} is already up to date with ${UPSTREAM_REMOTE}/${UPSTREAM_BRANCH}."
 fi
 
-echo "Syncing ${MAIN_BRANCH} with ${GITHUB_REMOTE} before push..."
-git pull "$GITHUB_REMOTE" "$MAIN_BRANCH" --rebase
-
 echo "Pushing ${MAIN_BRANCH} to ${GITHUB_REMOTE}..."
 git push "$GITHUB_REMOTE" "$MAIN_BRANCH"
-
-echo "Fetching ${GITHUB_REMOTE}/${MAIN_BRANCH}..."
-git fetch "$GITHUB_REMOTE" "$MAIN_BRANCH"
 
 echo "Switching to ${WORK_BRANCH}..."
 git switch "$WORK_BRANCH"
 switched_branch=true
 
+echo "Syncing ${WORK_BRANCH} with ${GITHUB_REMOTE}/${WORK_BRANCH} (to avoid non-fast-forward push)..."
+work_remote_behind="$(git rev-list --count "HEAD..${GITHUB_REMOTE}/${WORK_BRANCH}")"
+if [[ "$work_remote_behind" != "0" ]]; then
+  merge_with_conflict_help \
+    "$WORK_BRANCH" \
+    "${GITHUB_REMOTE}/${WORK_BRANCH}" \
+    "$WORK_REMOTE_SYNC_MSG" \
+    "For remote sync, keep zhiguofan as the base and integrate remote zhiguofan changes."
+else
+  echo "${WORK_BRANCH} is already up to date with ${GITHUB_REMOTE}/${WORK_BRANCH}."
+fi
+
+echo "Merging ${GITHUB_REMOTE}/${MAIN_BRANCH} into ${WORK_BRANCH} (origin/main contains upstream/main after the main sync step)..."
 work_behind="$(git rev-list --count "HEAD..${GITHUB_REMOTE}/${MAIN_BRANCH}")"
 if [[ "$work_behind" != "0" ]]; then
   merge_with_conflict_help \
