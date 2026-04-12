@@ -91,12 +91,14 @@ func (h *UserHandler) List(c *gin.Context) {
 		GroupName:  strings.TrimSpace(c.Query("group_name")),
 		Attributes: parseAttributeFilters(c),
 	}
+	sortBy := c.DefaultQuery("sort_by", "created_at")
+	sortOrder := c.DefaultQuery("sort_order", "desc")
 	if raw, ok := c.GetQuery("include_subscriptions"); ok {
 		includeSubscriptions := parseBoolQueryWithDefault(raw, true)
 		filters.IncludeSubscriptions = &includeSubscriptions
 	}
 
-	users, total, err := h.adminService.ListUsers(c.Request.Context(), page, pageSize, filters)
+	users, total, err := h.adminService.ListUsers(c.Request.Context(), page, pageSize, filters, sortBy, sortOrder)
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return
@@ -290,8 +292,10 @@ func (h *UserHandler) GetUserAPIKeys(c *gin.Context) {
 	}
 
 	page, pageSize := response.ParsePagination(c)
+	sortBy := c.DefaultQuery("sort_by", "created_at")
+	sortOrder := c.DefaultQuery("sort_order", "desc")
 
-	keys, total, err := h.adminService.GetUserAPIKeys(c.Request.Context(), userID, page, pageSize)
+	keys, total, err := h.adminService.GetUserAPIKeys(c.Request.Context(), userID, page, pageSize, sortBy, sortOrder)
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return
@@ -313,14 +317,9 @@ func (h *UserHandler) GetUserUsage(c *gin.Context) {
 		return
 	}
 
-	days := 30
-	if daysStr := c.Query("days"); daysStr != "" {
-		if d, err := strconv.Atoi(daysStr); err == nil && d > 0 && d <= 90 {
-			days = d
-		}
-	}
+	period := c.DefaultQuery("period", "month")
 
-	stats, err := h.adminService.GetUserUsageStats(c.Request.Context(), userID, days)
+	stats, err := h.adminService.GetUserUsageStats(c.Request.Context(), userID, period)
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return
