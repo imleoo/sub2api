@@ -1,12 +1,3 @@
-冲突分析：
-
-- **HEAD (zhiguofan)**: 在 if/else 之后又加了一段 `responsesBody, err := json.Marshal(responsesReq)` 的序列化代码
-- **origin/main**: 删除了这段代码
-
-关键点：在冲突标记之前的代码中，`responsesBody` 已经在两个分支中分别被赋值了（`isResponsesShape` 分支用 `sjson.SetBytes`，`else` 分支用 `json.Marshal(responsesReq)`）。HEAD 的代码会**错误地覆盖** `isResponsesShape` 分支中精心构造的 `responsesBody`（那个分支只设置了 stub 的 `responsesReq`，重新 marshal 会丢失原始 body 内容）。origin/main 的版本正确移除了这段多余/有 bug 的代码。
-
-可以自动解决，取 origin/main 版本（删除该代码块）。
-
 package service
 
 import (
