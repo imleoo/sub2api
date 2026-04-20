@@ -14,19 +14,30 @@ function injectPublicSettings(backendUrl: string): Plugin {
     transformIndexHtml: {
       order: 'pre',
       async handler(html) {
-        try {
-          const response = await fetch(`${backendUrl}/api/v1/settings/public`, {
-            signal: AbortSignal.timeout(2000)
-          })
-          if (response.ok) {
-            const data = await response.json()
-            if (data.code === 0 && data.data) {
-              const script = `<script>window.__APP_CONFIG__=${JSON.stringify(data.data)};</script>`
-              return html.replace('</head>', `${script}\n</head>`)
+        let retries = 5
+        let lastError = null
+        while (retries > 0) {
+          try {
+            const response = await fetch(`${backendUrl}/api/v1/settings/public`, {
+              signal: AbortSignal.timeout(2000)
+            })
+            if (response.ok) {
+              const data = await response.json()
+              if (data.code === 0 && data.data) {
+                const script = `<script>window.__APP_CONFIG__=${JSON.stringify(data.data)};</script>`
+                return html.replace('</head>', `${script}\n</head>`)
+              }
             }
+          } catch (e) {
+            lastError = e
           }
-        } catch (e) {
-          console.warn('[vite] 无法获取公开配置，将回退到 API 调用:', (e as Error).message)
+          retries--
+          if (retries > 0) {
+            await new Promise(resolve => setTimeout(resolve, 1000))
+          }
+        }
+        if (lastError) {
+          console.warn('[vite] 无法获取公开配置，将回退到 API 调用:', (lastError as Error).message)
         }
         return html
       }

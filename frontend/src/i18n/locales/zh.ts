@@ -347,6 +347,7 @@ export default {
     redeemCodes: '兑换码',
     ops: '运维监控',
     promoCodes: '优惠码',
+    promptAnalytics: 'Prompt 分析',
     settings: '系统设置',
     myAccount: '我的账户',
     lightMode: '浅色模式',
@@ -1558,6 +1559,10 @@ export default {
       failedToLoadBalanceHistory: '加载余额记录失败',
       createdAt: '创建时间',
       totalRecharged: '总充值',
+      // Usage Stats
+      viewStats: '查看统计',
+      usageStatistics: '使用统计',
+      last30DaysUsage: '近 30 天使用统计（基于实际使用天数）',
       // Settings Dropdowns
       filterSettings: '筛选设置',
       columnSettings: '列设置',
@@ -3139,6 +3144,27 @@ export default {
       maxResultsTooltipRange: '推荐填写范围：一般可填 20 到 200。只关注近期可用性时可填 20-50；需要回看较长时间的波动趋势时可填 100-200。',
       autoRecover: '自动恢复',
       autoRecoverHelp: '测试成功后自动恢复异常状态的账号'
+    },
+
+    // Prompt Analytics
+    promptAnalytics: {
+      title: 'Prompt 关键词分析',
+      description: '从用户提示词中提取的关键词统计',
+      wordCloud: '词云图',
+      topKeywords: '热门关键词',
+      period: '时间周期',
+      globalView: '全局视角',
+      userView: '用户视角',
+      noData: '暂无关键词数据。关键词从用户提示词中采样获取。',
+      refresh: '刷新',
+      limit: '显示前',
+      userId: '用户 ID',
+      userIdPlaceholder: '按用户 ID 筛选（留空查看全局）',
+      rank: '排名',
+      keyword: '关键词',
+      count: '次数',
+      currentPeriod: '当前周期',
+      allTime: '全部时间'
     },
 
     // Proxies Management

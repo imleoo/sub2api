@@ -220,6 +220,8 @@ initialize_env() {
     printf '\n'
     printf 'export VITE_DEV_PROXY_TARGET=%q\n' "$VITE_DEV_PROXY_TARGET"
     printf 'export VITE_DEV_PORT=%q\n' "$VITE_DEV_PORT"
+    printf '\n'
+    printf 'export CORS_ALLOWED_ORIGINS=http://localhost:%q\n' "$FRONTEND_PORT"
   } >"$ENV_FILE"
 }
 
@@ -274,6 +276,29 @@ wait_for_redis() {
 
     sleep 2
     elapsed=$((elapsed + 2))
+  done
+}
+
+wait_for_backend() {
+  local timeout="$1"
+  local elapsed=0
+  echo "等待后端监听端口 ${BACKEND_HOST}:${BACKEND_PORT}..."
+  while true; do
+    if (exec 3<>"/dev/tcp/${BACKEND_HOST}/${BACKEND_PORT}") >/dev/null 2>&1; then
+      exec 3>&- 3<&-
+      # 端口可用后，再尝试简单请求路径确认 API 已就绪
+      if curl -s "http://${BACKEND_HOST}:${BACKEND_PORT}/api/v1/settings/public" >/dev/null 2>&1; then
+        return 0
+      fi
+    fi
+
+    if (( elapsed >= timeout )); then
+      echo "警告：等待后端就绪超时，将尝试继续启动前端。"
+      return 0
+    fi
+
+    sleep 1
+    elapsed=$((elapsed + 1))
   done
 }
 
@@ -481,6 +506,7 @@ up() {
   touch "$BACKEND_LOG" "$FRONTEND_LOG"
 
   start_backend
+  wait_for_backend 30
   start_frontend
   start_log_tail
 
