@@ -395,53 +395,6 @@ func ProvideSettingService(settingRepo SettingRepository, groupRepo GroupReposit
 	return svc
 }
 
-func ProvideAuthService(
-	entClient *dbent.Client,
-	userRepo UserRepository,
-	redeemRepo RedeemCodeRepository,
-	refreshTokenCache RefreshTokenCache,
-	cfg *config.Config,
-	settingService *SettingService,
-	emailService *EmailService,
-	turnstileService *TurnstileService,
-	emailQueueService *EmailQueueService,
-	promoService *PromoService,
-	defaultSubAssigner DefaultSubscriptionAssigner,
-	affiliateService *AffiliateService,
-) *AuthService {
-	svc := NewAuthService(
-		entClient,
-		userRepo,
-		redeemRepo,
-		refreshTokenCache,
-		cfg,
-		settingService,
-		emailService,
-		turnstileService,
-		emailQueueService,
-		promoService,
-		defaultSubAssigner,
-	)
-	svc.SetAffiliateService(affiliateService)
-	return svc
-}
-
-func ProvidePaymentService(
-	entClient *dbent.Client,
-	registry *payment.Registry,
-	loadBalancer payment.LoadBalancer,
-	redeemService *RedeemService,
-	subscriptionSvc *SubscriptionService,
-	configService *PaymentConfigService,
-	userRepo UserRepository,
-	groupRepo GroupRepository,
-	affiliateService *AffiliateService,
-) *PaymentService {
-	svc := NewPaymentService(entClient, registry, loadBalancer, redeemService, subscriptionSvc, configService, userRepo, groupRepo)
-	svc.SetAffiliateService(affiliateService)
-	return svc
-}
-
 // ProvideBillingCacheService wires BillingCacheService with its RPM dependencies.
 func ProvideBillingCacheService(
 	cache BillingCache,
@@ -458,7 +411,7 @@ func ProvideBillingCacheService(
 // ProviderSet is the Wire provider set for all services
 var ProviderSet = wire.NewSet(
 	// Core services
-	ProvideAuthService,
+	NewAuthService,
 	NewUserService,
 	NewAPIKeyService,
 	ProvideAPIKeyAuthCacheInvalidator,
@@ -539,7 +492,7 @@ var ProviderSet = wire.NewSet(
 	NewModelPricingResolver,
 	NewAffiliateService,
 	ProvidePaymentConfigService,
-	ProvidePaymentService,
+	NewPaymentService,
 	ProvidePaymentOrderExpiryService,
 	ProvideBalanceNotifyService,
 	ProvideChannelMonitorService,
