@@ -210,7 +210,22 @@ func TestFrontendServer_InjectSettings(t *testing.T) {
 		settingsJSON := []byte(`{"nested":{"array":[1,2,3]},"special":"<>&"}`)
 		result := server.injectSettings(settingsJSON)
 
-		assert.Contains(t, string(result), `window.__APP_CONFIG__={"nested":{"array":[1,2,3]},"special":"<>&"};`)
+		assert.Contains(t, string(result), `window.__APP_CONFIG__={"nested":{"array":[1,2,3]},"special":"\u003c\u003e\u0026"};`)
+	})
+
+	t.Run("escapes_script_end_tag_in_settings", func(t *testing.T) {
+		provider := &mockSettingsProvider{
+			settings: map[string]string{"key": "value"},
+		}
+
+		server, err := NewFrontendServer(provider)
+		require.NoError(t, err)
+
+		settingsJSON := []byte(`{"home_content":"</script><div>leak</div>"}`)
+		result := server.injectSettings(settingsJSON)
+
+		assert.NotContains(t, string(result), `window.__APP_CONFIG__={"home_content":"</script>`)
+		assert.Contains(t, string(result), `window.__APP_CONFIG__={"home_content":"\u003c/script\u003e\u003cdiv\u003eleak\u003c/div\u003e"};`)
 	})
 }
 

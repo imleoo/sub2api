@@ -7,6 +7,7 @@ import (
 
 	"github.com/Wei-Shaw/sub2api/internal/handler/dto"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/timezone"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -376,9 +377,18 @@ func (h *UserHandler) GetUserUsage(c *gin.Context) {
 		return
 	}
 
-	period := c.DefaultQuery("period", "month")
+	days := 30
+	if daysStr := c.Query("days"); daysStr != "" {
+		if d, err := strconv.Atoi(daysStr); err == nil && d > 0 && d <= 90 {
+			days = d
+		}
+	}
 
-	stats, err := h.adminService.GetUserUsageStats(c.Request.Context(), userID, period)
+	now := timezone.Now()
+	endTime := timezone.StartOfDay(now.AddDate(0, 0, 1))
+	startTime := timezone.StartOfDay(now.AddDate(0, 0, -days+1))
+
+	stats, err := h.adminService.GetUserUsageStats(c.Request.Context(), userID, startTime, endTime)
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return

@@ -10,8 +10,14 @@ UPSTREAM_MERGE_MSG="${UPSTREAM_MERGE_MSG:-chore: sync from upstream Wei-Shaw/sub
 WORK_MERGE_MSG="${WORK_MERGE_MSG:-chore: sync from origin/main}"
 WORK_REMOTE_SYNC_MSG="${WORK_REMOTE_SYNC_MSG:-chore: sync with origin/zhiguofan}"
 
-# Whether to attempt AI-assisted conflict resolution (default: yes)
-AI_RESOLVE="${AI_RESOLVE:-true}"
+# Whether to attempt Codebuddy-assisted conflict resolution.
+#
+# Default is intentionally off: merge conflicts in this fork often touch large
+# service files and generated files, and an automatic rewrite can silently drop
+# code. Enable only for a deliberate one-off run:
+#
+#   AI_RESOLVE=true ./script/sync_upstream_to_zhiguofan.sh
+AI_RESOLVE="${AI_RESOLVE:-false}"
 
 die() {
   echo "error: $*" >&2
@@ -80,8 +86,7 @@ PROMPT
 )
 
     local ai_output
-    # Use --dangerously-skip-permissions so codebuddy doesn't pause for approvals
-    if ! ai_output=$(echo "$prompt" | codebuddy --print --dangerously-skip-permissions 2>/dev/null); then
+    if ! ai_output=$(echo "$prompt" | codebuddy --print 2>/dev/null); then
       echo "  [warn] Codebuddy invocation failed for ${file}. Skipping AI resolution."
       unresolved_files+=("$file")
       continue
@@ -97,7 +102,10 @@ PROMPT
       unresolved_files+=("$file")
     else
       # Validate: resolved output must not still contain conflict markers
-      if echo "$ai_output" | grep -qE '^(<<<<<<<|=======|>>>>>>>)'; then
+      if [[ -z "$(echo "$ai_output" | tr -d '[:space:]')" ]]; then
+        echo "  [warn] Codebuddy returned empty output. Flagging for human review."
+        unresolved_files+=("$file")
+      elif echo "$ai_output" | grep -qE '^(<<<<<<<|=======|>>>>>>>)'; then
         echo "  [warn] AI output still contains conflict markers. Flagging for human review."
         unresolved_files+=("$file")
       else

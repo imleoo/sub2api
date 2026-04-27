@@ -41,6 +41,10 @@
 git add <files> && git merge --continue
 git merge --abort
 ```
+- 脚本默认不会让 Codebuddy 自动改冲突文件；如确实要试用 AI 辅助冲突处理，需要显式执行：
+```bash
+AI_RESOLVE=true ./script/sync_upstream_to_zhiguofan.sh
+```
 
 ## 3. `dev_local.sh`
 

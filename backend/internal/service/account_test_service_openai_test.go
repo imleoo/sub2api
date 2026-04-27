@@ -302,7 +302,7 @@ func TestAccountTestService_OpenAI401SetsPermanentErrorOnly(t *testing.T) {
 
 func TestAccountTestService_OpenAIModelNotFoundOnFallbackReturnsFriendlyError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	ctx, recorder := newSoraTestContext()
+	ctx, recorder := newTestContext()
 
 	first := newJSONResponse(http.StatusNotFound, `{"error":{"message":"responses endpoint not found"}}`)
 	second := newJSONResponse(http.StatusServiceUnavailable, `{"error":{"code":"model_not_found","message":"No available channel for model gpt-3.5-turbo-0125 under group default (distributor)"}}`)
@@ -325,7 +325,7 @@ func TestAccountTestService_OpenAIModelNotFoundOnFallbackReturnsFriendlyError(t 
 		Credentials: map[string]any{"api_key": "test-key"},
 	}
 
-	err := svc.testOpenAIAccountConnection(ctx, account, "gpt-3.5-turbo-0125")
+	err := svc.testOpenAIAccountConnection(ctx, account, "gpt-3.5-turbo-0125", "", "")
 	require.Error(t, err)
 	require.Contains(t, err.Error(), `Upstream model "gpt-3.5-turbo-0125" is unavailable`)
 	require.Contains(t, recorder.Body.String(), `"type":"error"`)

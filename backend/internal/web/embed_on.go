@@ -201,7 +201,7 @@ func (s *FrontendServer) serveIndexHTML(c *gin.Context) {
 func (s *FrontendServer) injectSettings(settingsJSON []byte) []byte {
 	// Create the script tag to inject with nonce placeholder
 	// The placeholder will be replaced with actual nonce at request time
-	script := []byte(`<script nonce="` + NonceHTMLPlaceholder + `">window.__APP_CONFIG__=` + string(settingsJSON) + `;</script>`)
+	script := []byte(`<script nonce="` + NonceHTMLPlaceholder + `">window.__APP_CONFIG__=` + string(scriptSafeJSON(settingsJSON)) + `;</script>`)
 
 	// Inject before </head>
 	headClose := []byte("</head>")
@@ -211,6 +211,17 @@ func (s *FrontendServer) injectSettings(settingsJSON []byte) []byte {
 	result = injectSiteTitle(result, settingsJSON)
 
 	return result
+}
+
+func scriptSafeJSON(data []byte) []byte {
+	replacer := strings.NewReplacer(
+		"<", `\u003c`,
+		">", `\u003e`,
+		"&", `\u0026`,
+		"\u2028", `\u2028`,
+		"\u2029", `\u2029`,
+	)
+	return []byte(replacer.Replace(string(data)))
 }
 
 // injectSiteTitle replaces the static <title> in HTML with the configured site name.

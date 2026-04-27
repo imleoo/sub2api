@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Wei-Shaw/sub2api/internal/pkg/usagestats"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 )
 
@@ -179,8 +180,8 @@ func (s *stubAdminService) GetUserAPIKeys(ctx context.Context, userID int64, pag
 	return s.apiKeys, int64(len(s.apiKeys)), nil
 }
 
-func (s *stubAdminService) GetUserUsageStats(ctx context.Context, userID int64, period string) (any, error) {
-	return map[string]any{"user_id": userID}, nil
+func (s *stubAdminService) GetUserUsageStats(ctx context.Context, userID int64, startTime, endTime time.Time) (*usagestats.AccountUsageStatsResponse, error) {
+	return &usagestats.AccountUsageStatsResponse{}, nil
 }
 
 func (s *stubAdminService) GetUserRPMStatus(ctx context.Context, userID int64) (*service.UserRPMStatus, error) {
