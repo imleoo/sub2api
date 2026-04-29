@@ -1,5 +1,3 @@
-docs/claude-relay-service/
-
 # ===================
 # Go 后端
 # ===================
@@ -115,8 +113,6 @@ backend/.installed
 # 其他
 # ===================
 tests
-CLAUDE.md
-.claude
 scripts
 .code-review-state
 #openspec/
@@ -126,10 +122,7 @@ backend/cmd/server/server
 deploy/docker-compose.override.yml
 .gocache/
 vite.config.js
-docs/*
-!docs/PAYMENT.md
-!docs/PAYMENT_CN.md
-!docs/ADMIN_PAYMENT_INTEGRATION_API.md
+docs/claude-relay-service/
 .serena/
 .codex/
 frontend/coverage/
