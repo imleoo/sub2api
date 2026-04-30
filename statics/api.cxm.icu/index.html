@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="zh-CN" id="htmlRoot">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title id="pageTitle">CXM - AI 模型 API 统一接入平台</title>
+  <meta name="description" content="一个 API Key 接入 Claude、GPT、Gemini 等主流模型，兼容 OpenAI SDK，按量计费，稳定可靠。">
+  <style>
+    *, *:before, *:after { box-sizing: border-box }
+    html { scroll-behavior: smooth }
+    body {
+      margin: 0;
+      background: #fff;
+      color: #09090b;
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    a { color: inherit; text-decoration: none }
+    button, select { font: inherit }
+
+    :root {
+      --accent: #6366f1;
+      --accent-dark: #4f46e5;
+      --bg: #ffffff;
+      --surface: #fafafa;
+      --border: #e4e4e7;
+      --text: #09090b;
+      --muted: #71717a;
+      --muted2: #a1a1aa;
+    }
+
+    .wrap { width: min(1200px, calc(100% - 48px)); margin: auto }
+
+    /* ── Nav ── */
+    .nav {
+      position: fixed;
+      inset: 0 0 auto;
+      z-index: 50;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 max(24px, calc((100vw - 1200px) / 2));
+      background: rgba(255,255,255,.9);
+      border-bottom: 1px solid transparent;
+      backdrop-filter: blur(14px);
+      transition: border-color .2s;
+    }
+    .nav.scrolled { border-color: var(--border) }
+    .brand { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 16px; letter-spacing: -.02em; color: var(--text); flex-shrink: 0 }
+    .brand-mark { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; background: var(--accent); font-size: 11px; font-weight: 900; color: #fff; letter-spacing: 0 }
+    .nav-links { display: flex; align-items: center; gap: 2px; margin-left: auto }
+    .nav-link { padding: 6px 12px; border-radius: 8px; color: var(--muted); font-size: 14px; font-weight: 500; transition: color .15s, background .15s; white-space: nowrap }
+    .nav-link:hover { color: var(--text); background: #f4f4f5 }
+    .nav-actions { display: flex; align-items: center; gap: 8px; margin-left: 12px }
+    .btn { border: 0; border-radius: 8px; padding: 7px 14px; cursor: pointer; font-size: 14px; font-weight: 600; transition: opacity .15s, transform .15s, background .15s }
+    .btn:hover { transform: translateY(-1px) }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text) }
+    .btn-ghost:hover { background: #f4f4f5 }
+    .btn-primary { background: var(--accent); color: #fff }
+    .btn-primary:hover { background: var(--accent-dark) }
+    .lang-btn { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; cursor: pointer; font-size: 14px; font-weight: 600; background: transparent; color: var(--text); transition: background .15s }
+    .lang-btn:hover { background: #f4f4f5 }
+    .mobile-menu { display: none; background: transparent; border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; font-size: 14px; font-weight: 600; color: var(--text); cursor: pointer }
+
+    /* ── Hero ── */
+    .hero { padding: 148px 0 88px; text-align: center }
+    .hero-badge { display: inline-flex; align-items: center; gap: 8px; padding: 5px 14px; border-radius: 100px; border: 1px solid var(--border); background: var(--surface); font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 32px }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; flex-shrink: 0 }
+    .hero h1 { font-size: clamp(2.6rem, 6vw, 4.6rem); font-weight: 800; letter-spacing: -.05em; line-height: 1.1; margin: 0 0 20px; color: var(--text) }
+    .hero h1 .hl { color: var(--accent) }
+    .hero p { font-size: 18px; color: var(--muted); margin: 0 auto 40px; max-width: 520px; line-height: 1.75 }
+    .hero-actions { display: flex; align-items: center; gap: 12px; justify-content: center; flex-wrap: wrap }
+    .btn-hero { padding: 12px 26px; font-size: 15px; border-radius: 10px; font-weight: 700; border: 0; cursor: pointer; display: inline-block; transition: background .15s, transform .15s }
+    .btn-hero:hover { transform: translateY(-2px) }
+    .btn-hero-primary { background: var(--accent); color: #fff }
+    .btn-hero-primary:hover { background: var(--accent-dark) }
+    .btn-hero-outline { background: #fff; border: 1px solid var(--border); color: var(--text) }
+    .btn-hero-outline:hover { background: var(--surface) }
+
+    /* ── Stats ── */
+    .stats-bar { padding: 44px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border) }
+    .stats-inner { display: flex; justify-content: center; gap: 72px; flex-wrap: wrap }
+    .stat { text-align: center }
+    .stat-num { font-size: 2rem; font-weight: 800; letter-spacing: -.04em; color: var(--text) }
+    .stat-num.accent { color: var(--accent) }
+    .stat-label { font-size: 13px; color: var(--muted); margin-top: 2px }
+
+    /* ── Sections ── */
+    .section { padding: 88px 0 }
+    .section-tag { font-size: 12px; font-weight: 700; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 10px }
+    .section h2 { font-size: clamp(1.6rem, 3vw, 2.3rem); font-weight: 800; letter-spacing: -.035em; line-height: 1.2; margin: 0 0 12px }
+    .section .sub { font-size: 16px; color: var(--muted); max-width: 480px; line-height: 1.75; margin: 0 0 48px }
+
+    /* ── Feature Cards ── */
+    .features-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px }
+    .feature-card { border: 1px solid var(--border); border-radius: 16px; padding: 28px 30px; background: var(--surface); transition: box-shadow .2s, border-color .2s }
+    .feature-card:hover { box-shadow: 0 4px 28px rgba(0,0,0,.07); border-color: #d4d4d8 }
+    .feature-icon { font-size: 24px; margin-bottom: 16px; display: block }
+    .feature-card h3 { font-size: 16px; font-weight: 700; margin: 0 0 8px; color: var(--text) }
+    .feature-card p { font-size: 14px; color: var(--muted); margin: 0; line-height: 1.75 }
+    .feature-link { display: inline-flex; align-items: center; gap: 4px; margin-top: 14px; font-size: 13px; font-weight: 600; color: var(--accent) }
+    .feature-link:hover { text-decoration: underline }
+
+    /* ── Models ── */
+    .models-section { padding: 88px 0; background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border) }
+    .section-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 32px; flex-wrap: wrap; gap: 12px }
+    .view-all { font-size: 14px; font-weight: 600; color: var(--accent) }
+    .view-all:hover { text-decoration: underline }
+    .models-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px }
+    .model-card { border: 1px solid var(--border); border-radius: 12px; padding: 20px; background: #fff; transition: box-shadow .2s, border-color .2s }
+    .model-card:hover { box-shadow: 0 2px 18px rgba(0,0,0,.07); border-color: #d4d4d8 }
+    .model-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px }
+    .model-icon { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; font-size: 17px; border: 1px solid var(--border); background: #fff; flex-shrink: 0 }
+    .model-name { font-size: 14px; font-weight: 700; color: var(--text) }
+    .model-provider { font-size: 12px; color: var(--muted); margin-top: 1px }
+    .model-badge { display: inline-block; padding: 1px 7px; border-radius: 100px; font-size: 11px; font-weight: 600; background: #dbeafe; color: #2563eb; margin-left: 5px; vertical-align: middle }
+    .model-badge.hot { background: #fef9c3; color: #a16207 }
+    .model-pricing { display: flex; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--border) }
+    .price-item { font-size: 12px; color: var(--muted) }
+    .price-item strong { display: block; font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 1px }
+
+    /* ── Steps ── */
+    .steps-section { padding: 88px 0 }
+    .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; margin-top: 48px }
+    .step-num { width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 13px; font-weight: 800; display: grid; place-items: center; margin-bottom: 16px }
+    .step h3 { font-size: 16px; font-weight: 700; margin: 0 0 8px }
+    .step p { font-size: 14px; color: var(--muted); margin: 0; line-height: 1.75 }
+    .step-code { margin-top: 20px; background: #18181b; border-radius: 10px; padding: 14px 18px; font-size: 12.5px; font-family: "SF Mono","Fira Code",monospace; color: #a1a1aa; line-height: 1.7; overflow-x: auto }
+    .step-code .c { color: #818cf8 }
+    .step-code .s { color: #34d399 }
+
+    /* ── CTA ── */
+    .cta-section { padding: 88px 0; text-align: center; background: var(--text); color: #fff }
+    .cta-section h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 800; letter-spacing: -.035em; margin: 0 0 12px }
+    .cta-section p { font-size: 16px; color: #a1a1aa; margin: 0 auto 32px; max-width: 440px }
+    .btn-white { background: #fff; color: var(--text); border-radius: 10px; padding: 13px 30px; font-size: 15px; font-weight: 700; border: 0; cursor: pointer; transition: opacity .15s, transform .15s; display: inline-block }
+    .btn-white:hover { opacity: .92; transform: translateY(-2px) }
+
+    /* ── Footer ── */
+    footer { padding: 44px 0; border-top: 1px solid var(--border) }
+    .footer-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px }
+    .footer-links { display: flex; gap: 24px; flex-wrap: wrap }
+    .footer-links a { font-size: 13px; color: var(--muted); transition: color .15s }
+    .footer-links a:hover { color: var(--text) }
+    .footer-copy { font-size: 12.5px; color: var(--muted2) }
+    .footer-copy a { color: var(--muted2) }
+    .footer-copy a:hover { color: var(--muted); text-decoration: underline }
+
+    /* ── Bilingual ── */
+    html[lang="en"] .zh { display: none !important }
+    html:not([lang="en"]) .en { display: none !important }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .models-grid { grid-template-columns: repeat(2, 1fr) }
+      .steps-grid { grid-template-columns: 1fr }
+    }
+    @media (max-width: 640px) {
+      .features-grid { grid-template-columns: 1fr }
+      .models-grid { grid-template-columns: 1fr }
+      .stats-inner { gap: 36px }
+      .nav-links { display: none }
+      .nav-actions .btn-ghost { display: none }
+      .mobile-menu { display: block }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav class="nav" id="nav">
+    <a class="brand" href="#top" aria-label="CXM 首页">
+      <span class="brand-mark">CXM</span>
+      <span>CXM</span>
+    </a>
+    <div class="nav-links">
+      <a class="nav-link" href="#models"><span class="zh">模型广场</span><span class="en">Models</span></a>
+      <a class="nav-link" href="#features"><span class="zh">文档</span><span class="en">Docs</span></a>
+      <a class="nav-link" href="#pricing"><span class="zh">定价</span><span class="en">Pricing</span></a>
+      <a class="nav-link" href="#features"><span class="zh">服务保障</span><span class="en">Enterprise</span></a>
+    </div>
+    <div class="nav-actions">
+      <button class="lang-btn" id="langToggle" title="切换语言 / Switch Language">
+        <span>🌐</span><span class="zh">EN</span><span class="en">中</span>
+      </button>
+      <a class="btn btn-ghost" href="/login"><span class="zh">登录</span><span class="en">Login</span></a>
+      <a class="btn btn-primary" href="/register"><span class="zh">注册</span><span class="en">Sign Up</span></a>
+    </div>
+    <button class="btn mobile-menu" aria-label="Menu"><span class="zh">菜单</span><span class="en">Menu</span></button>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero" id="top">
+    <div class="wrap">
+      <div class="hero-badge">
+        <span class="badge-dot"></span>
+        <span class="zh">兼容 OpenAI SDK · 注册即送 ¥20 体验额度</span>
+        <span class="en">OpenAI SDK Compatible · ¥20 Free Credits on Sign Up</span>
+      </div>
+      <h1>
+        <span class="zh">AI 模型 API<br><span class="hl">统一接入</span>平台</span>
+        <span class="en">The Unified API<br>for <span class="hl">AI Models</span></span>
+      </h1>
+      <p>
+        <span class="zh">一个 API Key，接入 Claude、GPT、Gemini 等主流模型。人民币充值，按量计费，无需订阅，稳定可靠。</span>
+        <span class="en">One API key for Claude, GPT, Gemini and more. Pay per use in RMB, no subscriptions, enterprise-grade reliability.</span>
+      </p>
+      <div class="hero-actions">
+        <a class="btn-hero btn-hero-primary" href="/register">
+          <span class="zh">免费获取 API Key</span>
+          <span class="en">Get API Key Free</span>
+        </a>
+        <a class="btn-hero btn-hero-outline" href="#models">
+          <span class="zh">浏览模型 →</span>
+          <span class="en">Explore Models →</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="wrap">
+      <div class="stats-inner">
+        <div class="stat">
+          <div class="stat-num">50T+</div>
+          <div class="stat-label"><span class="zh">月处理 Token</span><span class="en">Monthly Tokens</span></div>
+        </div>
+        <div class="stat">
+          <div class="stat-num">120K+</div>
+          <div class="stat-label"><span class="zh">注册用户</span><span class="en">Registered Users</span></div>
+        </div>
+        <div class="stat">
+          <div class="stat-num">10+</div>
+          <div class="stat-label"><span class="zh">接入供应商</span><span class="en">Providers</span></div>
+        </div>
+        <div class="stat">
+          <div class="stat-num accent">50+</div>
+          <div class="stat-label"><span class="zh">可用模型</span><span class="en">Models</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <section class="section" id="features">
+    <div class="wrap">
+      <div class="section-tag"><span class="zh">平台特性</span><span class="en">Why CXM</span></div>
+      <h2><span class="zh">为什么选择 CXM</span><span class="en">Built for Developers</span></h2>
+      <p class="sub">
+        <span class="zh">无需管理多个账号，一个 Key 搞定所有主流模型，专注于你的产品。</span>
+        <span class="en">Stop juggling multiple accounts. One key for all major models — focus on building.</span>
+      </p>
+      <div class="features-grid">
+        <div class="feature-card">
+          <span class="feature-icon">🔗</span>
+          <h3><span class="zh">任意模型，统一接口</span><span class="en">Any Model, One API</span></h3>
+          <p><span class="zh">通过统一接口接入 Claude、GPT、Gemini、Mistral、DeepSeek 等模型，完全兼容 OpenAI SDK，迁移成本几乎为零。</span><span class="en">Access Claude, GPT, Gemini, Mistral, DeepSeek and more through a single endpoint. Fully OpenAI SDK compatible.</span></p>
+          <a class="feature-link" href="/docs"><span class="zh">查看文档 →</span><span class="en">Browse docs →</span></a>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">⚡</span>
+          <h3><span class="zh">高可用 · 自动故障切换</span><span class="en">High Availability</span></h3>
+          <p><span class="zh">分布式转发节点，自动故障切换。当某个上游出现问题时，请求自动路由到备用渠道，保障业务连续性。</span><span class="en">Distributed relay nodes with automatic failover. When one upstream fails, traffic routes to backup channels seamlessly.</span></p>
+          <a class="feature-link" href="/docs"><span class="zh">了解更多 →</span><span class="en">Learn more →</span></a>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">💰</span>
+          <h3><span class="zh">按量付费 · 人民币充值</span><span class="en">Pay As You Go</span></h3>
+          <p><span class="zh">无月费、无订阅，按实际 Token 消耗扣费。支持支付宝、微信支付，告别跨境支付麻烦，费率透明可查。</span><span class="en">No monthly fees. Pay only for what you use. Top up via Alipay or WeChat Pay. Transparent per-token pricing.</span></p>
+          <a class="feature-link" href="#pricing"><span class="zh">查看定价 →</span><span class="en">View pricing →</span></a>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🛡️</span>
+          <h3><span class="zh">安全与数据保护</span><span class="en">Security & Privacy</span></h3>
+          <p><span class="zh">细粒度 API Key 权限控制，支持按模型、按预算限额。您的请求数据不会用于任何模型训练，合规放心使用。</span><span class="en">Fine-grained API key permissions and per-model budgets. Your data is never used for model training.</span></p>
+          <a class="feature-link" href="/docs/privacy"><span class="zh">隐私策略 →</span><span class="en">View privacy docs →</span></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Models -->
+  <section class="models-section" id="models">
+    <div class="wrap">
+      <div class="section-header">
+        <div>
+          <div class="section-tag"><span class="zh">模型广场</span><span class="en">Featured Models</span></div>
+          <h2 style="margin:0;font-size:clamp(1.6rem,3vw,2.3rem);font-weight:800;letter-spacing:-.035em"><span class="zh">热门模型</span><span class="en">Featured Models</span></h2>
+        </div>
+        <a class="view-all" href="/models"><span class="zh">查看全部 →</span><span class="en">View all →</span></a>
+      </div>
+      <div class="models-grid">
+        <div class="model-card">
+          <div class="model-head">
+            <div class="model-icon">🤖</div>
+            <div>
+              <div class="model-name">Claude Opus 4.7 <span class="model-badge">New</span></div>
+              <div class="model-provider">by Anthropic</div>
+            </div>
+          </div>
+          <div class="model-pricing">
+            <div class="price-item"><strong>¥0.108/K</strong><span class="zh">输入</span><span class="en">Input</span></div>
+            <div class="price-item"><strong>¥0.54/K</strong><span class="zh">输出</span><span class="en">Output</span></div>
+            <div class="price-item"><strong>200K</strong>Context</div>
+          </div>
+        </div>
+        <div class="model-card">
+          <div class="model-head">
+            <div class="model-icon">✨</div>
+            <div>
+              <div class="model-name">GPT-5.5 <span class="model-badge">New</span></div>
+              <div class="model-provider">by OpenAI</div>
+            </div>
+          </div>
+          <div class="model-pricing">
+            <div class="price-item"><strong>¥0.072/K</strong><span class="zh">输入</span><span class="en">Input</span></div>
+            <div class="price-item"><strong>¥0.216/K</strong><span class="zh">输出</span><span class="en">Output</span></div>
+            <div class="price-item"><strong>128K</strong>Context</div>
+          </div>
+        </div>
+        <div class="model-card">
+          <div class="model-head">
+            <div class="model-icon">💎</div>
+            <div>
+              <div class="model-name">Gemini 2.5 Pro</div>
+              <div class="model-provider">by Google</div>
+            </div>
+          </div>
+          <div class="model-pricing">
+            <div class="price-item"><strong>¥0.054/K</strong><span class="zh">输入</span><span class="en">Input</span></div>
+            <div class="price-item"><strong>¥0.216/K</strong><span class="zh">输出</span><span class="en">Output</span></div>
+            <div class="price-item"><strong>1M</strong>Context</div>
+          </div>
+        </div>
+        <div class="model-card">
+          <div class="model-head">
+            <div class="model-icon">⚡</div>
+            <div>
+              <div class="model-name">Claude Sonnet 4.6</div>
+              <div class="model-provider">by Anthropic</div>
+            </div>
+          </div>
+          <div class="model-pricing">
+            <div class="price-item"><strong>¥0.022/K</strong><span class="zh">输入</span><span class="en">Input</span></div>
+            <div class="price-item"><strong>¥0.108/K</strong><span class="zh">输出</span><span class="en">Output</span></div>
+            <div class="price-item"><strong>200K</strong>Context</div>
+          </div>
+        </div>
+        <div class="model-card">
+          <div class="model-head">
+            <div class="model-icon">🚀</div>
+            <div>
+              <div class="model-name">DeepSeek V3 <span class="model-badge hot">热门</span></div>
+              <div class="model-provider">by DeepSeek</div>
+            </div>
+          </div>
+          <div class="model-pricing">
+            <div class="price-item"><strong>¥0.004/K</strong><span class="zh">输入</span><span class="en">Input</span></div>
+            <div class="price-item"><strong>¥0.016/K</strong><span class="zh">输出</span><span class="en">Output</span></div>
+            <div class="price-item"><strong>64K</strong>Context</div>
+          </div>
+        </div>
+        <div class="model-card">
+          <div class="model-head">
+            <div class="model-icon">🌟</div>
+            <div>
+              <div class="model-name">Qwen3-235B <span class="model-badge">New</span></div>
+              <div class="model-provider">by Alibaba</div>
+            </div>
+          </div>
+          <div class="model-pricing">
+            <div class="price-item"><strong>¥0.007/K</strong><span class="zh">输入</span><span class="en">Input</span></div>
+            <div class="price-item"><strong>¥0.022/K</strong><span class="zh">输出</span><span class="en">Output</span></div>
+            <div class="price-item"><strong>131K</strong>Context</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Steps -->
+  <section class="steps-section" id="start">
+    <div class="wrap">
+      <div class="section-tag"><span class="zh">快速上手</span><span class="en">Get Started</span></div>
+      <h2 style="font-size:clamp(1.6rem,3vw,2.3rem);font-weight:800;letter-spacing:-.035em;margin:0 0 8px"><span class="zh">三步开始使用</span><span class="en">Up and Running in Minutes</span></h2>
+      <p style="font-size:16px;color:var(--muted);margin:0;max-width:480px;line-height:1.75">
+        <span class="zh">无需复杂配置，替换一行 base_url 即可迁移现有项目。</span>
+        <span class="en">No complex setup. Swap one line of base_url and you're done.</span>
+      </p>
+      <div class="steps-grid">
+        <div class="step">
+          <div class="step-num">1</div>
+          <h3><span class="zh">注册账号</span><span class="en">Sign Up</span></h3>
+          <p><span class="zh">邮箱快速注册，即送 ¥20 体验额度，无需绑定信用卡，支持 Google / GitHub 登录。</span><span class="en">Register with email or OAuth. Get ¥20 free credits instantly — no credit card required.</span></p>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <h3><span class="zh">充值额度</span><span class="en">Add Credits</span></h3>
+          <p><span class="zh">支持支付宝、微信支付，人民币充值，按需充值，余额永不过期，费率透明公开。</span><span class="en">Top up via Alipay or WeChat Pay in RMB. Credits never expire. Transparent pricing for every model.</span></p>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <h3><span class="zh">获取 API Key，开始调用</span><span class="en">Get Your API Key</span></h3>
+          <p><span class="zh">创建 API Key，将 base_url 替换为 CXM 地址即可。完全兼容 OpenAI SDK，5 分钟完成迁移。</span><span class="en">Create an API key and replace the base_url. Fully OpenAI SDK compatible — migrate in 5 minutes.</span></p>
+          <div class="step-code">
+            <span class="c">from</span> openai <span class="c">import</span> OpenAI<br>
+            client = OpenAI(<br>
+            &nbsp;&nbsp;base_url=<span class="s">"https://api.cxm.icu/v1"</span>,<br>
+            &nbsp;&nbsp;api_key=<span class="s">"sk-..."</span><br>
+            )
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div class="wrap">
+      <h2><span class="zh">立即注册，即送 ¥20 体验额度</span><span class="en">Start Free — Get ¥20 in Credits</span></h2>
+      <p><span class="zh">注册即送，5 分钟内完成首次调用，无需绑卡，无需订阅。</span><span class="en">Sign up in seconds. First API call in under 5 minutes. No credit card, no subscription.</span></p>
+      <a href="/register" class="btn-white"><span class="zh">免费注册</span><span class="en">Sign Up Free</span></a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="wrap footer-inner">
+      <a class="brand" href="#top">
+        <span class="brand-mark" style="width:28px;height:28px;font-size:9px;border-radius:7px">CXM</span>
+        <span>CXM</span>
+      </a>
+      <div class="footer-links">
+        <a href="#models"><span class="zh">模型广场</span><span class="en">Models</span></a>
+        <a href="#pricing"><span class="zh">定价</span><span class="en">Pricing</span></a>
+        <a href="#"><span class="zh">服务条款</span><span class="en">Terms</span></a>
+        <a href="#"><span class="zh">隐私政策</span><span class="en">Privacy</span></a>
+        <a href="#"><span class="zh">联系我们</span><span class="en">Contact</span></a>
+      </div>
+      <div class="footer-copy">
+        © 2026 CXM. All rights reserved.&nbsp;|&nbsp;<a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">京ICP备2024097128号-2</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const langBtn = document.getElementById('langToggle');
+    const htmlEl = document.getElementById('htmlRoot');
+    if (langBtn && htmlEl) {
+      langBtn.addEventListener('click', () => {
+        const isEn = htmlEl.lang === 'en';
+        htmlEl.lang = isEn ? 'zh-CN' : 'en';
+        document.getElementById('pageTitle').textContent = isEn
+          ? 'CXM - AI 模型 API 统一接入平台'
+          : 'CXM - Unified API for AI Models';
+      });
+    }
+    const nav = document.getElementById('nav');
+    if (nav) {
+      const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 8);
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    }
+  </script>
+</body>
+</html>
