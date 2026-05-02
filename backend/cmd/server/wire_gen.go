@@ -223,7 +223,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	adminAPIKeyHandler := admin.NewAdminAPIKeyHandler(adminService)
 	scheduledTestPlanRepository := repository.NewScheduledTestPlanRepository(db)
 	scheduledTestResultRepository := repository.NewScheduledTestResultRepository(db)
-	usageHandler := handler.NewUsageHandler(usageService, apiKeyService, pricingService, scheduledTestResultRepository, groupRepository)
+	usageHandler := handler.NewUsageHandler(usageService, apiKeyService, pricingService, scheduledTestResultRepository, groupRepository, accountRepository)
 	scheduledTestService := service.ProvideScheduledTestService(scheduledTestPlanRepository, scheduledTestResultRepository)
 	scheduledTestHandler := admin.NewScheduledTestHandler(scheduledTestService)
 	channelHandler := admin.NewChannelHandler(channelService, billingService)
