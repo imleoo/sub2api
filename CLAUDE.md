@@ -8,6 +8,69 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **技术栈**：Go 1.26.1（Gin + Ent ORM）+ Vue 3.4+（Vite 5 + TailwindCSS + Pinia）+ PostgreSQL 18 + Redis 8
 
+## zhiguofan 分支差异化开发
+
+本节是合并 `upstream/main` 时的入口级检查清单。详细历史文档见 `claudedocs/自定义开发功能列表.md`，但以当前代码和本节为准。
+
+### 版本与同步策略
+
+- `main` 对齐上游，版本保持上游 `0.x.y`
+- `zhiguofan` 使用 fork 版本线，`backend/cmd/server/VERSION` 应保持 `1.x.y`，例如上游 `0.1.121` 对应 `1.1.121`
+- 同步上游优先使用 `./script/sync_upstream_to_zhiguofan.sh`，该脚本负责 `upstream/main → main → origin/main → zhiguofan → origin/zhiguofan`
+- 脚本同步到 `zhiguofan` 后会把版本主号改为 `1`；如果手动 merge，必须手动检查 `backend/cmd/server/VERSION`
+- `AGENTS.md` 是指向 `CLAUDE.md` 的 symlink，保留单一规则源，不要复制成两份
+
+### 必须保留的 fork 功能
+
+1. **用户端模型列表**
+   - 路由：`/models`
+   - 前端：`frontend/src/views/user/ModelsView.vue`、`frontend/src/api/models.ts`、`frontend/src/router/index.ts`
+   - 后端：`backend/internal/server/routes/user.go`、`backend/internal/handler/usage_handler.go`、`backend/internal/service/pricing_service.go`
+   - 合并时保留模型版本过滤、价格展示、可用性/特性标签和 i18n 键 `nav.models`、`models.*`
+
+2. **管理员用户统计**
+   - 前端：`frontend/src/components/admin/user/UserStatsModal.vue`、`frontend/src/views/admin/UsersView.vue`、`frontend/src/api/admin/users.ts`
+   - 后端：`backend/internal/handler/admin/user_handler.go`、`backend/internal/service/admin_service.go`、`backend/internal/repository/usage_log_repo.go`
+   - API：`GET /api/v1/admin/users/:id/usage`
+   - 前端期望 `summary`、`history`、`models`、`endpoints` 响应结构，合并时不要退回上游的较窄用户管理契约
+
+3. **提示词词云分析 Prompt Analytics**
+   - 插件目录：`backend/internal/plugin/promptanalytics/`
+   - 注入点：`backend/cmd/server/wire.go`、`backend/cmd/server/wire_gen.go`、`backend/internal/server/router.go`
+   - 路由：`backend/internal/server/routes/admin.go`、`backend/internal/server/routes/gateway.go`
+   - 前端：`frontend/src/views/admin/PromptAnalyticsView.vue`、`frontend/src/api/admin/promptAnalytics.ts`
+   - 数据库：`backend/ent/schema/keyword_stat.go`、`backend/migrations/082_create_keyword_stats.sql`
+   - 合并时必须保留网关请求体预读和 promptanalytics 中间件，否则管理端词云会无数据
+
+4. **OpenAI/网关本地测试与快速测试工具**
+   - 测试：`frontend/src/api/__tests__/gateway_model_calls.spec.ts`、`test/api_reconciliation_test.go`
+   - 工具：`tools/openai_quick_test.py`
+   - 后端：`backend/internal/service/account_test_service.go`、`backend/internal/service/account_test_service_openai_test.go`
+   - 合并账号测试、模型映射、网关请求逻辑时优先跑这些用例，避免 OpenAI/Codex/Gemini 调用回归
+
+5. **部署与品牌化资产**
+   - 部署脚本：`deploy/.env.production`、`deploy/deploy-production.sh`、`deploy/docker-compose.production.yml`、`deploy/push-to-dockerhub.sh`
+   - 工作流：`.github/workflows/docker-push.yml`、`.github/workflows/sync-upstream.yml`
+   - 静态页和文档：`statics/we2ai.com/index.html`、`statics/api.cxm.icu/index.html`、`claudedocs/`、`docs/RECONCILIATION_API_CN.md`
+   - 合并上游发布配置时，不要覆盖 Harbor/内网部署、We2AI/API 文档和本 fork 的静态页面
+
+### 合并冲突处理优先级
+
+- `main` 与 `upstream/main` 冲突：`main` 负责贴近上游，通常以上游为准
+- `zhiguofan` 与 `main` 冲突：以 `main` 为基线，但必须重新保留上面的 fork 功能
+- `backend/cmd/server/wire_gen.go`、`backend/cmd/server/wire.go`、`backend/internal/server/router.go`、`backend/internal/server/routes/*.go` 是高风险文件，合并后必须检查 Prompt Analytics、Admin User Stats、Gateway 中间件是否还在
+- `frontend/src/router/index.ts`、`frontend/src/i18n/locales/zh.ts`、`frontend/src/i18n/locales/en.ts` 是高风险文件，合并后必须检查 `/models`、Prompt Analytics 菜单和翻译键是否还在
+- `frontend/package-lock.json` 是历史遗留文件；本项目开发仍以 pnpm 为准，新增依赖时优先维护 `pnpm-lock.yaml`
+
+### 合并后最低验证
+
+```bash
+git diff --check
+cd backend && go test -tags=unit ./internal/service ./internal/repository ./internal/server ./internal/handler/...
+cd frontend && pnpm exec vitest run src/views/admin/__tests__/SettingsView.spec.ts src/composables/__tests__/usePersistedPageSize.spec.ts
+cd frontend && pnpm run lint:check
+```
+
 ## 常用命令
 
 ### 根目录（Makefile）

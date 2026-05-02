@@ -34,6 +34,27 @@ Demo credentials (shared demo environment; **not** created automatically for sel
 
 Sub2API is an AI API gateway platform designed to distribute and manage API quotas from AI product subscriptions. Users can access upstream AI services through platform-generated API Keys, while the platform handles authentication, billing, load balancing, and request forwarding.
 
+## zhiguofan Fork Delta
+
+This repository is maintained as the `zhiguofan` fork branch. When merging from `Wei-Shaw/sub2api` `upstream/main`, do not treat this branch as a clean upstream mirror. The fork carries product, deployment, and documentation changes that must be preserved.
+
+### Version and Sync Policy
+
+- `main` tracks upstream and keeps the upstream `0.x.y` version.
+- `zhiguofan` uses the fork version line in `backend/cmd/server/VERSION`: upstream `0.x.y` becomes fork `1.x.y`.
+- Use `./script/sync_upstream_to_zhiguofan.sh` for upstream sync. It updates `main`, merges into `zhiguofan`, and restores the `1.x.y` fork version.
+- `AGENTS.md` is a symlink to `CLAUDE.md`; keep `CLAUDE.md` as the single maintained agent instruction source.
+
+### Fork Features To Preserve During Merge
+
+- **User model catalog**: `/models`, `frontend/src/views/user/ModelsView.vue`, `frontend/src/api/models.ts`, model pricing/version filtering, and i18n keys `nav.models` / `models.*`.
+- **Admin user usage statistics**: `frontend/src/components/admin/user/UserStatsModal.vue`, `frontend/src/api/admin/users.ts`, `GET /api/v1/admin/users/:id/usage`, and the response shape containing `summary`, `history`, `models`, and `endpoints`.
+- **Prompt Analytics**: `backend/internal/plugin/promptanalytics/`, admin route `GET /api/v1/admin/prompt-analytics/top-keywords`, gateway middleware wiring, `frontend/src/views/admin/PromptAnalyticsView.vue`, `frontend/src/api/admin/promptAnalytics.ts`, and migration `backend/migrations/082_create_keyword_stats.sql`.
+- **Gateway/API test aids**: `frontend/src/api/__tests__/gateway_model_calls.spec.ts`, `test/api_reconciliation_test.go`, and `tools/openai_quick_test.py`.
+- **Deployment and branding**: Harbor/internal deployment files under `deploy/`, sync/push scripts under `script/`, We2AI/API static pages under `statics/`, and fork documentation under `claudedocs/`.
+
+High-risk merge files are `backend/cmd/server/wire_gen.go`, `backend/cmd/server/wire.go`, `backend/internal/server/router.go`, `backend/internal/server/routes/*.go`, `frontend/src/router/index.ts`, and the i18n locale files. After every upstream merge, verify these files still contain the fork-specific routes, DI providers, middleware, and menu/translation entries. See `CLAUDE.md` for the detailed merge checklist.
+
 ## Features
 
 - **Multi-Account Management** - Support multiple upstream account types (OAuth, API Key)
