@@ -30,3 +30,11 @@ describe('AppSidebar header styles', () => {
     expect(sidebarBrandBlockMatch?.[0]).not.toContain('overflow: hidden;')
   })
 })
+
+describe('AppSidebar fork navigation entries', () => {
+  it('keeps the user models catalog in the self navigation', () => {
+    expect(componentSource).toContain("path: '/models'")
+    expect(componentSource).toContain("label: t('nav.models')")
+    expect(componentSource).toContain('icon: ModelGridIcon')
+  })
+})

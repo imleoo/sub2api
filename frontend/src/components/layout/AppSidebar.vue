@@ -368,6 +368,21 @@ const ChannelIcon = {
     )
 }
 
+const ModelGridIcon = {
+  render: () =>
+    h(
+      'svg',
+      { fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor', 'stroke-width': '1.5' },
+      [
+        h('path', {
+          'stroke-linecap': 'round',
+          'stroke-linejoin': 'round',
+          d: 'M4.5 5.25A2.25 2.25 0 016.75 3h3A2.25 2.25 0 0112 5.25v3a2.25 2.25 0 01-2.25 2.25h-3A2.25 2.25 0 014.5 8.25v-3zM12 5.25A2.25 2.25 0 0114.25 3h3a2.25 2.25 0 012.25 2.25v3a2.25 2.25 0 01-2.25 2.25h-3A2.25 2.25 0 0112 8.25v-3zM4.5 15.75a2.25 2.25 0 012.25-2.25h3A2.25 2.25 0 0112 15.75v3A2.25 2.25 0 019.75 21h-3a2.25 2.25 0 01-2.25-2.25v-3zM12 15.75a2.25 2.25 0 012.25-2.25h3a2.25 2.25 0 012.25 2.25v3A2.25 2.25 0 0117.25 21h-3A2.25 2.25 0 0112 18.75v-3z'
+        })
+      ]
+    )
+}
+
 const CreditCardIcon = {
   render: () =>
     h(
@@ -651,6 +666,7 @@ function buildSelfNavItems(withDashboard: boolean): NavItem[] {
   items.push(
     { path: '/keys', label: t('nav.apiKeys'), icon: KeyIcon },
     { path: '/usage', label: t('nav.usage'), icon: ChartIcon, hideInSimpleMode: true },
+    { path: '/models', label: t('nav.models'), icon: ModelGridIcon, hideInSimpleMode: true },
     { path: '/available-channels', label: t('nav.availableChannels'), icon: ChannelIcon, hideInSimpleMode: true, featureFlag: flagAvailableChannels },
     { path: '/monitor', label: t('nav.channelStatus'), icon: SignalIcon, featureFlag: flagChannelMonitor },
     { path: '/subscriptions', label: t('nav.mySubscriptions'), icon: CreditCardIcon, hideInSimpleMode: true },

@@ -370,6 +370,7 @@ export default {
     mySubscriptions: '我的订阅',
     buySubscription: '充值/订阅',
     docs: '文档',
+    models: '模型列表',
     myOrders: '我的订单',
     orderManagement: '订单管理',
     paymentDashboard: '支付概览',
