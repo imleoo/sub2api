@@ -10,6 +10,7 @@
 - 合并到本地 `main`
 - 推送 `main` 到 `origin`
 - 再把 `origin/main` 合并到 `zhiguofan`
+- 将 `zhiguofan` 的版本号同步为 `1.x.y`（默认把 `main` 的 `0.x.y` 改成 `1.x.y`）
 - 最后推送 `zhiguofan` 到 `origin`
 
 适用场景：

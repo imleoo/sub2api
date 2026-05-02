@@ -6,9 +6,12 @@ UPSTREAM_BRANCH="${UPSTREAM_BRANCH:-main}"
 GITHUB_REMOTE="${GITHUB_REMOTE:-origin}"
 MAIN_BRANCH="${MAIN_BRANCH:-main}"
 WORK_BRANCH="${WORK_BRANCH:-zhiguofan}"
+WORK_VERSION_MAJOR="${WORK_VERSION_MAJOR:-1}"
+VERSION_FILE="${VERSION_FILE:-backend/cmd/server/VERSION}"
 UPSTREAM_MERGE_MSG="${UPSTREAM_MERGE_MSG:-chore: sync from upstream Wei-Shaw/sub2api:main}"
 WORK_MERGE_MSG="${WORK_MERGE_MSG:-chore: sync from origin/main}"
 WORK_REMOTE_SYNC_MSG="${WORK_REMOTE_SYNC_MSG:-chore: sync with origin/zhiguofan}"
+WORK_VERSION_MSG="${WORK_VERSION_MSG:-chore: sync zhiguofan version}"
 
 # Whether to attempt Codebuddy-assisted conflict resolution.
 #
@@ -209,6 +212,29 @@ merge_with_conflict_help() {
   exit 1
 }
 
+sync_work_branch_version() {
+  [[ -f "$VERSION_FILE" ]] || return 0
+
+  local main_v
+  main_v=$(git show "${MAIN_BRANCH}:${VERSION_FILE}" 2>/dev/null || cat "$VERSION_FILE")
+
+  local work_v
+  work_v=$(echo "$main_v" | awk -F. -v major="$WORK_VERSION_MAJOR" 'BEGIN{OFS="."} NF >= 1 {$1=major; print $0}')
+  [[ -n "$work_v" ]] || die "Failed to derive ${WORK_BRANCH} version from ${MAIN_BRANCH}:${VERSION_FILE}"
+
+  local current_v
+  current_v=$(cat "$VERSION_FILE")
+  if [[ "$current_v" == "$work_v" ]]; then
+    echo "${VERSION_FILE} already uses ${WORK_BRANCH} version: ${work_v}"
+    return 0
+  fi
+
+  echo "$work_v" > "$VERSION_FILE"
+  git add "$VERSION_FILE"
+  git commit -m "$WORK_VERSION_MSG"
+  echo "Updated ${VERSION_FILE}: ${current_v} -> ${work_v}"
+}
+
 # ─── Main ─────────────────────────────────────────────────────────────────────
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 [[ -n "$repo_root" ]] || die "Run this script inside a git repository."
@@ -283,6 +309,8 @@ if [[ "$work_behind" != "0" ]]; then
 else
   echo "${WORK_BRANCH} is already up to date with ${GITHUB_REMOTE}/${MAIN_BRANCH}."
 fi
+
+sync_work_branch_version
 
 echo "Pushing ${WORK_BRANCH} to ${GITHUB_REMOTE}..."
 git push "$GITHUB_REMOTE" "$WORK_BRANCH"
