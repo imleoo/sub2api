@@ -26,6 +26,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - 路由：`/models`
    - 前端：`frontend/src/views/user/ModelsView.vue`、`frontend/src/api/models.ts`、`frontend/src/router/index.ts`
    - 后端：`backend/internal/server/routes/user.go`、`backend/internal/handler/usage_handler.go`、`backend/internal/service/pricing_service.go`
+   - 白名单：用户端只显示账号 `credentials.model_mapping` 配置过的模型；不要退回上游“展示全部定价表模型”的行为
+   - Images 模型：账号白名单里配置的图片模型必须显示，保留 `image_generation` 归一化和 `gpt-image-*`、`dall-e*`、`imagen-*`、`gemini-*-image` 等 ID 识别逻辑
+   - 复制模型名：模型名称列保留复制按钮、剪贴板 fallback、短暂已复制状态，以及 i18n 键 `models.copyModelName`、`models.copied`
+   - 价格来源：用户模型页价格来自 `PricingService.ListAllModels()`；运行时文件是 `backend/data/model_pricing.json`，回退/同步源是 `backend/resources/model-pricing/model_prices_and_context_window.json`
+   - 图片模型输出价格：`gpt-image-1` 等模型可能只有 `output_cost_per_image_token`，如需在“输出价格”列显示，应同步补齐/映射到前端读取的输出价格字段，避免只改 UI
    - 合并时保留模型版本过滤、价格展示、可用性/特性标签和 i18n 键 `nav.models`、`models.*`
 
 2. **管理员用户统计**
@@ -60,6 +65,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `zhiguofan` 与 `main` 冲突：以 `main` 为基线，但必须重新保留上面的 fork 功能
 - `backend/cmd/server/wire_gen.go`、`backend/cmd/server/wire.go`、`backend/internal/server/router.go`、`backend/internal/server/routes/*.go` 是高风险文件，合并后必须检查 Prompt Analytics、Admin User Stats、Gateway 中间件是否还在
 - `frontend/src/router/index.ts`、`frontend/src/i18n/locales/zh.ts`、`frontend/src/i18n/locales/en.ts` 是高风险文件，合并后必须检查 `/models`、Prompt Analytics 菜单和翻译键是否还在
+- `frontend/src/views/user/ModelsView.vue`、`frontend/src/api/models.ts`、`backend/internal/handler/usage_handler.go` 是用户模型列表高风险文件，合并后必须检查白名单过滤、Images 模型显示、复制模型名按钮和中英文切换
+- `backend/data/model_pricing.json` 与 `backend/resources/model-pricing/model_prices_and_context_window.json` 是模型价格高风险文件，合并/同步后必须检查 `gpt-image-1` 等图片模型输出价格字段是否仍满足前端展示和计费口径
 - `frontend/package-lock.json` 是历史遗留文件；本项目开发仍以 pnpm 为准，新增依赖时优先维护 `pnpm-lock.yaml`
 
 ### 合并后最低验证
@@ -68,6 +75,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 git diff --check
 cd backend && go test -tags=unit ./internal/service ./internal/repository ./internal/server ./internal/handler/...
 cd frontend && pnpm exec vitest run src/views/admin/__tests__/SettingsView.spec.ts src/composables/__tests__/usePersistedPageSize.spec.ts
+cd frontend && pnpm exec vitest run src/views/user/__tests__/ModelsView.spec.ts src/i18n/__tests__/usageServiceTierLocales.spec.ts
 cd frontend && pnpm run lint:check
 ```
 

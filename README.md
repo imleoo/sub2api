@@ -47,7 +47,11 @@ This repository is maintained as the `zhiguofan` fork branch. When merging from 
 
 ### Fork Features To Preserve During Merge
 
-- **User model catalog**: `/models`, `frontend/src/views/user/ModelsView.vue`, `frontend/src/api/models.ts`, model pricing/version filtering, and i18n keys `nav.models` / `models.*`.
+- **User model catalog**: `/models`, `frontend/src/views/user/ModelsView.vue`, `frontend/src/api/models.ts`, `backend/internal/handler/usage_handler.go`, `backend/internal/service/pricing_service.go`, model pricing/version filtering, and i18n keys `nav.models` / `models.*`.
+  - The user catalog must show only models whitelisted in account `credentials.model_mapping`; non-whitelisted pricing-table models must stay hidden.
+  - Image models configured in the whitelist must be visible. Preserve `image_generation` mode normalization and explicit image model detection for IDs such as `gpt-image-*`, `dall-e*`, `imagen-*`, and `gemini-*-image`.
+  - The model list includes a copy action next to each model ID; keep the clipboard fallback and `models.copyModelName` / `models.copied` locale keys.
+  - `gpt-image-1` and similar image models may price output via `output_cost_per_image_token`. Runtime display data comes from `backend/data/model_pricing.json`; the fallback/sync source is `backend/resources/model-pricing/model_prices_and_context_window.json`.
 - **Admin user usage statistics**: `frontend/src/components/admin/user/UserStatsModal.vue`, `frontend/src/api/admin/users.ts`, `GET /api/v1/admin/users/:id/usage`, and the response shape containing `summary`, `history`, `models`, and `endpoints`.
 - **Prompt Analytics**: `backend/internal/plugin/promptanalytics/`, admin route `GET /api/v1/admin/prompt-analytics/top-keywords`, gateway middleware wiring, `frontend/src/views/admin/PromptAnalyticsView.vue`, `frontend/src/api/admin/promptAnalytics.ts`, and migration `backend/migrations/082_create_keyword_stats.sql`.
 - **Gateway/API test aids**: `frontend/src/api/__tests__/gateway_model_calls.spec.ts`, `test/api_reconciliation_test.go`, and `tools/openai_quick_test.py`.
