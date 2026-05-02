@@ -1182,6 +1182,40 @@
   <script>
     const TWEAK_DEFAULTS =/*EDITMODE-BEGIN*/{ "accentColor": "#7c6ff7", "heroLayout": "split", "darkMode": true, "showPricing": true }/*EDITMODE-END*/;
     const LANG_ZH = document.documentElement.lang !== "en";
+    const langState = document.getElementById("langState");
+    function getCookie(name) {
+      const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/[.*+?^()|[\]\\]/g, '\\$&') + '=([^;]*)'));
+      return match ? decodeURIComponent(match[1]) : null;
+    }
+    function setCookie(name, value, options) {
+      options = options || {};
+      let cookieStr = encodeURIComponent(name) + '=' + encodeURIComponent(value);
+      if (options.expires) {
+        let d = new Date();
+        d.setTime(d.getTime() + options.expires * 24 * 60 * 60 * 1000);
+        cookieStr += '; expires=' + d.toUTCString();
+      }
+      if (options.domain) cookieStr += '; domain=' + options.domain;
+      if (options.path !== undefined) cookieStr += '; path=' + options.path;
+      if (options.sameSite) cookieStr += '; SameSite=' + options.sameSite;
+      document.cookie = cookieStr;
+    }
+    function setLang(lang) {
+      document.documentElement.lang = lang;
+      const titleEl = document.getElementById("pageTitle");
+      if (titleEl) titleEl.textContent = lang === "en"
+        ? "WE2AI - One-Stop AI Model API Purchase Platform"
+        : "WE2AI - AI 模型 API 一站式购买平台";
+      if (langState) langState.checked = lang === "en";
+      setCookie("we2ai_lang", lang, { expires: 365, domain: ".we2ai.com", path: "/", sameSite: "Lax" });
+    }
+    if (langState) {
+      langState.addEventListener("change", () => {
+        setLang(langState.checked ? "en" : "zh-CN");
+      });
+    }
+    const savedLang = getCookie("we2ai_lang");
+    if (savedLang) setLang(savedLang);
     const models = [
       ["Claude Opus 4.7","Anthropic",{zh:"旗舰",en:"Flagship"},"#cc7dff","$5.00","$25.00","1M","NEW",{zh:"最新旗舰，顶尖编程与视觉推理，百万上下文统一定价",en:"Latest flagship — top-tier coding & vision reasoning, 1M context unified pricing"}],
       ["Claude Sonnet 4.6","Anthropic",{zh:"推荐",en:"Recommended"},"#a78bfa","$3.00","$15.00","1M","",{zh:"性能接近 Opus，价格更友好，开发者首选",en:"Near-Opus performance at a friendlier price — the developer go-to"}],
