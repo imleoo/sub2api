@@ -272,10 +272,10 @@
                       {{ t('models.promptCaching') }}
                     </span>
                     <span
-                      v-if="model.mode === 'image'"
+                      v-if="isImageModel(model)"
                       class="inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
                     >
-                      Image
+                      {{ t('models.imageMode') }}
                     </span>
                     <span
                       v-if="isVisionModel(model.id)"
@@ -343,8 +343,8 @@ const providerOptions = computed(() => {
 
 const modeOptions = computed(() => [
   { value: 'all', label: t('models.allModes') },
-  { value: 'chat', label: 'Chat' },
-  { value: 'image', label: 'Image' },
+  { value: 'chat', label: t('models.chatMode') },
+  { value: 'image', label: t('models.imageMode') },
 ])
 
 const filteredModels = computed(() => {
@@ -355,7 +355,7 @@ const filteredModels = computed(() => {
   }
 
   if (selectedMode.value !== 'all') {
-    result = result.filter(m => m.mode === selectedMode.value)
+    result = result.filter(m => normalizeModelMode(m) === selectedMode.value)
   }
 
   const q = searchQuery.value.trim().toLowerCase()
@@ -403,6 +403,10 @@ function shouldShowModel(model: ModelInfo): boolean {
   // Hide unavailable models
   if (!model.is_available) {
     return false
+  }
+
+  if (isImageModel(model)) {
+    return true
   }
 
   const id = model.id.toLowerCase()
@@ -562,6 +566,26 @@ function formatNumber(n: number | undefined): string {
 }
 
 // ─── Helpers ────────────────────────────
+function normalizeModelMode(model: ModelInfo): string {
+  const mode = (model.mode || '').toLowerCase()
+  if (mode === 'image' || mode === 'image_generation') {
+    return 'image'
+  }
+  return mode || 'chat'
+}
+
+function isImageModel(model: ModelInfo): boolean {
+  const id = model.id.toLowerCase()
+  return (
+    normalizeModelMode(model) === 'image' ||
+    id.startsWith('gpt-image-') ||
+    id.startsWith('dall-e') ||
+    id.startsWith('imagen-') ||
+    (id.startsWith('gemini-') && id.includes('-image')) ||
+    (id.startsWith('grok-') && id.includes('image'))
+  )
+}
+
 function isVisionModel(modelId: string): boolean {
   const lower = modelId.toLowerCase()
   return (

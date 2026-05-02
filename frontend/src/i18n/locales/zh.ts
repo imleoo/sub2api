@@ -6593,6 +6593,8 @@ export default {
     searchPlaceholder: '搜索模型名称...',
     allProviders: '全部提供商',
     allModes: '全部模式',
+    chatMode: '聊天',
+    imageMode: '图片',
     noResults: '没有匹配的模型',
     showing: '正在显示 {count} / {total} 个模型',
     modelName: '模型名称',

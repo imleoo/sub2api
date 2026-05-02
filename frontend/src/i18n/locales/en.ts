@@ -6097,6 +6097,8 @@ export default {
     searchPlaceholder: 'Search model name...',
     allProviders: 'All Providers',
     allModes: 'All Modes',
+    chatMode: 'Chat',
+    imageMode: 'Image',
     noResults: 'No matching models found',
     showing: 'Showing {count} / {total} models',
     modelName: 'Model Name',
