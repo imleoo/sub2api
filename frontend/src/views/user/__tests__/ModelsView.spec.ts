@@ -22,6 +22,8 @@ const messages: Record<string, string> = {
   'models.availability': 'Availability',
   'models.available': 'Available',
   'models.unavailable': 'Unavailable',
+  'models.copyModelName': 'Copy model name',
+  'models.copied': 'Copied',
   'models.testPassed': 'Test Passed',
   'models.testFailed': 'Test Failed',
   'models.inputPrice': 'Input Price',
@@ -71,6 +73,12 @@ function mountView() {
 describe('ModelsView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: vi.fn().mockResolvedValue(undefined),
+      },
+    })
   })
 
   it('shows whitelisted image models returned with image_generation mode', async () => {
@@ -98,5 +106,23 @@ describe('ModelsView', () => {
     expect(wrapper.text()).toContain('gpt-image-1')
     expect(wrapper.text()).toContain('gemini-2.5-flash-image')
     expect(wrapper.text()).not.toContain('gpt-5.2')
+  })
+
+  it('copies model names from the model list', async () => {
+    mockedGetModels.mockResolvedValue({
+      total: 1,
+      available_platforms: ['openai'],
+      models: [
+        model({ id: 'gpt-image-1', mode: 'image_generation' }),
+      ],
+    })
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.find('button[aria-label="Copy model name"]').trigger('click')
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('gpt-image-1')
+    expect(wrapper.find('button[title="Copied"]').exists()).toBe(true)
   })
 })

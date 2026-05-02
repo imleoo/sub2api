@@ -6106,6 +6106,8 @@ export default {
     availability: 'Availability',
     available: 'Available',
     unavailable: 'Unavailable',
+    copyModelName: 'Copy model name',
+    copied: 'Copied',
     testPassed: 'Test Passed',
     testFailed: 'Test Failed',
     inputPrice: 'Input Price (/1K)',

@@ -172,10 +172,39 @@
                 <td class="px-6 py-3.5">
                   <div class="flex items-center gap-3">
                     <ModelIcon :model="model.id" size="22" />
-                    <div class="min-w-0 flex-1">
+                    <div class="flex min-w-0 flex-1 items-center gap-2">
                       <span class="block truncate font-mono text-sm font-medium text-gray-900 dark:text-white" :title="model.id">
                         {{ model.id }}
                       </span>
+                      <button
+                        type="button"
+                        class="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 dark:hover:bg-dark-700 dark:hover:text-gray-200 dark:focus:ring-offset-dark-900"
+                        :aria-label="t('models.copyModelName')"
+                        :title="copiedModelId === model.id ? t('models.copied') : t('models.copyModelName')"
+                        @click="copyModelName(model.id)"
+                      >
+                        <svg
+                          v-if="copiedModelId === model.id"
+                          class="h-4 w-4 text-emerald-500"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                        <svg
+                          v-else
+                          class="h-4 w-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                        >
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M8 8.25V6a2.25 2.25 0 012.25-2.25h7.5A2.25 2.25 0 0120 6v7.5a2.25 2.25 0 01-2.25 2.25H15.5" />
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M4 10.5A2.5 2.5 0 016.5 8h6A2.5 2.5 0 0115 10.5v6A2.5 2.5 0 0112.5 19h-6A2.5 2.5 0 014 16.5v-6z" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
                 </td>
@@ -316,6 +345,7 @@ const allModels = ref<ModelInfo[]>([])
 const searchQuery = ref('')
 const selectedProvider = ref<string>('all')
 const selectedMode = ref<string>('all')
+const copiedModelId = ref<string | null>(null)
 
 // ─── Computed ─────────────────────────────
 const total = computed(() => allModels.value.length)
@@ -388,6 +418,36 @@ async function loadData() {
   } finally {
     loading.value = false
   }
+}
+
+async function copyModelName(modelId: string) {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(modelId)
+    } else {
+      copyTextFallback(modelId)
+    }
+    copiedModelId.value = modelId
+    window.setTimeout(() => {
+      if (copiedModelId.value === modelId) {
+        copiedModelId.value = null
+      }
+    }, 1500)
+  } catch (err) {
+    console.error('[ModelsView] Failed to copy model name:', err)
+  }
+}
+
+function copyTextFallback(text: string) {
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.setAttribute('readonly', '')
+  textarea.style.position = 'fixed'
+  textarea.style.opacity = '0'
+  document.body.appendChild(textarea)
+  textarea.select()
+  document.execCommand('copy')
+  document.body.removeChild(textarea)
 }
 
 /**
