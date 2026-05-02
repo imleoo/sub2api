@@ -6584,4 +6584,28 @@ export default {
     },
   },
 
+  // Models
+  models: {
+    title: '支持的模型',
+    description: '查看当前账号可用的 AI 模型、价格和能力',
+    refresh: '刷新',
+    modelsAvailable: '个模型可用',
+    searchPlaceholder: '搜索模型名称...',
+    allProviders: '全部提供商',
+    allModes: '全部模式',
+    noResults: '没有匹配的模型',
+    showing: '正在显示 {count} / {total} 个模型',
+    modelName: '模型名称',
+    provider: '提供商',
+    availability: '可用性',
+    available: '可用',
+    unavailable: '不可用',
+    testPassed: '测试通过',
+    testFailed: '测试失败',
+    inputPrice: '输入价格（/1K）',
+    outputPrice: '输出价格（/1K）',
+    contextWindow: '上下文窗口',
+    features: '能力',
+    promptCaching: '缓存',
+  },
 }

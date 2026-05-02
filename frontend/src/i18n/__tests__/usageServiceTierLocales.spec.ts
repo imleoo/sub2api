@@ -18,3 +18,16 @@ describe('usage service tier locale keys', () => {
     expect(en.usage.serviceTierStandard).toBe('Standard')
   })
 })
+
+describe('models page locale keys', () => {
+  it('contains zh labels for the user models page', () => {
+    expect(zh.models.title).toBe('支持的模型')
+    expect(zh.models.description).toContain('当前账号可用')
+    expect(zh.models.allProviders).toBe('全部提供商')
+    expect(zh.models.modelName).toBe('模型名称')
+  })
+
+  it('keeps the user models page keys aligned between locales', () => {
+    expect(Object.keys(zh.models).sort()).toEqual(Object.keys(en.models).sort())
+  })
+})
