@@ -449,16 +449,21 @@
 
   <script>
     const langBtn = document.getElementById('langToggle');
-    const htmlEl = document.getElementById('htmlRoot');
-    if (langBtn && htmlEl) {
+    function setLang(lang) {
+      document.documentElement.lang = lang;
+      const titleEl = document.getElementById('pageTitle');
+      if (titleEl) titleEl.textContent = lang === 'en'
+        ? 'CXM - Unified API for AI Models'
+        : 'CXM - AI 模型 API 统一接入平台';
+      localStorage.setItem('cxm_lang', lang);
+    }
+    if (langBtn) {
       langBtn.addEventListener('click', () => {
-        const isEn = htmlEl.lang === 'en';
-        htmlEl.lang = isEn ? 'zh-CN' : 'en';
-        document.getElementById('pageTitle').textContent = isEn
-          ? 'CXM - AI 模型 API 统一接入平台'
-          : 'CXM - Unified API for AI Models';
+        setLang(document.documentElement.lang === 'en' ? 'zh-CN' : 'en');
       });
     }
+    const saved = localStorage.getItem('cxm_lang');
+    if (saved) setLang(saved);
     const nav = document.getElementById('nav');
     if (nav) {
       const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 8);

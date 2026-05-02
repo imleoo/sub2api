@@ -1,0 +1,362 @@
+- generic [ref=e2]:
+  - navigation [ref=e3]:
+    - link "WE2AI 首页" [ref=e4] [cursor=pointer]:
+      - /url: "#top"
+      - img "logo" [ref=e6]
+      - generic [ref=e7]: WE2AI
+    - generic [ref=e8]:
+      - link "模型广场" [ref=e9] [cursor=pointer]:
+        - /url: "#models"
+      - link "文档" [ref=e10] [cursor=pointer]:
+        - /url: "#features"
+      - link "服务保障" [ref=e11] [cursor=pointer]:
+        - /url: "#features"
+    - button "🌐 EN" [ref=e12] [cursor=pointer]:
+      - generic [ref=e13]: 🌐
+      - generic [ref=e14]: EN
+    - generic [ref=e15]:
+      - link "登录" [ref=e16] [cursor=pointer]:
+        - /url: /login
+      - link "注册" [ref=e17] [cursor=pointer]:
+        - /url: /register
+  - main [ref=e18]:
+    - generic [ref=e21]:
+      - generic [ref=e22]:
+        - generic [ref=e25]: 所有模型 3 折起 · 支持 Gemini 3.1 · GPT-5.4
+        - heading "一站购买 所有 AI 模型 API Token" [level=1] [ref=e26]:
+          - generic [ref=e27]:
+            - text: 一站购买
+            - text: 所有 AI 模型
+            - text: API Token
+        - paragraph [ref=e28]: 接入 Claude、Gemini、GPT、DeepSeek 等 30+ 顶尖模型，所有模型 3 折起，人民币直付，秒级到账，企业级稳定性。
+        - generic [ref=e29]:
+          - link "立即体验" [ref=e30] [cursor=pointer]:
+            - /url: /login
+          - link "查看模型" [ref=e31] [cursor=pointer]:
+            - /url: "#models"
+        - generic [ref=e32]:
+          - generic [ref=e34]: 即时激活
+          - generic [ref=e36]: 无月费
+          - generic [ref=e38]: 7x24 支持
+          - generic [ref=e40]: 支持发票
+      - generic [ref=e41]:
+        - article [ref=e42]:
+          - generic [ref=e43]:
+            - generic [ref=e44]:
+              - generic [ref=e45]:
+                - text: Claude Opus 4.7
+                - generic [ref=e46]: NEW
+              - generic [ref=e47]: Anthropic
+            - generic [ref=e49]: 旗舰
+          - paragraph [ref=e50]: 最新旗舰，顶尖编程与视觉推理，百万上下文统一定价
+          - generic [ref=e51]:
+            - generic [ref=e52]:
+              - generic [ref=e53]: 输入
+              - generic [ref=e54]: $5.00
+              - generic [ref=e55]: / 1M tokens
+            - generic [ref=e56]:
+              - generic [ref=e57]: 输出
+              - generic [ref=e58]: $25.00
+              - generic [ref=e59]: / 1M tokens
+            - generic [ref=e60]:
+              - generic [ref=e61]: 上下文
+              - generic [ref=e62]: 1M
+              - generic [ref=e63]: tokens
+          - button "立即购买" [ref=e64] [cursor=pointer]
+        - article [ref=e65]:
+          - generic [ref=e66]:
+            - generic [ref=e67]:
+              - generic [ref=e68]: Claude Sonnet 4.6
+              - generic [ref=e69]: Anthropic
+            - generic [ref=e71]: 推荐
+          - paragraph [ref=e72]: 性能接近 Opus，价格更友好，开发者首选
+          - generic [ref=e73]:
+            - generic [ref=e74]:
+              - generic [ref=e75]: 输入
+              - generic [ref=e76]: $3.00
+              - generic [ref=e77]: / 1M tokens
+            - generic [ref=e78]:
+              - generic [ref=e79]: 输出
+              - generic [ref=e80]: $15.00
+              - generic [ref=e81]: / 1M tokens
+            - generic [ref=e82]:
+              - generic [ref=e83]: 上下文
+              - generic [ref=e84]: 1M
+              - generic [ref=e85]: tokens
+          - button "立即购买" [ref=e86] [cursor=pointer]
+        - article [ref=e87]:
+          - generic [ref=e88]:
+            - generic [ref=e89]:
+              - generic [ref=e90]:
+                - text: GPT-5.4
+                - generic [ref=e91]: NEW
+              - generic [ref=e92]: OpenAI
+            - generic [ref=e94]: 热门
+          - paragraph [ref=e95]: 编程、推理与工具调用协同，适合复杂生产工作流
+          - generic [ref=e96]:
+            - generic [ref=e97]:
+              - generic [ref=e98]: 输入
+              - generic [ref=e99]: $2.50
+              - generic [ref=e100]: / 1M tokens
+            - generic [ref=e101]:
+              - generic [ref=e102]: 输出
+              - generic [ref=e103]: $15.00
+              - generic [ref=e104]: / 1M tokens
+            - generic [ref=e105]:
+              - generic [ref=e106]: 上下文
+              - generic [ref=e107]: 272K
+              - generic [ref=e108]: tokens
+          - button "立即购买" [ref=e109] [cursor=pointer]
+        - article [ref=e110]:
+          - generic [ref=e111]:
+            - generic [ref=e112]:
+              - generic [ref=e113]: GPT-4.1
+              - generic [ref=e114]: OpenAI
+            - generic [ref=e116]: 长上下文
+          - paragraph [ref=e117]: 百万上下文低延迟，指令遵循与代码能力出色
+          - generic [ref=e118]:
+            - generic [ref=e119]:
+              - generic [ref=e120]: 输入
+              - generic [ref=e121]: $2.00
+              - generic [ref=e122]: / 1M tokens
+            - generic [ref=e123]:
+              - generic [ref=e124]: 输出
+              - generic [ref=e125]: $8.00
+              - generic [ref=e126]: / 1M tokens
+            - generic [ref=e127]:
+              - generic [ref=e128]: 上下文
+              - generic [ref=e129]: 1M
+              - generic [ref=e130]: tokens
+          - button "立即购买" [ref=e131] [cursor=pointer]
+    - generic [ref=e133]:
+      - generic [ref=e134]:
+        - strong [ref=e135]: 30+
+        - generic [ref=e137]: 支持模型
+      - generic [ref=e138]:
+        - strong [ref=e139]: 120,000+
+        - generic [ref=e141]: 注册用户
+      - generic [ref=e142]:
+        - strong [ref=e143]: 99.9%
+        - generic [ref=e145]: 服务可用率
+      - generic [ref=e146]:
+        - strong [ref=e147]: <50ms
+        - generic [ref=e149]: 平均响应
+    - generic [ref=e151]:
+      - generic [ref=e152]:
+        - generic [ref=e153]: 支持模型
+        - heading "顶级模型，一站直达" [level=2] [ref=e154]
+        - paragraph [ref=e155]: 按量计费，无最低消费，随时充值随时用。
+      - generic [ref=e156]:
+        - article [ref=e157]:
+          - generic [ref=e158]:
+            - generic [ref=e159]:
+              - generic [ref=e160]:
+                - text: Claude Opus 4.7
+                - generic [ref=e161]: NEW
+              - generic [ref=e162]: Anthropic
+            - generic [ref=e164]: 旗舰
+          - paragraph [ref=e165]: 最新旗舰，顶尖编程与视觉推理，百万上下文统一定价
+          - generic [ref=e166]:
+            - generic [ref=e167]:
+              - generic [ref=e168]: 输入
+              - generic [ref=e169]: $5.00
+              - generic [ref=e170]: / 1M tokens
+            - generic [ref=e171]:
+              - generic [ref=e172]: 输出
+              - generic [ref=e173]: $25.00
+              - generic [ref=e174]: / 1M tokens
+            - generic [ref=e175]:
+              - generic [ref=e176]: 上下文
+              - generic [ref=e177]: 1M
+              - generic [ref=e178]: tokens
+          - button "立即购买" [ref=e179] [cursor=pointer]
+        - article [ref=e180]:
+          - generic [ref=e181]:
+            - generic [ref=e182]:
+              - generic [ref=e183]: Claude Sonnet 4.6
+              - generic [ref=e184]: Anthropic
+            - generic [ref=e186]: 推荐
+          - paragraph [ref=e187]: 性能接近 Opus，价格更友好，开发者首选
+          - generic [ref=e188]:
+            - generic [ref=e189]:
+              - generic [ref=e190]: 输入
+              - generic [ref=e191]: $3.00
+              - generic [ref=e192]: / 1M tokens
+            - generic [ref=e193]:
+              - generic [ref=e194]: 输出
+              - generic [ref=e195]: $15.00
+              - generic [ref=e196]: / 1M tokens
+            - generic [ref=e197]:
+              - generic [ref=e198]: 上下文
+              - generic [ref=e199]: 1M
+              - generic [ref=e200]: tokens
+          - button "立即购买" [ref=e201] [cursor=pointer]
+        - article [ref=e202]:
+          - generic [ref=e203]:
+            - generic [ref=e204]:
+              - generic [ref=e205]:
+                - text: GPT-5.4
+                - generic [ref=e206]: NEW
+              - generic [ref=e207]: OpenAI
+            - generic [ref=e209]: 热门
+          - paragraph [ref=e210]: 编程、推理与工具调用协同，适合复杂生产工作流
+          - generic [ref=e211]:
+            - generic [ref=e212]:
+              - generic [ref=e213]: 输入
+              - generic [ref=e214]: $2.50
+              - generic [ref=e215]: / 1M tokens
+            - generic [ref=e216]:
+              - generic [ref=e217]: 输出
+              - generic [ref=e218]: $15.00
+              - generic [ref=e219]: / 1M tokens
+            - generic [ref=e220]:
+              - generic [ref=e221]: 上下文
+              - generic [ref=e222]: 272K
+              - generic [ref=e223]: tokens
+          - button "立即购买" [ref=e224] [cursor=pointer]
+        - article [ref=e225]:
+          - generic [ref=e226]:
+            - generic [ref=e227]:
+              - generic [ref=e228]: GPT-4.1
+              - generic [ref=e229]: OpenAI
+            - generic [ref=e231]: 长上下文
+          - paragraph [ref=e232]: 百万上下文低延迟，指令遵循与代码能力出色
+          - generic [ref=e233]:
+            - generic [ref=e234]:
+              - generic [ref=e235]: 输入
+              - generic [ref=e236]: $2.00
+              - generic [ref=e237]: / 1M tokens
+            - generic [ref=e238]:
+              - generic [ref=e239]: 输出
+              - generic [ref=e240]: $8.00
+              - generic [ref=e241]: / 1M tokens
+            - generic [ref=e242]:
+              - generic [ref=e243]: 上下文
+              - generic [ref=e244]: 1M
+              - generic [ref=e245]: tokens
+          - button "立即购买" [ref=e246] [cursor=pointer]
+        - article [ref=e247]:
+          - generic [ref=e248]:
+            - generic [ref=e249]:
+              - generic [ref=e250]:
+                - text: Gemini 3.1 Pro
+                - generic [ref=e251]: NEW
+              - generic [ref=e252]: Google
+            - generic [ref=e254]: 旗舰
+          - paragraph [ref=e255]: 大上下文窗口，原生多模态，适合知识库与代理任务
+          - generic [ref=e256]:
+            - generic [ref=e257]:
+              - generic [ref=e258]: 输入
+              - generic [ref=e259]: $2.00
+              - generic [ref=e260]: / 1M tokens
+            - generic [ref=e261]:
+              - generic [ref=e262]: 输出
+              - generic [ref=e263]: $12.00
+              - generic [ref=e264]: / 1M tokens
+            - generic [ref=e265]:
+              - generic [ref=e266]: 上下文
+              - generic [ref=e267]: 2M
+              - generic [ref=e268]: tokens
+          - button "立即购买" [ref=e269] [cursor=pointer]
+        - article [ref=e270]:
+          - generic [ref=e271]:
+            - generic [ref=e272]:
+              - generic [ref=e273]:
+                - text: Gemini 3 Flash
+                - generic [ref=e274]: HOT
+              - generic [ref=e275]: Google
+            - generic [ref=e277]: 快速
+          - paragraph [ref=e278]: Pro 级推理与 Flash 速度，代理工作流性价比之选
+          - generic [ref=e279]:
+            - generic [ref=e280]:
+              - generic [ref=e281]: 输入
+              - generic [ref=e282]: $0.50
+              - generic [ref=e283]: / 1M tokens
+            - generic [ref=e284]:
+              - generic [ref=e285]: 输出
+              - generic [ref=e286]: $3.00
+              - generic [ref=e287]: / 1M tokens
+            - generic [ref=e288]:
+              - generic [ref=e289]: 上下文
+              - generic [ref=e290]: 1M
+              - generic [ref=e291]: tokens
+          - button "立即购买" [ref=e292] [cursor=pointer]
+        - article [ref=e293]:
+          - generic [ref=e294]:
+            - generic [ref=e295]:
+              - generic [ref=e296]: Claude Haiku 4.5
+              - generic [ref=e297]: Anthropic
+            - generic [ref=e299]: 轻量
+          - paragraph [ref=e300]: 快速轻量，适合分类、路由、摘要与实时对话
+          - generic [ref=e301]:
+            - generic [ref=e302]:
+              - generic [ref=e303]: 输入
+              - generic [ref=e304]: $1.00
+              - generic [ref=e305]: / 1M tokens
+            - generic [ref=e306]:
+              - generic [ref=e307]: 输出
+              - generic [ref=e308]: $5.00
+              - generic [ref=e309]: / 1M tokens
+            - generic [ref=e310]:
+              - generic [ref=e311]: 上下文
+              - generic [ref=e312]: 200K
+              - generic [ref=e313]: tokens
+          - button "立即购买" [ref=e314] [cursor=pointer]
+        - article [ref=e315]:
+          - generic [ref=e316]:
+            - generic [ref=e317]:
+              - generic [ref=e318]: Gemini 3.1 Flash-Lite
+              - generic [ref=e319]: Google
+            - generic [ref=e321]: 极省
+          - paragraph [ref=e322]: 低成本 Tier-1 模型，百万上下文海量吞吐首选
+          - generic [ref=e323]:
+            - generic [ref=e324]:
+              - generic [ref=e325]: 输入
+              - generic [ref=e326]: $0.25
+              - generic [ref=e327]: / 1M tokens
+            - generic [ref=e328]:
+              - generic [ref=e329]: 输出
+              - generic [ref=e330]: $1.50
+              - generic [ref=e331]: / 1M tokens
+            - generic [ref=e332]:
+              - generic [ref=e333]: 上下文
+              - generic [ref=e334]: 1M
+              - generic [ref=e335]: tokens
+          - button "立即购买" [ref=e336] [cursor=pointer]
+    - generic [ref=e339]:
+      - article [ref=e340]:
+        - generic [ref=e341]: ⚡
+        - heading "极速接入" [level=3] [ref=e342]
+        - paragraph [ref=e343]: 注册即送 API Key，5 分钟内完成首次调用。兼容 OpenAI SDK 格式，迁移成本低。
+      - article [ref=e344]:
+        - generic [ref=e345]: ¥
+        - heading "透明定价" [level=3] [ref=e346]
+        - paragraph [ref=e347]: 与官方定价同步，无隐藏费用。企业版提供专属折扣、发票与优先通道。
+      - article [ref=e348]:
+        - generic [ref=e349]: ✓
+        - heading "企业级稳定" [level=3] [ref=e350]
+        - paragraph [ref=e351]: 多区域负载均衡，自动故障转移，SLA 协议保障，并提供实时监控告警。
+    - generic [ref=e353]:
+      - generic [ref=e354]:
+        - heading "现在注册，即送 ¥20 体验额度" [level=2] [ref=e355]
+        - paragraph [ref=e356]: 无需信用卡，无月租，按量付费。
+      - link "免费注册" [ref=e357] [cursor=pointer]:
+        - /url: /login
+  - contentinfo [ref=e358]:
+    - generic [ref=e359]:
+      - link "logo WE2AI" [ref=e360] [cursor=pointer]:
+        - /url: "#top"
+        - img "logo" [ref=e362]
+        - generic [ref=e363]: WE2AI
+      - generic [ref=e364]:
+        - link "文档" [ref=e365] [cursor=pointer]:
+          - /url: "#models"
+        - link "定价" [ref=e366] [cursor=pointer]:
+          - /url: "#pay"
+        - link "服务条款" [ref=e367] [cursor=pointer]:
+          - /url: "#features"
+        - link "隐私政策" [ref=e368] [cursor=pointer]:
+          - /url: "#features"
+        - link "联系我们" [ref=e369] [cursor=pointer]:
+          - /url: "#"
+      - generic [ref=e370]: © 2026 WE2AI. All rights reserved.

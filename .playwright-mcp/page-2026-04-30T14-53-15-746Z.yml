@@ -1,0 +1,242 @@
+- generic [ref=e1]:
+  - navigation [ref=e2]:
+    - link "CXM 首页" [ref=e3] [cursor=pointer]:
+      - /url: "#top"
+      - generic [ref=e4]: CXM
+      - generic [ref=e5]: CXM
+    - generic [ref=e6]:
+      - link "Models" [ref=e200] [cursor=pointer]:
+        - /url: "#models"
+      - link "Docs" [ref=e201] [cursor=pointer]:
+        - /url: "#features"
+      - link "Pricing" [ref=e202] [cursor=pointer]:
+        - /url: "#pricing"
+      - link "Enterprise" [ref=e203] [cursor=pointer]:
+        - /url: "#features"
+    - generic [ref=e11]:
+      - button "🌐 中" [active] [ref=e204] [cursor=pointer]:
+        - generic [ref=e13]: 🌐
+        - generic [ref=e205]: 中
+      - link "Login" [ref=e206] [cursor=pointer]:
+        - /url: /login
+      - link "Sign Up" [ref=e207] [cursor=pointer]:
+        - /url: /register
+  - generic [ref=e18]:
+    - generic [ref=e208]: OpenAI SDK Compatible · ¥20 Free Credits on Sign Up
+    - heading "The Unified API for AI Models" [level=1] [ref=e209]:
+      - generic [ref=e210]:
+        - text: The Unified API
+        - text: for AI Models
+    - paragraph [ref=e24]: One API key for Claude, GPT, Gemini and more. Pay per use in RMB, no subscriptions, enterprise-grade reliability.
+    - generic [ref=e25]:
+      - link "Get API Key Free" [ref=e211] [cursor=pointer]:
+        - /url: /register
+      - link "Explore Models →" [ref=e212] [cursor=pointer]:
+        - /url: "#models"
+  - generic [ref=e30]:
+    - generic [ref=e31]:
+      - generic [ref=e32]: 50T+
+      - generic [ref=e33]: Monthly Tokens
+    - generic [ref=e34]:
+      - generic [ref=e35]: 120K+
+      - generic [ref=e36]: Registered Users
+    - generic [ref=e37]:
+      - generic [ref=e38]: 10+
+      - generic [ref=e39]: Providers
+    - generic [ref=e40]:
+      - generic [ref=e41]: 50+
+      - generic [ref=e42]: Models
+  - generic [ref=e44]:
+    - generic [ref=e45]: Why CXM
+    - heading "Built for Developers" [level=2] [ref=e213]
+    - paragraph [ref=e47]: Stop juggling multiple accounts. One key for all major models — focus on building.
+    - generic [ref=e48]:
+      - generic [ref=e49]:
+        - generic [ref=e50]: 🔗
+        - heading "Any Model, One API" [level=3] [ref=e214]
+        - paragraph [ref=e52]: Access Claude, GPT, Gemini, Mistral, DeepSeek and more through a single endpoint. Fully OpenAI SDK compatible.
+        - link "Browse docs →" [ref=e215] [cursor=pointer]:
+          - /url: /docs
+          - generic [ref=e216]: Browse docs →
+      - generic [ref=e55]:
+        - generic [ref=e56]: ⚡
+        - heading "High Availability" [level=3] [ref=e217]
+        - paragraph [ref=e58]: Distributed relay nodes with automatic failover. When one upstream fails, traffic routes to backup channels seamlessly.
+        - link "Learn more →" [ref=e218] [cursor=pointer]:
+          - /url: /docs
+          - generic [ref=e219]: Learn more →
+      - generic [ref=e61]:
+        - generic [ref=e62]: 💰
+        - heading "Pay As You Go" [level=3] [ref=e220]
+        - paragraph [ref=e64]: No monthly fees. Pay only for what you use. Top up via Alipay or WeChat Pay. Transparent per-token pricing.
+        - link "View pricing →" [ref=e221] [cursor=pointer]:
+          - /url: "#pricing"
+          - generic [ref=e222]: View pricing →
+      - generic [ref=e67]:
+        - generic [ref=e68]: 🛡️
+        - heading "Security & Privacy" [level=3] [ref=e223]
+        - paragraph [ref=e70]: Fine-grained API key permissions and per-model budgets. Your data is never used for model training.
+        - link "View privacy docs →" [ref=e224] [cursor=pointer]:
+          - /url: /docs/privacy
+          - generic [ref=e225]: View privacy docs →
+  - generic [ref=e74]:
+    - generic [ref=e75]:
+      - generic [ref=e76]:
+        - generic [ref=e77]: Featured Models
+        - heading "Featured Models" [level=2] [ref=e226]
+      - link "View all →" [ref=e227] [cursor=pointer]:
+        - /url: /models
+    - generic [ref=e80]:
+      - generic [ref=e81]:
+        - generic [ref=e82]:
+          - generic [ref=e83]: 🤖
+          - generic [ref=e84]:
+            - generic [ref=e85]:
+              - text: Claude Opus 4.7
+              - generic [ref=e86]: New
+            - generic [ref=e87]: by Anthropic
+        - generic [ref=e88]:
+          - generic [ref=e89]:
+            - strong [ref=e90]: ¥0.108/K
+            - text: Input
+          - generic [ref=e91]:
+            - strong [ref=e92]: ¥0.54/K
+            - text: Output
+          - generic [ref=e93]:
+            - strong [ref=e94]: 200K
+            - text: Context
+      - generic [ref=e95]:
+        - generic [ref=e96]:
+          - generic [ref=e97]: ✨
+          - generic [ref=e98]:
+            - generic [ref=e99]:
+              - text: GPT-5.5
+              - generic [ref=e100]: New
+            - generic [ref=e101]: by OpenAI
+        - generic [ref=e102]:
+          - generic [ref=e103]:
+            - strong [ref=e104]: ¥0.072/K
+            - text: Input
+          - generic [ref=e105]:
+            - strong [ref=e106]: ¥0.216/K
+            - text: Output
+          - generic [ref=e107]:
+            - strong [ref=e108]: 128K
+            - text: Context
+      - generic [ref=e109]:
+        - generic [ref=e110]:
+          - generic [ref=e111]: 💎
+          - generic [ref=e112]:
+            - generic [ref=e113]: Gemini 2.5 Pro
+            - generic [ref=e114]: by Google
+        - generic [ref=e115]:
+          - generic [ref=e116]:
+            - strong [ref=e117]: ¥0.054/K
+            - text: Input
+          - generic [ref=e118]:
+            - strong [ref=e119]: ¥0.216/K
+            - text: Output
+          - generic [ref=e120]:
+            - strong [ref=e121]: 1M
+            - text: Context
+      - generic [ref=e122]:
+        - generic [ref=e123]:
+          - generic [ref=e124]: ⚡
+          - generic [ref=e125]:
+            - generic [ref=e126]: Claude Sonnet 4.6
+            - generic [ref=e127]: by Anthropic
+        - generic [ref=e128]:
+          - generic [ref=e129]:
+            - strong [ref=e130]: ¥0.022/K
+            - text: Input
+          - generic [ref=e131]:
+            - strong [ref=e132]: ¥0.108/K
+            - text: Output
+          - generic [ref=e133]:
+            - strong [ref=e134]: 200K
+            - text: Context
+      - generic [ref=e135]:
+        - generic [ref=e136]:
+          - generic [ref=e137]: 🚀
+          - generic [ref=e138]:
+            - generic [ref=e139]:
+              - text: DeepSeek V3
+              - generic [ref=e140]: 热门
+            - generic [ref=e141]: by DeepSeek
+        - generic [ref=e142]:
+          - generic [ref=e143]:
+            - strong [ref=e144]: ¥0.004/K
+            - text: Input
+          - generic [ref=e145]:
+            - strong [ref=e146]: ¥0.016/K
+            - text: Output
+          - generic [ref=e147]:
+            - strong [ref=e148]: 64K
+            - text: Context
+      - generic [ref=e149]:
+        - generic [ref=e150]:
+          - generic [ref=e151]: 🌟
+          - generic [ref=e152]:
+            - generic [ref=e153]:
+              - text: Qwen3-235B
+              - generic [ref=e154]: New
+            - generic [ref=e155]: by Alibaba
+        - generic [ref=e156]:
+          - generic [ref=e157]:
+            - strong [ref=e158]: ¥0.007/K
+            - text: Input
+          - generic [ref=e159]:
+            - strong [ref=e160]: ¥0.022/K
+            - text: Output
+          - generic [ref=e161]:
+            - strong [ref=e162]: 131K
+            - text: Context
+  - generic [ref=e164]:
+    - generic [ref=e165]: Get Started
+    - heading "Up and Running in Minutes" [level=2] [ref=e228]
+    - paragraph [ref=e167]: No complex setup. Swap one line of base_url and you're done.
+    - generic [ref=e168]:
+      - generic [ref=e169]:
+        - generic [ref=e170]: "1"
+        - heading "Sign Up" [level=3] [ref=e229]
+        - paragraph [ref=e172]: Register with email or OAuth. Get ¥20 free credits instantly — no credit card required.
+      - generic [ref=e173]:
+        - generic [ref=e174]: "2"
+        - heading "Add Credits" [level=3] [ref=e230]
+        - paragraph [ref=e176]: Top up via Alipay or WeChat Pay in RMB. Credits never expire. Transparent pricing for every model.
+      - generic [ref=e177]:
+        - generic [ref=e178]: "3"
+        - heading "Get Your API Key" [level=3] [ref=e231]
+        - paragraph [ref=e180]: Create an API key and replace the base_url. Fully OpenAI SDK compatible — migrate in 5 minutes.
+        - generic [ref=e181]:
+          - text: from openai import OpenAI
+          - text: client = OpenAI(
+          - text: base_url="https://api.cxm.icu/v1",
+          - text: api_key="sk-..."
+          - text: )
+  - generic [ref=e183]:
+    - heading "Start Free — Get ¥20 in Credits" [level=2] [ref=e232]
+    - paragraph [ref=e185]: Sign up in seconds. First API call in under 5 minutes. No credit card, no subscription.
+    - link "Sign Up Free" [ref=e233] [cursor=pointer]:
+      - /url: /register
+  - contentinfo [ref=e187]:
+    - generic [ref=e188]:
+      - link "CXM CXM" [ref=e189] [cursor=pointer]:
+        - /url: "#top"
+        - generic [ref=e190]: CXM
+        - generic [ref=e191]: CXM
+      - generic [ref=e192]:
+        - link "Models" [ref=e234] [cursor=pointer]:
+          - /url: "#models"
+        - link "Pricing" [ref=e235] [cursor=pointer]:
+          - /url: "#pricing"
+        - link "Terms" [ref=e236] [cursor=pointer]:
+          - /url: "#"
+        - link "Privacy" [ref=e237] [cursor=pointer]:
+          - /url: "#"
+        - link "Contact" [ref=e238] [cursor=pointer]:
+          - /url: "#"
+      - generic [ref=e198]:
+        - text: © 2026 CXM. All rights reserved. |
+        - link "京ICP备2024097128号-2" [ref=e199] [cursor=pointer]:
+          - /url: https://beian.miit.gov.cn/
