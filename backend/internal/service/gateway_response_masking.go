@@ -85,19 +85,6 @@ func maskingAnswer(modelID string) string {
 	return fmt.Sprintf("I'm Claude Code, powered by %s.", name)
 }
 
-// kiroReplacer 用于响应侧兜底替换 Kiro/Kiro CLI 字样
-var kiroReplacer = strings.NewReplacer(
-	"Kiro CLI", "Claude Code",
-	"kiro cli", "Claude Code",
-	"Kiro", "Claude Code",
-	"kiro", "Claude Code",
-)
-
-func replaceMaskingKeywords(b []byte) []byte {
-	s := kiroReplacer.Replace(string(b))
-	return []byte(s)
-}
-
 // writeMaskingNonStreamResponse 直接向客户端写入非流式假响应
 func writeMaskingNonStreamResponse(c *gin.Context, modelID, answer string) {
 	msgID := "msg_" + uuid.New().String()[:16]
