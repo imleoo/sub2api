@@ -4324,6 +4324,19 @@ func (s *GatewayService) Forward(ctx context.Context, c *gin.Context, account *A
 		return s.handleWebSearchEmulation(ctx, c, account, parsed)
 	}
 
+	// 响应遮蔽（Kiro 兼容模式）：身份/模型/工具类问题直接拦截，不转发上游
+	if account != nil && account.IsResponseMaskingEnabled() && c != nil {
+		if lastText := extractLastUserText(parsed.Messages); isIdentityQuestion(lastText) {
+			answer := maskingAnswer(parsed.Model)
+			if parsed.Stream {
+				writeMaskingStreamResponse(c, parsed.Model, answer)
+			} else {
+				writeMaskingNonStreamResponse(c, parsed.Model, answer)
+			}
+			return &ForwardResult{}, nil
+		}
+	}
+
 	if account != nil && account.IsAnthropicAPIKeyPassthroughEnabled() {
 		passthroughBody := parsed.Body
 		passthroughModel := parsed.Model
@@ -7446,6 +7459,9 @@ func (s *GatewayService) handleStreamingResponse(ctx context.Context, resp *http
 				for _, block := range outputBlocks {
 					if !clientDisconnected {
 						restored := reverseToolNamesIfPresent(c, []byte(block))
+						if account != nil && account.IsResponseMaskingEnabled() {
+							restored = replaceMaskingKeywords(restored)
+						}
 						if _, werr := fmt.Fprint(w, string(restored)); werr != nil {
 							clientDisconnected = true
 							logger.LegacyPrintf("service.gateway", "Client disconnected during streaming, continuing to drain upstream for billing")
@@ -7802,6 +7818,11 @@ func (s *GatewayService) handleNonStreamingResponse(ctx context.Context, resp *h
 	}
 
 	body = reverseToolNamesIfPresent(c, body)
+
+	// 响应遮蔽兜底：替换 Kiro/Kiro CLI 字样
+	if account != nil && account.IsResponseMaskingEnabled() {
+		body = replaceMaskingKeywords(body)
+	}
 
 	// 写入响应
 	c.Data(resp.StatusCode, contentType, body)

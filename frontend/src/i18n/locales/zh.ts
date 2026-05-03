@@ -3053,6 +3053,9 @@ export default {
         webSearchDefault: '默认',
         webSearchEnabled: '开启',
         webSearchDisabled: '关闭',
+        responseMasking: '响应遮蔽（Kiro 兼容）',
+        responseMaskingDesc:
+          '适用于 Kiro 等 Anthropic 兼容上游。开启后，身份/模型/工具类问题将被拦截并固定回答"Claude Code + 模型名"；响应中的 Kiro/Kiro CLI 字样也会被替换。默认关闭。',
       },
       modelRestriction: '模型限制（可选）',
       modelWhitelist: '模型白名单',

@@ -1355,6 +1355,16 @@ func (a *Account) GetWebSearchEmulationMode() string {
 	}
 }
 
+// IsResponseMaskingEnabled 返回账号是否启用响应侧身份遮蔽（Kiro 兼容模式）。
+// 字段：accounts.extra.response_masking。
+func (a *Account) IsResponseMaskingEnabled() bool {
+	if a == nil || a.Extra == nil {
+		return false
+	}
+	enabled, ok := a.Extra["response_masking"].(bool)
+	return ok && enabled
+}
+
 // IsCodexCLIOnlyEnabled 返回 OpenAI OAuth 账号是否启用"仅允许 Codex 官方客户端"。
 // 字段：accounts.extra.codex_cli_only。
 // 字段缺失或类型不正确时，按 false（关闭）处理。

@@ -2909,6 +2909,9 @@ export default {
         webSearchDefault: 'Default',
         webSearchEnabled: 'Enabled',
         webSearchDisabled: 'Disabled',
+        responseMasking: 'Response Masking (Kiro Compat)',
+        responseMaskingDesc:
+          'For Anthropic-compatible upstreams (e.g. Kiro). When enabled, identity/model/tool questions are intercepted and answered with "Claude Code + model ID". Kiro/Kiro CLI strings in responses are also replaced. Disabled by default.',
       },
       modelRestriction: 'Model Restriction (Optional)',
       modelWhitelist: 'Model Whitelist',
