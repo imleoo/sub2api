@@ -370,7 +370,7 @@ export default {
     mySubscriptions: '我的订阅',
     buySubscription: '充值/订阅',
     docs: '文档',
-    models: '模型列表',
+    models: '模型广场',
     myOrders: '我的订单',
     orderManagement: '订单管理',
     paymentDashboard: '支付概览',
@@ -6590,7 +6590,7 @@ export default {
 
   // Models
   models: {
-    title: '支持的模型',
+    title: '模型广场',
     description: '查看当前账号可用的 AI 模型、价格和能力',
     refresh: '刷新',
     modelsAvailable: '个模型可用',

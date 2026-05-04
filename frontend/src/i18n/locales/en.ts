@@ -371,7 +371,7 @@ export default {
     buySubscription: 'Recharge / Subscription',
     docs: 'Docs',
     sora: 'Sora Studio',
-    models: 'Models',
+    models: 'Model Plaza',
     myOrders: 'My Orders',
     orderManagement: 'Orders',
     paymentDashboard: 'Payment Dashboard',
@@ -6094,7 +6094,7 @@ export default {
 
   // Models
   models: {
-    title: 'Supported Models',
+    title: 'Model Plaza',
     description: 'View all available AI models, pricing, and features',
     refresh: 'Refresh',
     modelsAvailable: 'models available',

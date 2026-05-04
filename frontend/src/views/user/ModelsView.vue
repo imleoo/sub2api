@@ -132,212 +132,84 @@
         <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ t('models.noResults') }}</p>
       </div>
 
-      <!-- Model Grid / Table -->
-      <div v-else class="card overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-dark-800">
-              <tr class="border-b border-gray-100 dark:border-dark-700">
-                <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  {{ t('models.modelName') }}
-                </th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  {{ t('models.provider') }}
-                </th>
-                <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  {{ t('models.availability') }}
-                </th>
-                <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  {{ t('models.inputPrice') }}/M
-                </th>
-                <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  {{ t('models.outputPrice') }}/M
-                </th>
-                <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  {{ t('models.contextWindow') }}
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  {{ t('models.features') }}
-                </th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-50 dark:divide-dark-700/50">
-              <tr
-                v-for="(model, index) in filteredModels"
-                :key="model.id"
-                class="transition-colors hover:bg-gray-50/70 dark:hover:bg-dark-800/50"
-                :style="{ animationDelay: `${Math.min(index * 15, 300)}ms` }"
-              >
-                <!-- Model Name + Icon -->
-                <td class="px-6 py-3.5">
-                  <div class="flex items-center gap-3">
-                    <ModelIcon :model="model.id" size="22" />
-                    <div class="flex min-w-0 flex-1 items-center gap-2">
-                      <span class="block truncate font-mono text-sm font-medium text-gray-900 dark:text-white" :title="model.id">
-                        {{ model.id }}
-                      </span>
-                      <button
-                        type="button"
-                        class="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 dark:hover:bg-dark-700 dark:hover:text-gray-200 dark:focus:ring-offset-dark-900"
-                        :aria-label="t('models.copyModelName')"
-                        :title="copiedModelId === model.id ? t('models.copied') : t('models.copyModelName')"
-                        @click="copyModelName(model.id)"
-                      >
-                        <svg
-                          v-if="copiedModelId === model.id"
-                          class="h-4 w-4 text-emerald-500"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          stroke-width="2"
-                        >
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                        </svg>
-                        <svg
-                          v-else
-                          class="h-4 w-4"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          stroke-width="1.8"
-                        >
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M8 8.25V6a2.25 2.25 0 012.25-2.25h7.5A2.25 2.25 0 0120 6v7.5a2.25 2.25 0 01-2.25 2.25H15.5" />
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M4 10.5A2.5 2.5 0 016.5 8h6A2.5 2.5 0 0115 10.5v6A2.5 2.5 0 0112.5 19h-6A2.5 2.5 0 014 16.5v-6z" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                </td>
+      <!-- Model Card Grid -->
+      <div v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div
+          v-for="model in filteredModels"
+          :key="model.id"
+          class="card relative overflow-hidden p-4 transition-shadow hover:shadow-md"
+        >
+          <!-- Discount badge (top-right corner) -->
+          <div
+            v-if="model.discount_rate && model.discount_rate < 1"
+            class="absolute right-0 top-0 rounded-bl-lg bg-red-500 px-2 py-0.5 text-xs font-bold text-white"
+          >
+            {{ Math.round(model.discount_rate * 10) }}折
+          </div>
 
-                <!-- Provider Badge -->
-                <td class="px-4 py-3.5">
-                  <span
-                    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                    :class="providerBadgeClass(model.provider)"
-                  >
-                    {{ providerLabel(model.provider) }}
-                  </span>
-                </td>
+          <!-- Model name + copy -->
+          <div class="mb-3 flex items-start gap-2 pr-10">
+            <span class="flex-1 break-all font-mono text-sm font-semibold text-gray-900 dark:text-white" :title="model.id">
+              {{ model.id }}
+            </span>
+            <button
+              type="button"
+              class="mt-0.5 flex-shrink-0 text-gray-400 transition-colors hover:text-gray-700 dark:hover:text-gray-200"
+              :title="copiedModelId === model.id ? t('models.copied') : t('models.copyModelName')"
+              @click="copyModelName(model.id)"
+            >
+              <svg v-if="copiedModelId === model.id" class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+              <svg v-else class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 8.25V6a2.25 2.25 0 012.25-2.25h7.5A2.25 2.25 0 0120 6v7.5a2.25 2.25 0 01-2.25 2.25H15.5" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 10.5A2.5 2.5 0 016.5 8h6A2.5 2.5 0 0115 10.5v6A2.5 2.5 0 0112.5 19h-6A2.5 2.5 0 014 16.5v-6z" />
+              </svg>
+            </button>
+          </div>
 
-                <!-- Availability Status -->
-                <td class="px-4 py-3.5 text-center">
-                  <div class="flex flex-col items-center gap-1">
-                    <!-- Availability Badge -->
-                    <span
-                      v-if="model.is_available"
-                      class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                    >
-                      <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                      </svg>
-                      {{ t('models.available') }}
-                    </span>
-                    <span
-                      v-else
-                      class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-                    >
-                      <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                      </svg>
-                      {{ t('models.unavailable') }}
-                    </span>
-                    <!-- Test Status Badge (only if available and has test result) -->
-                    <span
-                      v-if="model.is_available && model.test_status"
-                      :class="[
-                        'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium',
-                        model.test_status.status === 'success'
-                          ? 'bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400'
-                          : model.test_status.status === 'failed'
-                            ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'
-                            : 'bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
-                      ]"
-                    >
-                      <span
-                        class="h-1.5 w-1.5 rounded-full"
-                        :class="[
-                          model.test_status.status === 'success'
-                            ? 'bg-green-500'
-                            : model.test_status.status === 'failed'
-                              ? 'bg-red-500'
-                              : 'bg-gray-400'
-                        ]"
-                      ></span>
-                      {{ model.test_status.status === 'success' ? t('models.testPassed') : model.test_status.status === 'failed' ? t('models.testFailed') : model.test_status.status }}
-                      <span v-if="model.test_status.latency_ms" class="opacity-70">{{ model.test_status.latency_ms }}ms</span>
-                    </span>
-                  </div>
-                </td>
+          <!-- Tags row -->
+          <div class="mb-3 flex flex-wrap gap-1.5">
+            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium" :class="providerBadgeClass(model.provider)">
+              {{ providerLabel(model.provider) }}
+            </span>
+            <span v-if="isImageModel(model)" class="inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-[11px] font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+              {{ t('models.imageMode') }}
+            </span>
+            <span v-if="model.supports_prompt_caching" class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+              {{ t('models.promptCaching') }}
+            </span>
+            <span v-if="isVisionModel(model.id)" class="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+              Vision
+            </span>
+          </div>
 
-                <!-- Input Price -->
-                <td class="px-4 py-3.5 text-right">
-                  <div class="font-mono text-gray-700 dark:text-gray-300">
-                    {{ formatPrice(model.input_cost_per_token * (model.discount_rate ?? 1)) }}
-                    <span v-if="model.discount_rate && model.discount_rate < 1" class="ml-1 text-xs font-sans text-green-600 dark:text-green-400">
-                      {{ Math.round(model.discount_rate * 10) }}折
-                    </span>
-                  </div>
-                  <div class="text-xs text-gray-400 dark:text-gray-500">
-                    ¥{{ (model.input_cost_per_token * (model.discount_rate ?? 1) * 1_000_000 * cnyRate).toFixed(2) }}/M
-                  </div>
-                </td>
-
-                <!-- Output Price -->
-                <td class="px-4 py-3.5 text-right">
-                  <div class="font-mono text-gray-700 dark:text-gray-300">
-                    {{ formatPrice(model.output_cost_per_token * (model.discount_rate ?? 1)) }}
-                    <span v-if="model.discount_rate && model.discount_rate < 1" class="ml-1 text-xs font-sans text-green-600 dark:text-green-400">
-                      {{ Math.round(model.discount_rate * 10) }}折
-                    </span>
-                  </div>
-                  <div class="text-xs text-gray-400 dark:text-gray-500">
-                    ¥{{ (model.output_cost_per_token * (model.discount_rate ?? 1) * 1_000_000 * cnyRate).toFixed(2) }}/M
-                  </div>
-                </td>
-
-                <!-- Context Window -->
-                <td class="px-4 py-3.5 text-center">
-                  <span v-if="model.long_context_input_token_threshold" class="font-mono text-xs text-gray-600 dark:text-gray-400">
-                    {{ formatNumber(model.long_context_input_token_threshold) }}
-                  </span>
-                  <span v-else class="text-xs text-gray-400">--</span>
-                </td>
-
-                <!-- Features -->
-                <td class="px-6 py-3.5">
-                  <div class="flex flex-wrap items-center gap-1.5">
-                    <span
-                      v-if="model.supports_prompt_caching"
-                      class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                    >
-                      {{ t('models.promptCaching') }}
-                    </span>
-                    <span
-                      v-if="isImageModel(model)"
-                      class="inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
-                    >
-                      {{ t('models.imageMode') }}
-                    </span>
-                    <span
-                      v-if="isVisionModel(model.id)"
-                      class="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                    >
-                      Vision
-                    </span>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Footer count -->
-        <div class="border-t border-gray-100 px-6 py-3 dark:border-dark-700">
-          <p class="text-xs text-gray-400">
-            {{ t('models.showing', { count: filteredModels.length, total: total }) }}
-          </p>
+          <!-- Price section -->
+          <div class="border-t border-gray-100 pt-3 dark:border-dark-700">
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <div class="mb-0.5 text-gray-400">{{ t('models.inputPrice') }}</div>
+                <div class="font-mono font-medium text-gray-800 dark:text-gray-200">
+                  {{ formatPrice(model.input_cost_per_token * (model.discount_rate ?? 1)) }}
+                </div>
+                <div class="text-gray-400">¥{{ (model.input_cost_per_token * (model.discount_rate ?? 1) * 1_000_000 * cnyRate).toFixed(2) }}</div>
+              </div>
+              <div>
+                <div class="mb-0.5 text-gray-400">{{ t('models.outputPrice') }}</div>
+                <div class="font-mono font-medium text-gray-800 dark:text-gray-200">
+                  {{ formatPrice(model.output_cost_per_token * (model.discount_rate ?? 1)) }}
+                </div>
+                <div class="text-gray-400">¥{{ (model.output_cost_per_token * (model.discount_rate ?? 1) * 1_000_000 * cnyRate).toFixed(2) }}</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+
+      <!-- Footer count -->
+      <p v-if="filteredModels.length > 0" class="text-xs text-gray-400">
+        {{ t('models.showing', { count: filteredModels.length, total: total }) }}
+      </p>
     </div>
   </AppLayout>
 </template>
@@ -346,7 +218,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import ModelIcon from '@/components/common/ModelIcon.vue'
 import { getModels, type ModelInfo } from '@/api/models'
 
 const { t } = useI18n()
@@ -630,13 +501,6 @@ function formatPrice(costPerToken: number): string {
     // < $0.1/1M tokens: show more precision
     return `$${per1m.toFixed(3)}`
   }
-}
-
-function formatNumber(n: number | undefined): string {
-  if (!n) return '--'
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
-  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`
-  return String(n)
 }
 
 // ─── Helpers ────────────────────────────
