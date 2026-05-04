@@ -21,12 +21,14 @@ export interface ModelInfo {
   long_context_input_token_threshold?: number
   is_available: boolean
   test_status?: ModelTestStatus
+  discount_rate?: number
 }
 
 export interface ModelsResponse {
   models: ModelInfo[]
   total: number
   available_platforms: string[]
+  cny_rate?: number
 }
 
 /**

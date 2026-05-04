@@ -307,6 +307,28 @@ func (s *BillingService) getFallbackPricing(model string) *ModelPricing {
 	return nil
 }
 
+// applyDiscount 将折扣率应用到价格上
+func (s *BillingService) applyDiscount(model string, p *ModelPricing) *ModelPricing {
+	if s.pricingService == nil {
+		return p
+	}
+	d := s.pricingService.GetDiscount(model)
+	if d == 1.0 {
+		return p
+	}
+	p.InputPricePerToken *= d
+	p.InputPricePerTokenPriority *= d
+	p.OutputPricePerToken *= d
+	p.OutputPricePerTokenPriority *= d
+	p.CacheCreationPricePerToken *= d
+	p.CacheCreation5mPrice *= d
+	p.CacheCreation1hPrice *= d
+	p.CacheReadPricePerToken *= d
+	p.CacheReadPricePerTokenPriority *= d
+	p.ImageOutputPricePerToken *= d
+	return p
+}
+
 // GetModelPricing 获取模型价格配置
 func (s *BillingService) GetModelPricing(model string) (*ModelPricing, error) {
 	// 标准化模型名称（转小写）
@@ -322,7 +344,7 @@ func (s *BillingService) GetModelPricing(model string) (*ModelPricing, error) {
 			price5m := litellmPricing.CacheCreationInputTokenCost
 			price1h := litellmPricing.CacheCreationInputTokenCostAbove1hr
 			enableBreakdown := price1h > 0 && price1h > price5m
-			return s.applyModelSpecificPricingPolicy(model, &ModelPricing{
+			pricing := &ModelPricing{
 				InputPricePerToken:             litellmPricing.InputCostPerToken,
 				InputPricePerTokenPriority:     litellmPricing.InputCostPerTokenPriority,
 				OutputPricePerToken:            litellmPricing.OutputCostPerToken,
@@ -337,7 +359,8 @@ func (s *BillingService) GetModelPricing(model string) (*ModelPricing, error) {
 				LongContextInputMultiplier:     litellmPricing.LongContextInputCostMultiplier,
 				LongContextOutputMultiplier:    litellmPricing.LongContextOutputCostMultiplier,
 				ImageOutputPricePerToken:       litellmPricing.OutputCostPerImageToken,
-			}), nil
+			}
+			return s.applyModelSpecificPricingPolicy(model, s.applyDiscount(model, pricing)), nil
 		}
 	}
 
@@ -345,7 +368,7 @@ func (s *BillingService) GetModelPricing(model string) (*ModelPricing, error) {
 	fallback := s.getFallbackPricing(model)
 	if fallback != nil {
 		log.Printf("[Billing] Using fallback pricing for model: %s", model)
-		return s.applyModelSpecificPricingPolicy(model, fallback), nil
+		return s.applyModelSpecificPricingPolicy(model, s.applyDiscount(model, fallback)), nil
 	}
 
 	return nil, fmt.Errorf("pricing not found for model: %s", model)

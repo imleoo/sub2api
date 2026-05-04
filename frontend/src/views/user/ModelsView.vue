@@ -271,16 +271,28 @@
 
                 <!-- Input Price -->
                 <td class="px-4 py-3.5 text-right">
-                  <span class="font-mono text-gray-700 dark:text-gray-300">
-                    {{ formatPrice(model.input_cost_per_token) }}
-                  </span>
+                  <div class="font-mono text-gray-700 dark:text-gray-300">
+                    {{ formatPrice(model.input_cost_per_token * (model.discount_rate ?? 1)) }}
+                    <span v-if="model.discount_rate && model.discount_rate < 1" class="ml-1 text-xs font-sans text-green-600 dark:text-green-400">
+                      {{ Math.round(model.discount_rate * 10) }}折
+                    </span>
+                  </div>
+                  <div class="text-xs text-gray-400 dark:text-gray-500">
+                    ¥{{ (model.input_cost_per_token * (model.discount_rate ?? 1) * 1_000_000 * cnyRate).toFixed(2) }}/M
+                  </div>
                 </td>
 
                 <!-- Output Price -->
                 <td class="px-4 py-3.5 text-right">
-                  <span class="font-mono text-gray-700 dark:text-gray-300">
-                    {{ formatPrice(model.output_cost_per_token) }}
-                  </span>
+                  <div class="font-mono text-gray-700 dark:text-gray-300">
+                    {{ formatPrice(model.output_cost_per_token * (model.discount_rate ?? 1)) }}
+                    <span v-if="model.discount_rate && model.discount_rate < 1" class="ml-1 text-xs font-sans text-green-600 dark:text-green-400">
+                      {{ Math.round(model.discount_rate * 10) }}折
+                    </span>
+                  </div>
+                  <div class="text-xs text-gray-400 dark:text-gray-500">
+                    ¥{{ (model.output_cost_per_token * (model.discount_rate ?? 1) * 1_000_000 * cnyRate).toFixed(2) }}/M
+                  </div>
                 </td>
 
                 <!-- Context Window -->
@@ -342,6 +354,7 @@ const { t } = useI18n()
 // ─── State ────────────────────────────────
 const loading = ref(false)
 const allModels = ref<ModelInfo[]>([])
+const cnyRate = ref(7)
 const searchQuery = ref('')
 const selectedProvider = ref<string>('all')
 const selectedMode = ref<string>('all')
@@ -410,6 +423,7 @@ async function loadData() {
   loading.value = true
   try {
     const res = await getModels()
+    cnyRate.value = res.cny_rate ?? 7.2
     // Filter models based on version requirements
     allModels.value = (res.models ?? []).filter(shouldShowModel)
   } catch (err) {

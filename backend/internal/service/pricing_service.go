@@ -104,6 +104,7 @@ type PricingService struct {
 	remoteClient PricingRemoteClient
 	mu           sync.RWMutex
 	pricingData  map[string]*LiteLLMModelPricing
+	discounts    map[string]float64
 	lastUpdated  time.Time
 	localHash    string
 
@@ -118,6 +119,7 @@ func NewPricingService(cfg *config.Config, remoteClient PricingRemoteClient) *Pr
 		cfg:          cfg,
 		remoteClient: remoteClient,
 		pricingData:  make(map[string]*LiteLLMModelPricing),
+		discounts:    make(map[string]float64),
 		stopCh:       make(chan struct{}),
 	}
 	return s
@@ -137,6 +139,9 @@ func (s *PricingService) Initialize() error {
 			return fmt.Errorf("failed to load pricing data: %w", err)
 		}
 	}
+
+	// 加载折扣配置
+	s.loadDiscounts()
 
 	// 启动定时更新
 	s.startUpdateScheduler()
@@ -919,6 +924,37 @@ type ModelInfo struct {
 	OutputCostPerToken             float64 `json:"output_cost_per_token"`
 	SupportsPromptCaching          bool    `json:"supports_prompt_caching"`
 	LongContextInputTokenThreshold int     `json:"long_context_input_token_threshold,omitempty"`
+	DiscountRate                   float64 `json:"discount_rate,omitempty"`
+}
+
+// loadDiscounts 从配置文件加载折扣数据
+func (s *PricingService) loadDiscounts() {
+	path := s.cfg.Pricing.DiscountFile
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_ = json.Unmarshal(data, &s.discounts)
+}
+
+// GetDiscount 返回模型折扣率，无折扣返回 1.0
+func (s *PricingService) GetDiscount(model string) float64 {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if d, ok := s.discounts[model]; ok && d > 0 {
+		return d
+	}
+	return 1.0
+}
+
+// GetCNYRate 返回人民币汇率配置
+func (s *PricingService) GetCNYRate() float64 {
+	if s.cfg.Pricing.CNYRate <= 0 {
+		return 7.2
+	}
+	return s.cfg.Pricing.CNYRate
 }
 
 // ListAllModels 返回全部模型的基本信息和定价（供用户端模型列表页使用）
@@ -928,6 +964,10 @@ func (s *PricingService) ListAllModels() []ModelInfo {
 
 	result := make([]ModelInfo, 0, len(s.pricingData))
 	for name, p := range s.pricingData {
+		discount := s.discounts[name]
+		if discount <= 0 {
+			discount = 1.0
+		}
 		result = append(result, ModelInfo{
 			ID:                             name,
 			LiteLLMProvider:                p.LiteLLMProvider,
@@ -936,6 +976,7 @@ func (s *PricingService) ListAllModels() []ModelInfo {
 			OutputCostPerToken:             p.OutputCostPerToken,
 			SupportsPromptCaching:          p.SupportsPromptCaching,
 			LongContextInputTokenThreshold: p.LongContextInputTokenThreshold,
+			DiscountRate:                   discount,
 		})
 	}
 	return result

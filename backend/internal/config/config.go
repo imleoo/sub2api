@@ -486,6 +486,10 @@ type PricingConfig struct {
 	UpdateIntervalHours int `mapstructure:"update_interval_hours"`
 	// 哈希校验间隔（分钟）
 	HashCheckIntervalMinutes int `mapstructure:"hash_check_interval_minutes"`
+	// 人民币汇率（1 USD = X CNY）
+	CNYRate float64 `mapstructure:"cny_rate"`
+	// 折扣配置文件路径
+	DiscountFile string `mapstructure:"discount_file"`
 }
 
 type ServerConfig struct {
@@ -1563,6 +1567,8 @@ func setDefaults() {
 	viper.SetDefault("pricing.fallback_file", "./resources/model-pricing/model_prices_and_context_window.json")
 	viper.SetDefault("pricing.update_interval_hours", 24)
 	viper.SetDefault("pricing.hash_check_interval_minutes", 10)
+	viper.SetDefault("pricing.cny_rate", 7)
+	viper.SetDefault("pricing.discount_file", "./data/model_discounts.json")
 
 	// Timezone (default to Asia/Shanghai for Chinese users)
 	viper.SetDefault("timezone", "Asia/Shanghai")
