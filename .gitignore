@@ -100,7 +100,7 @@ backend/internal/web/dist/*
 !backend/internal/web/dist/.keep
 
 # 后端运行时缓存数据
-backend/data/
+# backend/data/
 
 # ===================
 # 本地配置文件（包含敏感信息）

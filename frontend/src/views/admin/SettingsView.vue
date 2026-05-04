@@ -3537,6 +3537,33 @@
               </p>
             </div>
             <div class="space-y-6 p-6">
+              <!-- UI Theme -->
+              <div>
+                <h3 class="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {{ t("admin.settings.site.uiTheme") }}
+                </h3>
+                <div class="flex flex-wrap gap-3">
+                  <button
+                    v-for="theme in (['teal', 'violet', 'orange'] as const)"
+                    :key="theme"
+                    type="button"
+                    @click="form.ui_theme = theme"
+                    :class="[
+                      'flex items-center gap-2 rounded-xl border-2 px-4 py-2.5 text-sm font-medium transition-all',
+                      form.ui_theme === theme
+                        ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-300'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-300 dark:border-dark-600 dark:text-gray-400'
+                    ]"
+                  >
+                    <span
+                      class="h-4 w-4 rounded-full"
+                      :style="{ backgroundColor: { teal: '#14b8a6', violet: '#8b5cf6', orange: '#f97316' }[theme] }"
+                    />
+                    {{ t(`admin.settings.site.theme_${theme}`) }}
+                  </button>
+                </div>
+              </div>
+
               <!-- Backend Mode -->
               <div
                 class="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20"
@@ -5707,6 +5734,7 @@ const form = reactive<SettingsForm>({
   site_logo: "",
   site_subtitle: "Subscription to API Conversion Platform",
   api_base_url: "",
+  ui_theme: "teal" as "teal" | "violet" | "orange",
   contact_info: "",
   doc_url: "",
   home_content: "",
@@ -6665,6 +6693,7 @@ async function saveSettings() {
       table_page_size_options: form.table_page_size_options,
       custom_menu_items: form.custom_menu_items,
       custom_endpoints: form.custom_endpoints,
+      ui_theme: form.ui_theme,
       frontend_url: form.frontend_url,
       smtp_host: form.smtp_host,
       smtp_port: form.smtp_port,

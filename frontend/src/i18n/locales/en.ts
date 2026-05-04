@@ -5094,6 +5094,10 @@ export default {
         backendMode: 'Backend Mode',
         backendModeDescription:
           'Disables user registration, public site, and self-service features. Only admin can log in and manage the platform.',
+        uiTheme: 'UI Theme',
+        theme_teal: 'Teal',
+        theme_violet: 'Violet',
+        theme_orange: 'Orange',
         siteName: 'Site Name',
         siteNamePlaceholder: 'Sub2API',
         siteNameHint: 'Displayed in emails and page titles',

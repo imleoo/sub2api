@@ -105,6 +105,7 @@ type SystemSettings struct {
 	TablePageSizeOptions        []int            `json:"table_page_size_options"`
 	CustomMenuItems             []CustomMenuItem `json:"custom_menu_items"`
 	CustomEndpoints             []CustomEndpoint `json:"custom_endpoints"`
+	UITheme                     string           `json:"ui_theme"`
 
 	DefaultConcurrency           int                          `json:"default_concurrency"`
 	DefaultBalance               float64                      `json:"default_balance"`
@@ -256,6 +257,7 @@ type PublicSettings struct {
 	AvailableChannelsEnabled bool `json:"available_channels_enabled"`
 
 	AffiliateEnabled bool `json:"affiliate_enabled"`
+	UITheme          string `json:"ui_theme"`
 }
 
 // OverloadCooldownSettings 529过载冷却配置 DTO

@@ -29,6 +29,7 @@ export const useAppStore = defineStore('app', () => {
   const siteLogo = ref<string>('')
   const siteVersion = ref<string>('')
   const contactInfo = ref<string>('')
+  const uiTheme = ref<string>('teal')
   const apiBaseUrl = ref<string>('')
   const docUrl = ref<string>('')
   const cachedPublicSettings = ref<PublicSettings | null>(null)
@@ -296,6 +297,7 @@ export const useAppStore = defineStore('app', () => {
     siteLogo.value = config.site_logo || ''
     siteVersion.value = config.version || ''
     contactInfo.value = config.contact_info || ''
+    uiTheme.value = config.ui_theme || 'teal'
     apiBaseUrl.value = config.api_base_url || ''
     docUrl.value = config.doc_url || ''
     publicSettingsLoaded.value = true
@@ -356,6 +358,7 @@ export const useAppStore = defineStore('app', () => {
         channel_monitor_default_interval_seconds: 60,
         available_channels_enabled: false,
         affiliate_enabled: false,
+        ui_theme: 'teal',
       }
     }
 
@@ -413,6 +416,7 @@ export const useAppStore = defineStore('app', () => {
     siteLogo,
     siteVersion,
     contactInfo,
+    uiTheme,
     apiBaseUrl,
     docUrl,
     cachedPublicSettings,

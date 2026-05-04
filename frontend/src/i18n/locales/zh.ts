@@ -5252,6 +5252,10 @@ export default {
         backendMode: 'Backend 模式',
         backendModeDescription:
           '禁用用户注册、公开页面和自助服务功能。仅管理员可以登录和管理平台。',
+        uiTheme: '界面主题',
+        theme_teal: '青绿',
+        theme_violet: '蓝紫',
+        theme_orange: '橙色',
         siteName: '站点名称',
         siteNameHint: '显示在邮件和页面标题中',
         siteNamePlaceholder: 'Sub2API',

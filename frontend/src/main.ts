@@ -14,6 +14,13 @@ function initThemeClass() {
   document.documentElement.classList.toggle('dark', shouldUseDark)
 }
 
+function applyUITheme(theme: string) {
+  const html = document.documentElement
+  html.classList.remove('theme-violet', 'theme-orange')
+  if (theme === 'violet') html.classList.add('theme-violet')
+  else if (theme === 'orange') html.classList.add('theme-orange')
+}
+
 async function bootstrap() {
   // Apply theme class globally before app mount to keep all routes consistent.
   initThemeClass()
@@ -26,6 +33,7 @@ async function bootstrap() {
   // This must happen after pinia is installed but before router and i18n
   const appStore = useAppStore()
   appStore.initFromInjectedConfig()
+  applyUITheme(appStore.uiTheme)
 
   // Set document title immediately after config is loaded
   if (appStore.siteName && appStore.siteName !== 'Sub2API') {

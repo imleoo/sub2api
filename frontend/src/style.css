@@ -2,6 +2,49 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-primary-50:  240 253 250;
+  --color-primary-100: 204 251 241;
+  --color-primary-200: 153 246 228;
+  --color-primary-300: 94 234 212;
+  --color-primary-400: 45 212 191;
+  --color-primary-500: 20 184 166;
+  --color-primary-600: 13 148 136;
+  --color-primary-700: 15 118 110;
+  --color-primary-800: 17 94 89;
+  --color-primary-900: 19 78 74;
+  --color-primary-950: 4 47 46;
+  --color-primary-glow: 20 184 166;
+}
+.theme-violet {
+  --color-primary-50:  245 243 255;
+  --color-primary-100: 237 233 254;
+  --color-primary-200: 221 214 254;
+  --color-primary-300: 196 181 253;
+  --color-primary-400: 167 139 250;
+  --color-primary-500: 139 92 246;
+  --color-primary-600: 124 58 237;
+  --color-primary-700: 109 40 217;
+  --color-primary-800: 91 33 182;
+  --color-primary-900: 76 29 149;
+  --color-primary-950: 46 16 101;
+  --color-primary-glow: 139 92 246;
+}
+.theme-orange {
+  --color-primary-50:  255 247 237;
+  --color-primary-100: 255 237 213;
+  --color-primary-200: 254 215 170;
+  --color-primary-300: 253 186 116;
+  --color-primary-400: 251 146 60;
+  --color-primary-500: 249 115 22;
+  --color-primary-600: 234 88 12;
+  --color-primary-700: 194 65 12;
+  --color-primary-800: 154 52 18;
+  --color-primary-900: 124 45 18;
+  --color-primary-950: 67 20 7;
+  --color-primary-glow: 249 115 22;
+}
+
 @layer base {
   * {
     @apply border-gray-200 dark:border-dark-700;
