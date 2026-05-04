@@ -541,6 +541,12 @@ const routes: RouteRecordRaw[] = [
       descriptionKey: 'admin.promptAnalytics.description'
     }
   },
+  {
+    path: '/admin/model-discounts',
+    name: 'AdminModelDiscounts',
+    component: () => import('@/views/admin/ModelDiscountsView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
 
 
   // ==================== Payment Admin Routes ====================

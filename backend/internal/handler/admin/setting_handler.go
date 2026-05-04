@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -60,10 +61,12 @@ type SettingHandler struct {
 	opsService           *service.OpsService
 	paymentConfigService *service.PaymentConfigService
 	paymentService       *service.PaymentService
+	pricingService       *service.PricingService
+	adminService         service.AdminService
 }
 
 // NewSettingHandler 创建系统设置处理器
-func NewSettingHandler(settingService *service.SettingService, emailService *service.EmailService, turnstileService *service.TurnstileService, opsService *service.OpsService, paymentConfigService *service.PaymentConfigService, paymentService *service.PaymentService) *SettingHandler {
+func NewSettingHandler(settingService *service.SettingService, emailService *service.EmailService, turnstileService *service.TurnstileService, opsService *service.OpsService, paymentConfigService *service.PaymentConfigService, paymentService *service.PaymentService, pricingService *service.PricingService, adminService service.AdminService) *SettingHandler {
 	return &SettingHandler{
 		settingService:       settingService,
 		emailService:         emailService,
@@ -71,6 +74,8 @@ func NewSettingHandler(settingService *service.SettingService, emailService *ser
 		opsService:           opsService,
 		paymentConfigService: paymentConfigService,
 		paymentService:       paymentService,
+		pricingService:       pricingService,
+		adminService:         adminService,
 	}
 }
 
@@ -2730,8 +2735,57 @@ func (h *SettingHandler) ResetWebSearchUsage(c *gin.Context) {
 	response.Success(c, nil)
 }
 
-// TestWebSearchEmulation 测试 Web Search 搜索
-// POST /api/v1/admin/settings/web-search-emulation/test
+// GetModelDiscounts 获取模型折扣配置
+// GET /api/v1/admin/settings/model-discounts
+func (h *SettingHandler) GetModelDiscounts(c *gin.Context) {
+	if h.pricingService == nil {
+		response.Success(c, gin.H{"discounts": map[string]float64{}, "models": []any{}})
+		return
+	}
+
+	allModels := h.pricingService.ListAllModels()
+	modelsByID := make(map[string]service.ModelInfo, len(allModels))
+	for _, m := range allModels {
+		modelsByID[m.ID] = m
+	}
+
+	// 从账号白名单过滤，与用户端模型列表保持一致
+	whitelistedModels := h.collectWhitelistedModels(c.Request.Context(), modelsByID)
+	if len(whitelistedModels) == 0 {
+		// 无账号配置时回退到全量定价表
+		whitelistedModels = allModels
+	}
+
+	discounts := make(map[string]float64)
+	for _, m := range whitelistedModels {
+		if m.DiscountRate > 0 && m.DiscountRate < 1.0 {
+			discounts[m.ID] = m.DiscountRate
+		}
+	}
+	response.Success(c, gin.H{"discounts": discounts, "models": whitelistedModels})
+}
+
+// UpdateModelDiscounts 更新模型折扣配置
+// PUT /api/v1/admin/settings/model-discounts
+func (h *SettingHandler) UpdateModelDiscounts(c *gin.Context) {
+	var req struct {
+		Discounts map[string]float64 `json:"discounts"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	if h.pricingService == nil {
+		response.Success(c, nil)
+		return
+	}
+	if err := h.pricingService.SaveDiscounts(c.Request.Context(), req.Discounts); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, nil)
+}
+
 func (h *SettingHandler) TestWebSearchEmulation(c *gin.Context) {
 	var req struct {
 		Query string `json:"query"`
@@ -2750,4 +2804,49 @@ func (h *SettingHandler) TestWebSearchEmulation(c *gin.Context) {
 		return
 	}
 	response.Success(c, result)
+}
+
+func (h *SettingHandler) collectWhitelistedModels(ctx context.Context, modelsByID map[string]service.ModelInfo) []service.ModelInfo {
+	if h.adminService == nil {
+		return nil
+	}
+	accounts, _, err := h.adminService.ListAccounts(ctx, 1, 10000, "", "", "active", "", 0, "", "", "")
+	if err != nil || len(accounts) == 0 {
+		return nil
+	}
+	allowed := make(map[string]service.ModelInfo)
+	for i := range accounts {
+		acc := &accounts[i]
+		if acc.Credentials == nil {
+			continue
+		}
+		var mapping map[string]string
+		switch raw := acc.Credentials["model_mapping"].(type) {
+		case map[string]any:
+			mapping = make(map[string]string, len(raw))
+			for k, v := range raw {
+				if k = strings.TrimSpace(k); k != "" {
+					if s, ok := v.(string); ok {
+						mapping[k] = strings.TrimSpace(s)
+					}
+				}
+			}
+		case map[string]string:
+			mapping = raw
+		}
+		for modelID := range mapping {
+			modelID = strings.TrimSpace(modelID)
+			if modelID == "" {
+				continue
+			}
+			if m, ok := modelsByID[modelID]; ok {
+				allowed[modelID] = m
+			}
+		}
+	}
+	out := make([]service.ModelInfo, 0, len(allowed))
+	for _, m := range allowed {
+		out = append(out, m)
+	}
+	return out
 }

@@ -102,6 +102,7 @@ type LiteLLMRawEntry struct {
 type PricingService struct {
 	cfg          *config.Config
 	remoteClient PricingRemoteClient
+	settingRepo  SettingRepository
 	mu           sync.RWMutex
 	pricingData  map[string]*LiteLLMModelPricing
 	discounts    map[string]float64
@@ -114,10 +115,11 @@ type PricingService struct {
 }
 
 // NewPricingService 创建价格服务
-func NewPricingService(cfg *config.Config, remoteClient PricingRemoteClient) *PricingService {
+func NewPricingService(cfg *config.Config, remoteClient PricingRemoteClient, settingRepo SettingRepository) *PricingService {
 	s := &PricingService{
 		cfg:          cfg,
 		remoteClient: remoteClient,
+		settingRepo:  settingRepo,
 		pricingData:  make(map[string]*LiteLLMModelPricing),
 		discounts:    make(map[string]float64),
 		stopCh:       make(chan struct{}),
@@ -927,8 +929,17 @@ type ModelInfo struct {
 	DiscountRate                   float64 `json:"discount_rate,omitempty"`
 }
 
-// loadDiscounts 从配置文件加载折扣数据
+// loadDiscounts 优先从 DB 读取折扣，失败则回退文件
 func (s *PricingService) loadDiscounts() {
+	if s.settingRepo != nil {
+		ctx := context.Background()
+		if val, err := s.settingRepo.GetValue(ctx, "model_discounts"); err == nil && val != "" {
+			s.mu.Lock()
+			_ = json.Unmarshal([]byte(val), &s.discounts)
+			s.mu.Unlock()
+			return
+		}
+	}
 	path := s.cfg.Pricing.DiscountFile
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -937,6 +948,23 @@ func (s *PricingService) loadDiscounts() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	_ = json.Unmarshal(data, &s.discounts)
+}
+
+// SaveDiscounts 保存折扣到 DB 并热更新内存
+func (s *PricingService) SaveDiscounts(ctx context.Context, discounts map[string]float64) error {
+	data, err := json.Marshal(discounts)
+	if err != nil {
+		return err
+	}
+	if s.settingRepo != nil {
+		if err := s.settingRepo.Set(ctx, "model_discounts", string(data)); err != nil {
+			return err
+		}
+	}
+	s.mu.Lock()
+	s.discounts = discounts
+	s.mu.Unlock()
+	return nil
 }
 
 // GetDiscount 返回模型折扣率，无折扣返回 1.0

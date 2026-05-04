@@ -380,6 +380,7 @@ export default {
     channelPricing: '渠道定价',
     channelMonitor: '渠道监控',
     channelStatus: '渠道状态',
+    modelDiscounts: '模型折扣',
   },
 
   // Auth
