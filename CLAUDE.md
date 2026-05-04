@@ -53,7 +53,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - 后端：`backend/internal/service/account_test_service.go`、`backend/internal/service/account_test_service_openai_test.go`
    - 合并账号测试、模型映射、网关请求逻辑时优先跑这些用例，避免 OpenAI/Codex/Gemini 调用回归
 
-5. **部署与品牌化资产**
+5. **模型折扣与人民币定价**
+   - 折扣配置：`backend/data/model_discounts.json`（按模型 ID 设置折扣率，如 `"gpt-4o": 0.8`）
+   - 后端：`backend/internal/service/pricing_service.go`（`loadDiscounts`、`GetDiscount`、`GetCNYRate`、`ModelInfo.DiscountRate`）
+   - 后端：`backend/internal/service/billing_service.go`（`applyDiscount` 方法，计费时自动应用折扣）
+   - 后端：`backend/internal/config/config.go`（`PricingConfig.CNYRate`、`PricingConfig.DiscountFile`，默认汇率 7）
+   - 前端：`frontend/src/api/models.ts`（`ModelInfo.discount_rate`、`ModelsResponse.cny_rate`）
+   - 前端：`frontend/src/views/user/ModelsView.vue`（价格列显示折后价、折扣标签、人民币价格）
+   - 合并时保留 `applyDiscount` 调用、`cny_rate` 响应字段和前端价格列的折扣/人民币显示逻辑
+
+6. **部署与品牌化资产**
    - 部署脚本：`deploy/.env.production`、`deploy/deploy-production.sh`、`deploy/docker-compose.production.yml`、`deploy/push-to-dockerhub.sh`
    - 工作流：`.github/workflows/docker-push.yml`、`.github/workflows/sync-upstream.yml`
    - 静态页和文档：`statics/we2ai.com/index.html`、`statics/api.cxm.icu/index.html`、`claudedocs/`、`docs/RECONCILIATION_API_CN.md`
