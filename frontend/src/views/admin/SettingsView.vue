@@ -4584,6 +4584,45 @@
           </div>
         </div>
 
+          <!-- Currency Settings -->
+          <div class="card">
+            <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+                {{ t('admin.settings.currency.title') }}
+              </h2>
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {{ t('admin.settings.currency.description') }}
+              </p>
+            </div>
+            <div class="space-y-4 p-6">
+              <div class="space-y-3">
+                <button
+                  v-for="opt in [
+                    { value: 'usd', label: t('admin.settings.currency.usd'), desc: t('admin.settings.currency.usdDesc') },
+                    { value: 'cny', label: t('admin.settings.currency.cny'), desc: t('admin.settings.currency.cnyDesc') },
+                  ]"
+                  :key="opt.value"
+                  type="button"
+                  @click="form.currency_mode = opt.value"
+                  :class="[
+                    'w-full rounded-xl border-2 p-4 text-left transition-all',
+                    form.currency_mode === opt.value
+                      ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                      : 'border-gray-200 hover:border-gray-300 dark:border-dark-600',
+                  ]"
+                >
+                  <div class="font-semibold text-gray-900 dark:text-white">{{ opt.label }}</div>
+                  <div class="text-sm text-gray-500 dark:text-gray-400">{{ opt.desc }}</div>
+                </button>
+              </div>
+              <div v-if="form.currency_mode === 'cny'" class="mt-4">
+                <label class="input-label">{{ t('admin.settings.currency.cnyRate') }}</label>
+                <p class="mb-1 text-xs text-gray-500 dark:text-gray-400">{{ t('admin.settings.currency.cnyRateHint') }}</p>
+                <input v-model.number="form.cny_rate" type="number" min="1" step="0.1" class="input w-full max-w-xs" />
+              </div>
+            </div>
+          </div>
+
         </div><!-- /Tab: Features -->
 
         <!-- Tab: Email -->
@@ -5441,47 +5480,6 @@
           <BackupSettings />
         </div>
 
-        <!-- Tab: Currency -->
-        <div v-show="activeTab === 'currency'" class="space-y-6">
-          <div class="card">
-            <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
-              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-                {{ t('admin.settings.currency.title') }}
-              </h2>
-              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                {{ t('admin.settings.currency.description') }}
-              </p>
-            </div>
-            <div class="space-y-4 p-6">
-              <div class="space-y-3">
-                <button
-                  v-for="opt in [
-                    { value: 'usd', label: t('admin.settings.currency.usd'), desc: t('admin.settings.currency.usdDesc') },
-                    { value: 'cny', label: t('admin.settings.currency.cny'), desc: t('admin.settings.currency.cnyDesc') },
-                  ]"
-                  :key="opt.value"
-                  type="button"
-                  @click="form.currency_mode = opt.value"
-                  :class="[
-                    'w-full rounded-xl border-2 p-4 text-left transition-all',
-                    form.currency_mode === opt.value
-                      ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-                      : 'border-gray-200 hover:border-gray-300 dark:border-dark-600',
-                  ]"
-                >
-                  <div class="font-semibold text-gray-900 dark:text-white">{{ opt.label }}</div>
-                  <div class="text-sm text-gray-500 dark:text-gray-400">{{ opt.desc }}</div>
-                </button>
-              </div>
-              <div v-if="form.currency_mode === 'cny'" class="mt-4">
-                <label class="input-label">{{ t('admin.settings.currency.cnyRate') }}</label>
-                <p class="mb-1 text-xs text-gray-500 dark:text-gray-400">{{ t('admin.settings.currency.cnyRateHint') }}</p>
-                <input v-model.number="form.cny_rate" type="number" min="1" step="0.1" class="input w-full max-w-xs" />
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Save Button -->
         <div v-show="activeTab !== 'backup'" class="flex justify-end">
           <button
@@ -5628,7 +5626,6 @@ type SettingsTab =
   | "general"
   | "features"
   | "security"
-  | "currency"
   | "users"
   | "gateway"
   | "payment"
@@ -5644,7 +5641,6 @@ const settingsTabs = [
   { key: "payment" as SettingsTab, icon: "creditCard" as const },
   { key: "email" as SettingsTab, icon: "mail" as const },
   { key: "backup" as SettingsTab, icon: "database" as const },
-  { key: "currency" as SettingsTab, icon: "dollar" as const },
 ];
 const { copyToClipboard } = useClipboard();
 
