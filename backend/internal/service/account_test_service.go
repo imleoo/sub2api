@@ -21,6 +21,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/pkg/claude"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/geminicli"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/openai"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/openai_compat"
 	"github.com/Wei-Shaw/sub2api/internal/util/urlvalidator"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -554,22 +555,20 @@ func (s *AccountTestService) testOpenAIAccountConnection(c *gin.Context, account
 		if err != nil {
 			return s.sendErrorAndEnd(c, fmt.Sprintf("Invalid base URL: %s", err.Error()))
 		}
+		// 账号已被探测为不支持 Responses API（如 DeepSeek/Kimi 等三方兼容上游）时，
+		// 直接走标准 chat/completions 路径，跳过 Responses API 尝试。
+		if !openai_compat.ShouldUseResponsesAPI(account.Extra) {
+			apiURL = buildStandardChatCompletionsURL(normalizedBaseURL)
+			return s.doOpenAIAccountTest(c, ctx, account, testModelID, chatgptAccountID, authToken, isOAuth, apiURL, false)
+		}
 
-		// Attempt /responses or /v1/responses first (OpenAI Responses API)
-		// Use the same URL construction logic as the gateway service (buildOpenAIResponsesURL)
+		// Attempt /responses first (OpenAI Responses API), fallback to standard chat/completions on error.
 		apiURL = buildOpenAIResponsesURL(normalizedBaseURL)
-
 		err = s.doOpenAIAccountTest(c, ctx, account, testModelID, chatgptAccountID, authToken, isOAuth, apiURL, false)
 		if err != nil {
-			// If we got an error (network error, 404, 400, 405, etc.), fallback to standard API
-			// Check if it's a "real" error or just a non-200 response which doOpenAIAccountTest returns as error
-			// We fallback on almost any error to maximize compatibility
 			errMsg := err.Error()
 			if strings.Contains(errMsg, "API returned") || strings.Contains(errMsg, "request failed") {
-				// Fallback to standard /v1/chat/completions
-				// Use the same URL construction logic as the gateway service
 				apiURL = buildStandardChatCompletionsURL(normalizedBaseURL)
-
 				return s.doOpenAIAccountTest(c, ctx, account, testModelID, chatgptAccountID, authToken, isOAuth, apiURL, true)
 			}
 			return err
