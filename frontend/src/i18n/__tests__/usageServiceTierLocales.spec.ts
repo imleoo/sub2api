@@ -21,7 +21,7 @@ describe('usage service tier locale keys', () => {
 
 describe('models page locale keys', () => {
   it('contains zh labels for the user models page', () => {
-    expect(zh.models.title).toBe('支持的模型')
+    expect(zh.models.title).toBe('模型广场')
     expect(zh.models.description).toContain('当前账号可用')
     expect(zh.models.allProviders).toBe('全部提供商')
     expect(zh.models.modelName).toBe('模型名称')

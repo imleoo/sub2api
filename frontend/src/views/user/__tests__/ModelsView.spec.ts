@@ -120,7 +120,7 @@ describe('ModelsView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    await wrapper.find('button[aria-label="Copy model name"]').trigger('click')
+    await wrapper.find('button[title="Copy model name"]').trigger('click')
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('gpt-image-1')
     expect(wrapper.find('button[title="Copied"]').exists()).toBe(true)
