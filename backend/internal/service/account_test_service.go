@@ -1371,7 +1371,11 @@ func (s *AccountTestService) processOpenAIStream(c *gin.Context, body io.Reader)
 							s.sendEvent(c, TestEvent{Type: "content", Text: content})
 						}
 					}
-					// Handle finish_reason if needed, but [DONE] usually indicates completion
+					// CC streams use finish_reason to signal completion; set seenCompleted so
+					// the subsequent [DONE] marker triggers test_complete instead of an error.
+					if finishReason, _ := choice["finish_reason"].(string); finishReason != "" {
+						seenCompleted = true
+					}
 				}
 			}
 		}
