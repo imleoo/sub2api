@@ -20,22 +20,25 @@
       </main>
     </div>
   </div>
+  <CurrencySetupModal :show="showCurrencyModal" @done="showCurrencyModal = false" />
 </template>
 
 <script setup lang="ts">
 import '@/styles/onboarding.css'
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useAppStore } from '@/stores'
 import { useAuthStore } from '@/stores/auth'
 import { useOnboardingTour } from '@/composables/useOnboardingTour'
 import { useOnboardingStore } from '@/stores/onboarding'
 import AppSidebar from './AppSidebar.vue'
 import AppHeader from './AppHeader.vue'
+import CurrencySetupModal from '@/components/admin/CurrencySetupModal.vue'
 
 const appStore = useAppStore()
 const authStore = useAuthStore()
 const sidebarCollapsed = computed(() => appStore.sidebarCollapsed)
 const isAdmin = computed(() => authStore.user?.role === 'admin')
+const showCurrencyModal = ref(false)
 
 const { replayTour } = useOnboardingTour({
   storageKey: isAdmin.value ? 'admin_guide' : 'user_guide',
@@ -46,6 +49,9 @@ const onboardingStore = useOnboardingStore()
 
 onMounted(() => {
   onboardingStore.setReplayCallback(replayTour)
+  if (isAdmin.value && !appStore.currencyMode) {
+    showCurrencyModal.value = true
+  }
 })
 
 defineExpose({ replayTour })

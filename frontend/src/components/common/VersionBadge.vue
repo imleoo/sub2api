@@ -3,14 +3,16 @@
     <!-- Admin: Full version badge with dropdown -->
     <template v-if="isAdmin">
       <button
-        @click="toggleDropdown"
+        @click="isCustomBuild ? null : toggleDropdown"
         class="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs transition-colors"
         :class="[
-          hasUpdate
-            ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50'
-            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-dark-800 dark:text-dark-400 dark:hover:bg-dark-700'
+          isCustomBuild
+            ? 'cursor-default bg-gray-100 text-gray-600 dark:bg-dark-800 dark:text-dark-400'
+            : hasUpdate
+              ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-dark-800 dark:text-dark-400 dark:hover:bg-dark-700'
         ]"
-        :title="hasUpdate ? t('version.updateAvailable') : t('version.upToDate')"
+        :title="isCustomBuild ? t('version.customBuild') : (hasUpdate ? t('version.updateAvailable') : t('version.upToDate'))"
       >
         <span v-if="currentVersion" class="font-medium">v{{ currentVersion }}</span>
         <span
@@ -419,6 +421,11 @@ const restartCountdown = ref(0)
 
 // Only show update check for release builds (binary/docker deployment)
 const isReleaseBuild = computed(() => buildType.value === 'release')
+
+const isCustomBuild = computed(() => {
+  const v = currentVersion.value || props.version || ''
+  return v.startsWith('1.')
+})
 
 function toggleDropdown() {
   dropdownOpen.value = !dropdownOpen.value

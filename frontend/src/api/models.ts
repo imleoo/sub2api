@@ -29,6 +29,7 @@ export interface ModelsResponse {
   total: number
   available_platforms: string[]
   cny_rate?: number
+  currency_mode?: string
 }
 
 /**

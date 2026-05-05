@@ -181,6 +181,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useAppStore } from '@/stores'
 import Icon from '@/components/icons/Icon.vue'
 import ProfileAvatarCard from '@/components/user/profile/ProfileAvatarCard.vue'
 import ProfileEditForm from '@/components/user/profile/ProfileEditForm.vue'
@@ -205,6 +206,7 @@ const props = withDefaults(defineProps<{
 })
 
 const { t } = useI18n()
+const appStore = useAppStore()
 
 function normalizeBindingStatus(binding: boolean | UserAuthBindingStatus | undefined): boolean | null {
   if (typeof binding === 'boolean') {
@@ -267,6 +269,9 @@ const providerLabels = computed<Record<UserAuthProvider, string>>(() => ({
 }))
 
 function formatCurrency(value: number): string {
+  if (appStore.currencyMode === 'cny') {
+    return `¥${(value * appStore.cnyRate).toFixed(2)}`
+  }
   return `$${value.toFixed(2)}`
 }
 

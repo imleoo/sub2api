@@ -201,6 +201,10 @@ type SystemSettings struct {
 	// Affiliate (邀请返利) feature switch
 	AffiliateEnabled bool `json:"affiliate_enabled"`
 
+	// Currency mode
+	CurrencyMode string  `json:"currency_mode"`
+	CNYRate      float64 `json:"cny_rate"`
+
 	// OpenAI fast/flex policy
 	OpenAIFastPolicySettings *OpenAIFastPolicySettings `json:"openai_fast_policy_settings,omitempty"`
 }
@@ -256,8 +260,11 @@ type PublicSettings struct {
 
 	AvailableChannelsEnabled bool `json:"available_channels_enabled"`
 
-	AffiliateEnabled bool `json:"affiliate_enabled"`
+	AffiliateEnabled bool   `json:"affiliate_enabled"`
 	UITheme          string `json:"ui_theme"`
+
+	CurrencyMode string  `json:"currency_mode"`
+	CNYRate      float64 `json:"cny_rate"`
 }
 
 // OverloadCooldownSettings 529过载冷却配置 DTO

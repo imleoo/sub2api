@@ -222,6 +222,14 @@ export default {
       confirmPasswordPlaceholder: '确认密码',
       passwordMismatch: '密码不匹配'
     },
+    currency: {
+      title: '货币设置',
+      description: '选择用户界面的货币显示模式',
+      usdMode: '美元模式（USD）',
+      usdModeDesc: '同时显示美元和人民币价格',
+      cnyMode: '人民币模式（CNY）',
+      cnyModeDesc: '仅显示人民币价格',
+    },
     ready: {
       title: '准备安装',
       description: '检查您的配置并完成安装',
@@ -1303,6 +1311,13 @@ export default {
 
   // Admin
   admin: {
+    currency: {
+      setup: {
+        title: '请选择货币显示模式',
+        description: '此设置影响用户端所有价格和余额的显示方式，设置后可在系统设置中修改。',
+        confirm: '确认',
+      }
+    },
     // Dashboard
     dashboard: {
       title: '管理控制台',
@@ -5030,6 +5045,7 @@ export default {
         email: '邮件设置',
         backup: '数据备份',
         payment: '支付设置',
+        currency: '货币设置',
       },
       features: {
         channelMonitor: {
@@ -5907,7 +5923,20 @@ export default {
       failedToLoad: '加载设置失败',
       failedToSave: '保存设置失败',
       failedToTestSmtp: 'SMTP 连接测试失败',
-      failedToSendTestEmail: '发送测试邮件失败'
+      failedToSendTestEmail: '发送测试邮件失败',
+      currency: {
+        title: '货币显示模式',
+        description: '控制用户端余额和价格的货币显示方式',
+        mode: '货币模式',
+        usd: '美元模式（USD）',
+        usdDesc: '同时显示美元和人民币价格',
+        cny: '人民币模式（CNY）',
+        cnyDesc: '仅显示人民币价格',
+        cnyRate: '人民币汇率',
+        cnyRateHint: '1 USD = ? CNY，用于价格换算',
+        save: '保存货币设置',
+        saved: '货币设置已保存'
+      }
     },
 
     // Error Passthrough Rules
@@ -6075,6 +6104,7 @@ export default {
     refresh: '刷新',
     sourceMode: '源码构建',
     sourceModeHint: '源码构建请使用 git pull 更新',
+    customBuild: '定制版本',
     updateNow: '立即更新',
     updating: '正在更新...',
     updateComplete: '更新完成',

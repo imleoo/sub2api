@@ -32,6 +32,8 @@ export const useAppStore = defineStore('app', () => {
   const uiTheme = ref<string>('teal')
   const apiBaseUrl = ref<string>('')
   const docUrl = ref<string>('')
+  const currencyMode = ref<string>('')
+  const cnyRate = ref<number>(7.2)
   const cachedPublicSettings = ref<PublicSettings | null>(null)
 
   // Version cache state
@@ -300,6 +302,8 @@ export const useAppStore = defineStore('app', () => {
     uiTheme.value = config.ui_theme || 'teal'
     apiBaseUrl.value = config.api_base_url || ''
     docUrl.value = config.doc_url || ''
+    currencyMode.value = config.currency_mode || ''
+    cnyRate.value = config.cny_rate ?? 7.2
     publicSettingsLoaded.value = true
   }
 
@@ -419,6 +423,8 @@ export const useAppStore = defineStore('app', () => {
     uiTheme,
     apiBaseUrl,
     docUrl,
+    currencyMode,
+    cnyRate,
     cachedPublicSettings,
 
     // Version state

@@ -4,6 +4,24 @@
  */
 
 import { i18n, getLocale } from '@/i18n'
+import { useAppStore } from '@/stores/app'
+
+/**
+ * 根据货币模式格式化 USD 金额（存储值为 USD）
+ * CNY 模式：¥(amount * cnyRate)，USD 模式：$amount
+ */
+export function formatUSD(amount: number | null | undefined, fractionDigits: number = 2): string {
+  const val = amount ?? 0
+  try {
+    const appStore = useAppStore()
+    if (appStore.currencyMode === 'cny') {
+      return `¥${(val * appStore.cnyRate).toFixed(fractionDigits)}`
+    }
+  } catch {
+    // store not ready (SSR / outside component)
+  }
+  return `$${val.toFixed(fractionDigits)}`
+}
 
 /**
  * 格式化相对时间
@@ -53,17 +71,26 @@ export function formatNumber(num: number | null | undefined): string {
 }
 
 /**
- * 格式化货币金额
- * @param amount 金额
+ * 格式化货币金额（感知货币模式）
+ * @param amount 金额（USD 存储值）
  * @param currency 货币代码，默认 USD
- * @returns 格式化后的字符串，如 "$1.25"
+ * @returns 格式化后的字符串，如 "$1.25" 或 "¥9.00"
  */
 export function formatCurrency(amount: number | null | undefined, currency: string = 'USD'): string {
   if (amount === null || amount === undefined) return '$0.00'
 
-  const locale = getLocale()
+  // 货币模式感知
+  try {
+    const appStore = useAppStore()
+    if (appStore.currencyMode === 'cny' && currency === 'USD') {
+      const fractionDigits = amount > 0 && amount < 0.01 ? 6 : 2
+      return `¥${(amount * appStore.cnyRate).toFixed(fractionDigits)}`
+    }
+  } catch {
+    // store not ready
+  }
 
-  // For very small amounts, show more decimals
+  const locale = getLocale()
   const fractionDigits = amount > 0 && amount < 0.01 ? 6 : 2
 
   return new Intl.NumberFormat(locale, {

@@ -352,6 +352,10 @@ const (
 
 	// Web Search Emulation
 	SettingKeyWebSearchEmulationConfig = "web_search_emulation_config" // JSON 配置
+
+	// Currency mode settings
+	SettingKeyCurrencyMode = "currency_mode" // "usd" | "cny" | "" (空=未配置)
+	SettingKeyCNYRate      = "cny_rate"      // 人民币汇率（float64）
 )
 
 // AdminAPIKeyPrefix is the prefix for admin API keys (distinct from user "sk-" keys).

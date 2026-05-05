@@ -222,6 +222,14 @@ export default {
       confirmPasswordPlaceholder: 'Confirm password',
       passwordMismatch: 'Passwords do not match'
     },
+    currency: {
+      title: 'Currency Settings',
+      description: 'Choose the currency display mode for the user interface',
+      usdMode: 'USD Mode',
+      usdModeDesc: 'Show both USD and CNY prices',
+      cnyMode: 'CNY Mode',
+      cnyModeDesc: 'Show CNY prices only',
+    },
     ready: {
       title: 'Ready to Install',
       description: 'Review your configuration and complete setup',
@@ -1300,6 +1308,13 @@ export default {
 
   // Admin
   admin: {
+    currency: {
+      setup: {
+        title: 'Select Currency Display Mode',
+        description: 'This setting affects how all prices and balances are displayed to users. You can change it later in System Settings.',
+        confirm: 'Confirm',
+      },
+    },
     // Dashboard
     dashboard: {
       title: 'Admin Dashboard',
@@ -4868,6 +4883,7 @@ export default {
         email: 'Email',
         backup: 'Backup',
         payment: 'Payment',
+        currency: 'Currency',
       },
       features: {
         channelMonitor: {
@@ -5748,7 +5764,20 @@ export default {
       failedToLoad: 'Failed to load settings',
       failedToSave: 'Failed to save settings',
       failedToTestSmtp: 'SMTP connection test failed',
-      failedToSendTestEmail: 'Failed to send test email'
+      failedToSendTestEmail: 'Failed to send test email',
+      currency: {
+        title: 'Currency Display Mode',
+        description: 'Control how balances and prices are displayed to users',
+        mode: 'Currency Mode',
+        usd: 'USD Mode',
+        usdDesc: 'Show both USD and CNY prices',
+        cny: 'CNY Mode',
+        cnyDesc: 'Show CNY prices only',
+        cnyRate: 'CNY Exchange Rate',
+        cnyRateHint: '1 USD = ? CNY, used for price conversion',
+        save: 'Save Currency Settings',
+        saved: 'Currency settings saved'
+      }
     },
 
     // Error Passthrough Rules
@@ -5916,6 +5945,7 @@ export default {
     refresh: 'Refresh',
     sourceMode: 'Source Build',
     sourceModeHint: 'Source build, use git pull to update',
+    customBuild: 'Custom Build',
     updateNow: 'Update Now',
     updating: 'Updating...',
     updateComplete: 'Update Complete',

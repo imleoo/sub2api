@@ -189,17 +189,17 @@
             <div class="grid grid-cols-2 gap-2 text-xs">
               <div>
                 <div class="mb-0.5 text-gray-400">{{ t('models.inputPrice') }}</div>
-                <div class="font-mono font-medium text-gray-800 dark:text-gray-200">
+                <div v-if="appStore.currencyMode !== 'cny'" class="font-mono font-medium text-gray-800 dark:text-gray-200">
                   {{ formatPrice(model.input_cost_per_token * (model.discount_rate ?? 1)) }}
                 </div>
-                <div class="text-gray-400">¥{{ (model.input_cost_per_token * (model.discount_rate ?? 1) * 1_000_000 * cnyRate).toFixed(2) }}</div>
+                <div class="text-gray-400">¥{{ (model.input_cost_per_token * (model.discount_rate ?? 1) * 1_000_000 * appStore.cnyRate).toFixed(2) }}</div>
               </div>
               <div>
                 <div class="mb-0.5 text-gray-400">{{ t('models.outputPrice') }}</div>
-                <div class="font-mono font-medium text-gray-800 dark:text-gray-200">
+                <div v-if="appStore.currencyMode !== 'cny'" class="font-mono font-medium text-gray-800 dark:text-gray-200">
                   {{ formatPrice(model.output_cost_per_token * (model.discount_rate ?? 1)) }}
                 </div>
-                <div class="text-gray-400">¥{{ (model.output_cost_per_token * (model.discount_rate ?? 1) * 1_000_000 * cnyRate).toFixed(2) }}</div>
+                <div class="text-gray-400">¥{{ (model.output_cost_per_token * (model.discount_rate ?? 1) * 1_000_000 * appStore.cnyRate).toFixed(2) }}</div>
               </div>
             </div>
           </div>
@@ -217,10 +217,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useAppStore } from '@/stores'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import { getModels, type ModelInfo } from '@/api/models'
 
 const { t } = useI18n()
+const appStore = useAppStore()
 
 // ─── State ────────────────────────────────
 const loading = ref(false)

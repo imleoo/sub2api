@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createPinia, setActivePinia } from 'pinia'
 
 import ModelsView from '../ModelsView.vue'
 import { getModels, type ModelInfo } from '@/api/models'
@@ -72,6 +73,7 @@ function mountView() {
 
 describe('ModelsView', () => {
   beforeEach(() => {
+    setActivePinia(createPinia())
     vi.clearAllMocks()
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,

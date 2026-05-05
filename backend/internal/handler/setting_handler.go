@@ -78,5 +78,8 @@ func (h *SettingHandler) GetPublicSettings(c *gin.Context) {
 
 		AffiliateEnabled: settings.AffiliateEnabled,
 		UITheme:          settings.UITheme,
+
+		CurrencyMode: settings.CurrencyMode,
+		CNYRate:      settings.CNYRate,
 	})
 }

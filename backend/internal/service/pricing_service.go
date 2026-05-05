@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -977,12 +978,35 @@ func (s *PricingService) GetDiscount(model string) float64 {
 	return 1.0
 }
 
-// GetCNYRate 返回人民币汇率配置
+// GetCNYRate 返回人民币汇率（优先读 DB settingRepo，fallback 到 config）
 func (s *PricingService) GetCNYRate() float64 {
-	if s.cfg.Pricing.CNYRate <= 0 {
-		return 7.2
+	if s.settingRepo != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		if val, err := s.settingRepo.GetValue(ctx, SettingKeyCNYRate); err == nil {
+			if rate, err := strconv.ParseFloat(val, 64); err == nil && rate > 0 {
+				return rate
+			}
+		}
 	}
-	return s.cfg.Pricing.CNYRate
+	if s.cfg.Pricing.CNYRate > 0 {
+		return s.cfg.Pricing.CNYRate
+	}
+	return 7.2
+}
+
+// GetCurrencyMode 返回货币模式（优先读 DB settingRepo，fallback "usd"）
+func (s *PricingService) GetCurrencyMode() string {
+	if s.settingRepo != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		if val, err := s.settingRepo.GetValue(ctx, SettingKeyCurrencyMode); err == nil {
+			if val == "usd" || val == "cny" {
+				return val
+			}
+		}
+	}
+	return "usd"
 }
 
 // ListAllModels 返回全部模型的基本信息和定价（供用户端模型列表页使用）

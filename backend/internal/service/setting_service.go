@@ -457,6 +457,8 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeyChannelMonitorDefaultIntervalSeconds,
 		SettingKeyAvailableChannelsEnabled,
 		SettingKeyAffiliateEnabled,
+		SettingKeyCurrencyMode,
+		SettingKeyCNYRate,
 	}
 
 	settings, err := s.settingRepo.GetMultiple(ctx, keys)
@@ -499,6 +501,11 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 	var balanceLowNotifyThreshold float64
 	if v, err := strconv.ParseFloat(settings[SettingKeyBalanceLowNotifyThreshold], 64); err == nil && v >= 0 {
 		balanceLowNotifyThreshold = v
+	}
+
+	var cnyRate float64 = 7.2
+	if v, err := strconv.ParseFloat(settings[SettingKeyCNYRate], 64); err == nil && v > 0 {
+		cnyRate = v
 	}
 
 	return &PublicSettings{
@@ -547,6 +554,9 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		AvailableChannelsEnabled: settings[SettingKeyAvailableChannelsEnabled] == "true",
 
 		AffiliateEnabled: settings[SettingKeyAffiliateEnabled] == "true",
+
+		CurrencyMode: strings.TrimSpace(settings[SettingKeyCurrencyMode]),
+		CNYRate:      cnyRate,
 	}, nil
 }
 
@@ -1264,6 +1274,10 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	updates[SettingKeyBalanceLowNotifyRechargeURL] = settings.BalanceLowNotifyRechargeURL
 	updates[SettingKeyAccountQuotaNotifyEnabled] = strconv.FormatBool(settings.AccountQuotaNotifyEnabled)
 	updates[SettingKeyAccountQuotaNotifyEmails] = MarshalNotifyEmails(settings.AccountQuotaNotifyEmails)
+
+	// Currency mode
+	updates[SettingKeyCurrencyMode] = strings.TrimSpace(settings.CurrencyMode)
+	updates[SettingKeyCNYRate] = strconv.FormatFloat(settings.CNYRate, 'f', 8, 64)
 
 	return updates, nil
 }
@@ -2292,6 +2306,13 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	}
 	if result.AccountQuotaNotifyEmails == nil {
 		result.AccountQuotaNotifyEmails = []NotifyEmailEntry{}
+	}
+
+	// Currency mode
+	result.CurrencyMode = strings.TrimSpace(settings[SettingKeyCurrencyMode])
+	result.CNYRate = 7.2
+	if v, err := strconv.ParseFloat(settings[SettingKeyCNYRate], 64); err == nil && v > 0 {
+		result.CNYRate = v
 	}
 
 	return result

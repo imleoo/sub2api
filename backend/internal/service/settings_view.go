@@ -175,6 +175,10 @@ type SystemSettings struct {
 	// Account quota notification
 	AccountQuotaNotifyEnabled bool
 	AccountQuotaNotifyEmails  []NotifyEmailEntry
+
+	// Currency mode
+	CurrencyMode string
+	CNYRate      float64
 }
 
 type DefaultSubscriptionSetting struct {
@@ -235,6 +239,10 @@ type PublicSettings struct {
 
 	// Affiliate (邀请返利) feature toggle
 	AffiliateEnabled bool `json:"affiliate_enabled"`
+
+	// Currency mode
+	CurrencyMode string  `json:"currency_mode"`
+	CNYRate      float64 `json:"cny_rate"`
 }
 
 type WeChatConnectOAuthConfig struct {

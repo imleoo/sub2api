@@ -254,6 +254,9 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		AvailableChannelsEnabled: settings.AvailableChannelsEnabled,
 
 		AffiliateEnabled: settings.AffiliateEnabled,
+
+		CurrencyMode: settings.CurrencyMode,
+		CNYRate:      settings.CNYRate,
 	}
 
 	// OpenAI fast policy (stored under a dedicated setting key)
@@ -503,6 +506,10 @@ type UpdateSettingsRequest struct {
 
 	// Affiliate (邀请返利) feature switch
 	AffiliateEnabled *bool `json:"affiliate_enabled"`
+
+	// Currency mode
+	CurrencyMode *string  `json:"currency_mode"`
+	CNYRate      *float64 `json:"cny_rate"`
 
 	// OpenAI fast/flex policy (optional, only updated when provided)
 	OpenAIFastPolicySettings *dto.OpenAIFastPolicySettings `json:"openai_fast_policy_settings,omitempty"`
@@ -1381,6 +1388,13 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			}
 			return previousSettings.AffiliateEnabled
 		}(),
+		CurrencyMode: func() string {
+			if req.CurrencyMode != nil {
+				return *req.CurrencyMode
+			}
+			return previousSettings.CurrencyMode
+		}(),
+		CNYRate: float64ValueOrDefault(req.CNYRate, previousSettings.CNYRate),
 	}
 
 	authSourceDefaults := &service.AuthSourceDefaultSettings{

@@ -505,6 +505,7 @@ func (h *UsageHandler) ListModels(c *gin.Context) {
 		"total":               len(enrichedModels),
 		"available_platforms": platformSlice,
 		"cny_rate":            h.pricingService.GetCNYRate(),
+		"currency_mode":       h.pricingService.GetCurrencyMode(),
 	})
 }
 

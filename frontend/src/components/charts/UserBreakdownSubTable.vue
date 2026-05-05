@@ -23,13 +23,13 @@
             {{ formatTokens(user.total_tokens) }}
           </td>
           <td class="py-1 text-right text-green-600 dark:text-green-400">
-            ${{ formatCost(user.actual_cost) }}
+            {{ formatCost(user.actual_cost) }}
           </td>
           <td class="py-1 text-right text-orange-500 dark:text-orange-400">
-            ${{ formatCost(user.account_cost) }}
+            {{ formatCost(user.account_cost) }}
           </td>
           <td class="py-1 pr-1 text-right text-gray-400 dark:text-gray-500">
-            ${{ formatCost(user.cost) }}
+            {{ formatCost(user.cost) }}
           </td>
         </tr>
       </tbody>
@@ -41,8 +41,10 @@
 import { useI18n } from 'vue-i18n'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import type { UserBreakdownItem } from '@/types'
+import { useAppStore } from '@/stores/app'
 
 const { t } = useI18n()
+const appStore = useAppStore()
 
 defineProps<{
   items: UserBreakdownItem[]
@@ -57,9 +59,11 @@ const formatTokens = (value: number): string => {
 }
 
 const formatCost = (value: number): string => {
-  if (value >= 1000) return (value / 1000).toFixed(2) + 'K'
-  if (value >= 1) return value.toFixed(2)
-  if (value >= 0.01) return value.toFixed(3)
-  return value.toFixed(4)
+  const v = appStore.currencyMode === 'cny' ? value * appStore.cnyRate : value
+  const prefix = appStore.currencyMode === 'cny' ? '¥' : '$'
+  if (v >= 1000) return prefix + (v / 1000).toFixed(2) + 'K'
+  if (v >= 1) return prefix + v.toFixed(2)
+  if (v >= 0.01) return prefix + v.toFixed(3)
+  return prefix + v.toFixed(4)
 }
 </script>

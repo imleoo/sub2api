@@ -339,8 +339,40 @@
           </div>
         </div>
 
-        <!-- Step 4: Complete -->
+        <!-- Step 4: Currency -->
         <div v-if="currentStep === 3" class="space-y-6">
+          <div class="mb-6 text-center">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+              {{ t('setup.currency.title') }}
+            </h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-dark-400">
+              {{ t('setup.currency.description') }}
+            </p>
+          </div>
+          <div class="space-y-3">
+            <button
+              v-for="opt in [
+                { value: 'usd', label: t('setup.currency.usdMode'), desc: t('setup.currency.usdModeDesc') },
+                { value: 'cny', label: t('setup.currency.cnyMode'), desc: t('setup.currency.cnyModeDesc') },
+              ]"
+              :key="opt.value"
+              type="button"
+              @click="selectedCurrencyMode = opt.value as 'usd' | 'cny'"
+              :class="[
+                'w-full rounded-xl border-2 p-4 text-left transition-all',
+                selectedCurrencyMode === opt.value
+                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                  : 'border-gray-200 hover:border-gray-300 dark:border-dark-600',
+              ]"
+            >
+              <div class="font-semibold text-gray-900 dark:text-white">{{ opt.label }}</div>
+              <div class="text-sm text-gray-500 dark:text-gray-400">{{ opt.desc }}</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 5: Complete -->
+        <div v-if="currentStep === 4" class="space-y-6">
           <div class="mb-6 text-center">
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
               {{ t('setup.ready.title') }}
@@ -446,7 +478,7 @@
           <div v-else></div>
 
           <button
-            v-if="currentStep < 3"
+            v-if="currentStep < 4"
             @click="nextStep"
             :disabled="!canProceed"
             class="btn btn-primary"
@@ -493,6 +525,7 @@
 import { ref, reactive, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { testDatabase, testRedis, install, type InstallRequest } from '@/api/setup'
+import { updateSettings } from '@/api/admin/settings'
 import Select from '@/components/common/Select.vue'
 import Toggle from '@/components/common/Toggle.vue'
 import Icon from '@/components/icons/Icon.vue'
@@ -503,12 +536,14 @@ const steps = computed(() => [
   { id: 'database', title: t('setup.database.title') },
   { id: 'redis', title: t('setup.redis.title') },
   { id: 'admin', title: t('setup.admin.title') },
+  { id: 'currency', title: t('setup.currency.title') },
   { id: 'complete', title: t('setup.ready.title') }
 ])
 
 const currentStep = ref(0)
 const errorMessage = ref('')
 const installSuccess = ref(false)
+const selectedCurrencyMode = ref<'usd' | 'cny' | ''>('')
 
 // Connection test states
 const testingDb = ref(false)
@@ -568,6 +603,8 @@ const canProceed = computed(() => {
         formData.admin.password.length >= 8 &&
         formData.admin.password === confirmPassword.value
       )
+    case 3:
+      return !!selectedCurrencyMode.value
     default:
       return true
   }
@@ -620,6 +657,9 @@ async function performInstall() {
 
   try {
     await install(formData)
+    if (selectedCurrencyMode.value) {
+      await updateSettings({ currency_mode: selectedCurrencyMode.value, cny_rate: 7.2 })
+    }
     installSuccess.value = true
     // Start polling for service restart
     waitForServiceRestart()

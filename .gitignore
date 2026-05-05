@@ -108,7 +108,7 @@ backend/internal/web/dist/*
 backend/config.yaml
 deploy/config.yaml
 backend/.installed
-
+.playwright-mcp
 # ===================
 # 其他
 # ===================
