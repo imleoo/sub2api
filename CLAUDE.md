@@ -68,6 +68,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - 静态页和文档：`statics/we2ai.com/index.html`、`statics/api.cxm.icu/index.html`、`claudedocs/`、`docs/RECONCILIATION_API_CN.md`
    - 合并上游发布配置时，不要覆盖 Harbor/内网部署、We2AI/API 文档和本 fork 的静态页面
 
+7. **GitHub Actions 全部禁用自动触发**
+   - 所有 `.github/workflows/*.yml` 的 `on:` 均已改为 `workflow_dispatch:`（仅手动触发）
+   - 禁用原因：避免 GitHub Actions 额度被耗尽
+   - 影响文件：`backend-ci.yml`、`security-scan.yml`、`docker-push.yml`、`release.yml`、`sync-upstream.yml`、`cla.yml`
+   - 合并上游时**必须**检查 `.github/workflows/` 下所有文件的 `on:` 段，确保不被还原为自动触发
+   - 如需临时启用某个 workflow，只加回对应触发条件，不要批量还原
+
 ### 合并冲突处理优先级
 
 - `main` 与 `upstream/main` 冲突：`main` 负责贴近上游，通常以上游为准
@@ -77,6 +84,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `frontend/src/views/user/ModelsView.vue`、`frontend/src/api/models.ts`、`backend/internal/handler/usage_handler.go` 是用户模型列表高风险文件，合并后必须检查白名单过滤、Images 模型显示、复制模型名按钮和中英文切换
 - `backend/data/model_pricing.json` 与 `backend/resources/model-pricing/model_prices_and_context_window.json` 是模型价格高风险文件，合并/同步后必须检查 `gpt-image-1` 等图片模型输出价格字段是否仍满足前端展示和计费口径
 - `frontend/package-lock.json` 是历史遗留文件；本项目开发仍以 pnpm 为准，新增依赖时优先维护 `pnpm-lock.yaml`
+- `.github/workflows/*.yml` 是高风险文件，合并上游后必须确认所有文件的 `on:` 仍为 `workflow_dispatch:`，不能被还原为 push/pull_request/schedule 触发（详见第 7 条 fork 功能）
 
 ### 合并后最低验证
 
