@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## zhiguofan 分支差异化开发
 
-本节是合并 `upstream/main` 时的入口级检查清单。详细历史文档见 `claudedocs/自定义开发功能列表.md`，但以当前代码和本节为准。
+fork 功能列表、高风险文件、合并检查清单详见 **[`claudedocs/自定义开发功能列表.md`](claudedocs/自定义开发功能列表.md)**，该文档为唯一维护源，本节不再重复。
 
 ### 版本与同步策略
 
@@ -19,72 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 同步上游优先使用 `./script/sync_upstream_to_zhiguofan.sh`，该脚本负责 `upstream/main → main → origin/main → zhiguofan → origin/zhiguofan`
 - 脚本同步到 `zhiguofan` 后会把版本主号改为 `1`；如果手动 merge，必须手动检查 `backend/cmd/server/VERSION`
 - `AGENTS.md` 是指向 `CLAUDE.md` 的 symlink，保留单一规则源，不要复制成两份
-
-### 必须保留的 fork 功能
-
-1. **用户端模型列表**
-   - 路由：`/models`
-   - 前端：`frontend/src/views/user/ModelsView.vue`、`frontend/src/api/models.ts`、`frontend/src/router/index.ts`
-   - 后端：`backend/internal/server/routes/user.go`、`backend/internal/handler/usage_handler.go`、`backend/internal/service/pricing_service.go`
-   - 白名单：用户端只显示账号 `credentials.model_mapping` 配置过的模型；不要退回上游“展示全部定价表模型”的行为
-   - Images 模型：账号白名单里配置的图片模型必须显示，保留 `image_generation` 归一化和 `gpt-image-*`、`dall-e*`、`imagen-*`、`gemini-*-image` 等 ID 识别逻辑
-   - 复制模型名：模型名称列保留复制按钮、剪贴板 fallback、短暂已复制状态，以及 i18n 键 `models.copyModelName`、`models.copied`
-   - 价格来源：用户模型页价格来自 `PricingService.ListAllModels()`；运行时文件是 `backend/data/model_pricing.json`，回退/同步源是 `backend/resources/model-pricing/model_prices_and_context_window.json`
-   - 图片模型输出价格：`gpt-image-1` 等模型可能只有 `output_cost_per_image_token`，如需在“输出价格”列显示，应同步补齐/映射到前端读取的输出价格字段，避免只改 UI
-   - 合并时保留模型版本过滤、价格展示、可用性/特性标签和 i18n 键 `nav.models`、`models.*`
-
-2. **管理员用户统计**
-   - 前端：`frontend/src/components/admin/user/UserStatsModal.vue`、`frontend/src/views/admin/UsersView.vue`、`frontend/src/api/admin/users.ts`
-   - 后端：`backend/internal/handler/admin/user_handler.go`、`backend/internal/service/admin_service.go`、`backend/internal/repository/usage_log_repo.go`
-   - API：`GET /api/v1/admin/users/:id/usage`
-   - 前端期望 `summary`、`history`、`models`、`endpoints` 响应结构，合并时不要退回上游的较窄用户管理契约
-
-3. **提示词词云分析 Prompt Analytics**
-   - 插件目录：`backend/internal/plugin/promptanalytics/`
-   - 注入点：`backend/cmd/server/wire.go`、`backend/cmd/server/wire_gen.go`、`backend/internal/server/router.go`
-   - 路由：`backend/internal/server/routes/admin.go`、`backend/internal/server/routes/gateway.go`
-   - 前端：`frontend/src/views/admin/PromptAnalyticsView.vue`、`frontend/src/api/admin/promptAnalytics.ts`
-   - 数据库：`backend/ent/schema/keyword_stat.go`、`backend/migrations/082_create_keyword_stats.sql`
-   - 合并时必须保留网关请求体预读和 promptanalytics 中间件，否则管理端词云会无数据
-
-4. **OpenAI/网关本地测试与快速测试工具**
-   - 测试：`frontend/src/api/__tests__/gateway_model_calls.spec.ts`、`test/api_reconciliation_test.go`
-   - 工具：`tools/openai_quick_test.py`
-   - 后端：`backend/internal/service/account_test_service.go`、`backend/internal/service/account_test_service_openai_test.go`
-   - 合并账号测试、模型映射、网关请求逻辑时优先跑这些用例，避免 OpenAI/Codex/Gemini 调用回归
-
-5. **模型折扣与人民币定价**
-   - 折扣配置：`backend/data/model_discounts.json`（按模型 ID 设置折扣率，如 `"gpt-4o": 0.8`）
-   - 后端：`backend/internal/service/pricing_service.go`（`loadDiscounts`、`GetDiscount`、`GetCNYRate`、`ModelInfo.DiscountRate`）
-   - 后端：`backend/internal/service/billing_service.go`（`applyDiscount` 方法，计费时自动应用折扣）
-   - 后端：`backend/internal/config/config.go`（`PricingConfig.CNYRate`、`PricingConfig.DiscountFile`，默认汇率 7）
-   - 前端：`frontend/src/api/models.ts`（`ModelInfo.discount_rate`、`ModelsResponse.cny_rate`）
-   - 前端：`frontend/src/views/user/ModelsView.vue`（价格列显示折后价、折扣标签、人民币价格）
-   - 合并时保留 `applyDiscount` 调用、`cny_rate` 响应字段和前端价格列的折扣/人民币显示逻辑
-
-6. **部署与品牌化资产**
-   - 部署脚本：`deploy/.env.production`、`deploy/deploy-production.sh`、`deploy/docker-compose.production.yml`、`deploy/push-to-dockerhub.sh`
-   - 工作流：`.github/workflows/docker-push.yml`、`.github/workflows/sync-upstream.yml`
-   - 静态页和文档：`statics/we2ai.com/index.html`、`statics/api.cxm.icu/index.html`、`claudedocs/`、`docs/RECONCILIATION_API_CN.md`
-   - 合并上游发布配置时，不要覆盖 Harbor/内网部署、We2AI/API 文档和本 fork 的静态页面
-
-7. **GitHub Actions 全部禁用自动触发**
-   - 所有 `.github/workflows/*.yml` 的 `on:` 均已改为 `workflow_dispatch:`（仅手动触发）
-   - 禁用原因：避免 GitHub Actions 额度被耗尽
-   - 影响文件：`backend-ci.yml`、`security-scan.yml`、`docker-push.yml`、`release.yml`、`sync-upstream.yml`、`cla.yml`
-   - 合并上游时**必须**检查 `.github/workflows/` 下所有文件的 `on:` 段，确保不被还原为自动触发
-   - 如需临时启用某个 workflow，只加回对应触发条件，不要批量还原
-
-### 合并冲突处理优先级
-
-- `main` 与 `upstream/main` 冲突：`main` 负责贴近上游，通常以上游为准
-- `zhiguofan` 与 `main` 冲突：以 `main` 为基线，但必须重新保留上面的 fork 功能
-- `backend/cmd/server/wire_gen.go`、`backend/cmd/server/wire.go`、`backend/internal/server/router.go`、`backend/internal/server/routes/*.go` 是高风险文件，合并后必须检查 Prompt Analytics、Admin User Stats、Gateway 中间件是否还在
-- `frontend/src/router/index.ts`、`frontend/src/i18n/locales/zh.ts`、`frontend/src/i18n/locales/en.ts` 是高风险文件，合并后必须检查 `/models`、Prompt Analytics 菜单和翻译键是否还在
-- `frontend/src/views/user/ModelsView.vue`、`frontend/src/api/models.ts`、`backend/internal/handler/usage_handler.go` 是用户模型列表高风险文件，合并后必须检查白名单过滤、Images 模型显示、复制模型名按钮和中英文切换
-- `backend/data/model_pricing.json` 与 `backend/resources/model-pricing/model_prices_and_context_window.json` 是模型价格高风险文件，合并/同步后必须检查 `gpt-image-1` 等图片模型输出价格字段是否仍满足前端展示和计费口径
 - `frontend/package-lock.json` 是历史遗留文件；本项目开发仍以 pnpm 为准，新增依赖时优先维护 `pnpm-lock.yaml`
-- `.github/workflows/*.yml` 是高风险文件，合并上游后必须确认所有文件的 `on:` 仍为 `workflow_dispatch:`，不能被还原为 push/pull_request/schedule 触发（详见第 7 条 fork 功能）
 
 ### 合并后最低验证
 

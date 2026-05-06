@@ -36,28 +36,13 @@ Sub2API is an AI API gateway platform designed to distribute and manage API quot
 
 ## zhiguofan Fork Delta
 
-This repository is maintained as the `zhiguofan` fork branch. When merging from `Wei-Shaw/sub2api` `upstream/main`, do not treat this branch as a clean upstream mirror. The fork carries product, deployment, and documentation changes that must be preserved.
+This repository is maintained as the `zhiguofan` fork branch. When merging from `Wei-Shaw/sub2api` `upstream/main`, do not treat this branch as a clean upstream mirror.
 
-### Version and Sync Policy
+- Version policy: upstream `0.x.y` → fork `1.x.y` in `backend/cmd/server/VERSION`
+- Use `./script/sync_upstream_to_zhiguofan.sh` for upstream sync
+- `AGENTS.md` is a symlink to `CLAUDE.md`; keep `CLAUDE.md` as the single maintained agent instruction source
 
-- `main` tracks upstream and keeps the upstream `0.x.y` version.
-- `zhiguofan` uses the fork version line in `backend/cmd/server/VERSION`: upstream `0.x.y` becomes fork `1.x.y`.
-- Use `./script/sync_upstream_to_zhiguofan.sh` for upstream sync. It updates `main`, merges into `zhiguofan`, and restores the `1.x.y` fork version.
-- `AGENTS.md` is a symlink to `CLAUDE.md`; keep `CLAUDE.md` as the single maintained agent instruction source.
-
-### Fork Features To Preserve During Merge
-
-- **User model catalog**: `/models`, `frontend/src/views/user/ModelsView.vue`, `frontend/src/api/models.ts`, `backend/internal/handler/usage_handler.go`, `backend/internal/service/pricing_service.go`, model pricing/version filtering, and i18n keys `nav.models` / `models.*`.
-  - The user catalog must show only models whitelisted in account `credentials.model_mapping`; non-whitelisted pricing-table models must stay hidden.
-  - Image models configured in the whitelist must be visible. Preserve `image_generation` mode normalization and explicit image model detection for IDs such as `gpt-image-*`, `dall-e*`, `imagen-*`, and `gemini-*-image`.
-  - The model list includes a copy action next to each model ID; keep the clipboard fallback and `models.copyModelName` / `models.copied` locale keys.
-  - `gpt-image-1` and similar image models may price output via `output_cost_per_image_token`. Runtime display data comes from `backend/data/model_pricing.json`; the fallback/sync source is `backend/resources/model-pricing/model_prices_and_context_window.json`.
-- **Admin user usage statistics**: `frontend/src/components/admin/user/UserStatsModal.vue`, `frontend/src/api/admin/users.ts`, `GET /api/v1/admin/users/:id/usage`, and the response shape containing `summary`, `history`, `models`, and `endpoints`.
-- **Prompt Analytics**: `backend/internal/plugin/promptanalytics/`, admin route `GET /api/v1/admin/prompt-analytics/top-keywords`, gateway middleware wiring, `frontend/src/views/admin/PromptAnalyticsView.vue`, `frontend/src/api/admin/promptAnalytics.ts`, and migration `backend/migrations/082_create_keyword_stats.sql`.
-- **Gateway/API test aids**: `frontend/src/api/__tests__/gateway_model_calls.spec.ts`, `test/api_reconciliation_test.go`, and `tools/openai_quick_test.py`.
-- **Deployment and branding**: Harbor/internal deployment files under `deploy/`, sync/push scripts under `script/`, We2AI/API static pages under `statics/`, and fork documentation under `claudedocs/`.
-
-High-risk merge files are `backend/cmd/server/wire_gen.go`, `backend/cmd/server/wire.go`, `backend/internal/server/router.go`, `backend/internal/server/routes/*.go`, `frontend/src/router/index.ts`, and the i18n locale files. After every upstream merge, verify these files still contain the fork-specific routes, DI providers, middleware, and menu/translation entries. See `CLAUDE.md` for the detailed merge checklist.
+For the full list of fork features, high-risk files, and the post-merge verification checklist, see **[`claudedocs/自定义开发功能列表.md`](claudedocs/自定义开发功能列表.md)**.
 
 ## Features
 
