@@ -705,6 +705,10 @@ type PublicSettingsInjectionPayload struct {
 	AvailableChannelsEnabled             bool `json:"available_channels_enabled"`
 	AffiliateEnabled                     bool `json:"affiliate_enabled"`
 	UITheme                              string `json:"ui_theme"`
+
+	// Currency mode (fork: 人民币定价)
+	CurrencyMode string  `json:"currency_mode"`
+	CNYRate      float64 `json:"cny_rate"`
 }
 
 // GetPublicSettingsForInjection returns public settings in a format suitable for HTML injection.
@@ -759,6 +763,8 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		AvailableChannelsEnabled:             settings.AvailableChannelsEnabled,
 		AffiliateEnabled:                     settings.AffiliateEnabled,
 		UITheme:                              settings.UITheme,
+		CurrencyMode:                         settings.CurrencyMode,
+		CNYRate:                              settings.CNYRate,
 	}, nil
 }
 
