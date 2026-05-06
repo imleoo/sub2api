@@ -1,9 +1,6 @@
 name: Docker CI/CD
 
 on:
-  push:
-    branches:
-      - zhiguofan
   workflow_dispatch:
 
 jobs:
