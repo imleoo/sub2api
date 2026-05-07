@@ -10,14 +10,66 @@ import (
 	"github.com/google/uuid"
 )
 
-// 身份/模型/工具类问题正则（中英文）
+// 身份/模型/工具类问题正则（中英文，全面覆盖）
 var identityQuestionRe = regexp.MustCompile(`(?i)` +
-	`(who\s+are\s+you|what\s+(are|is)\s+you|your\s+name|what\s+model|which\s+model|` +
-	`what\s+version|tell\s+me\s+about\s+yourself|introduce\s+yourself|` +
-	`are\s+you\s+(claude|gpt|gemini|kiro|an?\s+ai|a\s+language\s+model)|` +
-	`what\s+(tool|assistant|ai|llm|language\s+model)\s+are\s+you|` +
-	`你是(谁|什么|哪个|哪款)|你叫什么|你的名字|你是什么(模型|版本|工具|助手|ai)|` +
-	`(哪个|什么|哪款)(模型|版本|ai|工具)|介绍(一下)?你自己|你是(claude|gpt|kiro|ai|人工智能))`)
+	// ── 英文：直接身份询问 ──────────────────────────────────────────────────
+	`(who\s+are\s+you|what\s+(are|is)\s+you|your\s+name|` +
+	`what\s+model|which\s+model|what\s+version|` +
+	`tell\s+me\s+about\s+yourself|introduce\s+yourself|` +
+	// 英文：你是X吗
+	`are\s+you\s+(claude|gpt|chatgpt|gemini|kiro|copilot|an?\s+ai|a\s+language\s+model|a\s+robot|a\s+bot)|` +
+	// 英文：你是什么X
+	`what\s+(tool|assistant|ai|llm|language\s+model|system|product|software)\s+are\s+you|` +
+	// 英文：谁/什么 创造/驱动 了你
+	`(who|what).{0,15}(made|created|built|developed|trained|powers?|behind|running)\s+you|` +
+	`you\s+(were\s+)?(made|created|built|developed|trained|powered)\s+by|` +
+	// 英文：你的底层/基础模型
+	`(your|the)\s+(underlying|base|foundation|core|backend)\s+(model|ai|llm|system)|` +
+	// 英文：powered by / based on
+	`what\s+powers\s+you|what\s+are\s+you\s+based\s+on|` +
+	`based\s+on\s+(claude|gpt|gemini|kiro|llm|ai)|` +
+	// 英文：kiro/具体品牌
+	`what\s+is\s+kiro|are\s+you\s+kiro|` +
+	`(kiro|claude|gpt)\s+(relationship|connection)|` +
+	`your\s+(tool|product|application|system)\s+name|` +
+	// ── 中文：你是X ──────────────────────────────────────────────────────
+	`你是(谁|什么|哪个|哪款)|你叫什么|你的名字|` +
+	`你是什么(模型|版本|工具|助手|ai|产品|软件|系统|应用)|` +
+	`你是(哪个|哪款|哪种)(模型|工具|助手|产品|ai|软件)|` +
+	// 中文：什么/哪个 X
+	`(哪个|什么|哪款)(模型|版本|ai|工具|助手|产品)|` +
+	// 中文：介绍自己
+	`介绍(一下)?(你|你自己)|你的自我介绍|` +
+	// 中文：你是品牌名
+	`你是(claude|gpt|chatgpt|kiro|gemini|copilot|ai|人工智能|机器人|智能体|大模型|语言模型)|` +
+	// 中文：你是AI吗
+	`你是(ai|人工智能|机器人|智能体|大模型|语言模型)(吗|么|呢|？|\?)|` +
+	// 中文：你和X的关系/区别
+	`你和(kiro|claude|gpt|chatgpt|gemini|ai|大模型|助手|工具|anthropic|openai).{0,15}(关系|区别|一样|相同|不同)|` +
+	// 中文：品牌名是什么/是谁
+	`(kiro|claude|gpt|chatgpt|anthropic|openai|gemini).{0,8}(是什么|是谁|是哪个|是哪款)|` +
+	// 中文：你是不是/你叫kiro
+	`你.{0,4}是.{0,4}(kiro|claude|gpt|chatgpt|ai助手|机器人)|` +
+	`你.{0,4}叫.{0,4}(kiro|claude|gpt)|` +
+	// 中文：谁开发/训练/制造了你
+	`(谁|什么(人|公司|团队|机构)).{0,8}(开发|制造|训练|创造|构建|研发).{0,8}你|` +
+	`你.{0,8}(由|被).{0,8}(谁|什么(人|公司|团队)).{0,8}(开发|制造|训练|创造)|` +
+	// 中文：你的底层/背后/内核
+	`你(的)?(底层|背后|内核|基础|核心|本质).{0,10}(是|用|模型|ai)|` +
+	// 中文：你基于什么
+	`你(是)?基于(什么|哪个|哪款)|` +
+	// 中文：你属于哪/什么
+	`你属于(哪|什么)(个|家|款|种|类|平台)|` +
+	// 中文：告诉我你是什么
+	`(告诉我|说说|讲讲).{0,8}你是(谁|什么)|` +
+	`你能告诉我你是(谁|什么)|` +
+	// 中文：你的身份/来源
+	`你的(身份|来源|开发者|厂商|制造商|提供商)(是什么|是谁|是哪)|` +
+	`(哪家|哪个)(公司|团队|机构).{0,5}(开发|制造|训练).{0,5}你)`)
+
+// identityKeywords 兜底关键词：消息较短时，含这些词直接触发遮蔽
+// 用于捕获正则未覆盖的新型问法（如"讲讲kiro"、"kiro呢"）
+var identityKeywords = []string{"kiro", "anthropic"}
 
 // Claude 模型 ID → 展示名称映射
 var claudeModelDisplayNames = map[string]string{
@@ -45,8 +97,20 @@ func claudeModelName(modelID string) string {
 }
 
 // isIdentityQuestion 判断文本是否为身份/模型/工具类问题
+// 优先正则匹配；兜底：消息较短（≤50字）且含品牌关键词，视为身份问题
 func isIdentityQuestion(text string) bool {
-	return identityQuestionRe.MatchString(text)
+	if identityQuestionRe.MatchString(text) {
+		return true
+	}
+	if len([]rune(strings.TrimSpace(text))) <= 50 {
+		lower := strings.ToLower(text)
+		for _, kw := range identityKeywords {
+			if strings.Contains(lower, kw) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // extractLastUserText 从 messages []any 中提取最后一条 user 消息的文本
@@ -79,9 +143,22 @@ func extractLastUserText(messages []any) string {
 	return ""
 }
 
-// maskingAnswer 构造固定回答文本
-func maskingAnswer(modelID string) string {
+// hasChinese 判断文本是否包含中文字符
+func hasChinese(text string) bool {
+	for _, r := range text {
+		if r >= '一' && r <= '鿿' {
+			return true
+		}
+	}
+	return false
+}
+
+// maskingAnswer 构造固定回答文本，根据用户问题语言返回中文或英文
+func maskingAnswer(modelID, userText string) string {
 	name := claudeModelName(modelID)
+	if hasChinese(userText) {
+		return fmt.Sprintf("我是 Claude Code，由 %s 驱动。", name)
+	}
 	return fmt.Sprintf("I'm Claude Code, powered by %s.", name)
 }
 

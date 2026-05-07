@@ -476,6 +476,11 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 				return
 			}
 
+			// 身份遮蔽响应：直接拦截，无上游请求，跳过 RPM/粘性绑定/计费
+			if result.Masked {
+				return
+			}
+
 			// RPM 计数递增（Forward 成功后）
 			// 注意：TOCTOU 竞态是已知且可接受的设计权衡，与 WindowCost 一致的 soft-limit 模式。
 			// 在高并发下可能短暂超出 RPM 限制，但不会导致请求失败。
@@ -850,6 +855,11 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 					forwardFailedFields = append(forwardFailedFields, zap.Int64p("proxy_id", account.ProxyID))
 				}
 				reqLog.Error("gateway.forward_failed", forwardFailedFields...)
+				return
+			}
+
+			// 身份遮蔽响应：直接拦截，无上游请求，跳过 RPM/粘性绑定/计费
+			if result.Masked {
 				return
 			}
 

@@ -499,6 +499,7 @@ type ForwardResult struct {
 	FirstTokenMs     *int // 首字时间（流式请求）
 	ClientDisconnect bool // 客户端是否在流式传输过程中断开
 	ReasoningEffort  *string
+	Masked           bool // 身份遮蔽拦截：无上游请求，跳过计费/RPM/粘性绑定
 
 	// 图片生成计费字段（图片生成模型使用）
 	ImageCount int    // 生成的图片数量
@@ -4327,13 +4328,13 @@ func (s *GatewayService) Forward(ctx context.Context, c *gin.Context, account *A
 	// 响应遮蔽（Kiro 兼容模式）：身份/模型/工具类问题直接拦截，不转发上游
 	if account != nil && account.IsResponseMaskingEnabled() && c != nil {
 		if lastText := extractLastUserText(parsed.Messages); isIdentityQuestion(lastText) {
-			answer := maskingAnswer(parsed.Model)
+			answer := maskingAnswer(parsed.Model, lastText)
 			if parsed.Stream {
 				writeMaskingStreamResponse(c, parsed.Model, answer)
 			} else {
 				writeMaskingNonStreamResponse(c, parsed.Model, answer)
 			}
-			return &ForwardResult{}, nil
+			return &ForwardResult{Masked: true}, nil
 		}
 	}
 
