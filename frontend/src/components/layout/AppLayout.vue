@@ -25,7 +25,7 @@
 
 <script setup lang="ts">
 import '@/styles/onboarding.css'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useAppStore } from '@/stores'
 import { useAuthStore } from '@/stores/auth'
 import { useOnboardingTour } from '@/composables/useOnboardingTour'
@@ -47,10 +47,28 @@ const { replayTour } = useOnboardingTour({
 
 const onboardingStore = useOnboardingStore()
 
+function checkCurrencyModal() {
+  if (isAdmin.value && appStore.publicSettingsLoaded && !appStore.currencyMode) {
+    showCurrencyModal.value = true
+  }
+}
+
 onMounted(() => {
   onboardingStore.setReplayCallback(replayTour)
-  if (isAdmin.value && !appStore.currencyMode) {
-    showCurrencyModal.value = true
+  // Wait for publicSettings to be loaded before checking currency mode,
+  // otherwise currencyMode is '' before the API response arrives.
+  if (appStore.publicSettingsLoaded) {
+    checkCurrencyModal()
+  } else {
+    const stop = watch(
+      () => appStore.publicSettingsLoaded,
+      (loaded) => {
+        if (loaded) {
+          checkCurrencyModal()
+          stop()
+        }
+      }
+    )
   }
 })
 
