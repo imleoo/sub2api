@@ -54,11 +54,17 @@ func TestResolvePageImagePath(t *testing.T) {
 		t.Fatalf("create image: %v", err)
 	}
 
+	// EvalSymlinks resolves macOS /var -> /private/var; apply it to want paths too.
+	realBase, err := filepath.EvalSymlinks(base)
+	if err != nil {
+		t.Fatalf("eval symlinks: %v", err)
+	}
+
 	got, ok := resolvePageImagePath(pagesDir, base, "logo.png")
 	if !ok {
 		t.Fatal("expected direct image path to be accepted")
 	}
-	want := filepath.Join(base, "logo.png")
+	want := filepath.Join(realBase, "logo.png")
 	if got != want {
 		t.Fatalf("path = %q, want %q", got, want)
 	}
@@ -67,7 +73,7 @@ func TestResolvePageImagePath(t *testing.T) {
 	if !ok {
 		t.Fatal("expected nested image path to be accepted")
 	}
-	want = filepath.Join(base, "images", "logo.png")
+	want = filepath.Join(realBase, "images", "logo.png")
 	if got != want {
 		t.Fatalf("path = %q, want %q", got, want)
 	}
