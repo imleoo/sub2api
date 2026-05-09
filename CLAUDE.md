@@ -84,6 +84,7 @@ cd frontend
 pnpm install        # 安装依赖（禁止使用 npm）
 pnpm dev            # 启动热重载开发服务器
 pnpm build          # TypeScript 类型检查 + 构建
+pnpm run typecheck  # 仅运行 TypeScript 类型检查（不构建）
 pnpm run lint:check # Lint 检查
 pnpm test:run       # 运行测试
 pnpm test:coverage  # 测试覆盖率
@@ -163,6 +164,11 @@ pnpm test:coverage  # 测试覆盖率
 - H2C（HTTP/2 Cleartext）支持，可通过环境变量调节帧大小和 buffer
 - 账号选择带等待队列，避免并发争用
 
+### 插件架构（`internal/plugin/`）
+
+zhiguofan 分支独有的可插拔功能目录，每个插件自包含 handler/repository/middleware/wire：
+- `plugin/promptanalytics/`：从网关请求体实时提取关键词，生成月度词云和 Top-N 排行。通过 `gateway.go` 中间件挂载，Schema 在 `ent/schema/keyword_stat.go`
+
 ### 支付集成（`internal/payment/`）
 
 工厂模式多支付提供商：Alipay、WxPay、Stripe、EasyPay，带负载均衡。费用计算与支付商逻辑解耦。
@@ -179,6 +185,7 @@ Vitest 配置要求语句/分支/函数/行均达到 80% 覆盖率（`frontend/v
 - **Wire DI 变更**：修改 Wire providers 后运行 `go generate ./cmd/server`
 - **接口变更**：给 Go interface 新增方法后，**所有**实现该接口的 test stub 都必须补全。查找方式：`grep -r "type.*Stub.*struct\|type.*Mock.*struct" internal/`
 - **golangci-lint v2.9**：CI 自动运行 lint，推送前确保代码通过检查
+- **GitHub Workflows**：zhiguofan 分支所有 `.github/workflows/*.yml` 的 `on:` 必须仅保留 `workflow_dispatch:`。上游同步后务必逐文件检查，上游会携带 push/PR/schedule 触发器，合并时会被覆盖，需手动恢复
 
 ## 已知陷阱
 
@@ -200,11 +207,15 @@ Vitest 配置要求语句/分支/函数/行均达到 80% 覆盖率（`frontend/v
 
 ## CI/CD
 
-| Workflow | 触发条件 | 检查内容 |
-|----------|----------|----------|
-| **backend-ci.yml** | push, PR | 单元测试 + 集成测试 + golangci-lint |
-| **security-scan.yml** | push, PR, 每周一 | govulncheck + gosec + pnpm audit |
-| **release.yml** | tag `v*` | 构建发布（PR 不触发） |
+所有 workflows 在 zhiguofan 分支均仅通过 `workflow_dispatch:` 手动触发（不自动触发）。
+
+| Workflow | 检查内容 |
+|----------|----------|
+| **backend-ci.yml** | 单元测试 + 集成测试 + golangci-lint v2.9 |
+| **security-scan.yml** | govulncheck + gosec + pnpm audit |
+| **docker-push.yml** | 构建并推送 Docker 镜像 |
+| **release.yml** | 构建发布（需输入 tag 参数） |
+| **sync-upstream.yml** | 同步上游 main 到本 fork |
 
 ## Fork 信息
 
