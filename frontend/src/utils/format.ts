@@ -23,6 +23,67 @@ export function formatUSD(amount: number | null | undefined, fractionDigits: num
   return `$${val.toFixed(fractionDigits)}`
 }
 
+export function currencyLabel(): 'USD' | 'CNY' {
+  try {
+    const appStore = useAppStore()
+    if (appStore.currencyMode === 'cny') return 'CNY'
+  } catch {
+    // store not ready
+  }
+  return 'USD'
+}
+
+export function currencySymbol(): '$' | '¥' {
+  return currencyLabel() === 'CNY' ? '¥' : '$'
+}
+
+export function toDisplayCurrencyAmount(amount: number | null | undefined): number {
+  const val = amount ?? 0
+  try {
+    const appStore = useAppStore()
+    if (appStore.currencyMode === 'cny') {
+      return Number((val * appStore.cnyRate).toPrecision(12))
+    }
+  } catch {
+    // store not ready
+  }
+  return val
+}
+
+export function fromDisplayCurrencyAmount(amount: number | null | undefined): number {
+  const val = amount ?? 0
+  try {
+    const appStore = useAppStore()
+    if (appStore.currencyMode === 'cny' && appStore.cnyRate > 0) {
+      return Number((val / appStore.cnyRate).toPrecision(12))
+    }
+  } catch {
+    // store not ready
+  }
+  return val
+}
+
+export function formatUSDCompact(amount: number | null | undefined): string {
+  const val = amount ?? 0
+  let displayValue = val
+  let prefix = '$'
+
+  try {
+    const appStore = useAppStore()
+    if (appStore.currencyMode === 'cny') {
+      displayValue = val * appStore.cnyRate
+      prefix = '¥'
+    }
+  } catch {
+    // store not ready
+  }
+
+  if (displayValue >= 1000) return prefix + (displayValue / 1000).toFixed(2) + 'K'
+  if (displayValue >= 1) return prefix + displayValue.toFixed(2)
+  if (displayValue >= 0.01) return prefix + displayValue.toFixed(3)
+  return prefix + displayValue.toFixed(4)
+}
+
 /**
  * 格式化相对时间
  * @param date 日期字符串或 Date 对象

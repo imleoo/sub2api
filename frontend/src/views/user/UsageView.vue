@@ -466,11 +466,11 @@
               </div>
               <div class="flex items-center justify-between gap-4">
                 <span class="text-gray-400">{{ t('usage.imageUnitPrice') }}</span>
-                <span class="font-medium text-sky-300">${{ imageUnitPrice(tooltipData).toFixed(6) }}</span>
+                <span class="font-medium text-sky-300">{{ formatUSD(imageUnitPrice(tooltipData), 6) }}</span>
               </div>
               <div class="flex items-center justify-between gap-4">
                 <span class="text-gray-400">{{ t('usage.imageTotalPrice') }}</span>
-                <span class="font-medium text-white">${{ tooltipData.total_cost?.toFixed(6) || '0.000000' }}</span>
+                <span class="font-medium text-white">{{ formatUSD(tooltipData.total_cost, 6) }}</span>
               </div>
             </template>
             <div v-else class="flex items-center justify-between gap-4">
@@ -532,7 +532,7 @@ import DateRangePicker from '@/components/common/DateRangePicker.vue'
 import Icon from '@/components/icons/Icon.vue'
 import type { UsageLog, ApiKey, UsageQueryParams, UsageStatsResponse } from '@/types'
 import type { Column } from '@/components/common/types'
-import { formatDateTime, formatReasoningEffort , formatUSD} from '@/utils/format'
+import { currencyLabel, formatDateTime, formatReasoningEffort, formatUSD } from '@/utils/format'
 import { getPersistedPageSize } from '@/composables/usePersistedPageSize'
 import { formatCacheTokens, formatMultiplier } from '@/utils/formatters'
 import { formatTokenPricePerMillion } from '@/utils/usagePricing'
@@ -864,8 +864,8 @@ const exportToCSV = async () => {
       'Cache Read Tokens',
       'Cache Creation Tokens',
       'Rate Multiplier',
-      'Billed Cost',
-      'Original Cost',
+      `Billed Cost (${currencyLabel()})`,
+      `Original Cost (${currencyLabel()})`,
       'First Token (ms)',
       'Duration (ms)'
     ]
@@ -883,8 +883,8 @@ const exportToCSV = async () => {
         log.cache_read_tokens,
         log.cache_creation_tokens,
         log.rate_multiplier,
-        log.actual_cost.toFixed(8),
-        log.total_cost.toFixed(8),
+        formatUSD(log.actual_cost, 8),
+        formatUSD(log.total_cost, 8),
         log.first_token_ms ?? '',
         log.duration_ms
       ].map(escapeCSVValue)

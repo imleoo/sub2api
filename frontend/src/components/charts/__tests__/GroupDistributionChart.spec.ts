@@ -1,5 +1,7 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
+import { useAppStore } from '@/stores/app'
 
 import GroupDistributionChart from '../GroupDistributionChart.vue'
 
@@ -34,6 +36,10 @@ vi.mock('vue-chartjs', () => ({
 }))
 
 describe('GroupDistributionChart', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
   const groupStats = [
     {
       group_id: 1,
@@ -110,5 +116,33 @@ describe('GroupDistributionChart', () => {
       dataset: { data: [0.9, 0.1] },
     })
     expect(label).toBe('group-b: $0.900 (90.0%)')
+  })
+
+  it('formats actual cost in CNY mode', () => {
+    const appStore = useAppStore()
+    appStore.currencyMode = 'cny'
+    appStore.cnyRate = 7.2
+
+    const wrapper = mount(GroupDistributionChart, {
+      props: {
+        groupStats,
+        metric: 'actual_cost',
+      },
+      global: {
+        stubs: {
+          LoadingSpinner: true,
+        },
+      },
+    })
+
+    expect(wrapper.text()).toContain('¥6.48')
+
+    const options = (wrapper.vm as any).$?.setupState.doughnutOptions
+    const label = options.plugins.tooltip.callbacks.label({
+      label: 'group-b',
+      raw: 0.9,
+      dataset: { data: [0.9, 0.1] },
+    })
+    expect(label).toBe('group-b: ¥6.48 (90.0%)')
   })
 })

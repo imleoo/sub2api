@@ -4,15 +4,38 @@ import { nextTick } from 'vue'
 
 import UsageView from '../UsageView.vue'
 
-const { query, getStatsByDateRange, list, showError, showWarning, showSuccess, showInfo } = vi.hoisted(() => ({
-  query: vi.fn(),
-  getStatsByDateRange: vi.fn(),
-  list: vi.fn(),
-  showError: vi.fn(),
-  showWarning: vi.fn(),
-  showSuccess: vi.fn(),
-  showInfo: vi.fn(),
-}))
+const {
+  query,
+  getStatsByDateRange,
+  list,
+  showError,
+  showWarning,
+  showSuccess,
+  showInfo,
+  mockAppStore,
+} = vi.hoisted(() => {
+  const showError = vi.fn()
+  const showWarning = vi.fn()
+  const showSuccess = vi.fn()
+  const showInfo = vi.fn()
+  return {
+    query: vi.fn(),
+    getStatsByDateRange: vi.fn(),
+    list: vi.fn(),
+    showError,
+    showWarning,
+    showSuccess,
+    showInfo,
+    mockAppStore: {
+      currencyMode: 'usd',
+      cnyRate: 7.2,
+      showError,
+      showWarning,
+      showSuccess,
+      showInfo,
+    },
+  }
+})
 
 const messages: Record<string, string> = {
   'usage.costDetails': 'Cost Breakdown',
@@ -54,7 +77,7 @@ vi.mock('@/api', () => ({
 }))
 
 vi.mock('@/stores/app', () => ({
-  useAppStore: () => ({ showError, showWarning, showSuccess, showInfo }),
+  useAppStore: () => mockAppStore,
 }))
 
 vi.mock('vue-i18n', async () => {
@@ -72,6 +95,14 @@ const TablePageLayoutStub = {
   template: '<div><slot name="actions" /><slot name="filters" /><slot /></div>',
 }
 
+const readBlobAsText = (blob: Blob): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = () => reject(reader.error)
+    reader.readAsText(blob)
+  })
+
 describe('user UsageView tooltip', () => {
   beforeEach(() => {
     query.mockReset()
@@ -81,6 +112,8 @@ describe('user UsageView tooltip', () => {
     showWarning.mockReset()
     showSuccess.mockReset()
     showInfo.mockReset()
+    mockAppStore.currencyMode = 'usd'
+    mockAppStore.cnyRate = 7.2
 
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
       x: 0,
@@ -183,7 +216,8 @@ describe('user UsageView tooltip', () => {
     expect(text).toContain('$30.0000 / 1M tokens')
   })
 
-  it('exports csv with input and output unit price columns', async () => {
+  it('exports csv costs with selected currency', async () => {
+    mockAppStore.currencyMode = 'cny'
     const exportedLogs = [
       {
         request_id: 'req-user-export',
@@ -269,6 +303,11 @@ describe('user UsageView tooltip', () => {
     expect(hasSortedExportQuery).toBe(true)
     expect(clickSpy).toHaveBeenCalled()
     expect(showSuccess).toHaveBeenCalled()
+    const csv = await readBlobAsText(exportedBlob as Blob)
+    expect(csv).toContain('Billed Cost (CNY)')
+    expect(csv).toContain('Original Cost (CNY)')
+    expect(csv).toContain('¥0.66875760')
+    expect(csv).not.toContain('0.09288300')
 
     window.URL.createObjectURL = originalCreateObjectURL
     window.URL.revokeObjectURL = originalRevokeObjectURL

@@ -144,7 +144,7 @@
                   "
                 >
                   <span v-if="row.daily_limit_usd"
-                    >${{ row.daily_limit_usd }}/{{
+                    >{{ formatUSD(row.daily_limit_usd, 2) }}/{{
                       t("admin.groups.limitDay")
                     }}</span
                   >
@@ -157,7 +157,7 @@
                     >·</span
                   >
                   <span v-if="row.weekly_limit_usd"
-                    >${{ row.weekly_limit_usd }}/{{
+                    >{{ formatUSD(row.weekly_limit_usd, 2) }}/{{
                       t("admin.groups.limitWeek")
                     }}</span
                   >
@@ -167,7 +167,7 @@
                     >·</span
                   >
                   <span v-if="row.monthly_limit_usd"
-                    >${{ row.monthly_limit_usd }}/{{
+                    >{{ formatUSD(row.monthly_limit_usd, 2) }}/{{
                       t("admin.groups.limitMonth")
                     }}</span
                   >
@@ -261,7 +261,7 @@
                   t("admin.groups.usageToday")
                 }}</span>
                 <span class="ml-1 font-medium text-gray-700 dark:text-gray-300"
-                  >${{
+                  >{{
                     formatCost(usageMap.get(row.id)?.today_cost ?? 0)
                   }}</span
                 >
@@ -271,7 +271,7 @@
                   t("admin.groups.usageTotal")
                 }}</span>
                 <span class="ml-1 font-medium text-gray-700 dark:text-gray-300"
-                  >${{
+                  >{{
                     formatCost(usageMap.get(row.id)?.total_cost ?? 0)
                   }}</span
                 >
@@ -612,7 +612,8 @@
                 t("admin.groups.subscription.dailyLimit")
               }}</label>
               <input
-                v-model.number="createForm.daily_limit_usd"
+                :value="displayCurrencyInput(createForm.daily_limit_usd)"
+                @input="setCurrencyInput(createForm, 'daily_limit_usd', $event)"
                 type="number"
                 step="0.01"
                 min="0"
@@ -625,7 +626,8 @@
                 t("admin.groups.subscription.weeklyLimit")
               }}</label>
               <input
-                v-model.number="createForm.weekly_limit_usd"
+                :value="displayCurrencyInput(createForm.weekly_limit_usd)"
+                @input="setCurrencyInput(createForm, 'weekly_limit_usd', $event)"
                 type="number"
                 step="0.01"
                 min="0"
@@ -638,7 +640,8 @@
                 t("admin.groups.subscription.monthlyLimit")
               }}</label>
               <input
-                v-model.number="createForm.monthly_limit_usd"
+                :value="displayCurrencyInput(createForm.monthly_limit_usd)"
+                @input="setCurrencyInput(createForm, 'monthly_limit_usd', $event)"
                 type="number"
                 step="0.01"
                 min="0"
@@ -702,9 +705,10 @@
           </div>
           <div class="grid grid-cols-3 gap-3">
             <div>
-              <label class="input-label">1K ($)</label>
+              <label class="input-label">1K ({{ currencyLabel() }})</label>
               <input
-                v-model.number="createForm.image_price_1k"
+                :value="displayCurrencyInput(createForm.image_price_1k)"
+                @input="setCurrencyInput(createForm, 'image_price_1k', $event)"
                 type="number"
                 step="0.001"
                 min="0"
@@ -713,9 +717,10 @@
               />
             </div>
             <div>
-              <label class="input-label">2K ($)</label>
+              <label class="input-label">2K ({{ currencyLabel() }})</label>
               <input
-                v-model.number="createForm.image_price_2k"
+                :value="displayCurrencyInput(createForm.image_price_2k)"
+                @input="setCurrencyInput(createForm, 'image_price_2k', $event)"
                 type="number"
                 step="0.001"
                 min="0"
@@ -724,9 +729,10 @@
               />
             </div>
             <div>
-              <label class="input-label">4K ($)</label>
+              <label class="input-label">4K ({{ currencyLabel() }})</label>
               <input
-                v-model.number="createForm.image_price_4k"
+                :value="displayCurrencyInput(createForm.image_price_4k)"
+                @input="setCurrencyInput(createForm, 'image_price_4k', $event)"
                 type="number"
                 step="0.001"
                 min="0"
@@ -1797,7 +1803,8 @@
                 t("admin.groups.subscription.dailyLimit")
               }}</label>
               <input
-                v-model.number="editForm.daily_limit_usd"
+                :value="displayCurrencyInput(editForm.daily_limit_usd)"
+                @input="setCurrencyInput(editForm, 'daily_limit_usd', $event)"
                 type="number"
                 step="0.01"
                 min="0"
@@ -1810,7 +1817,8 @@
                 t("admin.groups.subscription.weeklyLimit")
               }}</label>
               <input
-                v-model.number="editForm.weekly_limit_usd"
+                :value="displayCurrencyInput(editForm.weekly_limit_usd)"
+                @input="setCurrencyInput(editForm, 'weekly_limit_usd', $event)"
                 type="number"
                 step="0.01"
                 min="0"
@@ -1823,7 +1831,8 @@
                 t("admin.groups.subscription.monthlyLimit")
               }}</label>
               <input
-                v-model.number="editForm.monthly_limit_usd"
+                :value="displayCurrencyInput(editForm.monthly_limit_usd)"
+                @input="setCurrencyInput(editForm, 'monthly_limit_usd', $event)"
                 type="number"
                 step="0.01"
                 min="0"
@@ -1887,9 +1896,10 @@
           </div>
           <div class="grid grid-cols-3 gap-3">
             <div>
-              <label class="input-label">1K ($)</label>
+              <label class="input-label">1K ({{ currencyLabel() }})</label>
               <input
-                v-model.number="editForm.image_price_1k"
+                :value="displayCurrencyInput(editForm.image_price_1k)"
+                @input="setCurrencyInput(editForm, 'image_price_1k', $event)"
                 type="number"
                 step="0.001"
                 min="0"
@@ -1898,9 +1908,10 @@
               />
             </div>
             <div>
-              <label class="input-label">2K ($)</label>
+              <label class="input-label">2K ({{ currencyLabel() }})</label>
               <input
-                v-model.number="editForm.image_price_2k"
+                :value="displayCurrencyInput(editForm.image_price_2k)"
+                @input="setCurrencyInput(editForm, 'image_price_2k', $event)"
                 type="number"
                 step="0.001"
                 min="0"
@@ -1909,9 +1920,10 @@
               />
             </div>
             <div>
-              <label class="input-label">4K ($)</label>
+              <label class="input-label">4K ({{ currencyLabel() }})</label>
               <input
-                v-model.number="editForm.image_price_4k"
+                :value="displayCurrencyInput(editForm.image_price_4k)"
+                @input="setCurrencyInput(editForm, 'image_price_4k', $event)"
                 type="number"
                 step="0.001"
                 min="0"
@@ -2859,6 +2871,13 @@ import { createStableObjectKeyResolver } from "@/utils/stableObjectKey";
 import { useKeyedDebouncedSearch } from "@/composables/useKeyedDebouncedSearch";
 import { getPersistedPageSize } from "@/composables/usePersistedPageSize";
 import {
+  currencyLabel,
+  formatUSD,
+  formatUSDCompact,
+  fromDisplayCurrencyAmount,
+  toDisplayCurrencyAmount,
+} from "@/utils/format";
+import {
   createDefaultMessagesDispatchFormState,
   messagesDispatchConfigToFormState,
   messagesDispatchFormStateToConfig,
@@ -3436,6 +3455,36 @@ type ImagePricingFormState = {
   image_price_4k: number | string | null;
 };
 
+type CurrencyInputField =
+  | "daily_limit_usd"
+  | "weekly_limit_usd"
+  | "monthly_limit_usd"
+  | "image_price_1k"
+  | "image_price_2k"
+  | "image_price_4k";
+
+const displayCurrencyInput = (value: number | string | null | undefined) => {
+  if (value === null || value === undefined || value === "") return "";
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? toDisplayCurrencyAmount(parsed) : "";
+};
+
+const setCurrencyInput = (
+  form: Record<CurrencyInputField, number | string | null>,
+  field: CurrencyInputField,
+  event: Event,
+) => {
+  const rawValue = (event.target as HTMLInputElement).value;
+  if (rawValue === "") {
+    form[field] = null;
+    return;
+  }
+  const parsed = Number(rawValue);
+  form[field] = Number.isFinite(parsed)
+    ? fromDisplayCurrencyAmount(parsed)
+    : null;
+};
+
 const imagePricingTiers = [
   { key: "image_price_1k", label: "1K" },
   { key: "image_price_2k", label: "2K" },
@@ -3458,7 +3507,7 @@ const formatImagePricePreview = (value: number | string | null | undefined) => {
   if (!Number.isFinite(price) || price < 0) {
     return t("admin.groups.imagePricing.notConfigured");
   }
-  return `$${price.toFixed(6).replace(/0+$/, "").replace(/\.$/, "")}`;
+  return formatUSD(price, 6).replace(/0+$/, "").replace(/\.$/, "");
 };
 
 const buildImageFinalPricePreview = (form: ImagePricingFormState) => {
@@ -3544,9 +3593,7 @@ const loadGroups = async () => {
 };
 
 const formatCost = (cost: number): string => {
-  if (cost >= 1000) return cost.toFixed(0);
-  if (cost >= 100) return cost.toFixed(1);
-  return cost.toFixed(2);
+  return formatUSDCompact(cost);
 };
 
 const loadUsageSummary = async () => {

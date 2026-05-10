@@ -1,5 +1,7 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
+import { useAppStore } from '@/stores/app'
 
 import ModelDistributionChart from '../ModelDistributionChart.vue'
 
@@ -42,6 +44,10 @@ vi.mock('vue-chartjs', () => ({
 }))
 
 describe('ModelDistributionChart', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
   const modelStats = [
     {
       model: 'model-a',
@@ -124,6 +130,34 @@ describe('ModelDistributionChart', () => {
       dataset: { data: [1.4, 0.2] },
     })
     expect(label).toBe('model-b: $1.40 (87.5%)')
+  })
+
+  it('formats actual cost in CNY mode', () => {
+    const appStore = useAppStore()
+    appStore.currencyMode = 'cny'
+    appStore.cnyRate = 7.2
+
+    const wrapper = mount(ModelDistributionChart, {
+      props: {
+        modelStats,
+        metric: 'actual_cost',
+      },
+      global: {
+        stubs: {
+          LoadingSpinner: true,
+        },
+      },
+    })
+
+    expect(wrapper.text()).toContain('¥10.08')
+
+    const options = (wrapper.vm as any).$?.setupState.doughnutOptions
+    const label = options.plugins.tooltip.callbacks.label({
+      label: 'model-b',
+      raw: 1.4,
+      dataset: { data: [1.4, 0.2] },
+    })
+    expect(label).toBe('model-b: ¥10.08 (87.5%)')
   })
 
   it('renders Others in the spending ranking table and uses a dedicated chart color', async () => {

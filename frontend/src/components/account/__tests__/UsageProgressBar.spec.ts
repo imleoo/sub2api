@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
+import { useAppStore } from '@/stores/app'
 import UsageProgressBar from '../UsageProgressBar.vue'
 
 vi.mock('vue-i18n', async () => {
@@ -14,6 +16,7 @@ vi.mock('vue-i18n', async () => {
 
 describe('UsageProgressBar', () => {
   beforeEach(() => {
+    setActivePinia(createPinia())
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-03-17T00:00:00Z'))
   })
@@ -65,5 +68,29 @@ describe('UsageProgressBar', () => {
 
     expect(wrapper.text()).toContain('2h 30m')
     expect(wrapper.text()).not.toContain('现在')
+  })
+
+  it('CNY 模式下窗口费用按汇率展示', () => {
+    const appStore = useAppStore()
+    appStore.currencyMode = 'cny'
+    appStore.cnyRate = 7.2
+
+    const wrapper = mount(UsageProgressBar, {
+      props: {
+        label: '5h',
+        utilization: 20,
+        color: 'indigo',
+        windowStats: {
+          requests: 3,
+          tokens: 1000,
+          cost: 1,
+          user_cost: 2
+        }
+      }
+    })
+
+    expect(wrapper.text()).toContain('A ¥7.20')
+    expect(wrapper.text()).toContain('U ¥14.40')
+    expect(wrapper.text()).not.toContain('A $')
   })
 })

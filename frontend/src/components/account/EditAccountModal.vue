@@ -1739,9 +1739,10 @@
             <div>
               <label class="input-label">{{ t('admin.accounts.quotaControl.windowCost.limit') }}</label>
               <div class="relative">
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">$</span>
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">{{ currencySymbol() }}</span>
                 <input
-                  v-model.number="windowCostLimit"
+                  :value="displayCurrencyInput(windowCostLimit)"
+                  @input="setWindowCostLimit($event)"
                   type="number"
                   min="0"
                   step="1"
@@ -1754,9 +1755,10 @@
             <div>
               <label class="input-label">{{ t('admin.accounts.quotaControl.windowCost.stickyReserve') }}</label>
               <div class="relative">
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">$</span>
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">{{ currencySymbol() }}</span>
                 <input
-                  v-model.number="windowCostStickyReserve"
+                  :value="displayCurrencyInput(windowCostStickyReserve)"
+                  @input="setWindowCostStickyReserve($event)"
                   type="number"
                   min="0"
                   step="1"
@@ -2222,7 +2224,14 @@ import GroupSelector from '@/components/common/GroupSelector.vue'
 import ModelWhitelistSelector from '@/components/account/ModelWhitelistSelector.vue'
 import QuotaLimitCard from '@/components/account/QuotaLimitCard.vue'
 import { applyInterceptWarmup } from '@/components/account/credentialsBuilder'
-import { formatDateTime, formatDateTimeLocalInput, parseDateTimeLocalInput } from '@/utils/format'
+import {
+  currencySymbol,
+  formatDateTime,
+  formatDateTimeLocalInput,
+  fromDisplayCurrencyAmount,
+  parseDateTimeLocalInput,
+  toDisplayCurrencyAmount,
+} from '@/utils/format'
 import { createStableObjectKeyResolver } from '@/utils/stableObjectKey'
 import { VERTEX_LOCATION_OPTIONS } from '@/constants/account'
 import {
@@ -2337,6 +2346,25 @@ const antigravityMixedChannelConfirmed = ref(false)
 const windowCostEnabled = ref(false)
 const windowCostLimit = ref<number | null>(null)
 const windowCostStickyReserve = ref<number | null>(null)
+
+function displayCurrencyInput(value: number | null | undefined) {
+  return value == null ? '' : toDisplayCurrencyAmount(value)
+}
+
+function parseCurrencyInput(event: Event): number | null {
+  const rawValue = (event.target as HTMLInputElement).value
+  if (rawValue === '') return null
+  const parsed = Number(rawValue)
+  return Number.isFinite(parsed) ? fromDisplayCurrencyAmount(parsed) : null
+}
+
+function setWindowCostLimit(event: Event) {
+  windowCostLimit.value = parseCurrencyInput(event)
+}
+
+function setWindowCostStickyReserve(event: Event) {
+  windowCostStickyReserve.value = parseCurrencyInput(event)
+}
 const sessionLimitEnabled = ref(false)
 const maxSessions = ref<number | null>(null)
 const sessionIdleTimeout = ref<number | null>(null)

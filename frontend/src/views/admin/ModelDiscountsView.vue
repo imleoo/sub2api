@@ -74,6 +74,7 @@ import AppLayout from '@/components/layout/AppLayout.vue'
 import { getModelDiscounts, updateModelDiscounts } from '@/api/admin/modelDiscounts'
 import type { ModelInfo } from '@/api/admin/modelDiscounts'
 import { useAppStore } from '@/stores/app'
+import { formatUSD } from '@/utils/format'
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -91,7 +92,7 @@ const filtered = computed(() => {
 
 function formatPrice(v: number) {
   if (!v) return '-'
-  return `$${(v * 1_000_000).toFixed(4)}/MTok`
+  return `${formatUSD(v * 1_000_000, 4)}/MTok`
 }
 
 async function load() {
