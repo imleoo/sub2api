@@ -531,6 +531,19 @@ describe("admin SettingsView payment visible method controls", () => {
     adminSettingsFetch.mockResolvedValue(undefined);
   });
 
+  it("renders settings tabs as a wrapping navigation instead of a horizontal scroller", async () => {
+    const wrapper = mountView();
+
+    await flushPromises();
+
+    const tabsContainer = wrapper.get(".settings-tabs-scroll");
+    const tabs = wrapper.findAll(".settings-tab");
+
+    expect(tabsContainer.classes()).not.toContain("overflow-x-auto");
+    expect(wrapper.get(".settings-tabs").exists()).toBe(true);
+    expect(tabs).toHaveLength(9);
+  });
+
   it("does not render legacy visible payment method controls", async () => {
     const wrapper = mountView();
 

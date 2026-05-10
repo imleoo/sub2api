@@ -893,9 +893,9 @@ type PublicSettingsInjectionPayload struct {
 	// Feature flags — MUST match the opt-in/opt-out registry in
 	// frontend/src/utils/featureFlags.ts. Missing a field here is the bug
 	// that hid the "可用渠道" menu on page refresh.
-	ChannelMonitorEnabled                bool `json:"channel_monitor_enabled"`
-	ChannelMonitorDefaultIntervalSeconds int  `json:"channel_monitor_default_interval_seconds"`
-	AvailableChannelsEnabled             bool `json:"available_channels_enabled"`
+	ChannelMonitorEnabled                bool   `json:"channel_monitor_enabled"`
+	ChannelMonitorDefaultIntervalSeconds int    `json:"channel_monitor_default_interval_seconds"`
+	AvailableChannelsEnabled             bool   `json:"available_channels_enabled"`
 	AffiliateEnabled                     bool   `json:"affiliate_enabled"`
 	UITheme                              string `json:"ui_theme"`
 
@@ -2215,14 +2215,9 @@ func (s *SettingService) UpdateAuthSourceDefaultSettings(ctx context.Context, se
 
 // InitializeDefaultSettings 初始化默认设置
 func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
-	// 检查是否已有设置
-	_, err := s.settingRepo.GetValue(ctx, SettingKeyRegistrationEnabled)
-	if err == nil {
-		// 已有设置，不需要初始化
-		return nil
-	}
-	if !errors.Is(err, ErrSettingNotFound) {
-		return fmt.Errorf("check existing settings: %w", err)
+	existing, err := s.settingRepo.GetAll(ctx)
+	if err != nil {
+		return fmt.Errorf("load existing settings: %w", err)
 	}
 
 	oidcUsePKCEDefault := true
@@ -2390,7 +2385,16 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		openAIAdvancedSchedulerSettingKey:            "false",
 	}
 
-	return s.settingRepo.SetMultiple(ctx, defaults)
+	missing := make(map[string]string, len(defaults))
+	for key, value := range defaults {
+		if _, ok := existing[key]; !ok {
+			missing[key] = value
+		}
+	}
+	if len(missing) == 0 {
+		return nil
+	}
+	return s.settingRepo.SetMultiple(ctx, missing)
 }
 
 // parseSettings 解析设置到结构体

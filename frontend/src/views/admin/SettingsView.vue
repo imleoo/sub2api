@@ -1,6 +1,6 @@
 <template>
   <AppLayout>
-    <div class="mx-auto max-w-4xl space-y-6">
+    <div class="mx-auto max-w-6xl space-y-6">
       <!-- Loading State -->
       <div v-if="loading" class="flex items-center justify-center py-12">
         <div
@@ -11,7 +11,7 @@
       <!-- Settings Form -->
       <form v-else @submit.prevent="saveSettings" class="space-y-6" novalidate>
         <!-- Tab Navigation -->
-        <div class="sticky top-0 z-10 overflow-x-auto settings-tabs-scroll">
+        <div class="sticky top-0 z-10 settings-tabs-scroll">
           <nav class="settings-tabs">
             <button
               v-for="tab in settingsTabs"
@@ -8955,36 +8955,12 @@ watch(
 
 /* ============ Settings Tab Navigation ============ */
 
-/* Scroll container: thin scrollbar on PC, auto-hide on mobile */
 .settings-tabs-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-}
-.settings-tabs-scroll:hover {
-  scrollbar-color: rgb(0 0 0 / 0.15) transparent;
-}
-:root.dark .settings-tabs-scroll:hover {
-  scrollbar-color: rgb(255 255 255 / 0.2) transparent;
-}
-.settings-tabs-scroll::-webkit-scrollbar {
-  height: 3px;
-}
-.settings-tabs-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-.settings-tabs-scroll::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 3px;
-}
-.settings-tabs-scroll:hover::-webkit-scrollbar-thumb {
-  background: rgb(0 0 0 / 0.15);
-}
-:root.dark .settings-tabs-scroll:hover::-webkit-scrollbar-thumb {
-  background: rgb(255 255 255 / 0.2);
+  overflow-x: visible;
 }
 
 .settings-tabs {
-  @apply inline-flex min-w-full gap-0.5 rounded-2xl
+  @apply flex w-full flex-wrap gap-1 rounded-2xl
          border border-gray-100 bg-white/80 p-1 backdrop-blur-sm
          dark:border-dark-700/50 dark:bg-dark-800/80;
   box-shadow:
@@ -8992,18 +8968,22 @@ watch(
     0 1px 2px rgb(0 0 0 / 0.02);
 }
 
-@media (min-width: 640px) {
-  .settings-tabs {
-    @apply flex;
-  }
-}
-
 .settings-tab {
-  @apply relative flex flex-1 items-center justify-center gap-1.5
+  @apply relative flex min-w-[104px] flex-1 items-center justify-center gap-1.5
          whitespace-nowrap rounded-xl px-2.5 py-2
          text-sm font-medium
          text-gray-500 dark:text-dark-400
          transition-all duration-200 ease-out;
+}
+
+@media (max-width: 639px) {
+  .settings-tab {
+    @apply min-w-[92px] px-2 text-xs;
+  }
+
+  .settings-tab-icon {
+    @apply h-5 w-5;
+  }
 }
 
 .settings-tab:hover:not(.settings-tab-active) {
