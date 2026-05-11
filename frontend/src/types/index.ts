@@ -486,7 +486,7 @@ export interface PaginationConfig {
 
 // ==================== API Key & Group Types ====================
 
-export type GroupPlatform = 'anthropic' | 'openai' | 'gemini' | 'antigravity'
+export type GroupPlatform = 'anthropic' | 'openai' | 'gemini'
 
 export type SubscriptionType = 'standard' | 'subscription'
 
@@ -669,9 +669,8 @@ export interface UpdateGroupRequest {
 
 // ==================== Account & Proxy Types ====================
 
-export type AccountPlatform = 'anthropic' | 'openai' | 'gemini' | 'antigravity'
-export type AccountType = 'oauth' | 'setup-token' | 'apikey' | 'upstream' | 'bedrock' | 'service_account'
-export type OAuthAddMethod = 'oauth' | 'setup-token'
+export type AccountPlatform = 'anthropic' | 'openai' | 'gemini'
+export type AccountType = 'apikey' | 'bedrock' | 'service_account'
 export type ProxyProtocol = 'http' | 'https' | 'socks5' | 'socks5h'
 
 // Claude Model type (returned by /v1/models and account models API)

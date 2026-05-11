@@ -61,10 +61,7 @@ const concurrencyClass = computed(() => {
 })
 
 // ====== 窗口费用 ======
-const isAnthropicOAuthOrSetupToken = computed(() =>
-  props.account.platform === 'anthropic' &&
-  (props.account.type === 'oauth' || props.account.type === 'setup-token')
-)
+const isAnthropicOAuthOrSetupToken = computed(() => false)
 
 const showWindowCost = computed(() =>
   isAnthropicOAuthOrSetupToken.value &&

@@ -23,22 +23,7 @@ func TestProvideServiceBuildInfo(t *testing.T) {
 func TestProvideCleanup_WithMinimalDependencies_NoPanic(t *testing.T) {
 	cfg := &config.Config{}
 
-	oauthSvc := service.NewOAuthService(nil, nil)
-	openAIOAuthSvc := service.NewOpenAIOAuthService(nil, nil)
-	geminiOAuthSvc := service.NewGeminiOAuthService(nil, nil, nil, nil, cfg)
-	antigravityOAuthSvc := service.NewAntigravityOAuthService(nil)
-
-	tokenRefreshSvc := service.NewTokenRefreshService(
-		nil,
-		oauthSvc,
-		openAIOAuthSvc,
-		geminiOAuthSvc,
-		antigravityOAuthSvc,
-		nil,
-		nil,
-		cfg,
-		nil,
-	)
+	tokenRefreshSvc := service.NewTokenRefreshService(nil, nil, nil, cfg, nil)
 	accountExpirySvc := service.NewAccountExpiryService(nil, time.Second)
 	subscriptionExpirySvc := service.NewSubscriptionExpiryService(nil, time.Second)
 	pricingSvc := service.NewPricingService(cfg, nil, nil)
@@ -68,10 +53,6 @@ func TestProvideCleanup_WithMinimalDependencies_NoPanic(t *testing.T) {
 		billingCacheSvc,
 		&service.UsageRecordWorkerPool{},
 		&service.SubscriptionService{},
-		oauthSvc,
-		openAIOAuthSvc,
-		geminiOAuthSvc,
-		antigravityOAuthSvc,
 		nil, // openAIGateway
 		nil, // scheduledTestRunner
 		nil, // backupSvc

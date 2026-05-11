@@ -134,19 +134,6 @@
             </svg>
             Gemini
           </button>
-          <button
-            type="button"
-            @click="form.platform = 'antigravity'"
-            :class="[
-              'flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-all',
-              form.platform === 'antigravity'
-                ? 'bg-white text-purple-600 shadow-sm dark:bg-dark-600 dark:text-purple-400'
-                : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
-            ]"
-          >
-            <Icon name="cloud" size="sm" />
-            Antigravity
-          </button>
         </div>
       </div>
 
@@ -283,33 +270,7 @@
       <!-- Account Type Selection (OpenAI) -->
       <div v-if="form.platform === 'openai'">
         <label class="input-label">{{ t('admin.accounts.accountType') }}</label>
-        <div class="mt-2 grid grid-cols-2 gap-3" data-tour="account-form-type">
-          <button
-            type="button"
-            @click="accountCategory = 'oauth-based'"
-            :class="[
-              'flex items-center gap-3 rounded-lg border-2 p-3 text-left transition-all',
-              accountCategory === 'oauth-based'
-                ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                : 'border-gray-200 hover:border-green-300 dark:border-dark-600 dark:hover:border-green-700'
-            ]"
-          >
-            <div
-              :class="[
-                'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
-                accountCategory === 'oauth-based'
-                  ? 'bg-green-500 text-white'
-                  : 'bg-gray-100 text-gray-500 dark:bg-dark-600 dark:text-gray-400'
-              ]"
-            >
-              <Icon name="key" size="sm" />
-            </div>
-            <div>
-              <span class="block text-sm font-medium text-gray-900 dark:text-white">OAuth</span>
-              <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.accounts.types.chatgptOauth') }}</span>
-            </div>
-          </button>
-
+        <div class="mt-2 grid grid-cols-1 gap-3" data-tour="account-form-type">
           <button
             type="button"
             @click="accountCategory = 'apikey'"
@@ -716,66 +677,8 @@
         </div>
       </div>
 
-      <!-- Account Type Selection (Antigravity - OAuth or Upstream) -->
-      <div v-if="form.platform === 'antigravity'">
-        <label class="input-label">{{ t('admin.accounts.accountType') }}</label>
-        <div class="mt-2 grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            @click="antigravityAccountType = 'oauth'"
-            :class="[
-              'flex items-center gap-3 rounded-lg border-2 p-3 text-left transition-all',
-              antigravityAccountType === 'oauth'
-                ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                : 'border-gray-200 hover:border-purple-300 dark:border-dark-600 dark:hover:border-purple-700'
-            ]"
-          >
-            <div
-              :class="[
-                'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
-                antigravityAccountType === 'oauth'
-                  ? 'bg-purple-500 text-white'
-                  : 'bg-gray-100 text-gray-500 dark:bg-dark-600 dark:text-gray-400'
-              ]"
-            >
-              <Icon name="key" size="sm" />
-            </div>
-            <div>
-              <span class="block text-sm font-medium text-gray-900 dark:text-white">OAuth</span>
-              <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.accounts.types.antigravityOauth') }}</span>
-            </div>
-          </button>
-
-          <button
-            type="button"
-            @click="antigravityAccountType = 'upstream'"
-            :class="[
-              'flex items-center gap-3 rounded-lg border-2 p-3 text-left transition-all',
-              antigravityAccountType === 'upstream'
-                ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                : 'border-gray-200 hover:border-purple-300 dark:border-dark-600 dark:hover:border-purple-700'
-            ]"
-          >
-            <div
-              :class="[
-                'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
-                antigravityAccountType === 'upstream'
-                  ? 'bg-purple-500 text-white'
-                  : 'bg-gray-100 text-gray-500 dark:bg-dark-600 dark:text-gray-400'
-              ]"
-            >
-              <Icon name="cloud" size="sm" />
-            </div>
-            <div>
-              <span class="block text-sm font-medium text-gray-900 dark:text-white">API Key</span>
-              <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.accounts.types.antigravityApikey') }}</span>
-            </div>
-          </button>
-        </div>
-      </div>
-
       <!-- Upstream config (only for Antigravity upstream type) -->
-      <div v-if="form.platform === 'antigravity' && antigravityAccountType === 'upstream'" class="space-y-4">
+      <div v-if="false" class="space-y-4">
         <div>
           <label class="input-label">{{ t('admin.accounts.upstream.baseUrl') }}</label>
           <input
@@ -892,7 +795,7 @@
 
       <!-- Antigravity model restriction (applies to OAuth + Upstream) -->
       <!-- Antigravity 只支持模型映射模式，不支持白名单模式 -->
-      <div v-if="form.platform === 'antigravity'" class="border-t border-gray-200 pt-4 dark:border-dark-600">
+      <div v-if="false" class="border-t border-gray-200 pt-4 dark:border-dark-600">
         <label class="input-label">{{ t('admin.accounts.modelRestriction') }}</label>
 
         <!-- Mapping Mode Only (no toggle for Antigravity) -->
@@ -981,35 +884,9 @@
         </div>
       </div>
 
-      <!-- Add Method (only for Anthropic OAuth-based type) -->
-      <div v-if="form.platform === 'anthropic' && isOAuthFlow">
-        <label class="input-label">{{ t('admin.accounts.addMethod') }}</label>
-        <div class="mt-2 flex gap-4">
-          <label class="flex cursor-pointer items-center">
-            <input
-              v-model="addMethod"
-              type="radio"
-              value="oauth"
-              class="mr-2 text-primary-600 focus:ring-primary-500"
-            />
-            <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('admin.accounts.types.oauth') }}</span>
-          </label>
-          <label class="flex cursor-pointer items-center">
-            <input
-              v-model="addMethod"
-              type="radio"
-              value="setup-token"
-              class="mr-2 text-primary-600 focus:ring-primary-500"
-            />
-            <span class="text-sm text-gray-700 dark:text-gray-300">{{
-              t('admin.accounts.setupTokenLongLived')
-            }}</span>
-          </label>
-        </div>
-      </div>
 
-      <!-- API Key input (only for apikey type, excluding Antigravity which has its own fields) -->
-      <div v-if="form.type === 'apikey' && form.platform !== 'antigravity'" class="space-y-4">
+      <!-- API Key input (only for apikey type) -->
+      <div v-if="form.type === 'apikey'" class="space-y-4">
         <div>
           <label class="input-label">{{ t('admin.accounts.baseUrl') }}</label>
           <input
@@ -2026,9 +1903,9 @@
         </div>
       </div>
 
-      <!-- Intercept Warmup Requests (Anthropic/Antigravity) -->
+      <!-- Intercept Warmup Requests (Anthropic) -->
       <div
-        v-if="form.platform === 'anthropic' || form.platform === 'antigravity'"
+        v-if="form.platform === 'anthropic'"
         class="border-t border-gray-200 pt-4 dark:border-dark-600"
       >
         <div class="flex items-center justify-between">
@@ -2711,7 +2588,7 @@
 
       <div class="border-t border-gray-200 pt-4 dark:border-dark-600">
         <!-- Mixed Scheduling (only for antigravity accounts) -->
-        <div v-if="form.platform === 'antigravity'" class="flex items-center gap-2">
+        <div v-if="false" class="flex items-center gap-2">
           <label class="flex cursor-pointer items-center gap-2">
             <input
               type="checkbox"
@@ -2739,7 +2616,7 @@
             </div>
           </div>
         </div>
-        <div v-if="form.platform === 'antigravity'" class="mt-3 flex items-center gap-2">
+        <div v-if="false" class="mt-3 flex items-center gap-2">
           <label class="flex cursor-pointer items-center gap-2">
             <input
               type="checkbox"
@@ -2780,114 +2657,8 @@
 
     </form>
 
-    <!-- Step 2: OAuth Authorization -->
-    <div v-else class="space-y-5">
-      <OAuthAuthorizationFlow
-        ref="oauthFlowRef"
-        :add-method="form.platform === 'anthropic' ? addMethod : 'oauth'"
-        :auth-url="currentAuthUrl"
-        :session-id="currentSessionId"
-        :loading="currentOAuthLoading"
-        :error="currentOAuthError"
-        :show-help="form.platform === 'anthropic'"
-        :show-proxy-warning="form.platform !== 'openai' && !!form.proxy_id"
-        :allow-multiple="form.platform === 'anthropic'"
-        :show-cookie-option="form.platform === 'anthropic'"
-        :show-refresh-token-option="form.platform === 'openai' || form.platform === 'antigravity'"
-        :show-mobile-refresh-token-option="form.platform === 'openai'"
-        :show-session-token-option="false"
-        :show-access-token-option="false"
-        :show-codex-session-import-option="form.platform === 'openai'"
-        :platform="form.platform"
-        :show-project-id="geminiOAuthType === 'code_assist'"
-        @generate-url="handleGenerateUrl"
-        @cookie-auth="handleCookieAuth"
-        @validate-refresh-token="handleValidateRefreshToken"
-        @validate-mobile-refresh-token="handleOpenAIValidateMobileRT"
-        @validate-session-token="handleValidateSessionToken"
-        @import-codex-session="handleOpenAIImportCodexSession"
-      />
-
-    </div>
-
     <template #footer>
-      <div v-if="step === 1" class="flex justify-end gap-3">
-        <button @click="handleClose" type="button" class="btn btn-secondary">
-          {{ t('common.cancel') }}
-        </button>
-        <button
-          type="submit"
-          form="create-account-form"
-          :disabled="submitting"
-          class="btn btn-primary"
-          data-tour="account-form-submit"
-        >
-          <svg
-            v-if="submitting"
-            class="-ml-1 mr-2 h-4 w-4 animate-spin"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              class="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              stroke-width="4"
-            ></circle>
-            <path
-              class="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            ></path>
-          </svg>
-          {{
-            isOAuthFlow
-              ? t('common.next')
-              : submitting
-                ? t('admin.accounts.creating')
-                : t('common.create')
-          }}
-        </button>
-      </div>
-      <div v-else class="flex justify-between gap-3">
-        <button type="button" class="btn btn-secondary" @click="goBackToBasicInfo">
-          {{ t('common.back') }}
-        </button>
-        <button
-          v-if="isManualInputMethod"
-          type="button"
-          :disabled="!canExchangeCode"
-          class="btn btn-primary"
-          @click="handleExchangeCode"
-        >
-          <svg
-            v-if="currentOAuthLoading"
-            class="-ml-1 mr-2 h-4 w-4 animate-spin"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              class="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              stroke-width="4"
-            ></circle>
-            <path
-              class="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            ></path>
-          </svg>
-          {{
-            currentOAuthLoading
-              ? t('admin.accounts.oauth.verifying')
-              : t('admin.accounts.oauth.completeAuth')
-          }}
-        </button>
+      <div class="flex justify-end gap-3">
       </div>
     </template>
   </BaseDialog>
@@ -3132,7 +2903,6 @@ import {
   getModelsByPlatform,
   commonErrorCodes,
   buildModelMappingObject,
-  fetchAntigravityDefaultMappings,
   isValidWildcardPattern
 } from '@/composables/useModelWhitelist'
 import { useAuthStore } from '@/stores/auth'
@@ -3140,8 +2910,7 @@ import { adminAPI } from '@/api/admin'
 import { useQuotaNotifyState } from '@/composables/useQuotaNotifyState'
 import {
   useAccountOAuth,
-  type AddMethod,
-  type AuthInputMethod
+  type AddMethod
 } from '@/composables/useAccountOAuth'
 import { useOpenAIOAuth } from '@/composables/useOpenAIOAuth'
 import { useGeminiOAuth } from '@/composables/useGeminiOAuth'
@@ -3153,7 +2922,6 @@ import type {
   AccountType,
   CheckMixedChannelResponse,
   CreateAccountRequest,
-  CodexSessionImportMessage,
   OpenAICompactMode
 } from '@/types'
 import BaseDialog from '@/components/common/BaseDialog.vue'
@@ -3182,21 +2950,6 @@ import {
   resolveOpenAIWSModeConcurrencyHintKey,
   type OpenAIWSMode
 } from '@/utils/openaiWsMode'
-import OAuthAuthorizationFlow from './OAuthAuthorizationFlow.vue'
-
-// Type for exposed OAuthAuthorizationFlow component
-// Note: defineExpose automatically unwraps refs, so we use the unwrapped types
-interface OAuthFlowExposed {
-  authCode: string
-  oauthState: string
-  projectId: string
-  sessionKey: string
-  refreshToken: string
-  sessionToken: string
-  codexSession: string
-  inputMethod: AuthInputMethod
-  reset: () => void
-}
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -3204,7 +2957,6 @@ const authStore = useAuthStore()
 const oauthStepTitle = computed(() => {
   if (form.platform === 'openai') return t('admin.accounts.oauth.openai.title')
   if (form.platform === 'gemini') return t('admin.accounts.oauth.gemini.title')
-  if (form.platform === 'antigravity') return t('admin.accounts.oauth.antigravity.title')
   return t('admin.accounts.oauth.title')
 })
 
@@ -3240,38 +2992,6 @@ const oauth = useAccountOAuth() // For Anthropic OAuth
 const openaiOAuth = useOpenAIOAuth() // For OpenAI OAuth
 const geminiOAuth = useGeminiOAuth() // For Gemini OAuth
 const antigravityOAuth = useAntigravityOAuth() // For Antigravity OAuth
-
-// Computed: current OAuth state for template binding
-const currentAuthUrl = computed(() => {
-  if (form.platform === 'openai') return openaiOAuth.authUrl.value
-  if (form.platform === 'gemini') return geminiOAuth.authUrl.value
-  if (form.platform === 'antigravity') return antigravityOAuth.authUrl.value
-  return oauth.authUrl.value
-})
-
-const currentSessionId = computed(() => {
-  if (form.platform === 'openai') return openaiOAuth.sessionId.value
-  if (form.platform === 'gemini') return geminiOAuth.sessionId.value
-  if (form.platform === 'antigravity') return antigravityOAuth.sessionId.value
-  return oauth.sessionId.value
-})
-
-const currentOAuthLoading = computed(() => {
-  if (form.platform === 'openai') return openaiOAuth.loading.value
-  if (form.platform === 'gemini') return geminiOAuth.loading.value
-  if (form.platform === 'antigravity') return antigravityOAuth.loading.value
-  return oauth.loading.value
-})
-
-const currentOAuthError = computed(() => {
-  if (form.platform === 'openai') return openaiOAuth.error.value
-  if (form.platform === 'gemini') return geminiOAuth.error.value
-  if (form.platform === 'antigravity') return antigravityOAuth.error.value
-  return oauth.error.value
-})
-
-// Refs
-const oauthFlowRef = ref<OAuthFlowExposed | null>(null)
 
 // Model mapping type
 interface ModelMapping {
@@ -3376,13 +3096,6 @@ const openAICompactModeOptions = computed(() => [
   { value: 'force_off', label: t('admin.accounts.openai.compactModeForceOff') }
 ])
 
-function buildAntigravityExtra(): Record<string, unknown> | undefined {
-  const extra: Record<string, unknown> = {}
-  if (mixedScheduling.value) extra.mixed_scheduling = true
-  if (allowOverages.value) extra.allow_overages = true
-  return Object.keys(extra).length > 0 ? extra : undefined
-}
-
 const buildOpenAICompactModelMapping = () =>
   buildModelMappingObject('mapping', [], openAICompactModelMappings.value)
 
@@ -3446,18 +3159,6 @@ const geminiTierGoogleOne = ref<'google_one_free' | 'google_ai_pro' | 'google_ai
 const geminiTierGcp = ref<'gcp_standard' | 'gcp_enterprise'>('gcp_standard')
 const geminiTierAIStudio = ref<'aistudio_free' | 'aistudio_paid'>('aistudio_free')
 
-const geminiSelectedTier = computed(() => {
-  if (form.platform !== 'gemini') return ''
-  if (accountCategory.value === 'apikey') return geminiTierAIStudio.value
-  switch (geminiOAuthType.value) {
-    case 'google_one':
-      return geminiTierGoogleOne.value
-    case 'code_assist':
-      return geminiTierGcp.value
-    default:
-      return geminiTierAIStudio.value
-  }
-})
 
 const openAIWSModeOptions = computed(() => [
   { value: OPENAI_WS_MODE_OFF, label: t('admin.accounts.openai.wsModeOff') },
@@ -3547,7 +3248,7 @@ const form = reactive({
   name: '',
   notes: '',
   platform: 'anthropic' as AccountPlatform,
-  type: 'oauth' as AccountType, // Will be 'oauth', 'setup-token', or 'apikey'
+  type: 'apikey' as AccountType, // Will be 'apikey', 'bedrock', or 'service_account'
   credentials: {} as Record<string, unknown>,
   proxy_id: null as number | null,
   concurrency: 10,
@@ -3560,10 +3261,6 @@ const form = reactive({
 
 // Helper to check if current type needs OAuth flow
 const isOAuthFlow = computed(() => {
-  // Antigravity upstream 类型不需要 OAuth 流程
-  if (form.platform === 'antigravity' && antigravityAccountType.value === 'upstream') {
-    return false
-  }
   // Bedrock 类型不需要 OAuth 流程
   if (form.platform === 'anthropic' && accountCategory.value === 'bedrock') {
     return false
@@ -3571,29 +3268,11 @@ const isOAuthFlow = computed(() => {
   return accountCategory.value === 'oauth-based'
 })
 
-const isManualInputMethod = computed(() => {
-  return oauthFlowRef.value?.inputMethod === 'manual'
-})
-
 const expiresAtInput = computed({
   get: () => formatDateTimeLocal(form.expires_at),
   set: (value: string) => {
     form.expires_at = parseDateTimeLocal(value)
   }
-})
-
-const canExchangeCode = computed(() => {
-  const authCode = oauthFlowRef.value?.authCode || ''
-  if (form.platform === 'openai') {
-    return authCode.trim() && openaiOAuth.sessionId.value && !openaiOAuth.loading.value
-  }
-  if (form.platform === 'gemini') {
-    return authCode.trim() && geminiOAuth.sessionId.value && !geminiOAuth.loading.value
-  }
-  if (form.platform === 'antigravity') {
-    return authCode.trim() && antigravityOAuth.sessionId.value && !antigravityOAuth.loading.value
-  }
-  return authCode.trim() && oauth.sessionId.value && !oauth.loading.value
 })
 
 // Watchers
@@ -3607,18 +3286,9 @@ watch(
         .catch(() => { tlsFingerprintProfiles.value = [] })
       // Modal opened - fill related models
       allowedModels.value = [...getModelsByPlatform(form.platform)]
-      // Antigravity: 默认使用映射模式并填充默认映射
-      if (form.platform === 'antigravity') {
-        antigravityModelRestrictionMode.value = 'mapping'
-        fetchAntigravityDefaultMappings().then(mappings => {
-          antigravityModelMappings.value = [...mappings]
-        })
-        antigravityWhitelistModels.value = []
-      } else {
-        antigravityWhitelistModels.value = []
-        antigravityModelMappings.value = []
-        antigravityModelRestrictionMode.value = 'mapping'
-      }
+      antigravityWhitelistModels.value = []
+      antigravityModelMappings.value = []
+      antigravityModelRestrictionMode.value = 'mapping'
     } else {
       resetForm()
     }
@@ -3628,12 +3298,7 @@ watch(
 // Sync form.type based on accountCategory, addMethod, and platform-specific type
 watch(
   [accountCategory, addMethod, antigravityAccountType, () => form.platform],
-  ([category, method, agType]) => {
-    // Antigravity upstream 类型（实际创建为 apikey）
-    if (form.platform === 'antigravity' && agType === 'upstream') {
-      form.type = 'apikey'
-      return
-    }
+  ([category, _method, _agType]) => {
     // Bedrock 类型
     if (form.platform === 'anthropic' && category === 'bedrock') {
       form.type = 'bedrock' as AccountType
@@ -3642,7 +3307,7 @@ watch(
     if ((form.platform === 'gemini' || form.platform === 'anthropic') && category === 'service_account') {
       form.type = 'service_account' as AccountType
     } else if (category === 'oauth-based') {
-      form.type = method as AccountType // 'oauth' or 'setup-token'
+      form.type = 'apikey' // oauth-based maps to apikey now
     } else {
       form.type = 'apikey'
     }
@@ -3664,21 +3329,10 @@ watch(
     // Clear model-related settings
     allowedModels.value = []
     modelMappings.value = []
-    // Antigravity: 默认使用映射模式并填充默认映射
-    if (newPlatform === 'antigravity') {
-      antigravityModelRestrictionMode.value = 'mapping'
-      fetchAntigravityDefaultMappings().then(mappings => {
-        antigravityModelMappings.value = [...mappings]
-      })
-      antigravityWhitelistModels.value = []
-      accountCategory.value = 'oauth-based'
-      antigravityAccountType.value = 'oauth'
-    } else {
-      allowOverages.value = false
-      antigravityWhitelistModels.value = []
-      antigravityModelMappings.value = []
-      antigravityModelRestrictionMode.value = 'mapping'
-    }
+    allowOverages.value = false
+    antigravityWhitelistModels.value = []
+    antigravityModelMappings.value = []
+    antigravityModelRestrictionMode.value = 'mapping'
     if (newPlatform !== 'gemini' && newPlatform !== 'anthropic' && accountCategory.value === 'service_account') {
       accountCategory.value = 'oauth-based'
     }
@@ -3697,8 +3351,8 @@ watch(
     vertexProjectId.value = ''
     vertexClientEmail.value = ''
     vertexLocation.value = 'global'
-    // Reset Anthropic/Antigravity-specific settings when switching to other platforms
-    if (newPlatform !== 'anthropic' && newPlatform !== 'antigravity') {
+    // Reset Anthropic-specific settings when switching to other platforms
+    if (newPlatform !== 'anthropic') {
       interceptWarmupRequests.value = false
     }
     if (newPlatform !== 'openai') {
@@ -3770,10 +3424,8 @@ watch(
 
 watch(
   [antigravityModelRestrictionMode, () => form.platform],
-  ([, platform]) => {
-    if (platform !== 'antigravity') return
-    // Antigravity 默认不做限制：白名单留空表示允许所有（包含未来新增模型）。
-    // 如果需要快速填充常用模型，可在组件内点“填充相关模型”。
+  () => {
+    // placeholder watcher
   }
 )
 
@@ -3954,7 +3606,7 @@ const splitTempUnschedKeywords = (value: string) => {
     .filter((item) => item.length > 0)
 }
 
-const needsMixedChannelCheck = (platform: AccountPlatform) => platform === 'antigravity' || platform === 'anthropic'
+const needsMixedChannelCheck = (platform: AccountPlatform) => platform === 'anthropic'
 
 const buildMixedChannelDetails = (resp?: CheckMixedChannelResponse) => {
   const details = resp?.details
@@ -4059,7 +3711,7 @@ const resetForm = () => {
   form.name = ''
   form.notes = ''
   form.platform = 'anthropic'
-  form.type = 'oauth'
+  form.type = 'apikey'
   form.credentials = {}
   form.proxy_id = null
   form.concurrency = 10
@@ -4070,7 +3722,6 @@ const resetForm = () => {
   form.expires_at = null
   accountCategory.value = 'oauth-based'
   addMethod.value = 'oauth'
-  apiKeyBaseUrl.value = 'https://api.anthropic.com'
   apiKeyValue.value = ''
   editQuotaLimit.value = null
   editQuotaDailyLimit.value = null
@@ -4088,9 +3739,7 @@ const resetForm = () => {
 
   antigravityModelRestrictionMode.value = 'mapping'
   antigravityWhitelistModels.value = []
-  fetchAntigravityDefaultMappings().then(mappings => {
-    antigravityModelMappings.value = [...mappings]
-  })
+  antigravityModelMappings.value = []
   poolModeEnabled.value = false
   poolModeRetryCount.value = DEFAULT_POOL_MODE_RETRY_COUNT
   customErrorCodesEnabled.value = false
@@ -4142,7 +3791,6 @@ const resetForm = () => {
   openaiOAuth.resetState()
   geminiOAuth.resetState()
   antigravityOAuth.resetState()
-  oauthFlowRef.value?.reset()
   antigravityMixedChannelConfirmed.value = false
   clearMixedChannelDialog()
 }
@@ -4383,44 +4031,6 @@ const handleSubmit = async () => {
     return
   }
 
-  // For Antigravity upstream type, create directly
-  if (form.platform === 'antigravity' && antigravityAccountType.value === 'upstream') {
-    if (!form.name.trim()) {
-      appStore.showError(t('admin.accounts.pleaseEnterAccountName'))
-      return
-    }
-    if (!upstreamBaseUrl.value.trim()) {
-      appStore.showError(t('admin.accounts.upstream.pleaseEnterBaseUrl'))
-      return
-    }
-    if (!upstreamApiKey.value.trim()) {
-      appStore.showError(t('admin.accounts.upstream.pleaseEnterApiKey'))
-      return
-    }
-
-    // Build upstream credentials (and optional model restriction)
-    const credentials: Record<string, unknown> = {
-      base_url: upstreamBaseUrl.value.trim(),
-      api_key: upstreamApiKey.value.trim()
-    }
-
-    // Antigravity 只使用映射模式
-    const antigravityModelMapping = buildModelMappingObject(
-      'mapping',
-      [],
-      antigravityModelMappings.value
-    )
-    if (antigravityModelMapping) {
-      credentials.model_mapping = antigravityModelMapping
-    }
-
-    applyInterceptWarmup(credentials, interceptWarmupRequests.value, 'create')
-
-    const extra = buildAntigravityExtra()
-    await createAccountAndFinish(form.platform, 'apikey', credentials, extra)
-    return
-  }
-
   if ((form.platform === 'gemini' || form.platform === 'anthropic') && accountCategory.value === 'service_account') {
     if (!form.name.trim()) {
       appStore.showError(t('admin.accounts.pleaseEnterAccountName'))
@@ -4509,44 +4119,6 @@ const handleSubmit = async () => {
   })
 }
 
-const goBackToBasicInfo = () => {
-  step.value = 1
-  oauth.resetState()
-  openaiOAuth.resetState()
-  geminiOAuth.resetState()
-  antigravityOAuth.resetState()
-  oauthFlowRef.value?.reset()
-}
-
-const handleGenerateUrl = async () => {
-  if (form.platform === 'openai') {
-    await openaiOAuth.generateAuthUrl(form.proxy_id)
-  } else if (form.platform === 'gemini') {
-    await geminiOAuth.generateAuthUrl(
-      form.proxy_id,
-      oauthFlowRef.value?.projectId,
-      geminiOAuthType.value,
-      geminiSelectedTier.value
-    )
-  } else if (form.platform === 'antigravity') {
-    await antigravityOAuth.generateAuthUrl(form.proxy_id)
-  } else {
-    await oauth.generateAuthUrl(addMethod.value, form.proxy_id)
-  }
-}
-
-const handleValidateRefreshToken = (rt: string) => {
-  if (form.platform === 'openai') {
-    handleOpenAIValidateRT(rt)
-  } else if (form.platform === 'antigravity') {
-    handleAntigravityValidateRT(rt)
-  }
-}
-
-const handleValidateSessionToken = (_sessionToken: string) => {
-  // Session token validation removed
-}
-
 const formatDateTimeLocal = formatDateTimeLocalInput
 const parseDateTimeLocal = parseDateTimeLocalInput
 
@@ -4618,744 +4190,13 @@ const createAccountAndFinish = async (
   })
 }
 
-// OpenAI OAuth 授权码兑换
-const handleOpenAIExchange = async (authCode: string) => {
-  const oauthClient = openaiOAuth
-  if (!authCode.trim() || !oauthClient.sessionId.value) return
-
-  oauthClient.loading.value = true
-  oauthClient.error.value = ''
-
-  try {
-    const stateToUse = (oauthFlowRef.value?.oauthState || oauthClient.oauthState.value || '').trim()
-    if (!stateToUse) {
-      oauthClient.error.value = t('admin.accounts.oauth.authFailed')
-      appStore.showError(oauthClient.error.value)
-      return
-    }
-
-    const tokenInfo = await oauthClient.exchangeAuthCode(
-      authCode.trim(),
-      oauthClient.sessionId.value,
-      stateToUse,
-      form.proxy_id
-    )
-    if (!tokenInfo) return
-
-    const credentials = oauthClient.buildCredentials(tokenInfo)
-    const oauthExtra = oauthClient.buildExtraInfo(tokenInfo) as Record<string, unknown> | undefined
-    const extra = buildOpenAIExtra(oauthExtra)
-    const shouldCreateOpenAI = form.platform === 'openai'
-
-    // Add model mapping for OpenAI OAuth accounts（透传模式下不应用）
-    if (shouldCreateOpenAI && !isOpenAIModelRestrictionDisabled.value) {
-      const modelMapping = buildModelMappingObject(modelRestrictionMode.value, allowedModels.value, modelMappings.value)
-      if (modelMapping) {
-        credentials.model_mapping = modelMapping
-      }
-    }
-    if (shouldCreateOpenAI) {
-      const compactModelMapping = buildOpenAICompactModelMapping()
-      if (compactModelMapping) {
-        credentials.compact_model_mapping = compactModelMapping
-      }
-    }
-
-    // 应用临时不可调度配置
-    if (!applyTempUnschedConfig(credentials)) {
-      return
-    }
-
-    if (shouldCreateOpenAI) {
-      await adminAPI.accounts.create({
-        name: form.name,
-        notes: form.notes,
-        platform: 'openai',
-        type: 'oauth',
-        credentials,
-        extra,
-        proxy_id: form.proxy_id,
-        concurrency: form.concurrency,
-        load_factor: form.load_factor ?? undefined,
-        priority: form.priority,
-        rate_multiplier: form.rate_multiplier,
-        group_ids: form.group_ids,
-        expires_at: form.expires_at,
-        auto_pause_on_expired: autoPauseOnExpired.value
-      })
-      appStore.showSuccess(t('admin.accounts.accountCreated'))
-    }
-
-    emit('created')
-    handleClose()
-  } catch (error: any) {
-    oauthClient.error.value = error.response?.data?.detail || t('admin.accounts.oauth.authFailed')
-    appStore.showError(oauthClient.error.value)
-  } finally {
-    oauthClient.loading.value = false
-  }
-}
 
 // OpenAI 手动 RT 批量验证和创建
-// OpenAI Mobile RT client_id
-const OPENAI_MOBILE_RT_CLIENT_ID = 'app_LlGpXReQgckcGGUo2JrYvtJK'
 
-const buildOpenAICodexImportCredentialExtras = (): Record<string, unknown> | null => {
-  const credentials: Record<string, unknown> = {}
-  if (!isOpenAIModelRestrictionDisabled.value) {
-    const modelMapping = buildModelMappingObject(modelRestrictionMode.value, allowedModels.value, modelMappings.value)
-    if (modelMapping) {
-      credentials.model_mapping = modelMapping
-    }
-  }
 
-  const compactModelMapping = buildOpenAICompactModelMapping()
-  if (compactModelMapping) {
-    credentials.compact_model_mapping = compactModelMapping
-  }
 
-  if (!applyTempUnschedConfig(credentials)) {
-    return null
-  }
-  return credentials
-}
 
-const formatCodexImportMessages = (messages?: CodexSessionImportMessage[]) => {
-  return (messages || [])
-    .map((item) => {
-      const name = item.name ? ` ${item.name}` : ''
-      return `#${item.index}${name}: ${item.message}`
-    })
-    .join('\n')
-}
 
-const handleOpenAIImportCodexSession = async (content: string) => {
-  const oauthClient = openaiOAuth
-  const trimmed = content.trim()
-  if (!trimmed) {
-    oauthClient.error.value = t('admin.accounts.oauth.openai.codexSessionEmpty')
-    return
-  }
 
-  const credentialExtras = buildOpenAICodexImportCredentialExtras()
-  if (credentialExtras === null) {
-    return
-  }
 
-  oauthClient.loading.value = true
-  oauthClient.error.value = ''
-
-  try {
-    const extra = buildOpenAIExtra()
-    const result = await adminAPI.accounts.importCodexSession({
-      content: trimmed,
-      name: form.name,
-      notes: form.notes || null,
-      proxy_id: form.proxy_id,
-      concurrency: form.concurrency,
-      load_factor: form.load_factor ?? undefined,
-      priority: form.priority,
-      rate_multiplier: form.rate_multiplier,
-      group_ids: form.group_ids,
-      expires_at: form.expires_at,
-      auto_pause_on_expired: autoPauseOnExpired.value,
-      credential_extras: Object.keys(credentialExtras).length > 0 ? credentialExtras : undefined,
-      extra,
-      update_existing: true
-    })
-
-    const successCount = result.created + result.updated
-    const params = {
-      created: result.created,
-      updated: result.updated,
-      skipped: result.skipped,
-      failed: result.failed
-    }
-
-    if (successCount > 0 && result.failed === 0) {
-      appStore.showSuccess(t('admin.accounts.oauth.openai.codexSessionImportSuccess', params))
-      emit('created')
-      handleClose()
-      return
-    }
-
-    const errorText = formatCodexImportMessages(result.errors)
-    const warningText = formatCodexImportMessages(result.warnings)
-    oauthClient.error.value = [errorText, warningText].filter(Boolean).join('\n')
-
-    if (result.failed === 0) {
-      appStore.showWarning(t('admin.accounts.oauth.openai.codexSessionImportSuccess', params))
-      return
-    }
-
-    if (successCount > 0) {
-      appStore.showWarning(t('admin.accounts.oauth.openai.codexSessionImportPartial', params))
-      emit('created')
-      return
-    }
-
-    appStore.showError(t('admin.accounts.oauth.openai.codexSessionImportFailed'))
-  } catch (error: any) {
-    oauthClient.error.value =
-      error.response?.data?.detail ||
-      error.response?.data?.message ||
-      error.message ||
-      t('admin.accounts.oauth.openai.codexSessionImportFailed')
-    appStore.showError(oauthClient.error.value)
-  } finally {
-    oauthClient.loading.value = false
-  }
-}
-
-// OpenAI RT 批量验证和创建（共享逻辑）
-const handleOpenAIBatchRT = async (refreshTokenInput: string, clientId?: string) => {
-  const oauthClient = openaiOAuth
-  if (!refreshTokenInput.trim()) return
-
-  const refreshTokens = refreshTokenInput
-    .split('\n')
-    .map((rt) => rt.trim())
-    .filter((rt) => rt)
-
-  if (refreshTokens.length === 0) {
-    oauthClient.error.value = t('admin.accounts.oauth.openai.pleaseEnterRefreshToken')
-    return
-  }
-
-  oauthClient.loading.value = true
-  oauthClient.error.value = ''
-
-  let successCount = 0
-  let failedCount = 0
-  const errors: string[] = []
-  const shouldCreateOpenAI = form.platform === 'openai'
-
-  try {
-    for (let i = 0; i < refreshTokens.length; i++) {
-      try {
-        const tokenInfo = await oauthClient.validateRefreshToken(
-          refreshTokens[i],
-          form.proxy_id,
-          clientId
-        )
-        if (!tokenInfo) {
-          failedCount++
-          errors.push(`#${i + 1}: ${oauthClient.error.value || 'Validation failed'}`)
-          oauthClient.error.value = ''
-          continue
-        }
-
-        const credentials = oauthClient.buildCredentials(tokenInfo)
-        if (clientId) {
-          credentials.client_id = clientId
-        }
-        const oauthExtra = oauthClient.buildExtraInfo(tokenInfo) as Record<string, unknown> | undefined
-        const extra = buildOpenAIExtra(oauthExtra)
-
-        // Add model mapping for OpenAI OAuth accounts（透传模式下不应用）
-        if (shouldCreateOpenAI && !isOpenAIModelRestrictionDisabled.value) {
-          const modelMapping = buildModelMappingObject(modelRestrictionMode.value, allowedModels.value, modelMappings.value)
-          if (modelMapping) {
-            credentials.model_mapping = modelMapping
-          }
-        }
-        if (shouldCreateOpenAI) {
-          const compactModelMapping = buildOpenAICompactModelMapping()
-          if (compactModelMapping) {
-            credentials.compact_model_mapping = compactModelMapping
-          }
-        }
-
-        // Generate account name; fallback to email if name is empty (ent schema requires NotEmpty)
-        const baseName = form.name || tokenInfo.email || 'OpenAI OAuth Account'
-        const accountName = refreshTokens.length > 1 ? `${baseName} #${i + 1}` : baseName
-
-        if (shouldCreateOpenAI) {
-          await adminAPI.accounts.create({
-            name: accountName,
-            notes: form.notes,
-            platform: 'openai',
-            type: 'oauth',
-            credentials,
-            extra,
-            proxy_id: form.proxy_id,
-            concurrency: form.concurrency,
-            load_factor: form.load_factor ?? undefined,
-            priority: form.priority,
-            rate_multiplier: form.rate_multiplier,
-            group_ids: form.group_ids,
-            expires_at: form.expires_at,
-            auto_pause_on_expired: autoPauseOnExpired.value
-          })
-        }
-
-        successCount++
-      } catch (error: any) {
-        failedCount++
-        const errMsg = error.response?.data?.detail || error.message || 'Unknown error'
-        errors.push(`#${i + 1}: ${errMsg}`)
-      }
-    }
-
-    // Show results
-    if (successCount > 0 && failedCount === 0) {
-      appStore.showSuccess(
-        refreshTokens.length > 1
-          ? t('admin.accounts.oauth.batchSuccess', { count: successCount })
-          : t('admin.accounts.accountCreated')
-      )
-      emit('created')
-      handleClose()
-    } else if (successCount > 0 && failedCount > 0) {
-      appStore.showWarning(
-        t('admin.accounts.oauth.batchPartialSuccess', { success: successCount, failed: failedCount })
-      )
-      oauthClient.error.value = errors.join('\n')
-      emit('created')
-    } else {
-      oauthClient.error.value = errors.join('\n')
-      appStore.showError(t('admin.accounts.oauth.batchFailed'))
-    }
-  } finally {
-    oauthClient.loading.value = false
-  }
-}
-
-// 手动输入 RT（Codex CLI client_id，默认）
-const handleOpenAIValidateRT = (rt: string) => handleOpenAIBatchRT(rt)
-
-// 手动输入 Mobile RT
-const handleOpenAIValidateMobileRT = (rt: string) => handleOpenAIBatchRT(rt, OPENAI_MOBILE_RT_CLIENT_ID)
-
-// Antigravity 手动 RT 批量验证和创建
-const handleAntigravityValidateRT = async (refreshTokenInput: string) => {
-  if (!refreshTokenInput.trim()) return
-
-  // Parse multiple refresh tokens (one per line)
-  const refreshTokens = refreshTokenInput
-    .split('\n')
-    .map((rt) => rt.trim())
-    .filter((rt) => rt)
-
-  if (refreshTokens.length === 0) {
-    antigravityOAuth.error.value = t('admin.accounts.oauth.antigravity.pleaseEnterRefreshToken')
-    return
-  }
-
-  antigravityOAuth.loading.value = true
-  antigravityOAuth.error.value = ''
-
-  let successCount = 0
-  let failedCount = 0
-  const errors: string[] = []
-
-  try {
-    for (let i = 0; i < refreshTokens.length; i++) {
-      try {
-        const tokenInfo = await antigravityOAuth.validateRefreshToken(
-          refreshTokens[i],
-          form.proxy_id
-        )
-        if (!tokenInfo) {
-          failedCount++
-          errors.push(`#${i + 1}: ${antigravityOAuth.error.value || 'Validation failed'}`)
-          antigravityOAuth.error.value = ''
-          continue
-        }
-
-        const credentials = antigravityOAuth.buildCredentials(tokenInfo)
-        
-        // Generate account name with index for batch
-        const accountName = refreshTokens.length > 1 ? `${form.name} #${i + 1}` : form.name
-
-        // Note: Antigravity doesn't have buildExtraInfo, so we pass empty extra or rely on credentials
-        const createPayload = withAntigravityConfirmFlag({
-          name: accountName,
-          notes: form.notes,
-          platform: 'antigravity',
-          type: 'oauth',
-          credentials,
-          extra: {},
-          proxy_id: form.proxy_id,
-          concurrency: form.concurrency,
-          load_factor: form.load_factor ?? undefined,
-          priority: form.priority,
-          rate_multiplier: form.rate_multiplier,
-          group_ids: form.group_ids,
-          expires_at: form.expires_at,
-          auto_pause_on_expired: autoPauseOnExpired.value
-        })
-        await adminAPI.accounts.create(createPayload)
-        successCount++
-      } catch (error: any) {
-        failedCount++
-        const errMsg = error.response?.data?.detail || error.message || 'Unknown error'
-        errors.push(`#${i + 1}: ${errMsg}`)
-      }
-    }
-
-    // Show results
-    if (successCount > 0 && failedCount === 0) {
-      appStore.showSuccess(
-        refreshTokens.length > 1
-          ? t('admin.accounts.oauth.batchSuccess', { count: successCount })
-          : t('admin.accounts.accountCreated')
-      )
-      emit('created')
-      handleClose()
-    } else if (successCount > 0 && failedCount > 0) {
-      appStore.showWarning(
-        t('admin.accounts.oauth.batchPartialSuccess', { success: successCount, failed: failedCount })
-      )
-      antigravityOAuth.error.value = errors.join('\n')
-      emit('created')
-    } else {
-      antigravityOAuth.error.value = errors.join('\n')
-      appStore.showError(t('admin.accounts.oauth.batchFailed'))
-    }
-  } finally {
-    antigravityOAuth.loading.value = false
-  }
-}
-
-// Gemini OAuth 授权码兑换
-const handleGeminiExchange = async (authCode: string) => {
-  if (!authCode.trim() || !geminiOAuth.sessionId.value) return
-
-  geminiOAuth.loading.value = true
-  geminiOAuth.error.value = ''
-
-  try {
-    const stateFromInput = oauthFlowRef.value?.oauthState || ''
-    const stateToUse = stateFromInput || geminiOAuth.state.value
-    if (!stateToUse) {
-      geminiOAuth.error.value = t('admin.accounts.oauth.authFailed')
-      appStore.showError(geminiOAuth.error.value)
-      return
-    }
-
-    const tokenInfo = await geminiOAuth.exchangeAuthCode({
-      code: authCode.trim(),
-      sessionId: geminiOAuth.sessionId.value,
-      state: stateToUse,
-      proxyId: form.proxy_id,
-      oauthType: geminiOAuthType.value,
-      tierId: geminiSelectedTier.value
-    })
-    if (!tokenInfo) return
-
-    const credentials = geminiOAuth.buildCredentials(tokenInfo)
-    const extra = geminiOAuth.buildExtraInfo(tokenInfo)
-    await createAccountAndFinish('gemini', 'oauth', credentials, extra)
-  } catch (error: any) {
-    geminiOAuth.error.value = error.response?.data?.detail || t('admin.accounts.oauth.authFailed')
-    appStore.showError(geminiOAuth.error.value)
-  } finally {
-    geminiOAuth.loading.value = false
-  }
-}
-
-// Antigravity OAuth 授权码兑换
-const handleAntigravityExchange = async (authCode: string) => {
-  if (!authCode.trim() || !antigravityOAuth.sessionId.value) return
-
-  antigravityOAuth.loading.value = true
-  antigravityOAuth.error.value = ''
-
-  try {
-    const stateFromInput = oauthFlowRef.value?.oauthState || ''
-    const stateToUse = stateFromInput || antigravityOAuth.state.value
-    if (!stateToUse) {
-      antigravityOAuth.error.value = t('admin.accounts.oauth.authFailed')
-      appStore.showError(antigravityOAuth.error.value)
-      return
-    }
-
-    const tokenInfo = await antigravityOAuth.exchangeAuthCode({
-      code: authCode.trim(),
-      sessionId: antigravityOAuth.sessionId.value,
-      state: stateToUse,
-      proxyId: form.proxy_id
-    })
-		if (!tokenInfo) return
-
-		const credentials = antigravityOAuth.buildCredentials(tokenInfo)
-		applyInterceptWarmup(credentials, interceptWarmupRequests.value, 'create')
-		// Antigravity 只使用映射模式
-		const antigravityModelMapping = buildModelMappingObject(
-			'mapping',
-			[],
-			antigravityModelMappings.value
-		)
-		if (antigravityModelMapping) {
-			credentials.model_mapping = antigravityModelMapping
-		}
-		const extra = buildAntigravityExtra()
-		await createAccountAndFinish('antigravity', 'oauth', credentials, extra)
-  } catch (error: any) {
-    antigravityOAuth.error.value = error.response?.data?.detail || t('admin.accounts.oauth.authFailed')
-    appStore.showError(antigravityOAuth.error.value)
-  } finally {
-    antigravityOAuth.loading.value = false
-  }
-}
-
-// Anthropic OAuth 授权码兑换
-const handleAnthropicExchange = async (authCode: string) => {
-  if (!authCode.trim() || !oauth.sessionId.value) return
-
-  oauth.loading.value = true
-  oauth.error.value = ''
-
-  try {
-    const proxyConfig = form.proxy_id ? { proxy_id: form.proxy_id } : {}
-    const endpoint =
-      addMethod.value === 'oauth'
-        ? '/admin/accounts/exchange-code'
-        : '/admin/accounts/exchange-setup-token-code'
-
-    const tokenInfo = await adminAPI.accounts.exchangeCode(endpoint, {
-      session_id: oauth.sessionId.value,
-      code: authCode.trim(),
-      ...proxyConfig
-    })
-
-    // Build extra with quota control settings
-    const baseExtra = oauth.buildExtraInfo(tokenInfo) || {}
-    const extra: Record<string, unknown> = { ...baseExtra }
-
-    // Add window cost limit settings
-    if (windowCostEnabled.value && windowCostLimit.value != null && windowCostLimit.value > 0) {
-      extra.window_cost_limit = windowCostLimit.value
-      extra.window_cost_sticky_reserve = windowCostStickyReserve.value ?? 10
-    }
-
-    // Add session limit settings
-    if (sessionLimitEnabled.value && maxSessions.value != null && maxSessions.value > 0) {
-      extra.max_sessions = maxSessions.value
-      extra.session_idle_timeout_minutes = sessionIdleTimeout.value ?? 5
-    }
-
-    // Add RPM limit settings
-    if (rpmLimitEnabled.value) {
-      const DEFAULT_BASE_RPM = 15
-      extra.base_rpm = (baseRpm.value != null && baseRpm.value > 0)
-        ? baseRpm.value
-        : DEFAULT_BASE_RPM
-      extra.rpm_strategy = rpmStrategy.value
-      if (rpmStickyBuffer.value != null && rpmStickyBuffer.value > 0) {
-        extra.rpm_sticky_buffer = rpmStickyBuffer.value
-      }
-    }
-
-    // UMQ mode（独立于 RPM）
-    if (userMsgQueueMode.value) {
-      extra.user_msg_queue_mode = userMsgQueueMode.value
-    }
-
-    // Add TLS fingerprint settings
-    if (tlsFingerprintEnabled.value) {
-      extra.enable_tls_fingerprint = true
-      if (tlsFingerprintProfileId.value) {
-        extra.tls_fingerprint_profile_id = tlsFingerprintProfileId.value
-      }
-    }
-
-    // Add session ID masking settings
-    if (sessionIdMaskingEnabled.value) {
-      extra.session_id_masking_enabled = true
-    }
-
-    // Add cache TTL override settings
-    if (cacheTTLOverrideEnabled.value) {
-      extra.cache_ttl_override_enabled = true
-      extra.cache_ttl_override_target = cacheTTLOverrideTarget.value
-    }
-
-    // Add custom base URL settings
-    if (customBaseUrlEnabled.value && customBaseUrl.value.trim()) {
-      extra.custom_base_url_enabled = true
-      extra.custom_base_url = customBaseUrl.value.trim()
-    }
-
-    const credentials: Record<string, unknown> = { ...tokenInfo }
-    applyInterceptWarmup(credentials, interceptWarmupRequests.value, 'create')
-    await createAccountAndFinish(form.platform, addMethod.value as AccountType, credentials, extra)
-  } catch (error: any) {
-    oauth.error.value = error.response?.data?.detail || t('admin.accounts.oauth.authFailed')
-    appStore.showError(oauth.error.value)
-  } finally {
-    oauth.loading.value = false
-  }
-}
-
-// 主入口：根据平台路由到对应处理函数
-const handleExchangeCode = async () => {
-  const authCode = oauthFlowRef.value?.authCode || ''
-
-  switch (form.platform) {
-    case 'openai':
-      return handleOpenAIExchange(authCode)
-    case 'gemini':
-      return handleGeminiExchange(authCode)
-    case 'antigravity':
-      return handleAntigravityExchange(authCode)
-    default:
-      return handleAnthropicExchange(authCode)
-  }
-}
-
-const handleCookieAuth = async (sessionKey: string) => {
-  oauth.loading.value = true
-  oauth.error.value = ''
-
-  try {
-    const proxyConfig = form.proxy_id ? { proxy_id: form.proxy_id } : {}
-    const keys = oauth.parseSessionKeys(sessionKey)
-
-    if (keys.length === 0) {
-      oauth.error.value = t('admin.accounts.oauth.pleaseEnterSessionKey')
-      return
-    }
-
-    const tempUnschedPayload = tempUnschedEnabled.value
-      ? buildTempUnschedRules(tempUnschedRules.value)
-      : []
-    if (tempUnschedEnabled.value && tempUnschedPayload.length === 0) {
-      appStore.showError(t('admin.accounts.tempUnschedulable.rulesInvalid'))
-      return
-    }
-
-    const endpoint =
-      addMethod.value === 'oauth'
-        ? '/admin/accounts/cookie-auth'
-        : '/admin/accounts/setup-token-cookie-auth'
-
-    let successCount = 0
-    let failedCount = 0
-    const errors: string[] = []
-
-    for (let i = 0; i < keys.length; i++) {
-      try {
-        const tokenInfo = await adminAPI.accounts.exchangeCode(endpoint, {
-          session_id: '',
-          code: keys[i],
-          ...proxyConfig
-        })
-
-        // Build extra with quota control settings
-        const baseExtra = oauth.buildExtraInfo(tokenInfo) || {}
-        const extra: Record<string, unknown> = { ...baseExtra }
-
-        // Add window cost limit settings
-        if (windowCostEnabled.value && windowCostLimit.value != null && windowCostLimit.value > 0) {
-          extra.window_cost_limit = windowCostLimit.value
-          extra.window_cost_sticky_reserve = windowCostStickyReserve.value ?? 10
-        }
-
-        // Add session limit settings
-        if (sessionLimitEnabled.value && maxSessions.value != null && maxSessions.value > 0) {
-          extra.max_sessions = maxSessions.value
-          extra.session_idle_timeout_minutes = sessionIdleTimeout.value ?? 5
-        }
-
-        // Add RPM limit settings
-        if (rpmLimitEnabled.value) {
-          const DEFAULT_BASE_RPM = 15
-          extra.base_rpm = (baseRpm.value != null && baseRpm.value > 0)
-            ? baseRpm.value
-            : DEFAULT_BASE_RPM
-          extra.rpm_strategy = rpmStrategy.value
-          if (rpmStickyBuffer.value != null && rpmStickyBuffer.value > 0) {
-            extra.rpm_sticky_buffer = rpmStickyBuffer.value
-          }
-        }
-
-        // UMQ mode（独立于 RPM）
-        if (userMsgQueueMode.value) {
-          extra.user_msg_queue_mode = userMsgQueueMode.value
-        }
-
-        // Add TLS fingerprint settings
-        if (tlsFingerprintEnabled.value) {
-          extra.enable_tls_fingerprint = true
-          if (tlsFingerprintProfileId.value) {
-            extra.tls_fingerprint_profile_id = tlsFingerprintProfileId.value
-          }
-        }
-
-        // Add session ID masking settings
-        if (sessionIdMaskingEnabled.value) {
-          extra.session_id_masking_enabled = true
-        }
-
-        // Add cache TTL override settings
-        if (cacheTTLOverrideEnabled.value) {
-          extra.cache_ttl_override_enabled = true
-          extra.cache_ttl_override_target = cacheTTLOverrideTarget.value
-        }
-
-        // Add custom base URL settings
-        if (customBaseUrlEnabled.value && customBaseUrl.value.trim()) {
-          extra.custom_base_url_enabled = true
-          extra.custom_base_url = customBaseUrl.value.trim()
-        }
-
-        const accountName = keys.length > 1 ? `${form.name} #${i + 1}` : form.name
-
-        const credentials: Record<string, unknown> = { ...tokenInfo }
-        applyInterceptWarmup(credentials, interceptWarmupRequests.value, 'create')
-        if (tempUnschedEnabled.value) {
-          credentials.temp_unschedulable_enabled = true
-          credentials.temp_unschedulable_rules = tempUnschedPayload
-        }
-
-        await adminAPI.accounts.create({
-          name: accountName,
-          notes: form.notes,
-          platform: form.platform,
-          type: addMethod.value, // Use addMethod as type: 'oauth' or 'setup-token'
-          credentials,
-          extra,
-          proxy_id: form.proxy_id,
-          concurrency: form.concurrency,
-          load_factor: form.load_factor ?? undefined,
-          priority: form.priority,
-          rate_multiplier: form.rate_multiplier,
-          group_ids: form.group_ids,
-          expires_at: form.expires_at,
-          auto_pause_on_expired: autoPauseOnExpired.value
-        })
-
-        successCount++
-      } catch (error: any) {
-        failedCount++
-        errors.push(
-          t('admin.accounts.oauth.keyAuthFailed', {
-            index: i + 1,
-            error: error.response?.data?.detail || t('admin.accounts.oauth.authFailed')
-          })
-        )
-      }
-    }
-
-    if (successCount > 0) {
-      appStore.showSuccess(t('admin.accounts.oauth.successCreated', { count: successCount }))
-      if (failedCount === 0) {
-        emit('created')
-        handleClose()
-      } else {
-        emit('created')
-      }
-    }
-
-    if (failedCount > 0) {
-      oauth.error.value = errors.join('\n')
-    }
-  } catch (error: any) {
-    oauth.error.value = error.response?.data?.detail || t('admin.accounts.oauth.cookieAuthFailed')
-  } finally {
-    oauth.loading.value = false
-  }
-}
 </script>

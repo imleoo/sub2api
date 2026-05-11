@@ -34,15 +34,6 @@ func RegisterAdminRoutes(
 		// 公告管理
 		registerAnnouncementRoutes(admin, h)
 
-		// OpenAI OAuth
-		registerOpenAIOAuthRoutes(admin, h)
-
-		// Gemini OAuth
-		registerGeminiOAuthRoutes(admin, h)
-
-		// Antigravity OAuth
-		registerAntigravityOAuthRoutes(admin, h)
-
 		// 代理管理
 		registerProxyRoutes(admin, h)
 
@@ -296,7 +287,6 @@ func registerAccountRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		accounts.POST("/:id/recover-state", h.Admin.Account.RecoverState)
 		accounts.POST("/:id/refresh", h.Admin.Account.Refresh)
 		accounts.POST("/:id/set-privacy", h.Admin.Account.SetPrivacy)
-		accounts.POST("/:id/refresh-tier", h.Admin.Account.RefreshTier)
 		accounts.GET("/:id/stats", h.Admin.Account.GetStats)
 		accounts.POST("/:id/clear-error", h.Admin.Account.ClearError)
 		accounts.GET("/:id/usage", h.Admin.Account.GetUsage)
@@ -312,21 +302,14 @@ func registerAccountRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		accounts.GET("/data", h.Admin.Account.ExportData)
 		accounts.POST("/data", h.Admin.Account.ImportData)
 		accounts.POST("/batch-update-credentials", h.Admin.Account.BatchUpdateCredentials)
-		accounts.POST("/batch-refresh-tier", h.Admin.Account.BatchRefreshTier)
 		accounts.POST("/bulk-update", h.Admin.Account.BulkUpdate)
 		accounts.POST("/batch-clear-error", h.Admin.Account.BatchClearError)
 		accounts.POST("/batch-refresh", h.Admin.Account.BatchRefresh)
 
 		// Antigravity 默认模型映射
-		accounts.GET("/antigravity/default-model-mapping", h.Admin.Account.GetAntigravityDefaultModelMapping)
+		// accounts.GET("/antigravity/default-model-mapping", ...) // 已移除
 
-		// Claude OAuth routes
-		accounts.POST("/generate-auth-url", h.Admin.OAuth.GenerateAuthURL)
-		accounts.POST("/generate-setup-token-url", h.Admin.OAuth.GenerateSetupTokenURL)
-		accounts.POST("/exchange-code", h.Admin.OAuth.ExchangeCode)
-		accounts.POST("/exchange-setup-token-code", h.Admin.OAuth.ExchangeSetupTokenCode)
-		accounts.POST("/cookie-auth", h.Admin.OAuth.CookieAuth)
-		accounts.POST("/setup-token-cookie-auth", h.Admin.OAuth.SetupTokenCookieAuth)
+		// Claude OAuth routes - 已移除
 	}
 }
 
@@ -339,35 +322,6 @@ func registerAnnouncementRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		announcements.PUT("/:id", h.Admin.Announcement.Update)
 		announcements.DELETE("/:id", h.Admin.Announcement.Delete)
 		announcements.GET("/:id/read-status", h.Admin.Announcement.ListReadStatus)
-	}
-}
-
-func registerOpenAIOAuthRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
-	openai := admin.Group("/openai")
-	{
-		openai.POST("/generate-auth-url", h.Admin.OpenAIOAuth.GenerateAuthURL)
-		openai.POST("/exchange-code", h.Admin.OpenAIOAuth.ExchangeCode)
-		openai.POST("/refresh-token", h.Admin.OpenAIOAuth.RefreshToken)
-		openai.POST("/accounts/:id/refresh", h.Admin.OpenAIOAuth.RefreshAccountToken)
-		openai.POST("/create-from-oauth", h.Admin.OpenAIOAuth.CreateAccountFromOAuth)
-	}
-}
-
-func registerGeminiOAuthRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
-	gemini := admin.Group("/gemini")
-	{
-		gemini.POST("/oauth/auth-url", h.Admin.GeminiOAuth.GenerateAuthURL)
-		gemini.POST("/oauth/exchange-code", h.Admin.GeminiOAuth.ExchangeCode)
-		gemini.GET("/oauth/capabilities", h.Admin.GeminiOAuth.GetCapabilities)
-	}
-}
-
-func registerAntigravityOAuthRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
-	antigravity := admin.Group("/antigravity")
-	{
-		antigravity.POST("/oauth/auth-url", h.Admin.AntigravityOAuth.GenerateAuthURL)
-		antigravity.POST("/oauth/exchange-code", h.Admin.AntigravityOAuth.ExchangeCode)
-		antigravity.POST("/oauth/refresh-token", h.Admin.AntigravityOAuth.RefreshToken)
 	}
 }
 

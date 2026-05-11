@@ -12,7 +12,7 @@ import (
 func TestAntigravityTokenProvider_GetAccessToken_Upstream(t *testing.T) {
 	provider := &AntigravityTokenProvider{}
 
-	t.Run("upstream account with valid api_key", func(t *testing.T) {
+	t.Run("any antigravity account returns not supported", func(t *testing.T) {
 		account := &Account{
 			Platform: PlatformAntigravity,
 			Type:     AccountTypeUpstream,
@@ -21,44 +21,8 @@ func TestAntigravityTokenProvider_GetAccessToken_Upstream(t *testing.T) {
 			},
 		}
 		token, err := provider.GetAccessToken(context.Background(), account)
-		require.NoError(t, err)
-		require.Equal(t, "sk-test-key-12345", token)
-	})
-
-	t.Run("upstream account missing api_key", func(t *testing.T) {
-		account := &Account{
-			Platform:    PlatformAntigravity,
-			Type:        AccountTypeUpstream,
-			Credentials: map[string]any{},
-		}
-		token, err := provider.GetAccessToken(context.Background(), account)
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "upstream account missing api_key")
-		require.Empty(t, token)
-	})
-
-	t.Run("upstream account with empty api_key", func(t *testing.T) {
-		account := &Account{
-			Platform: PlatformAntigravity,
-			Type:     AccountTypeUpstream,
-			Credentials: map[string]any{
-				"api_key": "",
-			},
-		}
-		token, err := provider.GetAccessToken(context.Background(), account)
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "upstream account missing api_key")
-		require.Empty(t, token)
-	})
-
-	t.Run("upstream account with nil credentials", func(t *testing.T) {
-		account := &Account{
-			Platform: PlatformAntigravity,
-			Type:     AccountTypeUpstream,
-		}
-		token, err := provider.GetAccessToken(context.Background(), account)
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "upstream account missing api_key")
+		require.Contains(t, err.Error(), "antigravity platform is no longer supported")
 		require.Empty(t, token)
 	})
 }
@@ -91,7 +55,7 @@ func TestAntigravityTokenProvider_GetAccessToken_Guards(t *testing.T) {
 		}
 		token, err := provider.GetAccessToken(context.Background(), account)
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "not an antigravity oauth account")
+		require.Contains(t, err.Error(), "antigravity platform is no longer supported")
 		require.Empty(t, token)
 	})
 }

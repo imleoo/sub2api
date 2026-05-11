@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
-import { adminAPI } from '@/api/admin'
+import { apiClient } from '@/api/client'
 import { extractApiErrorMessage, extractI18nErrorMessage } from '@/utils/apiError'
 
 export interface OpenAITokenInfo {
@@ -67,7 +67,7 @@ export function useOpenAIOAuth() {
         payload.redirect_uri = redirectUri
       }
 
-      const response = await adminAPI.accounts.generateAuthUrl(
+      const { data: response } = await apiClient.post<{ auth_url: string; session_id: string }>(
         `${endpointPrefix}/generate-auth-url`,
         payload
       )
@@ -114,8 +114,8 @@ export function useOpenAIOAuth() {
         payload.proxy_id = proxyId
       }
 
-      const tokenInfo = await adminAPI.accounts.exchangeCode(`${endpointPrefix}/exchange-code`, payload)
-      return tokenInfo as OpenAITokenInfo
+      const { data: tokenInfo } = await apiClient.post<OpenAITokenInfo>(`${endpointPrefix}/exchange-code`, payload)
+      return tokenInfo
     } catch (err: any) {
       error.value = extractI18nErrorMessage(
         err,
@@ -147,13 +147,13 @@ export function useOpenAIOAuth() {
 
     try {
       // Use dedicated refresh-token endpoint
-      const tokenInfo = await adminAPI.accounts.refreshOpenAIToken(
-        refreshToken.trim(),
-        proxyId,
-        `${endpointPrefix}/refresh-token`,
-        clientId
-      )
-      return tokenInfo as OpenAITokenInfo
+      const payload: { refresh_token: string; proxy_id?: number; client_id?: string } = {
+        refresh_token: refreshToken.trim()
+      }
+      if (proxyId) payload.proxy_id = proxyId
+      if (clientId) payload.client_id = clientId
+      const { data: tokenInfo } = await apiClient.post<OpenAITokenInfo>(`${endpointPrefix}/refresh-token`, payload)
+      return tokenInfo
     } catch (err: any) {
       error.value = extractI18nErrorMessage(
         err,

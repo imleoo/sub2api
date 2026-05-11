@@ -1687,20 +1687,10 @@ const resetRateLimitUsage = async () => {
 }
 
 const importToCcswitch = (row: ApiKey) => {
-  const platform = row.group?.platform || 'anthropic'
-
-  // For antigravity platform, show client selection dialog
-  if (platform === 'antigravity') {
-    pendingCcsRow.value = row
-    showCcsClientSelect.value = true
-    return
-  }
-
-  // For other platforms, execute directly
-  executeCcsImport(row, platform === 'gemini' ? 'gemini' : 'claude')
+  executeCcsImport(row)
 }
 
-const executeCcsImport = (row: ApiKey, clientType: 'claude' | 'gemini') => {
+const executeCcsImport = (row: ApiKey) => {
   const baseUrl = publicSettings.value?.api_base_url || window.location.origin
   const platform = row.group?.platform || 'anthropic'
 
@@ -1708,12 +1698,7 @@ const executeCcsImport = (row: ApiKey, clientType: 'claude' | 'gemini') => {
   let app: string
   let endpoint: string
 
-  if (platform === 'antigravity') {
-    // Antigravity always uses /antigravity suffix
-    app = clientType === 'gemini' ? 'gemini' : 'claude'
-    endpoint = `${baseUrl}/antigravity`
-  } else {
-    switch (platform) {
+  switch (platform) {
       case 'openai':
         app = 'codex'
         endpoint = baseUrl
@@ -1726,7 +1711,6 @@ const executeCcsImport = (row: ApiKey, clientType: 'claude' | 'gemini') => {
         app = 'claude'
         endpoint = baseUrl
     }
-  }
 
   const usageScript = `({
     request: {
@@ -1775,9 +1759,9 @@ const executeCcsImport = (row: ApiKey, clientType: 'claude' | 'gemini') => {
   }
 }
 
-const handleCcsClientSelect = (clientType: 'claude' | 'gemini') => {
+const handleCcsClientSelect = (_clientType: 'claude' | 'gemini') => {
   if (pendingCcsRow.value) {
-    executeCcsImport(pendingCcsRow.value, clientType)
+    executeCcsImport(pendingCcsRow.value)
   }
   showCcsClientSelect.value = false
   pendingCcsRow.value = null

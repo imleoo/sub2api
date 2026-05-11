@@ -40,10 +40,6 @@ type TokenRefreshService struct {
 // NewTokenRefreshService 创建token刷新服务
 func NewTokenRefreshService(
 	accountRepo AccountRepository,
-	oauthService *OAuthService,
-	openaiOAuthService *OpenAIOAuthService,
-	geminiOAuthService *GeminiOAuthService,
-	antigravityOAuthService *AntigravityOAuthService,
 	cacheInvalidator TokenCacheInvalidator,
 	schedulerCache SchedulerCache,
 	cfg *config.Config,
@@ -59,27 +55,8 @@ func NewTokenRefreshService(
 		stopCh:           make(chan struct{}),
 	}
 
-	openAIRefresher := NewOpenAITokenRefresher(openaiOAuthService, accountRepo)
-
-	claudeRefresher := NewClaudeTokenRefresher(oauthService)
-	geminiRefresher := NewGeminiTokenRefresher(geminiOAuthService)
-	agRefresher := NewAntigravityTokenRefresher(antigravityOAuthService)
-
-	// 注册平台特定的刷新器（TokenRefresher 接口）
-	s.refreshers = []TokenRefresher{
-		claudeRefresher,
-		openAIRefresher,
-		geminiRefresher,
-		agRefresher,
-	}
-
-	// 注册对应的 OAuthRefreshExecutor（带 CacheKey 方法）
-	s.executors = []OAuthRefreshExecutor{
-		claudeRefresher,
-		openAIRefresher,
-		geminiRefresher,
-		agRefresher,
-	}
+	s.refreshers = []TokenRefresher{}
+	s.executors = []OAuthRefreshExecutor{}
 
 	return s
 }

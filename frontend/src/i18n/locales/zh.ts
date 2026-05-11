@@ -3288,7 +3288,7 @@ export default {
       vertexSaJsonMissingClientEmail: 'Service Account JSON 缺少 client_email',
       vertexSaJsonInvalid: 'Service Account JSON 格式无效',
       vertexSaJsonRequired: '请上传 Service Account JSON',
-      oauthSetupToken: 'OAuth / Setup Token',
+      oauthSetupToken: 'Setup Token',
       addMethod: '添加方式',
       setupTokenLongLived: 'Setup Token（长期有效）',
       baseUrl: 'Base URL',

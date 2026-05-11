@@ -69,7 +69,6 @@ interface Props {
   modelValue: number[]
   groups: AdminGroup[]
   platform?: GroupPlatform // Optional platform filter
-  mixedScheduling?: boolean // For antigravity accounts: allow anthropic/gemini groups
   searchable?: boolean | 'auto'
 }
 
@@ -91,15 +90,7 @@ const isSearchable = computed(() => {
 const filteredGroups = computed(() => {
   let result: AdminGroup[] = props.groups
   if (props.platform) {
-    // antigravity 账户启用混合调度后，可选择 anthropic/gemini 分组
-    if (props.platform === 'antigravity' && props.mixedScheduling) {
-      result = result.filter(
-        (g) => g.platform === 'antigravity' || g.platform === 'anthropic' || g.platform === 'gemini'
-      )
-    } else {
-      // 默认：只能选择同 platform 的分组
-      result = result.filter((g) => g.platform === props.platform)
-    }
+    result = result.filter((g) => g.platform === props.platform)
   }
   if (isSearchable.value && searchText.value) {
     const q = searchText.value.toLowerCase()

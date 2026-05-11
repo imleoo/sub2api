@@ -10,6 +10,19 @@ import (
 	"time"
 )
 
+// TokenInfo OAuth token 信息
+type TokenInfo struct {
+	AccessToken  string `json:"access_token"`
+	TokenType    string `json:"token_type"`
+	ExpiresIn    int64  `json:"expires_in"`
+	ExpiresAt    int64  `json:"expires_at"`
+	RefreshToken string `json:"refresh_token,omitempty"`
+	Scope        string `json:"scope,omitempty"`
+	OrgUUID      string `json:"org_uuid,omitempty"`
+	AccountUUID  string `json:"account_uuid,omitempty"`
+	EmailAddress string `json:"email_address,omitempty"`
+}
+
 // OAuthRefreshExecutor 各平台实现的 OAuth 刷新执行器
 // TokenRefresher 接口的超集：增加了 CacheKey 方法用于分布式锁
 type OAuthRefreshExecutor interface {

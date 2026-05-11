@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { useAppStore } from '@/stores/app'
-import { adminAPI } from '@/api/admin'
+import { apiClient } from '@/api/client'
 
 export type AddMethod = 'oauth' | 'setup-token'
 export type AuthInputMethod = 'manual' | 'cookie' | 'refresh_token' | 'mobile_refresh_token' | 'session_token' | 'access_token' | 'codex_session'
@@ -59,7 +59,7 @@ export function useAccountOAuth() {
           ? '/admin/accounts/generate-auth-url'
           : '/admin/accounts/generate-setup-token-url'
 
-      const response = await adminAPI.accounts.generateAuthUrl(endpoint, proxyConfig)
+      const { data: response } = await apiClient.post<{ auth_url: string; session_id: string }>(endpoint, proxyConfig)
       authUrl.value = response.auth_url
       sessionId.value = response.session_id
       return true
@@ -92,13 +92,13 @@ export function useAccountOAuth() {
           ? '/admin/accounts/exchange-code'
           : '/admin/accounts/exchange-setup-token-code'
 
-      const tokenInfo = await adminAPI.accounts.exchangeCode(endpoint, {
+      const { data: tokenInfo } = await apiClient.post<TokenInfo>(endpoint, {
         session_id: sessionId.value,
         code: authCode.value.trim(),
         ...proxyConfig
       })
 
-      return tokenInfo as TokenInfo
+      return tokenInfo
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to exchange auth code'
       appStore.showError(error.value)
@@ -129,13 +129,13 @@ export function useAccountOAuth() {
           ? '/admin/accounts/cookie-auth'
           : '/admin/accounts/setup-token-cookie-auth'
 
-      const tokenInfo = await adminAPI.accounts.exchangeCode(endpoint, {
+      const { data: tokenInfo } = await apiClient.post<TokenInfo>(endpoint, {
         session_id: '',
         code: sessionKeyValue.trim(),
         ...proxyConfig
       })
 
-      return tokenInfo as TokenInfo
+      return tokenInfo
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Cookie authorization failed'
       return null

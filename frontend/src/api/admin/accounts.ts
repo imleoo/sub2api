@@ -298,34 +298,6 @@ export async function resetTempUnschedulable(id: number): Promise<{ message: str
 }
 
 /**
- * Generate OAuth authorization URL
- * @param endpoint - API endpoint path
- * @param config - Proxy configuration
- * @returns Auth URL and session ID
- */
-export async function generateAuthUrl(
-  endpoint: string,
-  config: { proxy_id?: number }
-): Promise<{ auth_url: string; session_id: string }> {
-  const { data } = await apiClient.post<{ auth_url: string; session_id: string }>(endpoint, config)
-  return data
-}
-
-/**
- * Exchange authorization code for tokens
- * @param endpoint - API endpoint path
- * @param exchangeData - Session ID, code, and optional proxy config
- * @returns Token information
- */
-export async function exchangeCode(
-  endpoint: string,
-  exchangeData: { session_id: string; code: string; state?: string; proxy_id?: number }
-): Promise<Record<string, unknown>> {
-  const { data } = await apiClient.post<Record<string, unknown>>(endpoint, exchangeData)
-  return data
-}
-
-/**
  * Batch create accounts
  * @param accounts - Array of account data
  * @returns Results of batch creation
@@ -555,17 +527,6 @@ export async function importCodexSession(payload: CodexSessionImportRequest): Pr
 }
 
 /**
- * Get Antigravity default model mapping from backend
- * @returns Default model mapping (from -> to)
- */
-export async function getAntigravityDefaultModelMapping(): Promise<Record<string, string>> {
-  const { data } = await apiClient.get<Record<string, string>>(
-    '/admin/accounts/antigravity/default-model-mapping'
-  )
-  return data
-}
-
-/**
  * Refresh OpenAI token using refresh token
  * @param refreshToken - The refresh token
  * @param proxyId - Optional proxy ID
@@ -660,8 +621,6 @@ export const accountsAPI = {
   resetTempUnschedulable,
   setSchedulable,
   getAvailableModels,
-  generateAuthUrl,
-  exchangeCode,
   refreshOpenAIToken,
   batchCreate,
   batchUpdateCredentials,
@@ -671,7 +630,6 @@ export const accountsAPI = {
   exportData,
   importData,
   importCodexSession,
-  getAntigravityDefaultModelMapping,
   batchClearError,
   batchRefresh,
   setPrivacy

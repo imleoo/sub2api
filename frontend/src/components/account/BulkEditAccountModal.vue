@@ -1150,18 +1150,11 @@ const allOpenAIPassthroughCapable = computed(() => {
     targetSelectedPlatforms.value.length === 1 &&
     targetSelectedPlatforms.value[0] === 'openai' &&
     targetSelectedTypes.value.length > 0 &&
-    targetSelectedTypes.value.every(t => t === 'oauth' || t === 'apikey')
+    targetSelectedTypes.value.every(t => t === 'apikey')
   )
 })
 
-const allOpenAIOAuth = computed(() => {
-  return (
-    targetSelectedPlatforms.value.length === 1 &&
-    targetSelectedPlatforms.value[0] === 'openai' &&
-    targetSelectedTypes.value.length > 0 &&
-    targetSelectedTypes.value.every(t => t === 'oauth')
-  )
-})
+const allOpenAIOAuth = computed(() => false)
 
 const allOpenAIAPIKey = computed(() => {
   return (
@@ -1172,14 +1165,7 @@ const allOpenAIAPIKey = computed(() => {
   )
 })
 
-// 是否全部为 Anthropic OAuth/SetupToken（RPM 配置仅在此条件下显示）
-const allAnthropicOAuthOrSetupToken = computed(() => {
-  return (
-    targetSelectedPlatforms.value.length === 1 &&
-    targetSelectedPlatforms.value[0] === 'anthropic' &&
-    targetSelectedTypes.value.every(t => t === 'oauth' || t === 'setup-token')
-  )
-})
+const allAnthropicOAuthOrSetupToken = computed(() => false)
 
 const filteredPresets = computed(() => {
   if (targetSelectedPlatforms.value.length === 0) return []
@@ -1548,7 +1534,7 @@ const canPreCheck = () =>
   enableGroups.value &&
   groupIds.value.length > 0 &&
   targetSelectedPlatforms.value.length === 1 &&
-  (targetSelectedPlatforms.value[0] === 'antigravity' || targetSelectedPlatforms.value[0] === 'anthropic')
+  targetSelectedPlatforms.value[0] === 'anthropic'
 
 const handleClose = () => {
   showMixedChannelWarning.value = false
