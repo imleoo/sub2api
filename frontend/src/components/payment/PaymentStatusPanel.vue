@@ -26,7 +26,7 @@
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-500 dark:text-gray-400">{{ t('payment.orders.payAmount') }}</span>
-                <span class="font-medium text-gray-900 dark:text-white">¥{{ paidOrder.pay_amount.toFixed(2) }}</span>
+                <span class="font-medium text-gray-900 dark:text-white">{{ formatGatewayAmount(paidOrder.pay_amount) }}</span>
               </div>
             </div>
           </div>
@@ -129,6 +129,7 @@ import { useAppStore } from '@/stores'
 import { paymentAPI } from '@/api/payment'
 import { extractI18nErrorMessage } from '@/utils/apiError'
 import { getPaymentPopupFeatures } from '@/components/payment/providerConfig'
+import { formatPaymentAmount, normalizePaymentCurrency } from '@/components/payment/currency'
 import type { PaymentOrder } from '@/types/payment'
 import Icon from '@/components/icons/Icon.vue'
 import { formatUSD } from '@/utils/format'
@@ -143,13 +144,15 @@ const props = defineProps<{
   paymentType: string
   payUrl?: string
   orderType?: string
+  currency?: string
 }>()
 
 type PaymentOutcome = 'success' | 'cancelled' | 'expired'
 
 const emit = defineEmits<{ done: []; success: []; settled: [outcome: PaymentOutcome] }>()
 
-const { t } = useI18n()
+const i18n = useI18n()
+const { t } = i18n
 const paymentStore = usePaymentStore()
 const appStore = useAppStore()
 
@@ -158,6 +161,15 @@ const qrUrl = ref('')
 const remainingSeconds = ref(0)
 const cancelling = ref(false)
 const paidOrder = ref<PaymentOrder | null>(null)
+const paymentCurrency = computed(() => normalizePaymentCurrency(props.currency))
+const localeCode = computed(() => {
+  const raw = i18n.locale as unknown
+  if (typeof raw === 'string') return raw
+  if (raw && typeof raw === 'object' && 'value' in raw) {
+    return String((raw as { value?: string }).value || '')
+  }
+  return undefined
+})
 
 function formatOrderAmount(order: PaymentOrder): string {
   return order.order_type === 'balance'
@@ -203,6 +215,10 @@ const countdownDisplay = computed(() => {
   const s = remainingSeconds.value % 60
   return m.toString().padStart(2, '0') + ':' + s.toString().padStart(2, '0')
 })
+
+function formatGatewayAmount(value: number): string {
+  return formatPaymentAmount(value, paymentCurrency.value, localeCode.value)
+}
 
 function isSuccessStatus(status: string | null | undefined): boolean {
   return status === 'COMPLETED' || status === 'PAID' || status === 'RECHARGING'
