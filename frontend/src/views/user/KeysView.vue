@@ -1691,7 +1691,8 @@ const resetRateLimitUsage = async () => {
 }
 
 const importToCcswitch = (row: ApiKey) => {
-  executeCcsImport(row)
+  pendingCcsRow.value = row
+  showCcsClientSelect.value = true
 }
 
 const executeCcsImport = (row: ApiKey, clientType: CcSwitchClientType) => {
