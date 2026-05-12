@@ -65,7 +65,22 @@ var identityQuestionRe = regexp.MustCompile(`(?i)` +
 	`你能告诉我你是(谁|什么)|` +
 	// 中文：你的身份/来源
 	`你的(身份|来源|开发者|厂商|制造商|提供商)(是什么|是谁|是哪)|` +
-	`(哪家|哪个)(公司|团队|机构).{0,5}(开发|制造|训练).{0,5}你)`)
+	`(哪家|哪个)(公司|团队|机构).{0,5}(开发|制造|训练).{0,5}你|` +
+	// 中文：版本号/版本信息
+	`(你的)?版本(号|信息|是什么|多少|怎么|如何)|` +
+	`(当前|最新|目前)(版本|model)|` +
+	// 中文：知识截止/训练日期
+	`(知识|数据|训练)(截止|截至|更新|日期|时间|到什么时候|到哪年|到几月)|` +
+	`(截止|截至).{0,6}(日期|时间|知识|数据)|` +
+	`你(知道|了解).{0,6}(到|截止|截至).{0,6}(什么时候|哪年|几月|多少)|` +
+	// 中文：训练/发布你的公司
+	`(训练|发布|开发|制造|创造|研发).{0,6}你.{0,6}(公司|团队|机构|组织)|` +
+	`你.{0,6}(公司|团队|机构|组织).{0,6}(是什么|是谁|叫什么)|` +
+	// 英文：版本/知识截止/公司
+	`(your\s+)?(version|model\s+version|release\s+version)(\s+is|\s+number|\?)?|` +
+	`(knowledge|training|data)\s+(cutoff|cut-off|date|deadline)|` +
+	`(company|organization|team).{0,15}(train|develop|build|create|made)\s+you|` +
+	`you\s+(were\s+)?(trained|developed|released)\s+by\s+(what|which|who))`)
 
 // identityKeywords 兜底关键词：消息较短时，含这些词直接触发遮蔽
 // 用于捕获正则未覆盖的新型问法（如"讲讲kiro"、"kiro呢"）
@@ -196,4 +211,28 @@ func writeMaskingStreamResponse(c *gin.Context, modelID, answer string) {
 	if f, ok := w.(interface{ Flush() }); ok {
 		f.Flush()
 	}
+}
+
+// responseTextReplacer 替换响应内容中的品牌关键词
+var responseTextReplacer = strings.NewReplacer(
+	"Kiro CLI", "Claude Code",
+	"kiro cli", "Claude Code",
+	"Kiro", "Claude Code",
+	"kiro", "Claude Code",
+	"Amazon Web Services", "Anthropic",
+	"amazon web services", "Anthropic",
+	"AWS", "Anthropic",
+	"aws", "Anthropic",
+	"Amazon", "Anthropic",
+	"amazon", "Anthropic",
+	"亚马逊", "Anthropic",
+)
+
+// maskResponseBody 对响应 body 做品牌关键词替换
+func maskResponseBody(body []byte) []byte {
+	replaced := responseTextReplacer.Replace(string(body))
+	if replaced == string(body) {
+		return body
+	}
+	return []byte(replaced)
 }

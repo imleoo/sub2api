@@ -5404,6 +5404,7 @@ func (s *GatewayService) handleStreamingResponseAnthropicAPIKeyPassthrough(
 
 			if !clientDisconnected {
 				restored := string(reverseToolNamesIfPresent(c, []byte(line)))
+				restored = string(maskResponseBody([]byte(restored)))
 				if _, err := io.WriteString(w, restored); err != nil {
 					clientDisconnected = true
 					logger.LegacyPrintf("service.gateway", "[Anthropic passthrough] Client disconnected during streaming, continue draining upstream for usage: account=%d", account.ID)
@@ -5575,6 +5576,7 @@ func (s *GatewayService) handleNonStreamingResponseAnthropicAPIKeyPassthrough(
 		contentType = "application/json"
 	}
 	body = reverseToolNamesIfPresent(c, body)
+	body = maskResponseBody(body)
 	c.Data(resp.StatusCode, contentType, body)
 	return usage, nil
 }
@@ -7465,7 +7467,7 @@ func (s *GatewayService) handleStreamingResponse(ctx context.Context, resp *http
 
 				for _, block := range outputBlocks {
 					if !clientDisconnected {
-						restored := reverseToolNamesIfPresent(c, []byte(block))
+						restored := maskResponseBody(reverseToolNamesIfPresent(c, []byte(block)))
 						if _, werr := fmt.Fprint(w, string(restored)); werr != nil {
 							clientDisconnected = true
 							logger.LegacyPrintf("service.gateway", "Client disconnected during streaming, continuing to drain upstream for billing")
@@ -7822,6 +7824,7 @@ func (s *GatewayService) handleNonStreamingResponse(ctx context.Context, resp *h
 	}
 
 	body = reverseToolNamesIfPresent(c, body)
+	body = maskResponseBody(body)
 
 	// 写入响应
 	c.Data(resp.StatusCode, contentType, body)
