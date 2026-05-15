@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **sub2api**（fork: bayma888/sub2api-bmai，分支: zhiguofan）是一个 AI API 网关平台，用于订阅配额分发。从上游 AI 订阅（OpenAI、Anthropic/Claude、Gemini、Antigravity 等）生成 API Key，分发给用户，支持计费、负载均衡和请求转发。
 
-**技术栈**：Go 1.26.1（Gin + Ent ORM）+ Vue 3.4+（Vite 5 + TailwindCSS + Pinia）+ PostgreSQL 18 + Redis 8
+**技术栈**：Go 1.26（具体小版本以 `backend/go.mod` 为准）+ Gin + Ent ORM；Vue 3.4+（Vite 5 + TailwindCSS + Pinia）+ PostgreSQL 18 + Redis 8
 
 ## zhiguofan 分支差异化开发
 
@@ -15,7 +15,7 @@ fork 功能列表、高风险文件、合并检查清单详见 **[`claudedocs/�
 ### 版本与同步策略
 
 - `main` 对齐上游，版本保持上游 `0.x.y`
-- `zhiguofan` 使用 fork 版本线，`backend/cmd/server/VERSION` 应保持 `1.x.y`，例如上游 `0.1.121` 对应 `1.1.121`
+- `zhiguofan` 使用 fork 版本线，`backend/cmd/server/VERSION` 主号固定为 `1`，次/修订号跟随上游（上游 `0.x.y` → 本分支 `1.x.y`）。当前值以仓库内 `backend/cmd/server/VERSION` 为准
 - 同步上游优先使用 `./script/sync_upstream_to_zhiguofan.sh`，该脚本负责 `upstream/main → main → origin/main → zhiguofan → origin/zhiguofan`
 - 脚本同步到 `zhiguofan` 后会把版本主号改为 `1`；如果手动 merge，必须手动检查 `backend/cmd/server/VERSION`
 - `AGENTS.md` 是指向 `CLAUDE.md` 的 symlink，保留单一规则源，不要复制成两份
@@ -33,17 +33,9 @@ cd frontend && pnpm run lint:check
 
 ## 常用命令
 
-### 根目录（Makefile）
-```bash
-make build        # 构建后端 + 前端
-make test         # 运行所有测试（后端单元测试 + 前端 lint/typecheck）
-make generate     # 重新生成 Ent ORM + Wire DI（go generate ./ent && go generate ./cmd/server）
-make dev-up       # 启动本地开发环境（Docker Compose）
-make dev-down     # 停止本地开发环境
-make dev-status   # 检查开发环境状态
-make dev-logs     # 查看开发环境日志
-make secret-scan  # 通过 tools/secret_scan.py 扫描密钥/凭据
-```
+### 根目录
+
+> 当前 `Makefile` 是空文件，没有可用 target。所有构建/测试/生成/开发环境命令请直接进入 `backend/`、`frontend/` 或调用 `script/dev_local.sh`（见下方）。
 
 ### 后端（Go）
 ```bash
@@ -180,7 +172,7 @@ Vitest 配置要求语句/分支/函数/行均达到 80% 覆盖率（`frontend/v
 ## 关键开发规则
 
 - **前端必须使用 pnpm**（禁止 npm）。每次修改依赖都要提交 `pnpm-lock.yaml`
-- **Go 版本必须是 1.26.1**（由 `backend/go.mod` 指定，CI 通过 `go-version-file` 自动读取）
+- **Go 版本以 `backend/go.mod` 为准**（当前 `go 1.26.3`），CI 通过 `go-version-file` 自动读取，不要在文档/CI 中硬编码具体小版本
 - **Ent schema 变更**：修改 `ent/schema/*.go` 后必须运行 `go generate ./ent`，并提交生成的代码
 - **Wire DI 变更**：修改 Wire providers 后运行 `go generate ./cmd/server`
 - **接口变更**：给 Go interface 新增方法后，**所有**实现该接口的 test stub 都必须补全。查找方式：`grep -r "type.*Stub.*struct\|type.*Mock.*struct" internal/`
