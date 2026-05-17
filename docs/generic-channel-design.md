@@ -66,14 +66,12 @@ PlatformAntigravity = "antigravity"
 
 ## 3. 术语定义
 
-| 名称 | 含义 | 示例 |
-|---|---|---|
-| `platform` | 当前系统用于路由、调度、UI 分类的账号平台字段 | `openai`、`anthropic`、`gemini` |
-| `protocol` | 实际请求/响应协议 | `openai_chat_completions`、`openai_responses`、`anthropic_messages`、`gemini` |
-| `vendor/provider` | 上游厂商或聚合渠道来源 | `deepseek`、`doubao`、`siliconflow`、`wanjie` |
-| `provider_key` | provider 字段经规范化（小写+trim+别名合并）后的稳定主键，所有按厂商聚合的统计 API 一律使用此键 | `deepseek`、`siliconflow` |
-| `endpoint` | 一个具体可请求的上游入口 | `base_url + path + auth` |
-| `generic channel` | 内置平台之外的厂商/聚合渠道抽象 | 不是第四种入站协议 |
+`platform` / `protocol` / `vendor` / `provider_key` 的定义与取值见 `glossary.md` §1.1–§1.3，本文档不重复。仅本节特有的两个术语：
+
+| 名称 | 含义 |
+|---|---|
+| `endpoint` | 一个具体可请求的上游入口（`base_url + path + auth`），Phase 5 数据结构见 `glossary.md` §4 |
+| `generic channel` | 内置平台之外的厂商/聚合渠道抽象；**不是第四种入站协议** |
 
 **Account ↔ Group 关系约束**：
 
@@ -105,6 +103,8 @@ OpenAI-compatible 通用渠道
 
 ### 4.2 推荐账号表示
 
+> `protocol` 取值见 `glossary.md` §1.1；`provider` 取值见 `glossary.md` §1.3 别名表。
+
 ```jsonc
 {
   "platform": "openai",
@@ -117,7 +117,7 @@ OpenAI-compatible 通用渠道
   "extra": {
     "provider": "deepseek",
     "provider_type": "official_compatible",
-    "protocol": "openai",
+    "protocol": "openai_chat",
     "models_source": "remote"
   }
 }
@@ -137,7 +137,7 @@ OpenAI-compatible 通用渠道
   "extra": {
     "provider": "siliconflow",
     "provider_type": "aggregator",
-    "protocol": "openai",
+    "protocol": "openai_chat",
     "models_source": "remote"
   }
 }
@@ -157,22 +157,13 @@ OpenAI-compatible 通用渠道
 
 ### 4.4 provider 字段规范化
 
-`extra.provider` 写入前必须经 `normalize_provider(s) = strings.ToLower(strings.TrimSpace(s))` 规范化，并对照固定别名表合并：
+`normalize_provider` 函数与完整别名表见 `glossary.md` §1.3（**单一权威源**）。
 
-| 输入 | 规范化为 `provider_key` |
-|---|---|
-| `DeepSeek` / `deep-seek` / `deepseek-official` | `deepseek` |
-| `SiliconFlow` / `silicon-flow` / `硅基流动` | `siliconflow` |
-| `Doubao` / `dou-bao` / `豆包` | `doubao` |
-| `Kimi` / `moonshot` | `kimi` |
-| `Qwen` / `qwen-plus` | `qwen` |
-| `Wanjie` / `wan-jie` / `万界方舟` | `wanjie` |
-
-规则：
+本节仅强调 Phase 1 实施约束：
 
 - 前端预设的 provider 标签为权威值；自定义 base_url 允许填新 provider，但保存前后端均执行规范化。
 - 所有按 provider 的聚合 API 仅接受规范化后的 `provider_key`，不接受未规范化字符串。
-- 别名表由后端维护并持久化为常量，新增 provider 必须先扩充别名表再上线。
+- 别名表由后端维护并持久化为常量，**新增 provider 必须先 PR 扩 `glossary.md` §1.3，再上线写入路径**。
 
 ---
 
@@ -180,7 +171,7 @@ OpenAI-compatible 通用渠道
 
 ### 5.1 后端
 
-1. **UsageLog schema 快照**：在 `backend/ent/schema/usage_log.go` 增加 `provider`（规范化后的 `provider_key`）与 `platform` 快照字段，与 `account_id` 同行写入；不依赖运行时 join account 反推历史，避免账号改 provider 或被删除导致历史口径漂移。新增 `(provider, created_at)`、`(account_id, created_at)` 复合索引，避免账号/厂商维度查询退化为 `(group_id, created_at)` 索引的次选项。
+1. **UsageLog schema 快照**：`provider` 字段（规范化后的 `provider_key`）由 **Phase 0 落地**（详见 `docs/upstream-cost-snapshot.md` §2.1 与 `docs/sprint-plan.md` P0-2），本 Phase **不再重复新增 `provider` 列**，避免 ent codegen 与迁移脚本双写冲突。本 Phase 仅在 `backend/ent/schema/usage_log.go` 补：(a) `platform` 快照字段（如未与 P0-2 合并落地）；(b) `(provider, created_at)`、`(account_id, created_at)` 两个复合索引，避免账号/厂商维度查询退化为 `(group_id, created_at)` 索引的次选项。写入路径仍遵循"快照同行、不 join account 反推"的原则，与 P0-2 的 `account_rate_multiplier` 快照模式一致。
 2. **provider 元信息读写规范**：前端入参写 `extra.provider`，后端写 UsageLog 前调用 §4.4 的 `normalize_provider`；`credentials.provider` 仅作历史兼容读路径，新写入不再使用。账号创建、测试连接、模型同步、统计展示均透出 `provider_key`。
 3. **新增聚合 API**：
    - `GetStatsByProvider(ctx, timeRange, filters)`：按 `provider_key` 聚合 token/cost/请求数。
@@ -249,44 +240,11 @@ OpenAI-compatible 通用渠道
 
 ### 6.1 目标结构
 
-```jsonc
-{
-  "platform": "generic",
-  "type": "apikey",
-  "credentials": {
-    "api_key": "sk-xxx",
-    "provider": "wanjie",
-    "endpoints": [
-      {
-        "id": "wanjie-openai",
-        "protocol": "openai",
-        "base_url": "https://maas-openapi.example.com/openai/v1",
-        "auth": {
-          "header": "Authorization",
-          "scheme": "Bearer"
-        },
-        "models": {
-          "source": "remote",
-          "path": "/models"
-        }
-      },
-      {
-        "id": "wanjie-anthropic",
-        "protocol": "anthropic",
-        "base_url": "https://maas-openapi.example.com/anthropic",
-        "auth": {
-          "header": "x-api-key",
-          "scheme": ""
-        },
-        "models": {
-          "source": "manual",
-          "items": ["claude-sonnet-4-6"]
-        }
-      }
-    ]
-  }
-}
-```
+完整数据结构定义见 `glossary.md` §4（**单一权威源**）。本节仅记录 Phase 5 的设计意图：
+
+- 一个 `platform=generic` 账号挂多个 endpoint，每个 endpoint 有稳定 `id` 用于 UsageLog 快照。
+- 每个 endpoint 独立持有 `protocol`（取值见 `glossary.md` §1.1）、`base_url`、`auth`、`models` 配置。
+- 同一 `provider`（如万界方舟）下的多协议 endpoint 在一个账号内表达，避免拆账号管理多个 base_url。
 
 ### 6.2 必须同步改造的链路
 

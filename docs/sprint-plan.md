@@ -1,15 +1,10 @@
 # MAAS 重构 — Sprint 拆分计划
 
-> 状态：v1 | 日期：2026-05-14 | 关联：`docs/relay-architecture-design.md` §7、`docs/upstream-cost-snapshot.md`、`docs/generic-channel-design.md`
+> 状态：v1 | 日期：2026-05-14 | 关联：`glossary.md`（事实表）、`relay-architecture-design.md`、`upstream-cost-snapshot.md`、`generic-channel-design.md`
 
-把 6 个 Phase（Phase 0 计费先行 + Phase 1–5）的总体路线拆解为 **31 个独立可合并、独立可回滚的 PR**。每个 PR 的拆分原则见下节。本文档面向 sprint planning 和 PR 排期，不重复设计细节（设计见上述三份关联文档）。
+把 6 个 Phase 的总体路线拆解为 **31 个独立可合并、独立可回滚的 PR**。本文档面向 sprint planning 和 PR 排期，不重复设计细节（设计见上述三份关联文档）；Phase 编号、总工期、字段清单、protocol 取值等原子事实统一引用 `glossary.md`。
 
-**总工期估算**（1–2 名熟手全栈，按下面"全局 Sprint 编排"节排到 W22）：
-
-- **不含 Phase 5**：~14 周（W1–W14，Phase 0–4 完成）
-- **含 Phase 5 完整观察期**：~22 周（W15–W22，含 4 周 scheduler 双桶并存验证）
-
-之前在 `relay-architecture-design.md` §7 标的"12–16 周"是不含 Phase 5 观察期的乐观估算；以本节为准。
+**总工期与 Phase 简表**：见 `glossary.md` §2（**单一权威源**）。摘要：14 周（不含 Phase 5 观察期） / 22 周（含 Phase 5 的 4 周双桶并存观察）。
 
 ---
 
@@ -34,11 +29,11 @@
 | PR | 内容 | 关键文件 | 人天 | 依赖 | 验收 |
 |---|---|---|---|---|---|
 | **P0-1** | 新增 `provider_pricing` ent schema + 迁移 | `backend/ent/schema/provider_pricing.go`（新）；`go generate ./ent` | 1 | — | `provider_pricing` 表创建成功；可手动 INSERT/SELECT |
-| **P0-2** | `UsageLog` 6 个新字段（全部可空） | `backend/ent/schema/usage_log.go` + ent 生成 | 1 | — | schema migration 通过；新字段写入读取空值不报错 |
+| **P0-2** | `UsageLog` 7 个新字段（全部可空）：`upstream_unit_price_input` / `upstream_unit_price_output` / `upstream_unit_price_cache_creation` / `upstream_unit_price_cache_read` / `upstream_total_cost` / `provider` / `pricing_source`（详见 `upstream-cost-snapshot.md` §2.1） | `backend/ent/schema/usage_log.go` + ent 生成 | 1 | — | schema migration 通过；新字段写入读取空值不报错；`upstream_total_cost` 与 `pricing_source` 一致性约束写入 CHECK 或单测断言 |
 | **P0-3** | `ProviderPricingRepository` CRUD + `FindEffective(provider, model, now)` | `backend/internal/repository/provider_pricing_repo.go`（新）+ 单测 | 1.5 | P0-1 | 单测覆盖：精确匹配 / 通配符 / 生效区间命中 |
 | **P0-4** | 新增独立 `resolveUpstreamCost()`（**不修改 `account_stats_pricing.go`**） + 单测 | 新增 `backend/internal/service/upstream_cost.go`；详见 `upstream-cost-snapshot.md` §3.2 | 2 | P0-2, P0-3 | 单测覆盖：命中 `provider_pricing` 返回 `(cost, "provider_table")`；未命中返回 `(nil, "")`；**不与 LiteLLM/fallback 估算交互**；`account_stats_pricing.go` 文件 0 diff |
-| **P0-5** | `writeUsageLogBestEffort` 双轨写入 + feature flag | `backend/internal/service/gateway_service.go:8260-8283` + 配置项 `USAGE_UPSTREAM_COST_ENABLED` | 2 | P0-4 | 集成测试：未命中行 `upstream_total_cost` 与 `pricing_source` **同时 NULL**；命中行同时非空；flag=false 时回到旧行为 |
-| **P0-6** | 历史回填 job（`provider` 字段，分批 ≤10000 行）+ 对账 job | `backend/cmd/migrate_provider/`（新）+ `script/reconcile_upstream_cost.sh` | 2 | P0-5 | 旧行 `provider` 由 `account.platform` 推导后填入；对账 job 每日产出 provider/account 维度差异报告 |
+| **P0-5** | UsageLog 装配点双轨写入 + feature flag | 抽 `applyUpstreamCostSnapshot()` helper，由 3 处构造点共调：`gateway_service.go:8641`（builder）、`openai_gateway_service.go:5309`、`usage_service.go:94`；配置项 `USAGE_UPSTREAM_COST_ENABLED`（**`writeUsageLogBestEffort` 函数本身不改**） | 4 | P0-4 | 集成测试：未命中行 `upstream_total_cost` 与 `pricing_source` **同时 NULL**；命中行同时非空；flag=false 时回到旧行为；3 个构造点行为等价 |
+| **P0-6** | 对账 job（`provider` 历史回填**延后到 Phase 1**，本 PR 不做） | `script/reconcile_upstream_cost.sh`（新，仅对账） | 1 | P0-5 | 对账 job 每日产出 provider/account 维度差异报告；旧行 `provider` 保持 NULL（避免按 `account.platform` 粗粒度回填污染 provider_key 桶，详见 `upstream-cost-snapshot.md` §2.3） |
 
 **Sprint 编排建议**：
 
@@ -53,7 +48,7 @@
 
 | PR | 内容 | 关键文件 | 人天 | 依赖 | 验收 |
 |---|---|---|---|---|---|
-| **P1-1** | `normalize_provider` 别名表 + `extra.provider` 写入规范 | `backend/internal/service/provider_normalize.go`（新）+ 单测 | 1.5 | — | 单测覆盖：`DeepSeek` / `deep-seek` / `deepseek-official` → `deepseek` 单桶 |
+| **P1-1** | `normalize_provider` 别名表 + `extra.provider` 写入规范 + 细颗粒历史回填 job | `backend/internal/service/provider_normalize.go`（新）+ `backend/cmd/migrate_provider/`（新，按 `account.extra.provider` 推 UsageLog `provider`，**不读 `account.platform`**）+ 单测 | 2.5 | — | 单测覆盖：`DeepSeek` / `deep-seek` / `deepseek-official` → `deepseek` 单桶；回填 job 仅处理 `extra.provider` 非空且账号存活的行，已删账号或未写 `extra.provider` 行保持 NULL |
 | **P1-2** | 跨 group 聚合 Repository API | `backend/internal/repository/usage_log_repo.go` 新增 `GetStatsByProvider` / `GetAccountStatsCrossGroup` + 单测 | 2.5 | P0-2 | 单测验证：账号挂多 group 时汇总 = 各 group 行级和；查询调用栈无 `group_id` 强过滤 |
 | **P1-3** | 前端 `AccountPlatform` 类型补齐 + 表单 Provider 预设 | `frontend/src/types/index.ts:672` 加入 `antigravity`（**不加 `generic`**，留待 Phase 5）；`frontend/src/components/account/CreateAccountModal.vue` Provider 下拉 + 自定义 base_url | 3 | — | 类型检查通过；表单可选择预设并保存；旧账号兼容；不出现可选但无法路由的 `generic` 选项 |
 | **P1-4** | `ProviderDistributionChart.vue` + `AccountDistributionChart.vue` | `frontend/src/components/charts/` 新增两个组件 + 接 P1-2 API | 3 | P1-2 | 统计页三视图并列；Account 卡片显示"覆盖分组数 = N" |
@@ -71,7 +66,7 @@
 |---|---|---|---|---|---|
 | **P2-1** | schema 新增 + 迁移回填 | `backend/ent/schema/group.go:55` 加 `inbound_protocol`；`account.go:64` 加 `outbound_protocol`；迁移脚本从 `platform` 推导默认值 | 2 | — | 升级后旧 group/account 双字段一致；新建支持只填新字段 |
 | **P2-2** | `domain/protocol.go` 常量集中 + alias + deprecation linter | 新文件 + `service.PlatformOpenAI` 等改 alias；staticcheck 自定义检查 | 3 | P2-1 | `go build` 通过；旧引用编译期 warning；CI 报告但不阻断 |
-| **P2-3** | `routes/gateway.go` 8 处分流改"先新字段后回退" | `backend/internal/server/routes/gateway.go` 行 52/60/76/83/92/142/160/234 | 4 | P2-2 | 旧 group（仅 `platform`）所有路径正常；新 group（只填 `inbound_protocol`）所有路径正常 |
+| **P2-3** | `routes/gateway.go` 7 处分流改"先新字段后回退" | 行号见 `glossary.md` §5（共 7 处分流 + 1 处 helper） | 4 | P2-2 | 旧 group（仅 `platform`）所有路径正常；新 group（只填 `inbound_protocol`）所有路径正常 |
 | **P2-4** | 启动健康检查 + 监控告警 | 新增 startup check 扫描所有 group/account 双字段一致性 + 不一致行计数 metric | 2 | P2-3 | 启动时若发现不一致打 ERROR 日志；监控面板可见不一致行数 |
 | **P2-5** | 6 入口路径端到端回归集 | 6 入口路径 × 4 平台 × 流式/非流式 测试用例（强内聚不可再切：同一套 fixture 与断言库） | 4 | P2-4 | 全集通过；新增任意桥时复用该回归集 |
 
@@ -123,7 +118,7 @@
 
 ## 全局 Sprint 编排
 
-按 1-2 人全栈，5 个 Phase 大约 8 个 Sprint：
+Phase 编号与总工期口径见 `glossary.md` §2。按 1–2 人全栈,6 个 Phase 约 8 个 Sprint:
 
 | Sprint | 起止时间 | PR | 重点 |
 |---|---|---|---|
@@ -136,7 +131,7 @@
 | 7 | W13-W14 | P4-1/2/3 | Phase 4 Gemini 桥 |
 | 8 | W15-W22 | P5-1～P5-6 | Phase 5 多 endpoint + scheduler 重构（含 4 周观察） |
 
-**总工期**：12 周（不含 Phase 5）/ 16 周（含 Phase 5 观察期）。
+**总工期**：见 `glossary.md` §2（单一权威源）。
 
 ---
 

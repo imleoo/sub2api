@@ -37,6 +37,8 @@
 
 ### 2.1 UsageLog 新增字段（全部可空）
 
+字段清单（名称、类型、PR 归属、一致性约束）见 `glossary.md` §3.1。本节给出 ent schema 实现细节（`SchemaType` 精度、注释等），供 P0-2 实施时复制；字段含义不重复定义。
+
 修改 `backend/ent/schema/usage_log.go`，在现有"成本字段"块下方新增：
 
 ```go
@@ -132,9 +134,9 @@ func (ProviderPricing) Indexes() []ent.Index {
 
 由后台离线 job 完成（不阻塞发布）：
 
-1. 旧行 `provider` 字段：根据 `account_id` 反向 join `accounts.platform`，按 `normalize_provider` 规则规范化后填入。
+1. 旧行 `provider` 字段：**Phase 0 不做粗粒度回填**。原因：当前 `account.platform` 只有 `anthropic/openai/gemini/antigravity` 四值，DeepSeek/豆包/硅基流动等 OpenAI-compatible 渠道全部挂在 `platform=openai`，按 `account.platform` 推导会把这些行的 `provider` 全部填成 `openai`，与 Phase 1 才上线的 `normalize_provider` 别名表桶不通，违反 §5.4 第 5 条"历史快照独立性"承诺。**历史行 `provider` 保留 NULL**，等 Phase 1 联动写入 `extra.provider` 后，针对仍可读到 `account.extra.provider` 的活跃账号做一次"细颗粒"回填 job（仅按 `extra.provider` 推，账号已删则放弃）。
 2. 旧行 `upstream_total_cost` 与 `pricing_source`：**两者均保留 NULL**，不补算。统计页对 `upstream_total_cost = NULL` 的行明确打"无上游成本快照"标签并从毛利聚合中排除（不再混入 `account_stats_pricing` 的估算到上游成本字段）。
-3. 分批回填脚本：单批 ≤10000 行，分批间 sleep 500ms，避免锁表。
+3. 分批回填脚本（Phase 1 后启动的细颗粒回填 job 适用同样约束）：单批 ≤10000 行，分批间 sleep 500ms，避免锁表。
 
 ---
 
@@ -199,7 +201,15 @@ func resolveUpstreamCost(
 
 ### 4.1 双轨写入
 
-`backend/internal/service/gateway_service.go:8260-8283` 的 `writeUsageLogBestEffort` 在构造 UsageLog 时，同时计算：
+> **修改点定位**：`writeUsageLogBestEffort`（`gateway_service.go:8260`）本身只是 ent.Create 兜底封装，不构造任何字段，**不在这里改**。UsageLog 字段构造在 3 个调用上游：
+>
+> - `backend/internal/service/gateway_service.go:8638`（builder 函数，行 8641 起 `usageLog := &UsageLog{...}`）
+> - `backend/internal/service/openai_gateway_service.go:5309`
+> - `backend/internal/service/usage_service.go:94`
+>
+> 上游成本快照应在每个构造点装配，或抽出公共 `applyUpstreamCostSnapshot(usageLog, ...)` helper 由三处共调。
+
+UsageLog 构造时同时计算：
 
 - **售价侧（不变）**：现有客户计费链（`resolveAccountStatsCost` 四级回退）产出 `total_cost` 与 `actual_cost`。
 - **成本侧（新增，两态）**：调用 `resolveUpstreamCost(ctx, provider, upstreamModel, tokens)`：
@@ -266,7 +276,7 @@ Phase 0 验收：
    - `actual_cost ≥ upstream_total_cost`
 2. 后台导入一份 DeepSeek 单价（`provider="deepseek"`），DeepSeek 账号的下一次请求 `pricing_source = "provider_table"` 且金额吻合。
 3. 未导入单价的 provider（如刚接入的新渠道），请求行 `upstream_total_cost = NULL` **且** `pricing_source = NULL`（**两者必须同时 NULL**，不允许出现"NULL 成本 + 非 NULL source"或反向组合）；运营页对该行明确显示"无上游成本快照"，不混用 `account_stats_pricing` 估算回填。
-4. 历史回填：升级前的 UsageLog 行，离线 job 跑完后 `provider` 字段非空（从 `account.platform` 推导）；`upstream_total_cost` 与 `pricing_source` 均保持 NULL。
+4. 历史回填：升级前的 UsageLog 行，Phase 0 阶段 `provider` 保持 NULL（不做粗粒度 `account.platform` 推导）；Phase 1 联动 job 跑完后，**仍存活且已写入 `extra.provider`** 的账号对应历史行 `provider` 非空，已删账号或未写 `extra.provider` 的历史行 `provider` 保持 NULL；`upstream_total_cost` 与 `pricing_source` 全程保持 NULL。
 5. 同一 provider 在不同时间段调价：调价后写入的行 `upstream_unit_price_*` 反映新价；调价前的历史行保持旧价快照，不被回写。
 6. 毛利视图：按 provider 聚合，`margin = sum(actual_cost) - sum(upstream_total_cost)`，仅对 `upstream_total_cost` 非空的行汇总；视图上"无上游成本快照"行数与占比明示。
 7. 字段一致性约束（单元/集成测试）：扫描全表，**不应存在** `(upstream_total_cost IS NULL AND pricing_source IS NOT NULL)` 或 `(upstream_total_cost IS NOT NULL AND pricing_source IS NULL)` 的行。

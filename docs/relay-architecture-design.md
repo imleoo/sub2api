@@ -1,6 +1,6 @@
 # API 中转商架构设计方案
 
-> 状态：草稿 v2 | 日期：2026-05-14 | 修订：结合 zhiguofan 分支当前源码事实修订路线图与桥接矩阵判断；新增 §11 流式 SSE 测试集；Phase 拆分由 4 阶段调整为 5 阶段。
+> 状态：草稿 v2 | 日期：2026-05-14 | 修订：结合 zhiguofan 分支当前源码事实修订路线图与桥接矩阵判断；新增 §11 流式 SSE 测试集；Phase 拆分调整为 6 阶段（Phase 0 计费先行 + Phase 1–5）。
 
 ---
 
@@ -79,7 +79,7 @@ Group.Platform != "openai"
 - 协议双向转换的"翻译层"在 `pkg/apicompat/` 已经基本成型；缺的是把 `ForwardAsAnthropic` 与 `ForwardAsResponses` 抽到 `ProtocolBridge` 注册表，并拼装 ChatCompletions↔Anthropic 一对桥（apicompat 已有零件）。
 - `ForwardAsAnthropic` / `ForwardAsResponses` 的命名容易误导：它们的含义是"让某协议账号接受另一种入站协议"，不是单向转换，请按方向标注（"入站→上游"）阅读。
 - 当前路由仍由入口路径和 `Group.Platform` 选 handler，再由 handler/service 做账号选择、sticky、并发、计费、failover。Bridge 改造必须嵌入现有链路，不能取代 handler/service。
-- 平台常量扩散面：实测 `Platform{Anthropic,OpenAI,Gemini,Antigravity}` 命中 **49 个非测试 Go 文件 + 167 个含测试**。`Account.platform`、`Group.platform` 已固化在 ent schema 和索引中（`group.go:55,187` / `account.go:64`）。这决定了**只能渐进迁移**，一次性替换 49 文件不现实。
+- 平台常量扩散面：`Platform{Anthropic,OpenAI,Gemini,Antigravity}` 已在大量文件中固化（精确数字见 `glossary.md` §6）。`Account.platform`、`Group.platform` 已固化在 ent schema 和索引中（代码位置见 `glossary.md` §5）。这决定了**只能渐进迁移**，一次性替换不现实。
 
 ---
 
@@ -105,33 +105,33 @@ Layer 3: 出站账号层
 
 ### 3.2 数据模型变化
 
-**Group（分组）**新增 `inbound_protocol`：
+**Group（分组）**新增 `inbound_protocol`（取值见 `glossary.md` §1.1）：
 
 ```go
 // 兼容迁移：inbound_protocol 为空时按 platform 推断
-group.Platform        = "anthropic" // 现有分组类型/兼容字段
-group.InboundProtocol = "anthropic" // 用户请求协议
+group.Platform        = "anthropic"           // 现有分组类型/兼容字段
+group.InboundProtocol = "anthropic_messages"  // 用户请求协议,glossary §1.1 取值
 ```
 
-入口层改造要求：
+入口层改造要求（取值统一使用 glossary §1.1 长名）：
 
-- `/v1/messages`：不能再只用 `Group.Platform == openai` 决定是否进 OpenAI handler；应读取 `Group.InboundProtocol == anthropic`，再由后续调度决定出站协议。
-- `/v1/chat/completions` 与 `/chat/completions`：应以 `Group.InboundProtocol == openai` 为入口判断。
-- `/v1/responses`、`/responses`、`/backend-api/codex/responses`：应明确属于 OpenAI Responses 入站协议，不能继续混用 group platform。
-- `/v1beta/*`：应以 `Group.InboundProtocol == gemini` 为入口判断，并保留 Google 格式错误响应。
+- `/v1/messages`：不能再只用 `Group.Platform == openai` 决定是否进 OpenAI handler；应读取 `Group.InboundProtocol == anthropic_messages`，再由后续调度决定出站协议。
+- `/v1/chat/completions` 与 `/chat/completions`：应以 `Group.InboundProtocol == openai_chat` 为入口判断。
+- `/v1/responses`、`/responses`、`/backend-api/codex/responses`：应明确属于 `openai_responses` 入站协议，不能继续混用 group platform。
+- `/v1beta/*`：应以 `Group.InboundProtocol == gemini_v1beta` 为入口判断，并保留 Google 格式错误响应。
 
-**Account（账号）**新增 `outbound_protocol`：
+**Account（账号）**新增 `outbound_protocol`（取值同 glossary §1.1）：
 
 ```go
 // 兼容迁移：outbound_protocol 为空时按 platform/type 推断
-account.Platform         = "openai" // 厂商/账号类型
-account.OutboundProtocol = "openai" // 实际上游协议
+account.Platform         = "openai"        // 厂商/账号类型
+account.OutboundProtocol = "openai_chat"   // 实际上游协议,glossary §1.1 取值
 ```
 
 账号筛选要求：
 
-- native 账号：`platform=anthropic`、`outbound_protocol=anthropic`。
-- OpenAI 兼容账号：`platform=openai`、`outbound_protocol=openai`，但还要区分 `/v1/responses` 能力和 `/v1/chat/completions` 能力。
+- native 账号：`platform=anthropic`、`outbound_protocol=anthropic_messages`。
+- OpenAI 兼容账号：`platform=openai`、`outbound_protocol=openai_chat` 或 `openai_responses`，按 `/v1/responses` 能力探测结果确定。
 - Antigravity 账号：不能只写成一个协议；它现有同时涉及 Anthropic 和 Gemini 兼容，需要按账号类型和 endpoint 能力归档。
 - 通用渠道账号：Phase 1 先复用真实协议平台并补充 provider 元信息；只有进入多 endpoint Generic 阶段时，才新增 `platform=generic` 常量、schema/service、前端表单和统计维度。
 
@@ -205,15 +205,17 @@ Bridge 必须输出：
 
 ### 4.3 第一批 Bridge
 
+Bridge ID 命名规则与 protocol 取值见 `glossary.md` §1.1；代码定位（`ForwardAsAnthropic` / `ForwardAsResponses` 等）见 `glossary.md` §5。
+
 | Bridge ID | 来源 | 优先级 | 说明 |
 |---|---|---:|---|
-| `anthropic->openai_responses` | 现有 `ForwardAsAnthropic`（`openai_gateway_messages.go:28`） | P0 | Phase 3 注册到 Registry，不是重新实现 |
-| `openai_responses->anthropic` | 现有 `ForwardAsResponses`（`gateway_forward_as_responses.go:31`） | P0 | Phase 3 注册到 Registry；先前版本误标为"待实现"已修正 |
-| `anthropic->openai_chat_completions` | 新增（apicompat 已有零件拼装） | P1 | 面向只支持 Chat Completions 的 DeepSeek/Kimi/Qwen 等兼容上游 |
-| `openai_chat_completions->anthropic` | 新增（apicompat 已有零件拼装） | P1 | 复用 `chatcompletions_to_responses` + `responses_to_anthropic` |
-| `openai_responses->openai_chat_completions` | 新增（apicompat 已直通） | P2 | 同源协议互转，黏合工作量最低 |
-| `gemini->openai` / `gemini->anthropic` | 新增 | P3 | Phase 4 Gemini 入站桥 |
-| `openai->gemini` / `anthropic->gemini` | 新增 | P4 | 按真实客户场景排期，可推迟 |
+| `anthropic_messages->openai_responses` | 现有 `ForwardAsAnthropic` | P0 | Phase 3 注册到 Registry，不是重新实现 |
+| `openai_responses->anthropic_messages` | 现有 `ForwardAsResponses` | P0 | Phase 3 注册到 Registry；先前版本误标为"待实现"已修正 |
+| `anthropic_messages->openai_chat` | 新增（apicompat 已有零件拼装） | P1 | 面向只支持 Chat Completions 的 DeepSeek/Kimi/Qwen 等兼容上游 |
+| `openai_chat->anthropic_messages` | 新增（apicompat 已有零件拼装） | P1 | 复用 `chatcompletions_to_responses` + `responses_to_anthropic` |
+| `openai_responses->openai_chat` | 新增（apicompat 已直通） | P2 | 同源协议互转，黏合工作量最低 |
+| `gemini_v1beta->openai_chat` / `gemini_v1beta->anthropic_messages` | 新增 | P3 | Phase 4 Gemini 入站桥 |
+| `openai_chat->gemini_v1beta` / `anthropic_messages->gemini_v1beta` | 新增 | P4 | 按真实客户场景排期，可推迟 |
 
 ---
 
@@ -287,9 +289,9 @@ type BridgeCapabilities struct {
 - 默认值策略沿用 `ShouldUseResponsesAPI()`：`FitUnknown` 视为乐观（让调度尝试）；只有显式 `FitRejected` 才硬剔除。
 - 不再为 BridgeCapabilities 单独建表，避免与 `extra` JSON 双源。
 
-能力矩阵基线：
+能力矩阵基线（Bridge ID 命名遵循 `glossary.md` §1.1：`<inbound>-><outbound>` 使用 protocol 长名）：
 
-| 特性 | `anthropic->anthropic` | `anthropic->openai_responses` | `anthropic->openai_chat_completions` | `openai->anthropic` |
+| 特性 | `anthropic_messages->anthropic_messages` | `anthropic_messages->openai_responses` | `anthropic_messages->openai_chat` | `openai_responses->anthropic_messages` |
 |---|---|---|---|---|
 | text | Native | Native | Native | 待验证 |
 | vision | Native | Native/需按模型能力判断 | Native/需按模型能力判断 | 待验证 |
@@ -397,67 +399,36 @@ OpenAI-compatible 的原厂或聚合渠道先按 OpenAI APIKey 账号保存：
   "extra": {
     "provider": "deepseek",
     "provider_type": "official_compatible",
-    "protocol": "openai",
+    "protocol": "openai_chat",                // 取值见 glossary §1.1
     "models_source": "remote"
   }
 }
 ```
 
-> `extra.provider` 的规范化规则（`normalize_provider` + 别名表）与 UsageLog 快照承诺见 `docs/generic-channel-design.md` §4.4、§5.1、§5.4。本文档不重复定义，避免两份文档对 provider 写入路径出现口径漂移。
+> `extra.provider` 的规范化规则与别名表见 `glossary.md` §1.3；UsageLog 快照字段清单见 `glossary.md` §3.1。本文档不重复定义，避免口径漂移。
 
-聚合平台如果同时提供多个协议 endpoint，Phase 1 先拆成多个账号，每个账号仍归属真实协议平台：
+聚合平台如果同时提供多个协议 endpoint，Phase 1 先拆成多个账号，每个账号仍归属真实协议平台（`protocol` 取值见 `glossary.md` §1.1）：
 
 | 账号 | platform | provider | protocol |
 |---|---|---|---|
-| 硅基流动 OpenAI | `openai` | `siliconflow` | `openai` |
-| 某聚合 Anthropic | `anthropic` | `vendor_x` | `anthropic` |
-| 某聚合 Gemini | `gemini` | `vendor_x` | `gemini` |
+| 硅基流动 OpenAI | `openai` | `siliconflow` | `openai_chat` |
+| 某聚合 Anthropic | `anthropic` | `vendor_x` | `anthropic_messages` |
+| 某聚合 Gemini | `gemini` | `vendor_x` | `gemini_v1beta` |
 
-### 6.2 Phase 5 多 endpoint 结构（原 Phase 2，对齐 §7 全局阶段编号）
+### 6.2 Phase 5 多 endpoint 结构
 
 > 真正的 `platform=generic` 多 endpoint 账号在 Phase 5 引入（依赖 Phase 2 协议字段、Phase 3 Bridge Registry、scheduler 双桶并存 ≥99% 一致率验证）。Phase 1 不要使用此结构，也不要在前端类型/表单中放出 `generic` 选项。
 
-```jsonc
-{
-  "api_key": "wjark-xxx",
-  "vendor": "wanjie",
-  "endpoints": {
-    "openai": {
-      "base_url": "https://maas-openapi.wanjiedata.com/api",
-      "protocol": "openai",
-      "auth": {
-        "header": "Authorization",
-        "scheme": "Bearer"
-      },
-      "models": {
-        "source": "remote",
-        "path": "/v1/models"
-      }
-    },
-    "anthropic": {
-      "base_url": "https://maas-openapi.wanjiedata.com/api/anthropic",
-      "protocol": "anthropic",
-      "auth": {
-        "header": "x-api-key",
-        "scheme": ""
-      },
-      "models": {
-        "source": "manual",
-        "items": ["claude-sonnet-4-6"]
-      }
-    }
-  }
-}
-```
+**数据结构（唯一权威）见 `glossary.md` §4**（采用数组结构，便于 ent 1→N 与稳定 `endpoint_id`）。
 
-每个 endpoint 必须显式声明：
+每个 endpoint 必须显式声明（字段释义）：
 
-- 协议标识：`openai`、`openai_responses`、`anthropic`、`gemini` 等。
-- 厂商/渠道标识：例如 `deepseek`、`doubao`、`siliconflow`、`wanjie`，用于统计、模型同步策略和错误诊断。
+- 协议标识：`protocol` 取值见 `glossary.md` §1.1。
+- 厂商/渠道标识：`provider`（取值见 `glossary.md` §1.3 别名表），用于统计、模型同步策略和错误诊断。
 - `base_url` 拼接规则，避免 `/v1/v1/...`。
 - 鉴权头策略：`Authorization: Bearer`、`x-api-key` 或厂商自定义。
 - 模型列表来源：远程拉取、手动配置或继承账号级白名单。
-- endpoint 类型：原厂兼容接口或聚合平台接口。原厂兼容接口通常只有一个主协议；聚合平台可能同一个账号配置多个 endpoint。
+- endpoint 类型：原厂兼容接口（通常单协议）或聚合平台接口（可挂多个 endpoint）。
 
 ### 6.3 Phase 1 范围限制
 
@@ -476,61 +447,62 @@ Generic endpoint 可为后续 Bridge 提供候选，但 Phase 1 不应把 N×M �
 
 ---
 
-## 7. 分阶段实施路线图（v2，5 阶段，~14–22 周）
+## 7. 分阶段实施路线图（v2，**6 个 Phase（Phase 0–5）**，~14–22 周）
 
-> 工期取决于是否含 Phase 5 完整观察期：不含 ~14 周（Phase 0–4），含 ~22 周（4 周 scheduler 双桶并存验证）。详见 `docs/sprint-plan.md` 顶部"总工期估算"与"全局 Sprint 编排"。
+> 工期取决于是否含 Phase 5 完整观察期：不含 ~14 周（Phase 0–4 完成），含 ~22 周（含 4 周 scheduler 双桶并存验证）。详见 `docs/sprint-plan.md` 顶部"总工期估算"与"全局 Sprint 编排"——三处口径必须一致；以 `sprint-plan.md` 顶部为唯一权威。
 
 > 设计原则：每阶段独立可交付、可回滚、可单独发布；避免在同一 schema 迁移窗口里塞多个目标。
 > 工程量估算基于 1–2 名熟手全栈开发者。
 
-### Phase 0：计费基础设施先行（2 周 / ~10 人天）
+> 工期、PR 数、Phase 简表见 `glossary.md` §2；UsageLog 字段清单见 `glossary.md` §3；关键代码定位见 `glossary.md` §5。本节仅描述各 Phase **设计意图**，不再重复事实数据。
+
+### Phase 0：计费基础设施先行
 
 目标：让"上游真实成本"和"下游售价"在 UsageLog 一行内可见，毛利率立即可查。**这是 MAAS 商业模式的根问题，与协议层完全解耦，应当最先落地**。
 
-- `backend/ent/schema/usage_log.go` 新增可空字段：`provider`、`upstream_unit_price_{input,output,cache_creation,cache_read}`、`upstream_total_cost`、`pricing_source`。
+- `usage_log.go` 新增 7 个可空字段（见 `glossary.md` §3.1）。
 - 新增 `provider_pricing` ent 实体（上游 Provider 单价表）。
-- **新增独立的 `resolveUpstreamCost()`**（详见 `docs/upstream-cost-snapshot.md` §3.2），严格两态：命中 `provider_pricing` 返回 `(cost, "provider_table")`，未命中返回 `(nil, "")`。
+- 新增独立的 `resolveUpstreamCost()`（详见 `docs/upstream-cost-snapshot.md` §3.2），严格两态：命中 `provider_pricing` 返回 `(cost, "provider_table")`，未命中返回 `(nil, "")`。
 - **不修改** `account_stats_pricing.go` 现有四级链——它仍负责"客户售价/账号统计估算"，与上游成本快照解耦；上游成本不复用 LiteLLM/自定义规则/默认公式等估算回退。
-- `writeUsageLogBestEffort` 双轨写入：上游成本快照（命中或 NULL，由 `resolveUpstreamCost()` 决定）+ 售价（基于现有客户计费链 `resolveAccountStatsCost()`）。
-- 历史数据：`provider` 字段由 `Account.platform` 异步回填；`upstream_total_cost` 与 `pricing_source` 均保持 NULL，统计页明确显示"无上游成本快照"。
+- 双轨写入落在 UsageLog 装配三处（代码位置见 `glossary.md` §5），**不在 `writeUsageLogBestEffort` 封装内改**。
+- 历史数据：`provider` 字段 Phase 0 保持 NULL，Phase 1 联动按 `account.extra.provider` 细颗粒回填；`upstream_total_cost` 与 `pricing_source` 全程 NULL。
 
-### Phase 1：轻量 Generic + provider_key 规范化（2–3 周 / ~12 人天）
+### Phase 1：轻量 Generic + provider_key 规范化
 
 目标：按 `docs/generic-channel-design.md` Phase 1（不引 `platform=generic`，只在 OpenAI 平台加 `extra.provider` 元数据 + provider_key 规范化 + 跨 group 聚合视图）。
 
-- `Account.extra.provider` 写入规范 + `normalize_provider` 别名表（见 generic-channel §4.4）。
+- `Account.extra.provider` 写入规范 + `normalize_provider` 别名表（见 `glossary.md` §1.3）。
 - 新增 `account_repository` 跨 group 聚合查询：禁止以 `group_id` 为强制过滤条件，确保账号/Provider 维度汇总跨 group 一致。
-- 前端 `frontend/src/types/index.ts:672` 补齐 `AccountPlatform`（加入 `antigravity`，**类型层已落后于后端**），新增 `ProviderDistributionChart` 与 `AccountDistributionChart`，与 `GroupDistributionChart.vue` 同级。
-- 账号创建表单（`frontend/src/components/account/CreateAccountModal.vue`）增加 OpenAI 平台的 Provider 预设 + 自定义 base_url。
+- 前端 `AccountPlatform` 类型补齐 `antigravity`，新增 `ProviderDistributionChart` 与 `AccountDistributionChart`，与 `GroupDistributionChart.vue` 同级。
+- 账号创建表单增加 OpenAI 平台的 Provider 预设 + 自定义 base_url。
 - **前后端必须同 sprint 推进**，避免类型滞后债务继续累积。
 
-### Phase 2：InboundProtocol / OutboundProtocol 双写兼容层（3 周 / ~15 人天）
+### Phase 2：InboundProtocol / OutboundProtocol 双写兼容层
 
 目标：用"渐进迁移"替换"大爆炸"。新增字段，旧字段保留并由派生函数同步。
 
-- `backend/ent/schema/group.go:55` 新增 `inbound_protocol`（`anthropic_messages|openai_chat|openai_responses|gemini_v1beta`），保留 `platform`。
-- `backend/ent/schema/account.go:64` 新增 `outbound_protocol`。
+- `Group` 新增 `inbound_protocol`、`Account` 新增 `outbound_protocol`（取值见 `glossary.md` §1.1，字段位置见 §3.3，代码 schema 位置见 §5）。
 - 新增 `domain/protocol.go` 集中常量与互转函数；现有 `service.PlatformOpenAI` 等保留为 alias + deprecation 注释（依靠 staticcheck/go vet 自定义检查给出编译期警告，CI 报告但不阻断）。
-- `backend/internal/server/routes/gateway.go` 8 处分流判断同时检查 `inbound_protocol`，缺失时回退到 `platform`。
-- **不动** 49 个非测试文件中的 `Platform*` 引用，让后续阶段按子系统逐步切换。
+- `backend/internal/server/routes/gateway.go` 7 处分流判断（行号见 `glossary.md` §5）同时检查 `inbound_protocol`，缺失时回退到 `platform`。
+- **不动** 现有 `Platform*` 引用（数量见 `glossary.md` §6），让后续阶段按子系统逐步切换。
 - 数据库迁移脚本一次性反向回填：从 `platform` 推导 `inbound_protocol` 默认值。
 - 一致性约束：写入时若两者都给必须互恰，缺失由另一方推导；启动健康检查扫描所有 group/account。
 
-### Phase 3：Bridge Registry + N×M 矩阵收口（3 周 / ~18 人天）
+### Phase 3：Bridge Registry + N×M 矩阵收口
 
-目标：从现有 `ForwardAsAnthropic` / `ForwardAsResponses` 提炼抽象，补齐缺失桥。
+目标：从现有 `ForwardAsAnthropic` / `ForwardAsResponses`（代码位置见 `glossary.md` §5）提炼抽象，补齐缺失桥。
 
 实施顺序：
 
 1. **先做 Registry，不做 interface**：在 `backend/internal/service/protocol_bridge_registry.go` 注册当前两条 Forward 为 `(inbound, outbound) → func` 的 map。
-2. **再做 interface**：当桥数量 ≥3 时（即下面新增 Anthropic→ChatCompletions 桥后），抽出 `ProtocolBridge.Forward(...)` 接口。**桥数=2 时不要抽**（YAGNI）。
-3. **能力矩阵**：复用 `pkg/openai_compat/upstream_capability.go` 模板，在 `accounts.extra.bridge_capabilities` JSON 持久化，由探测任务异步填充。
+2. **再做 interface**：当桥数量 ≥3 时（即下面新增 `anthropic_messages->openai_chat` 桥后），抽出 `ProtocolBridge.Forward(...)` 接口。**桥数=2 时不要抽**（YAGNI）。
+3. **能力矩阵**：复用 `pkg/openai_compat/upstream_capability.go` 模板（见 `glossary.md` §5），在 `accounts.extra.bridge_capabilities` JSON 持久化，由探测任务异步填充。
 
-新增桥（按 apicompat 复用度排序）：
+新增桥（按 apicompat 复用度排序，Bridge ID 取值见 `glossary.md` §1.1）：
 
-- Anthropic 入站 → OpenAI ChatCompletions 上游（复用 `anthropic_to_responses` + `responses_to_chatcompletions`，~3 天）
-- ChatCompletions 入站 → Anthropic 上游（复用 `chatcompletions_to_responses` + `responses_to_anthropic`，~3 天）
-- Responses 入站 → ChatCompletions 上游（apicompat 已直通，~1 天黏合）
+- `anthropic_messages->openai_chat`（复用 `anthropic_to_responses` + `responses_to_chatcompletions`，~3 天）
+- `openai_chat->anthropic_messages`（复用 `chatcompletions_to_responses` + `responses_to_anthropic`，~3 天）
+- `openai_responses->openai_chat`（apicompat 已直通，~1 天黏合）
 
 特性感知调度（来自原 Phase 2）：
 
@@ -539,20 +511,20 @@ Generic endpoint 可为后续 Bridge 提供候选，但 Phase 1 不应把 N×M �
 - `RequestFeatures` 嗅探仅一次，放入 context。
 - 默认策略沿用 `FitUnknown=乐观`（让调度尝试），仅 `FitRejected` 硬剔除。
 
-### Phase 4：Gemini 入站桥（2 周 / ~10 人天）
+### Phase 4：Gemini 入站桥
 
-目标：让 Gemini `v1beta` 入站协议接入桥矩阵，下游可走任意账号。
+目标：让 `gemini_v1beta` 入站协议接入桥矩阵，下游可走任意账号。
 
 - 新增 `pkg/apicompat/gemini_to_openai.go` + `gemini_to_anthropic.go`（含 `streamGenerateContent` → SSE 流式）。
 - `backend/internal/handler/gemini_v1beta_handler.go` 改走 Bridge Registry。
 - 单独的 fuzz 测试集覆盖 Gemini ↔ Anthropic / OpenAI 的 function calling schema 映射。
 
-### Phase 5：Generic 多 Endpoint + Scheduler 重构（4 周 / ~22 人天）
+### Phase 5：Generic 多 Endpoint + Scheduler 重构
 
 目标：单个 Generic Account 可挂多个 endpoint（不同 base_url / 不同协议），scheduler 按 endpoint 而非平台分桶。
 
-- 新增 `endpoint` ent 实体；`account` 1→N `endpoint`，每个 endpoint 持有 `base_url` / `outbound_protocol` / `capabilities` / `priority` / `health`。
-- `scheduler_snapshot_service.go:678 bucketFor` **双桶并存**：旧调用方继续走 `(groupID, platform, mode)`，新调用方走 `(groupID, inbound_protocol, mode)` 或 `(groupID, endpoint_id)`。保留 4 周双写埋点对比，确认 ≥99% 一致率后切单桶。
+- 新增 `endpoint` ent 实体；`Account` 1→N `Endpoint`，每个 endpoint 持有 `base_url` / `outbound_protocol` / `capabilities` / `priority` / `health`。数据结构见 `glossary.md` §4，字段见 §3.4。
+- `bucketFor`（代码位置见 `glossary.md` §5）**双桶并存**：旧调用方继续走 `(groupID, platform, mode)`，新调用方走 `(groupID, inbound_protocol, mode)` 或 `(groupID, endpoint_id)`。保留 4 周双写埋点对比，确认 ≥99% 一致率后切单桶。
 - `sticky_session` key 从 `(api_key, account_id)` 扩到 `(api_key, account_id, endpoint_id)`。
 - 引入 `platform=generic` 常量，前端/后端类型同步扩充。
 
