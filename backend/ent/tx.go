@@ -48,6 +48,8 @@ type Tx struct {
 	KeywordStat *KeywordStatClient
 	// LingjingTask is the client for interacting with the LingjingTask builders.
 	LingjingTask *LingjingTaskClient
+	// ModelPricing is the client for interacting with the ModelPricing builders.
+	ModelPricing *ModelPricingClient
 	// PaymentAuditLog is the client for interacting with the PaymentAuditLog builders.
 	PaymentAuditLog *PaymentAuditLogClient
 	// PaymentOrder is the client for interacting with the PaymentOrder builders.
@@ -234,6 +236,7 @@ func (tx *Tx) init() {
 	tx.IdentityAdoptionDecision = NewIdentityAdoptionDecisionClient(tx.config)
 	tx.KeywordStat = NewKeywordStatClient(tx.config)
 	tx.LingjingTask = NewLingjingTaskClient(tx.config)
+	tx.ModelPricing = NewModelPricingClient(tx.config)
 	tx.PaymentAuditLog = NewPaymentAuditLogClient(tx.config)
 	tx.PaymentOrder = NewPaymentOrderClient(tx.config)
 	tx.PaymentProviderInstance = NewPaymentProviderInstanceClient(tx.config)

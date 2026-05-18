@@ -57,6 +57,9 @@ type KeywordStat func(*sql.Selector)
 // LingjingTask is the predicate function for lingjingtask builders.
 type LingjingTask func(*sql.Selector)
 
+// ModelPricing is the predicate function for modelpricing builders.
+type ModelPricing func(*sql.Selector)
+
 // PaymentAuditLog is the predicate function for paymentauditlog builders.
 type PaymentAuditLog func(*sql.Selector)
 

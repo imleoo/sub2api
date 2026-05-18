@@ -22,6 +22,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/identityadoptiondecision"
 	"github.com/Wei-Shaw/sub2api/ent/keywordstat"
 	"github.com/Wei-Shaw/sub2api/ent/lingjingtask"
+	"github.com/Wei-Shaw/sub2api/ent/modelpricing"
 	"github.com/Wei-Shaw/sub2api/ent/paymentauditlog"
 	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
 	"github.com/Wei-Shaw/sub2api/ent/paymentproviderinstance"
@@ -1024,6 +1025,64 @@ func init() {
 	lingjingtaskDescPollAttempts := lingjingtaskFields[15].Descriptor()
 	// lingjingtask.DefaultPollAttempts holds the default value on creation for the poll_attempts field.
 	lingjingtask.DefaultPollAttempts = lingjingtaskDescPollAttempts.Default.(int)
+	modelpricingFields := schema.ModelPricing{}.Fields()
+	_ = modelpricingFields
+	// modelpricingDescModelID is the schema descriptor for model_id field.
+	modelpricingDescModelID := modelpricingFields[0].Descriptor()
+	// modelpricing.ModelIDValidator is a validator for the "model_id" field. It is called by the builders before save.
+	modelpricing.ModelIDValidator = func() func(string) error {
+		validators := modelpricingDescModelID.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(model_id string) error {
+			for _, fn := range fns {
+				if err := fn(model_id); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// modelpricingDescDisplayName is the schema descriptor for display_name field.
+	modelpricingDescDisplayName := modelpricingFields[1].Descriptor()
+	// modelpricing.DisplayNameValidator is a validator for the "display_name" field. It is called by the builders before save.
+	modelpricing.DisplayNameValidator = modelpricingDescDisplayName.Validators[0].(func(string) error)
+	// modelpricingDescProvider is the schema descriptor for provider field.
+	modelpricingDescProvider := modelpricingFields[3].Descriptor()
+	// modelpricing.DefaultProvider holds the default value on creation for the provider field.
+	modelpricing.DefaultProvider = modelpricingDescProvider.Default.(string)
+	// modelpricing.ProviderValidator is a validator for the "provider" field. It is called by the builders before save.
+	modelpricing.ProviderValidator = modelpricingDescProvider.Validators[0].(func(string) error)
+	// modelpricingDescMode is the schema descriptor for mode field.
+	modelpricingDescMode := modelpricingFields[4].Descriptor()
+	// modelpricing.DefaultMode holds the default value on creation for the mode field.
+	modelpricing.DefaultMode = modelpricingDescMode.Default.(string)
+	// modelpricing.ModeValidator is a validator for the "mode" field. It is called by the builders before save.
+	modelpricing.ModeValidator = modelpricingDescMode.Validators[0].(func(string) error)
+	// modelpricingDescSupportsPromptCaching is the schema descriptor for supports_prompt_caching field.
+	modelpricingDescSupportsPromptCaching := modelpricingFields[11].Descriptor()
+	// modelpricing.DefaultSupportsPromptCaching holds the default value on creation for the supports_prompt_caching field.
+	modelpricing.DefaultSupportsPromptCaching = modelpricingDescSupportsPromptCaching.Default.(bool)
+	// modelpricingDescIsCustom is the schema descriptor for is_custom field.
+	modelpricingDescIsCustom := modelpricingFields[15].Descriptor()
+	// modelpricing.DefaultIsCustom holds the default value on creation for the is_custom field.
+	modelpricing.DefaultIsCustom = modelpricingDescIsCustom.Default.(bool)
+	// modelpricingDescIsEnabled is the schema descriptor for is_enabled field.
+	modelpricingDescIsEnabled := modelpricingFields[16].Descriptor()
+	// modelpricing.DefaultIsEnabled holds the default value on creation for the is_enabled field.
+	modelpricing.DefaultIsEnabled = modelpricingDescIsEnabled.Default.(bool)
+	// modelpricingDescCreatedAt is the schema descriptor for created_at field.
+	modelpricingDescCreatedAt := modelpricingFields[18].Descriptor()
+	// modelpricing.DefaultCreatedAt holds the default value on creation for the created_at field.
+	modelpricing.DefaultCreatedAt = modelpricingDescCreatedAt.Default.(func() time.Time)
+	// modelpricingDescUpdatedAt is the schema descriptor for updated_at field.
+	modelpricingDescUpdatedAt := modelpricingFields[19].Descriptor()
+	// modelpricing.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	modelpricing.DefaultUpdatedAt = modelpricingDescUpdatedAt.Default.(func() time.Time)
+	// modelpricing.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	modelpricing.UpdateDefaultUpdatedAt = modelpricingDescUpdatedAt.UpdateDefault.(func() time.Time)
 	paymentauditlogFields := schema.PaymentAuditLog{}.Fields()
 	_ = paymentauditlogFields
 	// paymentauditlogDescOrderID is the schema descriptor for order_id field.

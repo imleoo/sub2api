@@ -25,6 +25,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/identityadoptiondecision"
 	"github.com/Wei-Shaw/sub2api/ent/keywordstat"
 	"github.com/Wei-Shaw/sub2api/ent/lingjingtask"
+	"github.com/Wei-Shaw/sub2api/ent/modelpricing"
 	"github.com/Wei-Shaw/sub2api/ent/paymentauditlog"
 	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
 	"github.com/Wei-Shaw/sub2api/ent/paymentproviderinstance"
@@ -560,6 +561,33 @@ func (f TraverseLingjingTask) Traverse(ctx context.Context, q ent.Query) error {
 		return f(ctx, q)
 	}
 	return fmt.Errorf("unexpected query type %T. expect *ent.LingjingTaskQuery", q)
+}
+
+// The ModelPricingFunc type is an adapter to allow the use of ordinary function as a Querier.
+type ModelPricingFunc func(context.Context, *ent.ModelPricingQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f ModelPricingFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.ModelPricingQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.ModelPricingQuery", q)
+}
+
+// The TraverseModelPricing type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseModelPricing func(context.Context, *ent.ModelPricingQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseModelPricing) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseModelPricing) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.ModelPricingQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.ModelPricingQuery", q)
 }
 
 // The PaymentAuditLogFunc type is an adapter to allow the use of ordinary function as a Querier.
@@ -1112,6 +1140,8 @@ func NewQuery(q ent.Query) (Query, error) {
 		return &query[*ent.KeywordStatQuery, predicate.KeywordStat, keywordstat.OrderOption]{typ: ent.TypeKeywordStat, tq: q}, nil
 	case *ent.LingjingTaskQuery:
 		return &query[*ent.LingjingTaskQuery, predicate.LingjingTask, lingjingtask.OrderOption]{typ: ent.TypeLingjingTask, tq: q}, nil
+	case *ent.ModelPricingQuery:
+		return &query[*ent.ModelPricingQuery, predicate.ModelPricing, modelpricing.OrderOption]{typ: ent.TypeModelPricing, tq: q}, nil
 	case *ent.PaymentAuditLogQuery:
 		return &query[*ent.PaymentAuditLogQuery, predicate.PaymentAuditLog, paymentauditlog.OrderOption]{typ: ent.TypePaymentAuditLog, tq: q}, nil
 	case *ent.PaymentOrderQuery:

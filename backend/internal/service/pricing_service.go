@@ -132,14 +132,16 @@ type LiteLLMRawEntry struct {
 
 // PricingService 动态价格服务
 type PricingService struct {
-	cfg          *config.Config
-	remoteClient PricingRemoteClient
-	settingRepo  SettingRepository
-	mu           sync.RWMutex
-	pricingData  map[string]*LiteLLMModelPricing
-	discounts    map[string]float64
-	lastUpdated  time.Time
-	localHash    string
+	cfg              *config.Config
+	remoteClient     PricingRemoteClient
+	settingRepo      SettingRepository
+	modelPricingRepo ModelPricingRepository
+	mu               sync.RWMutex
+	pricingData      map[string]*LiteLLMModelPricing
+	discounts        map[string]float64
+	customPrices     map[string]*DBModelPricing // model_id -> DB 记录（含自定义价格）
+	lastUpdated      time.Time
+	localHash        string
 
 	// 停止信号
 	stopCh chan struct{}
@@ -154,9 +156,15 @@ func NewPricingService(cfg *config.Config, remoteClient PricingRemoteClient, set
 		settingRepo:  settingRepo,
 		pricingData:  make(map[string]*LiteLLMModelPricing),
 		discounts:    make(map[string]float64),
+		customPrices: make(map[string]*DBModelPricing),
 		stopCh:       make(chan struct{}),
 	}
 	return s
+}
+
+// SetModelPricingRepo 注入 ModelPricingRepository（可选，Wire 不直接注入时使用）。
+func (s *PricingService) SetModelPricingRepo(repo ModelPricingRepository) {
+	s.modelPricingRepo = repo
 }
 
 // Initialize 初始化价格服务
@@ -177,6 +185,18 @@ func (s *PricingService) Initialize() error {
 	// 加载折扣配置
 	s.loadDiscounts()
 
+	// 将远端同步数据写入 DB
+	s.syncPricingToDB(context.Background())
+
+	// Seed 灵境模型
+	s.seedCustomModels(context.Background())
+
+	// 迁移旧折扣到 DB
+	s.migrateOldDiscounts(context.Background())
+
+	// 从 DB 加载（合并自定义模型的 discount 和 custom pricing）
+	s.loadPricingFromDB(context.Background())
+
 	// 启动定时更新
 	s.startUpdateScheduler()
 
@@ -189,6 +209,187 @@ func (s *PricingService) Stop() {
 	close(s.stopCh)
 	s.wg.Wait()
 	logger.LegacyPrintf("service.pricing", "%s", "[Pricing] Service stopped")
+}
+
+// TriggerDBSync 手动触发一次远端同步并写入 DB（供 /sync 端点调用）。
+func (s *PricingService) TriggerDBSync(ctx context.Context) error {
+	if err := s.checkAndUpdatePricing(); err != nil {
+		return fmt.Errorf("trigger db sync: remote update: %w", err)
+	}
+	s.syncPricingToDB(ctx)
+	return nil
+}
+
+// syncPricingToDB 把内存中的 pricingData 转换成 []DBModelPricing 并调用 repo.UpsertBatch。
+func (s *PricingService) syncPricingToDB(ctx context.Context) {
+	if s.modelPricingRepo == nil {
+		return
+	}
+	s.mu.RLock()
+	data := s.pricingData
+	s.mu.RUnlock()
+
+	now := time.Now()
+	models := make([]*DBModelPricing, 0, len(data))
+	for modelID, p := range data {
+		m := &DBModelPricing{
+			ModelID:               modelID,
+			Provider:              p.LiteLLMProvider,
+			Mode:                  p.Mode,
+			SupportsPromptCaching: p.SupportsPromptCaching,
+			IsCustom:              false,
+			IsEnabled:             true,
+			LastSyncedAt:          &now,
+		}
+		if p.InputCostPerToken != 0 {
+			v := p.InputCostPerToken
+			m.InputCostPerToken = &v
+		}
+		if p.OutputCostPerToken != 0 {
+			v := p.OutputCostPerToken
+			m.OutputCostPerToken = &v
+		}
+		if p.CacheCreationInputTokenCost != 0 {
+			v := p.CacheCreationInputTokenCost
+			m.CacheCreationInputTokenCost = &v
+		}
+		if p.CacheReadInputTokenCost != 0 {
+			v := p.CacheReadInputTokenCost
+			m.CacheReadInputTokenCost = &v
+		}
+		if p.OutputCostPerImage != 0 {
+			v := p.OutputCostPerImage
+			m.OutputCostPerImage = &v
+		}
+		if p.OutputCostPerImageToken != 0 {
+			v := p.OutputCostPerImageToken
+			m.OutputCostPerImageToken = &v
+		}
+		models = append(models, m)
+	}
+
+	if err := s.modelPricingRepo.UpsertBatch(ctx, models); err != nil {
+		logger.LegacyPrintf("service.pricing", "[Pricing] Failed to sync pricing to DB: %v", err)
+	} else {
+		logger.LegacyPrintf("service.pricing", "[Pricing] Synced %d models to DB", len(models))
+	}
+}
+
+// seedCustomModels 把灵境模型写入 DB（仅在不存在时插入）。
+func (s *PricingService) seedCustomModels(ctx context.Context) {
+	if s.modelPricingRepo == nil {
+		return
+	}
+	seeds := []*DBModelPricing{
+		{
+			ModelID:             "doubao-seedream-4-0-250828",
+			Provider:            "lingjing",
+			Mode:                "image_generation",
+			IsCustom:            true,
+			IsEnabled:           true,
+			OutputCostPerImage:  pricingFloat64Ptr(lingjingSeedream40Pricing.OutputCostPerImage),
+		},
+		{
+			ModelID:             "doubao-seedream-4-5-251128",
+			Provider:            "lingjing",
+			Mode:                "image_generation",
+			IsCustom:            true,
+			IsEnabled:           true,
+			OutputCostPerImage:  pricingFloat64Ptr(lingjingSeedream40Pricing.OutputCostPerImage),
+		},
+		{
+			ModelID:             "Doubao-Seedream-5.0-lite",
+			Provider:            "lingjing",
+			Mode:                "image_generation",
+			IsCustom:            true,
+			IsEnabled:           true,
+			OutputCostPerImage:  pricingFloat64Ptr(lingjingSeedream5LitePricing.OutputCostPerImage),
+		},
+		{
+			ModelID:                 "doubao-seedance-1.5-pro-5s",
+			Provider:                "lingjing",
+			Mode:                    "video_generation",
+			IsCustom:                true,
+			IsEnabled:               true,
+			OutputCostPerImageToken: pricingFloat64Ptr(lingjingSeedance15Pro5sPricing.OutputCostPerImageToken),
+		},
+		{
+			ModelID:                 "doubao-seedance-1.5-pro-10s",
+			Provider:                "lingjing",
+			Mode:                    "video_generation",
+			IsCustom:                true,
+			IsEnabled:               true,
+			OutputCostPerImageToken: pricingFloat64Ptr(lingjingSeedance15Pro10sPricing.OutputCostPerImageToken),
+		},
+	}
+	if err := s.modelPricingRepo.SeedIfNotExists(ctx, seeds); err != nil {
+		logger.LegacyPrintf("service.pricing", "[Pricing] Failed to seed custom models: %v", err)
+	}
+}
+
+// pricingFloat64Ptr is a small helper to take the address of a float64 literal.
+func pricingFloat64Ptr(v float64) *float64 { return &v }
+
+// migrateOldDiscounts 把内存 discounts（从 settings.model_discounts 加载）写入 DB。
+func (s *PricingService) migrateOldDiscounts(ctx context.Context) {
+	if s.modelPricingRepo == nil {
+		return
+	}
+	s.mu.RLock()
+	discounts := make(map[string]float64, len(s.discounts))
+	for k, v := range s.discounts {
+		discounts[k] = v
+	}
+	s.mu.RUnlock()
+
+	if len(discounts) == 0 {
+		return
+	}
+	if err := s.modelPricingRepo.BulkUpdateDiscountRates(ctx, discounts); err != nil {
+		logger.LegacyPrintf("service.pricing", "[Pricing] Failed to migrate old discounts to DB: %v", err)
+	}
+}
+
+// loadPricingFromDB 从 DB 加载启用的记录，合并到内存 discounts 和 customPrices。
+func (s *PricingService) loadPricingFromDB(ctx context.Context) {
+	if s.modelPricingRepo == nil {
+		return
+	}
+	items, err := s.modelPricingRepo.LoadAllEnabled(ctx)
+	if err != nil {
+		logger.LegacyPrintf("service.pricing", "[Pricing] Failed to load pricing from DB: %v", err)
+		return
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.customPrices == nil {
+		s.customPrices = make(map[string]*DBModelPricing)
+	}
+
+	for _, item := range items {
+		// 更新折扣率（DB 优先）
+		if item.DiscountRate != nil && *item.DiscountRate > 0 {
+			s.discounts[item.ModelID] = *item.DiscountRate
+		}
+		// 存储自定义价格（任何有 custom_input_cost 或 custom_output_cost 的记录）
+		if item.CustomInputCost != nil || item.CustomOutputCost != nil {
+			s.customPrices[item.ModelID] = item
+		}
+	}
+
+	logger.LegacyPrintf("service.pricing", "[Pricing] Loaded %d records from DB into memory", len(items))
+}
+
+// GetDBModelPricing 返回指定模型的 DB 记录（含自定义价格），供 BillingService 使用。
+func (s *PricingService) GetDBModelPricing(modelID string) *DBModelPricing {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.customPrices == nil {
+		return nil
+	}
+	return s.customPrices[modelID]
 }
 
 // startUpdateScheduler 启动定时更新调度器

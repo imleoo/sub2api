@@ -88,7 +88,8 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	usageLogRepository := repository.NewUsageLogRepository(client, db)
 	usageService := service.NewUsageService(usageLogRepository, userRepository, client, apiKeyAuthCacheInvalidator)
 	pricingRemoteClient := repository.ProvidePricingRemoteClient(configConfig)
-	pricingService, err := service.ProvidePricingService(configConfig, pricingRemoteClient, settingRepository)
+	modelPricingRepository := repository.NewModelPricingRepository(client)
+	pricingService, err := service.ProvidePricingService(configConfig, pricingRemoteClient, settingRepository, modelPricingRepository)
 	if err != nil {
 		return nil, err
 	}
@@ -228,7 +229,8 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	contentModerationHandler := admin.NewContentModerationHandler(contentModerationService)
 	paymentHandler := admin.NewPaymentHandler(paymentService, paymentConfigService)
 	affiliateHandler := admin.NewAffiliateHandler(affiliateService, adminService)
-	adminHandlers := handler.ProvideAdminHandlers(dashboardHandler, adminUserHandler, groupHandler, accountHandler, adminAnnouncementHandler, dataManagementHandler, backupHandler, proxyHandler, adminRedeemHandler, promoHandler, settingHandler, opsHandler, systemHandler, adminSubscriptionHandler, adminUsageHandler, userAttributeHandler, errorPassthroughHandler, tlsFingerprintProfileHandler, adminAPIKeyHandler, scheduledTestHandler, channelHandler, channelMonitorHandler, channelMonitorRequestTemplateHandler, contentModerationHandler, paymentHandler, affiliateHandler)
+	modelPricingHandler := admin.NewModelPricingHandler(modelPricingRepository, pricingService)
+	adminHandlers := handler.ProvideAdminHandlers(dashboardHandler, adminUserHandler, groupHandler, accountHandler, adminAnnouncementHandler, dataManagementHandler, backupHandler, proxyHandler, adminRedeemHandler, promoHandler, settingHandler, opsHandler, systemHandler, adminSubscriptionHandler, adminUsageHandler, userAttributeHandler, errorPassthroughHandler, tlsFingerprintProfileHandler, adminAPIKeyHandler, scheduledTestHandler, channelHandler, channelMonitorHandler, channelMonitorRequestTemplateHandler, contentModerationHandler, paymentHandler, affiliateHandler, modelPricingHandler)
 	usageRecordWorkerPool := service.NewUsageRecordWorkerPool(configConfig)
 	userMsgQueueCache := repository.NewUserMsgQueueCache(redisClient)
 	userMessageQueueService := service.ProvideUserMessageQueueService(userMsgQueueCache, rpmCache, configConfig)

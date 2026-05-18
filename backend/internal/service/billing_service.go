@@ -318,7 +318,7 @@ func (s *BillingService) getFallbackPricing(model string) *ModelPricing {
 	return nil
 }
 
-// applyDiscount 将折扣率应用到价格上
+// applyDiscount 将折扣率应用到价格上（保持向后兼容）
 func (s *BillingService) applyDiscount(model string, p *ModelPricing) *ModelPricing {
 	if s.pricingService == nil {
 		return p
@@ -338,6 +338,55 @@ func (s *BillingService) applyDiscount(model string, p *ModelPricing) *ModelPric
 	p.CacheReadPricePerTokenPriority *= d
 	p.ImageOutputPricePerToken *= d
 	return p
+}
+
+// resolveEffectivePrice 应用自定义价格和折扣率。
+// 生效逻辑：base = custom_cost ?? upstream_cost; final = base × (discount_rate ?? 1.0)
+func (s *BillingService) resolveEffectivePrice(model string, p *ModelPricing) *ModelPricing {
+	if s.pricingService == nil {
+		return p
+	}
+	dbEntry := s.pricingService.GetDBModelPricing(model)
+
+	result := *p // shallow copy to avoid mutating the original
+
+	// 应用自定义价格（覆盖上游价格）
+	if dbEntry != nil {
+		if dbEntry.CustomInputCost != nil {
+			result.InputPricePerToken = *dbEntry.CustomInputCost
+			result.InputPricePerTokenPriority = *dbEntry.CustomInputCost
+		}
+		if dbEntry.CustomOutputCost != nil {
+			result.OutputPricePerToken = *dbEntry.CustomOutputCost
+			result.OutputPricePerTokenPriority = *dbEntry.CustomOutputCost
+		}
+	}
+
+	// 获取折扣率（优先从 DB 记录，回退到 discounts map）
+	rate := 1.0
+	if dbEntry != nil && dbEntry.DiscountRate != nil && *dbEntry.DiscountRate > 0 {
+		rate = *dbEntry.DiscountRate
+	} else {
+		rate = s.pricingService.GetDiscount(model)
+	}
+
+	if rate == 1.0 {
+		return &result
+	}
+
+	// 应用折扣率到所有价格字段
+	result.InputPricePerToken *= rate
+	result.InputPricePerTokenPriority *= rate
+	result.OutputPricePerToken *= rate
+	result.OutputPricePerTokenPriority *= rate
+	result.CacheCreationPricePerToken *= rate
+	result.CacheCreation5mPrice *= rate
+	result.CacheCreation1hPrice *= rate
+	result.CacheReadPricePerToken *= rate
+	result.CacheReadPricePerTokenPriority *= rate
+	result.ImageOutputPricePerToken *= rate
+
+	return &result
 }
 
 // GetModelPricing 获取模型价格配置
@@ -371,7 +420,7 @@ func (s *BillingService) GetModelPricing(model string) (*ModelPricing, error) {
 				LongContextOutputMultiplier:    litellmPricing.LongContextOutputCostMultiplier,
 				ImageOutputPricePerToken:       litellmPricing.OutputCostPerImageToken,
 			}
-			return s.applyModelSpecificPricingPolicy(model, s.applyDiscount(model, pricing)), nil
+			return s.applyModelSpecificPricingPolicy(model, s.resolveEffectivePrice(model, pricing)), nil
 		}
 	}
 
@@ -379,7 +428,7 @@ func (s *BillingService) GetModelPricing(model string) (*ModelPricing, error) {
 	fallback := s.getFallbackPricing(model)
 	if fallback != nil {
 		log.Printf("[Billing] Using fallback pricing for model: %s", model)
-		return s.applyModelSpecificPricingPolicy(model, s.applyDiscount(model, fallback)), nil
+		return s.applyModelSpecificPricingPolicy(model, s.resolveEffectivePrice(model, fallback)), nil
 	}
 
 	return nil, fmt.Errorf("%w for model: %s", ErrModelPricingUnavailable, model)

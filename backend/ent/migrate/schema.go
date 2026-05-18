@@ -869,6 +869,58 @@ var (
 			},
 		},
 	}
+	// ModelPricingsColumns holds the columns for the "model_pricings" table.
+	ModelPricingsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "model_id", Type: field.TypeString, Unique: true, Size: 200},
+		{Name: "display_name", Type: field.TypeString, Nullable: true, Size: 200},
+		{Name: "description", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "provider", Type: field.TypeString, Size: 100, Default: ""},
+		{Name: "mode", Type: field.TypeString, Size: 50, Default: "chat"},
+		{Name: "input_cost_per_token", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
+		{Name: "output_cost_per_token", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
+		{Name: "cache_creation_input_token_cost", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
+		{Name: "cache_read_input_token_cost", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
+		{Name: "output_cost_per_image", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
+		{Name: "output_cost_per_image_token", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
+		{Name: "supports_prompt_caching", Type: field.TypeBool, Default: false},
+		{Name: "custom_input_cost", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
+		{Name: "custom_output_cost", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
+		{Name: "discount_rate", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(10,4)"}},
+		{Name: "is_custom", Type: field.TypeBool, Default: false},
+		{Name: "is_enabled", Type: field.TypeBool, Default: true},
+		{Name: "last_synced_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+	}
+	// ModelPricingsTable holds the schema information for the "model_pricings" table.
+	ModelPricingsTable = &schema.Table{
+		Name:       "model_pricings",
+		Columns:    ModelPricingsColumns,
+		PrimaryKey: []*schema.Column{ModelPricingsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "modelpricing_model_id",
+				Unique:  true,
+				Columns: []*schema.Column{ModelPricingsColumns[1]},
+			},
+			{
+				Name:    "modelpricing_provider",
+				Unique:  false,
+				Columns: []*schema.Column{ModelPricingsColumns[4]},
+			},
+			{
+				Name:    "modelpricing_is_custom",
+				Unique:  false,
+				Columns: []*schema.Column{ModelPricingsColumns[16]},
+			},
+			{
+				Name:    "modelpricing_is_enabled",
+				Unique:  false,
+				Columns: []*schema.Column{ModelPricingsColumns[17]},
+			},
+		},
+	}
 	// PaymentAuditLogsColumns holds the columns for the "payment_audit_logs" table.
 	PaymentAuditLogsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -1789,6 +1841,7 @@ var (
 		IdentityAdoptionDecisionsTable,
 		KeywordStatsTable,
 		LingjingTasksTable,
+		ModelPricingsTable,
 		PaymentAuditLogsTable,
 		PaymentOrdersTable,
 		PaymentProviderInstancesTable,
@@ -1876,6 +1929,9 @@ func init() {
 	}
 	LingjingTasksTable.Annotation = &entsql.Annotation{
 		Table: "lingjing_tasks",
+	}
+	ModelPricingsTable.Annotation = &entsql.Annotation{
+		Table: "model_pricings",
 	}
 	PaymentAuditLogsTable.Annotation = &entsql.Annotation{
 		Table: "payment_audit_logs",

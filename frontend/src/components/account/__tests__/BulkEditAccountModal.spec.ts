@@ -25,6 +25,20 @@ vi.mock('@/api/admin/accounts', () => ({
   getAntigravityDefaultModelMapping: vi.fn()
 }))
 
+vi.mock('@/api/admin/modelPricings', () => ({
+  listModelPricings: vi.fn().mockResolvedValue({
+    data: {
+      items: [
+        { model_id: 'gemini-3.1-flash-image', provider: 'antigravity', mode: 'image_generation', display_name: null, description: null, input_cost_per_token: null, output_cost_per_token: null, cache_creation_input_token_cost: null, cache_read_input_token_cost: null, output_cost_per_image: null, output_cost_per_image_token: null, supports_prompt_caching: false, custom_input_cost: null, custom_output_cost: null, discount_rate: null, is_custom: false, is_enabled: true, last_synced_at: null, created_at: '', updated_at: '' },
+        { model_id: 'gemini-2.5-flash-image', provider: 'antigravity', mode: 'image_generation', display_name: null, description: null, input_cost_per_token: null, output_cost_per_token: null, cache_creation_input_token_cost: null, cache_read_input_token_cost: null, output_cost_per_image: null, output_cost_per_image_token: null, supports_prompt_caching: false, custom_input_cost: null, custom_output_cost: null, discount_rate: null, is_custom: false, is_enabled: true, last_synced_at: null, created_at: '', updated_at: '' },
+      ],
+      total: 2,
+      page: 1,
+      page_size: 50
+    }
+  })
+}))
+
 vi.mock('vue-i18n', async () => {
   const actual = await vi.importActual<typeof import('vue-i18n')>('vue-i18n')
   return {
@@ -94,6 +108,7 @@ describe('BulkEditAccountModal', () => {
     expect(selector.exists()).toBe(true)
 
     await selector.find('div.cursor-pointer').trigger('click')
+    await flushPromises()
 
     expect(wrapper.text()).toContain('gemini-3.1-flash-image')
     expect(wrapper.text()).toContain('gemini-2.5-flash-image')

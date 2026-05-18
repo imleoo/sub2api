@@ -93,6 +93,9 @@ func RegisterAdminRoutes(
 
 		// 邀请返利（专属用户管理）
 		registerAffiliateRoutes(admin, h)
+
+		// 模型定价管理
+		registerModelPricingRoutes(admin, h)
 	}
 }
 
@@ -107,6 +110,17 @@ func registerContentModerationRoutes(admin *gin.RouterGroup, h *handler.Handlers
 		risk.POST("/users/:user_id/unban", h.Admin.ContentModeration.UnbanUser)
 		risk.DELETE("/hashes", h.Admin.ContentModeration.DeleteFlaggedHash)
 		risk.DELETE("/hashes/all", h.Admin.ContentModeration.ClearFlaggedHashes)
+	}
+}
+
+func registerModelPricingRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	mp := admin.Group("/model-pricings")
+	{
+		mp.GET("", h.Admin.ModelPricing.List)
+		mp.POST("", h.Admin.ModelPricing.Create)
+		mp.PUT("/:id", h.Admin.ModelPricing.Update)
+		mp.DELETE("/:id", h.Admin.ModelPricing.Delete)
+		mp.POST("/sync", h.Admin.ModelPricing.TriggerSync)
 	}
 }
 
