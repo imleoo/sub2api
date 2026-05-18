@@ -2089,6 +2089,7 @@ export default {
         openai: 'OpenAI',
         gemini: 'Gemini',
         antigravity: 'Antigravity',
+        lingjing: '灵境',
       },
       saving: '保存中...',
       noGroups: '暂无分组',
@@ -3066,6 +3067,7 @@ export default {
         anthropic: 'Anthropic',
         gemini: 'Gemini',
         antigravity: 'Antigravity',
+        lingjing: '灵境',
       },
       types: {
         oauth: 'OAuth',

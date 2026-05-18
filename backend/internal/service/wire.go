@@ -486,6 +486,9 @@ var ProviderSet = wire.NewSet(
 	ProvideChannelMonitorService,
 	ProvideChannelMonitorRunner,
 	NewChannelMonitorRequestTemplateService,
+	NewLingjingClient,
+	NewLingjingGatewayService,
+	ProvideLingjingPollRunner,
 )
 
 // ProvidePaymentConfigService wraps NewPaymentConfigService to accept the named
@@ -522,6 +525,20 @@ func ProvideChannelMonitorService(
 func ProvideChannelMonitorRunner(svc *ChannelMonitorService, settingService *SettingService) *ChannelMonitorRunner {
 	r := NewChannelMonitorRunner(svc, settingService)
 	svc.SetScheduler(r)
+	r.Start()
+	return r
+}
+
+// ProvideLingjingPollRunner 创建并启动灵境视频任务后台轮询器。
+// Runner.Stop 由 cleanup function 调用。
+func ProvideLingjingPollRunner(
+	taskRepo LingjingTaskRepository,
+	svc *LingjingGatewayService,
+	accountRepo AccountRepository,
+	billingSvc *BillingService,
+	billingCache *BillingCacheService,
+) *LingjingPollRunner {
+	r := NewLingjingPollRunner(taskRepo, svc, accountRepo, billingSvc, billingCache)
 	r.Start()
 	return r
 }

@@ -164,6 +164,18 @@ func (a *Account) IsGemini() bool {
 	return a.Platform == PlatformGemini
 }
 
+func (a *Account) IsLingjing() bool {
+	return a.Platform == PlatformLingjing
+}
+
+// GetLingjingAPIKey 从凭证中取京东云 API Key。
+func (a *Account) GetLingjingAPIKey() string {
+	if !a.IsLingjing() {
+		return ""
+	}
+	return a.GetCredential("api_key")
+}
+
 func (a *Account) GeminiOAuthType() string {
 	if a.Platform != PlatformGemini || a.Type != AccountTypeOAuth {
 		return ""

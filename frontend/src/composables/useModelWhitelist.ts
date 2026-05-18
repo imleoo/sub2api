@@ -298,6 +298,38 @@ const antigravityPresetMappings = [
   { label: 'Opus 4.7', from: 'claude-opus-4-7', to: 'claude-opus-4-7', color: 'bg-pink-100 text-pink-700 hover:bg-pink-200 dark:bg-pink-900/30 dark:text-pink-400' }
 ]
 
+// 京东云灵境（Doubao Seedream / Seedance + 可灵 Keling）
+const lingjingModels = [
+  // Seedream 生图系列
+  'doubao-seedream-4-0-250828',
+  'doubao-seedream-4-5-251128',
+  'Doubao-Seedream-5.0-lite',
+  // Seedance 视频系列
+  'Doubao-Seedance-1.5-pro',
+  // 可灵 (Keling) 视频系列
+  'kling-v1',
+  'kling-v1-5',
+  'kling-v1-6',
+  'kling-v2',
+  'kling-v2-master',
+]
+
+// 灵境预设映射（透传 + 别名）
+const lingjingPresetMappings = [
+  // Seedream 生图
+  { label: 'Seedream 4.0', from: 'doubao-seedream-4-0-250828', to: 'doubao-seedream-4-0-250828', color: 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400' },
+  { label: 'Seedream 4.5', from: 'doubao-seedream-4-5-251128', to: 'doubao-seedream-4-5-251128', color: 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400' },
+  { label: 'Seedream 5 Lite', from: 'Doubao-Seedream-5.0-lite', to: 'Doubao-Seedream-5.0-lite', color: 'bg-rose-100 text-rose-700 hover:bg-rose-200 dark:bg-rose-900/30 dark:text-rose-400' },
+  // Seedance 视频
+  { label: 'Seedance 1.5 Pro', from: 'Doubao-Seedance-1.5-pro', to: 'Doubao-Seedance-1.5-pro', color: 'bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400' },
+  // 可灵 Keling
+  { label: 'Kling v1', from: 'kling-v1', to: 'kling-v1', color: 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400' },
+  { label: 'Kling v1-5', from: 'kling-v1-5', to: 'kling-v1-5', color: 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400' },
+  { label: 'Kling v1-6', from: 'kling-v1-6', to: 'kling-v1-6', color: 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400' },
+  { label: 'Kling v2', from: 'kling-v2', to: 'kling-v2', color: 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400' },
+  { label: 'Kling v2 Master', from: 'kling-v2-master', to: 'kling-v2-master', color: 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400' },
+]
+
 // Bedrock 预设映射（与后端 DefaultBedrockModelMapping 保持一致）
 const bedrockPresetMappings = [
   { label: 'Opus 4.6', from: 'claude-opus-4-6', to: 'us.anthropic.claude-opus-4-6-v1', color: 'bg-pink-100 text-pink-700 hover:bg-pink-200 dark:bg-pink-900/30 dark:text-pink-400' },
@@ -335,6 +367,7 @@ export function getModelsByPlatform(platform: string): string[] {
     case 'claude': return claudeModels
     case 'gemini': return geminiModels
     case 'antigravity': return antigravityModels
+    case 'lingjing': return lingjingModels
     case 'zhipu': return zhipuModels
     case 'qwen': return qwenModels
     case 'deepseek': return deepseekModels
@@ -359,6 +392,7 @@ export function getPresetMappingsByPlatform(platform: string) {
   if (platform === 'openai') return openaiPresetMappings
   if (platform === 'gemini') return geminiPresetMappings
   if (platform === 'antigravity') return antigravityPresetMappings
+  if (platform === 'lingjing') return lingjingPresetMappings
   if (platform === 'bedrock') return bedrockPresetMappings
   return anthropicPresetMappings
 }

@@ -23,6 +23,8 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/group"
 	"github.com/Wei-Shaw/sub2api/ent/idempotencyrecord"
 	"github.com/Wei-Shaw/sub2api/ent/identityadoptiondecision"
+	"github.com/Wei-Shaw/sub2api/ent/keywordstat"
+	"github.com/Wei-Shaw/sub2api/ent/lingjingtask"
 	"github.com/Wei-Shaw/sub2api/ent/paymentauditlog"
 	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
 	"github.com/Wei-Shaw/sub2api/ent/paymentproviderinstance"
@@ -504,6 +506,60 @@ func (f TraverseIdentityAdoptionDecision) Traverse(ctx context.Context, q ent.Qu
 		return f(ctx, q)
 	}
 	return fmt.Errorf("unexpected query type %T. expect *ent.IdentityAdoptionDecisionQuery", q)
+}
+
+// The KeywordStatFunc type is an adapter to allow the use of ordinary function as a Querier.
+type KeywordStatFunc func(context.Context, *ent.KeywordStatQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f KeywordStatFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.KeywordStatQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.KeywordStatQuery", q)
+}
+
+// The TraverseKeywordStat type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseKeywordStat func(context.Context, *ent.KeywordStatQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseKeywordStat) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseKeywordStat) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.KeywordStatQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.KeywordStatQuery", q)
+}
+
+// The LingjingTaskFunc type is an adapter to allow the use of ordinary function as a Querier.
+type LingjingTaskFunc func(context.Context, *ent.LingjingTaskQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f LingjingTaskFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.LingjingTaskQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.LingjingTaskQuery", q)
+}
+
+// The TraverseLingjingTask type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseLingjingTask func(context.Context, *ent.LingjingTaskQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseLingjingTask) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseLingjingTask) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.LingjingTaskQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.LingjingTaskQuery", q)
 }
 
 // The PaymentAuditLogFunc type is an adapter to allow the use of ordinary function as a Querier.
@@ -1052,6 +1108,10 @@ func NewQuery(q ent.Query) (Query, error) {
 		return &query[*ent.IdempotencyRecordQuery, predicate.IdempotencyRecord, idempotencyrecord.OrderOption]{typ: ent.TypeIdempotencyRecord, tq: q}, nil
 	case *ent.IdentityAdoptionDecisionQuery:
 		return &query[*ent.IdentityAdoptionDecisionQuery, predicate.IdentityAdoptionDecision, identityadoptiondecision.OrderOption]{typ: ent.TypeIdentityAdoptionDecision, tq: q}, nil
+	case *ent.KeywordStatQuery:
+		return &query[*ent.KeywordStatQuery, predicate.KeywordStat, keywordstat.OrderOption]{typ: ent.TypeKeywordStat, tq: q}, nil
+	case *ent.LingjingTaskQuery:
+		return &query[*ent.LingjingTaskQuery, predicate.LingjingTask, lingjingtask.OrderOption]{typ: ent.TypeLingjingTask, tq: q}, nil
 	case *ent.PaymentAuditLogQuery:
 		return &query[*ent.PaymentAuditLogQuery, predicate.PaymentAuditLog, paymentauditlog.OrderOption]{typ: ent.TypePaymentAuditLog, tq: q}, nil
 	case *ent.PaymentOrderQuery:

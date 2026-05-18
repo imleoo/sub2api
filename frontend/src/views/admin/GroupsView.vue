@@ -2675,6 +2675,7 @@ const platformOptions = computed(() => [
   { value: "anthropic", label: "Anthropic" },
   { value: "openai", label: "OpenAI" },
   { value: "gemini", label: "Gemini" },
+  { value: "lingjing", label: "灵境" },
 ]);
 
 const platformFilterOptions = computed(() => [
@@ -2682,6 +2683,7 @@ const platformFilterOptions = computed(() => [
   { value: "anthropic", label: "Anthropic" },
   { value: "openai", label: "OpenAI" },
   { value: "gemini", label: "Gemini" },
+  { value: "lingjing", label: "灵境" },
 ]);
 
 const editStatusOptions = computed(() => [

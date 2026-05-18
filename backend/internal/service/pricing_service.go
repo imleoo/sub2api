@@ -21,6 +21,37 @@ import (
 	"go.uber.org/zap"
 )
 
+// Lingjing 灵境豆包模型静态定价（不在 LiteLLM 远端数据中）
+// 价格来源：火山引擎官网 https://www.volcengine.com/pricing?product=ark_bd&tab=1（2026-05）
+// CNY→USD 换算：1 USD = 7.28 CNY
+var (
+	// 生图：Seedream 4.0 / 4.5 官网价 ¥0.2/张；Seedream 5.0-lite 暂无独立官方价格，按 4.0 同价
+	lingjingSeedream40Pricing = &LiteLLMModelPricing{
+		OutputCostPerImage: 0.02747, // ¥0.2 / 7.28
+		LiteLLMProvider:    "lingjing",
+		Mode:               "image_generation",
+	}
+	lingjingSeedream5LitePricing = &LiteLLMModelPricing{
+		OutputCostPerImage: 0.02747, // ¥0.2 / 7.28（lite 暂无独立官方价格，按 4.0 估算）
+		LiteLLMProvider:    "lingjing",
+		Mode:               "image_generation",
+	}
+	// 视频：Seedance 1.5 pro 按 token 计费，单价 ¥0.01/千token（无声）
+	// 以 720p 24fps 无声为基准：token = duration × 1280 × 720 × 24 / 1024
+	// 5s  → 107520 tokens → ¥1.075 → $0.1477
+	// 10s → 215040 tokens → ¥2.150 → $0.2954
+	lingjingSeedance15Pro5sPricing = &LiteLLMModelPricing{
+		OutputCostPerImageToken: 0.1477,
+		LiteLLMProvider:         "lingjing",
+		Mode:                    "video_generation",
+	}
+	lingjingSeedance15Pro10sPricing = &LiteLLMModelPricing{
+		OutputCostPerImageToken: 0.2954,
+		LiteLLMProvider:         "lingjing",
+		Mode:                    "video_generation",
+	}
+)
+
 var (
 	openAIModelDatePattern     = regexp.MustCompile(`-\d{8}$`)
 	openAIModelBasePattern     = regexp.MustCompile(`^(gpt-\d+(?:\.\d+)?)(?:-|$)`)
@@ -345,6 +376,7 @@ func (s *PricingService) downloadPricingData() error {
 	}
 
 	// 更新内存数据
+	injectCustomPricingModels(data)
 	s.mu.Lock()
 	s.pricingData = data
 	s.lastUpdated = time.Now()
@@ -453,6 +485,7 @@ func (s *PricingService) loadPricingData(filePath string) error {
 	hash := sha256.Sum256(data)
 	hashStr := hex.EncodeToString(hash[:])
 
+	injectCustomPricingModels(pricingData)
 	s.mu.Lock()
 	s.pricingData = pricingData
 	s.localHash = hashStr
@@ -581,6 +614,46 @@ func (s *PricingService) GetModelPricing(modelName string) *LiteLLMModelPricing 
 		return s.matchOpenAIModel(lookupCandidates[0])
 	}
 
+	// 6. 灵境豆包模型静态定价
+	if pricing := matchLingjingModel(modelName); pricing != nil {
+		return pricing
+	}
+
+	return nil
+}
+
+// injectCustomPricingModels 将自定义平台（灵境等）的静态定价注入到远端数据 map 中，
+// 使其能在模型广场、模型折扣等依赖 pricingData 枚举的功能中可见。
+// 调用时不持锁，应在赋值给 s.pricingData 之前调用。
+func injectCustomPricingModels(data map[string]*LiteLLMModelPricing) {
+	customModels := map[string]*LiteLLMModelPricing{
+		"doubao-seedream-4-0-250828": lingjingSeedream40Pricing,
+		"doubao-seedream-4-5-251128": lingjingSeedream40Pricing,
+		"Doubao-Seedream-5.0-lite":   lingjingSeedream5LitePricing,
+		"doubao-seedance-1.5-pro-5s": lingjingSeedance15Pro5sPricing,
+		"doubao-seedance-1.5-pro-10s": lingjingSeedance15Pro10sPricing,
+	}
+	for k, v := range customModels {
+		if _, exists := data[k]; !exists {
+			data[k] = v
+		}
+	}
+}
+
+// matchLingjingModel 灵境豆包模型静态定价匹配。
+// 灵境模型不在 LiteLLM 远端数据中，使用代码内置价格。
+func matchLingjingModel(model string) *LiteLLMModelPricing {
+	lower := strings.ToLower(model)
+	switch {
+	case strings.Contains(lower, "seedream-5") || strings.Contains(lower, "seedream5"):
+		return lingjingSeedream5LitePricing
+	case strings.Contains(lower, "seedream"):
+		return lingjingSeedream40Pricing
+	case strings.Contains(lower, "seedance") && strings.HasSuffix(lower, "10s"):
+		return lingjingSeedance15Pro10sPricing
+	case strings.Contains(lower, "seedance"):
+		return lingjingSeedance15Pro5sPricing
+	}
 	return nil
 }
 

@@ -20,6 +20,8 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/group"
 	"github.com/Wei-Shaw/sub2api/ent/idempotencyrecord"
 	"github.com/Wei-Shaw/sub2api/ent/identityadoptiondecision"
+	"github.com/Wei-Shaw/sub2api/ent/keywordstat"
+	"github.com/Wei-Shaw/sub2api/ent/lingjingtask"
 	"github.com/Wei-Shaw/sub2api/ent/paymentauditlog"
 	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
 	"github.com/Wei-Shaw/sub2api/ent/paymentproviderinstance"
@@ -923,6 +925,105 @@ func init() {
 	identityadoptiondecisionDescDecidedAt := identityadoptiondecisionFields[4].Descriptor()
 	// identityadoptiondecision.DefaultDecidedAt holds the default value on creation for the decided_at field.
 	identityadoptiondecision.DefaultDecidedAt = identityadoptiondecisionDescDecidedAt.Default.(func() time.Time)
+	keywordstatFields := schema.KeywordStat{}.Fields()
+	_ = keywordstatFields
+	// keywordstatDescKeyword is the schema descriptor for keyword field.
+	keywordstatDescKeyword := keywordstatFields[3].Descriptor()
+	// keywordstat.KeywordValidator is a validator for the "keyword" field. It is called by the builders before save.
+	keywordstat.KeywordValidator = keywordstatDescKeyword.Validators[0].(func(string) error)
+	// keywordstatDescCount is the schema descriptor for count field.
+	keywordstatDescCount := keywordstatFields[4].Descriptor()
+	// keywordstat.DefaultCount holds the default value on creation for the count field.
+	keywordstat.DefaultCount = keywordstatDescCount.Default.(int)
+	// keywordstatDescPeriod is the schema descriptor for period field.
+	keywordstatDescPeriod := keywordstatFields[5].Descriptor()
+	// keywordstat.PeriodValidator is a validator for the "period" field. It is called by the builders before save.
+	keywordstat.PeriodValidator = keywordstatDescPeriod.Validators[0].(func(string) error)
+	// keywordstatDescCreatedAt is the schema descriptor for created_at field.
+	keywordstatDescCreatedAt := keywordstatFields[6].Descriptor()
+	// keywordstat.DefaultCreatedAt holds the default value on creation for the created_at field.
+	keywordstat.DefaultCreatedAt = keywordstatDescCreatedAt.Default.(func() time.Time)
+	lingjingtaskMixin := schema.LingjingTask{}.Mixin()
+	lingjingtaskMixinFields0 := lingjingtaskMixin[0].Fields()
+	_ = lingjingtaskMixinFields0
+	lingjingtaskFields := schema.LingjingTask{}.Fields()
+	_ = lingjingtaskFields
+	// lingjingtaskDescCreatedAt is the schema descriptor for created_at field.
+	lingjingtaskDescCreatedAt := lingjingtaskMixinFields0[0].Descriptor()
+	// lingjingtask.DefaultCreatedAt holds the default value on creation for the created_at field.
+	lingjingtask.DefaultCreatedAt = lingjingtaskDescCreatedAt.Default.(func() time.Time)
+	// lingjingtaskDescUpdatedAt is the schema descriptor for updated_at field.
+	lingjingtaskDescUpdatedAt := lingjingtaskMixinFields0[1].Descriptor()
+	// lingjingtask.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	lingjingtask.DefaultUpdatedAt = lingjingtaskDescUpdatedAt.Default.(func() time.Time)
+	// lingjingtask.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	lingjingtask.UpdateDefaultUpdatedAt = lingjingtaskDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// lingjingtaskDescGenTaskID is the schema descriptor for gen_task_id field.
+	lingjingtaskDescGenTaskID := lingjingtaskFields[0].Descriptor()
+	// lingjingtask.GenTaskIDValidator is a validator for the "gen_task_id" field. It is called by the builders before save.
+	lingjingtask.GenTaskIDValidator = lingjingtaskDescGenTaskID.Validators[0].(func(string) error)
+	// lingjingtaskDescTaskType is the schema descriptor for task_type field.
+	lingjingtaskDescTaskType := lingjingtaskFields[1].Descriptor()
+	// lingjingtask.TaskTypeValidator is a validator for the "task_type" field. It is called by the builders before save.
+	lingjingtask.TaskTypeValidator = func() func(string) error {
+		validators := lingjingtaskDescTaskType.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(task_type string) error {
+			for _, fn := range fns {
+				if err := fn(task_type); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// lingjingtaskDescStatus is the schema descriptor for status field.
+	lingjingtaskDescStatus := lingjingtaskFields[2].Descriptor()
+	// lingjingtask.DefaultStatus holds the default value on creation for the status field.
+	lingjingtask.DefaultStatus = lingjingtaskDescStatus.Default.(string)
+	// lingjingtask.StatusValidator is a validator for the "status" field. It is called by the builders before save.
+	lingjingtask.StatusValidator = func() func(string) error {
+		validators := lingjingtaskDescStatus.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(status string) error {
+			for _, fn := range fns {
+				if err := fn(status); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// lingjingtaskDescModel is the schema descriptor for model field.
+	lingjingtaskDescModel := lingjingtaskFields[10].Descriptor()
+	// lingjingtask.ModelValidator is a validator for the "model" field. It is called by the builders before save.
+	lingjingtask.ModelValidator = lingjingtaskDescModel.Validators[0].(func(string) error)
+	// lingjingtaskDescDuration is the schema descriptor for duration field.
+	lingjingtaskDescDuration := lingjingtaskFields[11].Descriptor()
+	// lingjingtask.DurationValidator is a validator for the "duration" field. It is called by the builders before save.
+	lingjingtask.DurationValidator = lingjingtaskDescDuration.Validators[0].(func(string) error)
+	// lingjingtaskDescMode is the schema descriptor for mode field.
+	lingjingtaskDescMode := lingjingtaskFields[12].Descriptor()
+	// lingjingtask.ModeValidator is a validator for the "mode" field. It is called by the builders before save.
+	lingjingtask.ModeValidator = lingjingtaskDescMode.Validators[0].(func(string) error)
+	// lingjingtaskDescCost is the schema descriptor for cost field.
+	lingjingtaskDescCost := lingjingtaskFields[13].Descriptor()
+	// lingjingtask.DefaultCost holds the default value on creation for the cost field.
+	lingjingtask.DefaultCost = lingjingtaskDescCost.Default.(float64)
+	// lingjingtaskDescBilled is the schema descriptor for billed field.
+	lingjingtaskDescBilled := lingjingtaskFields[14].Descriptor()
+	// lingjingtask.DefaultBilled holds the default value on creation for the billed field.
+	lingjingtask.DefaultBilled = lingjingtaskDescBilled.Default.(bool)
+	// lingjingtaskDescPollAttempts is the schema descriptor for poll_attempts field.
+	lingjingtaskDescPollAttempts := lingjingtaskFields[15].Descriptor()
+	// lingjingtask.DefaultPollAttempts holds the default value on creation for the poll_attempts field.
+	lingjingtask.DefaultPollAttempts = lingjingtaskDescPollAttempts.Default.(int)
 	paymentauditlogFields := schema.PaymentAuditLog{}.Fields()
 	_ = paymentauditlogFields
 	// paymentauditlogDescOrderID is the schema descriptor for order_id field.

@@ -778,6 +778,97 @@ var (
 			},
 		},
 	}
+	// KeywordStatsColumns holds the columns for the "keyword_stats" table.
+	KeywordStatsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "user_id", Type: field.TypeInt64},
+		{Name: "api_key_id", Type: field.TypeInt64},
+		{Name: "group_id", Type: field.TypeInt64},
+		{Name: "keyword", Type: field.TypeString, Size: 64},
+		{Name: "count", Type: field.TypeInt, Default: 1},
+		{Name: "period", Type: field.TypeString, Size: 10},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+	}
+	// KeywordStatsTable holds the schema information for the "keyword_stats" table.
+	KeywordStatsTable = &schema.Table{
+		Name:       "keyword_stats",
+		Columns:    KeywordStatsColumns,
+		PrimaryKey: []*schema.Column{KeywordStatsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "keywordstat_user_id_period",
+				Unique:  false,
+				Columns: []*schema.Column{KeywordStatsColumns[1], KeywordStatsColumns[6]},
+			},
+			{
+				Name:    "keywordstat_keyword_period",
+				Unique:  false,
+				Columns: []*schema.Column{KeywordStatsColumns[4], KeywordStatsColumns[6]},
+			},
+			{
+				Name:    "keywordstat_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{KeywordStatsColumns[7]},
+			},
+		},
+	}
+	// LingjingTasksColumns holds the columns for the "lingjing_tasks" table.
+	LingjingTasksColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "gen_task_id", Type: field.TypeString, Unique: true, Size: 128},
+		{Name: "task_type", Type: field.TypeString, Size: 20},
+		{Name: "status", Type: field.TypeString, Size: 20, Default: "pending"},
+		{Name: "error_message", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "result_url", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "request_body", Type: field.TypeJSON},
+		{Name: "user_id", Type: field.TypeInt64},
+		{Name: "api_key_id", Type: field.TypeInt64},
+		{Name: "account_id", Type: field.TypeInt64},
+		{Name: "group_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "model", Type: field.TypeString, Size: 100},
+		{Name: "duration", Type: field.TypeString, Size: 10},
+		{Name: "mode", Type: field.TypeString, Size: 10},
+		{Name: "cost", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(20,8)"}},
+		{Name: "billed", Type: field.TypeBool, Default: false},
+		{Name: "poll_attempts", Type: field.TypeInt, Default: 0},
+		{Name: "started_at", Type: field.TypeTime, Nullable: true},
+		{Name: "finished_at", Type: field.TypeTime, Nullable: true},
+	}
+	// LingjingTasksTable holds the schema information for the "lingjing_tasks" table.
+	LingjingTasksTable = &schema.Table{
+		Name:       "lingjing_tasks",
+		Columns:    LingjingTasksColumns,
+		PrimaryKey: []*schema.Column{LingjingTasksColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "lingjingtask_gen_task_id",
+				Unique:  true,
+				Columns: []*schema.Column{LingjingTasksColumns[3]},
+			},
+			{
+				Name:    "lingjingtask_status_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{LingjingTasksColumns[5], LingjingTasksColumns[1]},
+			},
+			{
+				Name:    "lingjingtask_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{LingjingTasksColumns[9]},
+			},
+			{
+				Name:    "lingjingtask_api_key_id",
+				Unique:  false,
+				Columns: []*schema.Column{LingjingTasksColumns[10]},
+			},
+			{
+				Name:    "lingjingtask_account_id",
+				Unique:  false,
+				Columns: []*schema.Column{LingjingTasksColumns[11]},
+			},
+		},
+	}
 	// PaymentAuditLogsColumns holds the columns for the "payment_audit_logs" table.
 	PaymentAuditLogsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -1696,6 +1787,8 @@ var (
 		GroupsTable,
 		IdempotencyRecordsTable,
 		IdentityAdoptionDecisionsTable,
+		KeywordStatsTable,
+		LingjingTasksTable,
 		PaymentAuditLogsTable,
 		PaymentOrdersTable,
 		PaymentProviderInstancesTable,
@@ -1777,6 +1870,12 @@ func init() {
 	IdentityAdoptionDecisionsTable.ForeignKeys[1].RefTable = PendingAuthSessionsTable
 	IdentityAdoptionDecisionsTable.Annotation = &entsql.Annotation{
 		Table: "identity_adoption_decisions",
+	}
+	KeywordStatsTable.Annotation = &entsql.Annotation{
+		Table: "keyword_stats",
+	}
+	LingjingTasksTable.Annotation = &entsql.Annotation{
+		Table: "lingjing_tasks",
 	}
 	PaymentAuditLogsTable.Annotation = &entsql.Annotation{
 		Table: "payment_audit_logs",

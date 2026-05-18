@@ -353,6 +353,13 @@ type OpenAIGatewayService struct {
 	codexSnapshotThrottle               *accountWriteThrottle
 	openaiCompatSessionResponses        sync.Map
 	openaiCompatAnthropicDigestSessions sync.Map
+
+	lingjingSvc *LingjingGatewayService
+}
+
+// SetLingjingService 注入灵境网关服务（Wire 完成后调用）。
+func (s *OpenAIGatewayService) SetLingjingService(svc *LingjingGatewayService) {
+	s.lingjingSvc = svc
 }
 
 // NewOpenAIGatewayService creates a new OpenAIGatewayService

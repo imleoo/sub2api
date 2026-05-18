@@ -164,7 +164,8 @@ func RegisterGatewayRoutes(
 		h.Gateway.ChatCompletions(c)
 	})
 	r.POST("/images/generations", bodyLimit, clientRequestID, opsErrorLogger, promptAnalytics, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, func(c *gin.Context) {
-		if getGroupPlatform(c) != service.PlatformOpenAI {
+		platform := getGroupPlatform(c)
+		if platform != service.PlatformOpenAI && platform != service.PlatformLingjing {
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": gin.H{
 					"type":    "not_found_error",
@@ -187,6 +188,20 @@ func RegisterGatewayRoutes(
 		}
 		h.OpenAIGateway.Images(c)
 	})
+
+	// 灵境（京东云）视频异步任务路由
+	lingjingV1 := r.Group("/lingjing/v1")
+	lingjingV1.Use(bodyLimit)
+	lingjingV1.Use(clientRequestID)
+	lingjingV1.Use(opsErrorLogger)
+	lingjingV1.Use(endpointNorm)
+	lingjingV1.Use(middleware.ForcePlatform(service.PlatformLingjing))
+	lingjingV1.Use(gin.HandlerFunc(apiKeyAuth))
+	lingjingV1.Use(requireGroupAnthropic)
+	{
+		lingjingV1.POST("/video/submit", h.Lingjing.SubmitVideoTask)
+		lingjingV1.GET("/video/:taskId", h.Lingjing.GetVideoTaskStatus)
+	}
 
 	// Antigravity 模型列表
 	r.GET("/antigravity/models", gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, h.Gateway.AntigravityModels)
