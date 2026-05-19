@@ -96,6 +96,9 @@ func RegisterAdminRoutes(
 
 		// 模型定价管理
 		registerModelPricingRoutes(admin, h)
+
+		// 上游 Provider 单价管理（Phase 0 P0-3，写入 UsageLog.upstream_total_cost）
+		registerProviderPricingRoutes(admin, h)
 	}
 }
 
@@ -121,6 +124,23 @@ func registerModelPricingRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		mp.PUT("/:id", h.Admin.ModelPricing.Update)
 		mp.DELETE("/:id", h.Admin.ModelPricing.Delete)
 		mp.POST("/sync", h.Admin.ModelPricing.TriggerSync)
+	}
+}
+
+// registerProviderPricingRoutes 注册上游 Provider 单价管理路由（Phase 0 P0-3）。
+//
+// 与 model-pricings（客户售价）正交：
+//   - /admin/model-pricings：客户售价 / 折扣 / 自定义规则
+//   - /admin/provider-pricings：上游真实成本快照（写入 UsageLog.upstream_total_cost）
+//
+// 详见 docs/upstream-cost-snapshot.md §2.2。
+func registerProviderPricingRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	pp := admin.Group("/provider-pricings")
+	{
+		pp.GET("", h.Admin.ProviderPricing.List)
+		pp.POST("", h.Admin.ProviderPricing.Create)
+		pp.PUT("/:id", h.Admin.ProviderPricing.Update)
+		pp.DELETE("/:id", h.Admin.ProviderPricing.Delete)
 	}
 }
 
