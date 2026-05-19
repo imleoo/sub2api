@@ -220,6 +220,8 @@ func (Account) Edges() []ent.Edge {
 			Unique(),
 		// usage_logs: 该账户的使用日志
 		edge.To("usage_logs", UsageLog.Type),
+		// endpoints: Phase 5 P5-1 — Account 1→N Endpoint（lingjing 账号不参与迁移）
+		edge.To("endpoints", Endpoint.Type),
 	}
 }
 

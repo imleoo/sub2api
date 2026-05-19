@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/Wei-Shaw/sub2api/ent/account"
+	"github.com/Wei-Shaw/sub2api/ent/endpoint"
 	"github.com/Wei-Shaw/sub2api/ent/group"
 	"github.com/Wei-Shaw/sub2api/ent/predicate"
 	"github.com/Wei-Shaw/sub2api/ent/proxy"
@@ -558,6 +559,21 @@ func (_u *AccountUpdate) AddUsageLogs(v ...*UsageLog) *AccountUpdate {
 	return _u.AddUsageLogIDs(ids...)
 }
 
+// AddEndpointIDs adds the "endpoints" edge to the Endpoint entity by IDs.
+func (_u *AccountUpdate) AddEndpointIDs(ids ...int64) *AccountUpdate {
+	_u.mutation.AddEndpointIDs(ids...)
+	return _u
+}
+
+// AddEndpoints adds the "endpoints" edges to the Endpoint entity.
+func (_u *AccountUpdate) AddEndpoints(v ...*Endpoint) *AccountUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddEndpointIDs(ids...)
+}
+
 // Mutation returns the AccountMutation object of the builder.
 func (_u *AccountUpdate) Mutation() *AccountMutation {
 	return _u.mutation
@@ -609,6 +625,27 @@ func (_u *AccountUpdate) RemoveUsageLogs(v ...*UsageLog) *AccountUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveUsageLogIDs(ids...)
+}
+
+// ClearEndpoints clears all "endpoints" edges to the Endpoint entity.
+func (_u *AccountUpdate) ClearEndpoints() *AccountUpdate {
+	_u.mutation.ClearEndpoints()
+	return _u
+}
+
+// RemoveEndpointIDs removes the "endpoints" edge to Endpoint entities by IDs.
+func (_u *AccountUpdate) RemoveEndpointIDs(ids ...int64) *AccountUpdate {
+	_u.mutation.RemoveEndpointIDs(ids...)
+	return _u
+}
+
+// RemoveEndpoints removes "endpoints" edges to Endpoint entities.
+func (_u *AccountUpdate) RemoveEndpoints(v ...*Endpoint) *AccountUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveEndpointIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -962,6 +999,51 @@ func (_u *AccountUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(usagelog.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.EndpointsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.EndpointsTable,
+			Columns: []string{account.EndpointsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(endpoint.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedEndpointsIDs(); len(nodes) > 0 && !_u.mutation.EndpointsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.EndpointsTable,
+			Columns: []string{account.EndpointsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(endpoint.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.EndpointsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.EndpointsTable,
+			Columns: []string{account.EndpointsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(endpoint.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {
@@ -1516,6 +1598,21 @@ func (_u *AccountUpdateOne) AddUsageLogs(v ...*UsageLog) *AccountUpdateOne {
 	return _u.AddUsageLogIDs(ids...)
 }
 
+// AddEndpointIDs adds the "endpoints" edge to the Endpoint entity by IDs.
+func (_u *AccountUpdateOne) AddEndpointIDs(ids ...int64) *AccountUpdateOne {
+	_u.mutation.AddEndpointIDs(ids...)
+	return _u
+}
+
+// AddEndpoints adds the "endpoints" edges to the Endpoint entity.
+func (_u *AccountUpdateOne) AddEndpoints(v ...*Endpoint) *AccountUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddEndpointIDs(ids...)
+}
+
 // Mutation returns the AccountMutation object of the builder.
 func (_u *AccountUpdateOne) Mutation() *AccountMutation {
 	return _u.mutation
@@ -1567,6 +1664,27 @@ func (_u *AccountUpdateOne) RemoveUsageLogs(v ...*UsageLog) *AccountUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveUsageLogIDs(ids...)
+}
+
+// ClearEndpoints clears all "endpoints" edges to the Endpoint entity.
+func (_u *AccountUpdateOne) ClearEndpoints() *AccountUpdateOne {
+	_u.mutation.ClearEndpoints()
+	return _u
+}
+
+// RemoveEndpointIDs removes the "endpoints" edge to Endpoint entities by IDs.
+func (_u *AccountUpdateOne) RemoveEndpointIDs(ids ...int64) *AccountUpdateOne {
+	_u.mutation.RemoveEndpointIDs(ids...)
+	return _u
+}
+
+// RemoveEndpoints removes "endpoints" edges to Endpoint entities.
+func (_u *AccountUpdateOne) RemoveEndpoints(v ...*Endpoint) *AccountUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveEndpointIDs(ids...)
 }
 
 // Where appends a list predicates to the AccountUpdate builder.
@@ -1950,6 +2068,51 @@ func (_u *AccountUpdateOne) sqlSave(ctx context.Context) (_node *Account, err er
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(usagelog.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.EndpointsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.EndpointsTable,
+			Columns: []string{account.EndpointsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(endpoint.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedEndpointsIDs(); len(nodes) > 0 && !_u.mutation.EndpointsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.EndpointsTable,
+			Columns: []string{account.EndpointsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(endpoint.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.EndpointsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   account.EndpointsTable,
+			Columns: []string{account.EndpointsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(endpoint.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {

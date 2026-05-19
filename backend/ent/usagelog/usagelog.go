@@ -104,6 +104,10 @@ const (
 	FieldImageSize = "image_size"
 	// FieldCacheTTLOverridden holds the string denoting the cache_ttl_overridden field in the database.
 	FieldCacheTTLOverridden = "cache_ttl_overridden"
+	// FieldEndpointID holds the string denoting the endpoint_id field in the database.
+	FieldEndpointID = "endpoint_id"
+	// FieldEndpointProtocol holds the string denoting the endpoint_protocol field in the database.
+	FieldEndpointProtocol = "endpoint_protocol"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// EdgeUser holds the string denoting the user edge name in mutations.
@@ -203,6 +207,8 @@ var Columns = []string{
 	FieldImageCount,
 	FieldImageSize,
 	FieldCacheTTLOverridden,
+	FieldEndpointID,
+	FieldEndpointProtocol,
 	FieldCreatedAt,
 }
 
@@ -277,6 +283,10 @@ var (
 	ImageSizeValidator func(string) error
 	// DefaultCacheTTLOverridden holds the default value on creation for the "cache_ttl_overridden" field.
 	DefaultCacheTTLOverridden bool
+	// EndpointIDValidator is a validator for the "endpoint_id" field. It is called by the builders before save.
+	EndpointIDValidator func(string) error
+	// EndpointProtocolValidator is a validator for the "endpoint_protocol" field. It is called by the builders before save.
+	EndpointProtocolValidator func(string) error
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 )
@@ -512,6 +522,16 @@ func ByImageSize(opts ...sql.OrderTermOption) OrderOption {
 // ByCacheTTLOverridden orders the results by the cache_ttl_overridden field.
 func ByCacheTTLOverridden(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCacheTTLOverridden, opts...).ToFunc()
+}
+
+// ByEndpointID orders the results by the endpoint_id field.
+func ByEndpointID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEndpointID, opts...).ToFunc()
+}
+
+// ByEndpointProtocol orders the results by the endpoint_protocol field.
+func ByEndpointProtocol(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEndpointProtocol, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

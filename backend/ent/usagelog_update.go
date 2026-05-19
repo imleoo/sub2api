@@ -969,6 +969,46 @@ func (_u *UsageLogUpdate) SetNillableCacheTTLOverridden(v *bool) *UsageLogUpdate
 	return _u
 }
 
+// SetEndpointID sets the "endpoint_id" field.
+func (_u *UsageLogUpdate) SetEndpointID(v string) *UsageLogUpdate {
+	_u.mutation.SetEndpointID(v)
+	return _u
+}
+
+// SetNillableEndpointID sets the "endpoint_id" field if the given value is not nil.
+func (_u *UsageLogUpdate) SetNillableEndpointID(v *string) *UsageLogUpdate {
+	if v != nil {
+		_u.SetEndpointID(*v)
+	}
+	return _u
+}
+
+// ClearEndpointID clears the value of the "endpoint_id" field.
+func (_u *UsageLogUpdate) ClearEndpointID() *UsageLogUpdate {
+	_u.mutation.ClearEndpointID()
+	return _u
+}
+
+// SetEndpointProtocol sets the "endpoint_protocol" field.
+func (_u *UsageLogUpdate) SetEndpointProtocol(v string) *UsageLogUpdate {
+	_u.mutation.SetEndpointProtocol(v)
+	return _u
+}
+
+// SetNillableEndpointProtocol sets the "endpoint_protocol" field if the given value is not nil.
+func (_u *UsageLogUpdate) SetNillableEndpointProtocol(v *string) *UsageLogUpdate {
+	if v != nil {
+		_u.SetEndpointProtocol(*v)
+	}
+	return _u
+}
+
+// ClearEndpointProtocol clears the value of the "endpoint_protocol" field.
+func (_u *UsageLogUpdate) ClearEndpointProtocol() *UsageLogUpdate {
+	_u.mutation.ClearEndpointProtocol()
+	return _u
+}
+
 // SetUser sets the "user" edge to the User entity.
 func (_u *UsageLogUpdate) SetUser(v *User) *UsageLogUpdate {
 	return _u.SetUserID(v.ID)
@@ -1121,6 +1161,16 @@ func (_u *UsageLogUpdate) check() error {
 	if v, ok := _u.mutation.ImageSize(); ok {
 		if err := usagelog.ImageSizeValidator(v); err != nil {
 			return &ValidationError{Name: "image_size", err: fmt.Errorf(`ent: validator failed for field "UsageLog.image_size": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.EndpointID(); ok {
+		if err := usagelog.EndpointIDValidator(v); err != nil {
+			return &ValidationError{Name: "endpoint_id", err: fmt.Errorf(`ent: validator failed for field "UsageLog.endpoint_id": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.EndpointProtocol(); ok {
+		if err := usagelog.EndpointProtocolValidator(v); err != nil {
+			return &ValidationError{Name: "endpoint_protocol", err: fmt.Errorf(`ent: validator failed for field "UsageLog.endpoint_protocol": %w`, err)}
 		}
 	}
 	if _u.mutation.UserCleared() && len(_u.mutation.UserIDs()) > 0 {
@@ -1401,6 +1451,18 @@ func (_u *UsageLogUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.CacheTTLOverridden(); ok {
 		_spec.SetField(usagelog.FieldCacheTTLOverridden, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.EndpointID(); ok {
+		_spec.SetField(usagelog.FieldEndpointID, field.TypeString, value)
+	}
+	if _u.mutation.EndpointIDCleared() {
+		_spec.ClearField(usagelog.FieldEndpointID, field.TypeString)
+	}
+	if value, ok := _u.mutation.EndpointProtocol(); ok {
+		_spec.SetField(usagelog.FieldEndpointProtocol, field.TypeString, value)
+	}
+	if _u.mutation.EndpointProtocolCleared() {
+		_spec.ClearField(usagelog.FieldEndpointProtocol, field.TypeString)
 	}
 	if _u.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -2503,6 +2565,46 @@ func (_u *UsageLogUpdateOne) SetNillableCacheTTLOverridden(v *bool) *UsageLogUpd
 	return _u
 }
 
+// SetEndpointID sets the "endpoint_id" field.
+func (_u *UsageLogUpdateOne) SetEndpointID(v string) *UsageLogUpdateOne {
+	_u.mutation.SetEndpointID(v)
+	return _u
+}
+
+// SetNillableEndpointID sets the "endpoint_id" field if the given value is not nil.
+func (_u *UsageLogUpdateOne) SetNillableEndpointID(v *string) *UsageLogUpdateOne {
+	if v != nil {
+		_u.SetEndpointID(*v)
+	}
+	return _u
+}
+
+// ClearEndpointID clears the value of the "endpoint_id" field.
+func (_u *UsageLogUpdateOne) ClearEndpointID() *UsageLogUpdateOne {
+	_u.mutation.ClearEndpointID()
+	return _u
+}
+
+// SetEndpointProtocol sets the "endpoint_protocol" field.
+func (_u *UsageLogUpdateOne) SetEndpointProtocol(v string) *UsageLogUpdateOne {
+	_u.mutation.SetEndpointProtocol(v)
+	return _u
+}
+
+// SetNillableEndpointProtocol sets the "endpoint_protocol" field if the given value is not nil.
+func (_u *UsageLogUpdateOne) SetNillableEndpointProtocol(v *string) *UsageLogUpdateOne {
+	if v != nil {
+		_u.SetEndpointProtocol(*v)
+	}
+	return _u
+}
+
+// ClearEndpointProtocol clears the value of the "endpoint_protocol" field.
+func (_u *UsageLogUpdateOne) ClearEndpointProtocol() *UsageLogUpdateOne {
+	_u.mutation.ClearEndpointProtocol()
+	return _u
+}
+
 // SetUser sets the "user" edge to the User entity.
 func (_u *UsageLogUpdateOne) SetUser(v *User) *UsageLogUpdateOne {
 	return _u.SetUserID(v.ID)
@@ -2668,6 +2770,16 @@ func (_u *UsageLogUpdateOne) check() error {
 	if v, ok := _u.mutation.ImageSize(); ok {
 		if err := usagelog.ImageSizeValidator(v); err != nil {
 			return &ValidationError{Name: "image_size", err: fmt.Errorf(`ent: validator failed for field "UsageLog.image_size": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.EndpointID(); ok {
+		if err := usagelog.EndpointIDValidator(v); err != nil {
+			return &ValidationError{Name: "endpoint_id", err: fmt.Errorf(`ent: validator failed for field "UsageLog.endpoint_id": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.EndpointProtocol(); ok {
+		if err := usagelog.EndpointProtocolValidator(v); err != nil {
+			return &ValidationError{Name: "endpoint_protocol", err: fmt.Errorf(`ent: validator failed for field "UsageLog.endpoint_protocol": %w`, err)}
 		}
 	}
 	if _u.mutation.UserCleared() && len(_u.mutation.UserIDs()) > 0 {
@@ -2965,6 +3077,18 @@ func (_u *UsageLogUpdateOne) sqlSave(ctx context.Context) (_node *UsageLog, err 
 	}
 	if value, ok := _u.mutation.CacheTTLOverridden(); ok {
 		_spec.SetField(usagelog.FieldCacheTTLOverridden, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.EndpointID(); ok {
+		_spec.SetField(usagelog.FieldEndpointID, field.TypeString, value)
+	}
+	if _u.mutation.EndpointIDCleared() {
+		_spec.ClearField(usagelog.FieldEndpointID, field.TypeString)
+	}
+	if value, ok := _u.mutation.EndpointProtocol(); ok {
+		_spec.SetField(usagelog.FieldEndpointProtocol, field.TypeString, value)
+	}
+	if _u.mutation.EndpointProtocolCleared() {
+		_spec.ClearField(usagelog.FieldEndpointProtocol, field.TypeString)
 	}
 	if _u.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{

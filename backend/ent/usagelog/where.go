@@ -280,6 +280,16 @@ func CacheTTLOverridden(v bool) predicate.UsageLog {
 	return predicate.UsageLog(sql.FieldEQ(FieldCacheTTLOverridden, v))
 }
 
+// EndpointID applies equality check predicate on the "endpoint_id" field. It's identical to EndpointIDEQ.
+func EndpointID(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldEQ(FieldEndpointID, v))
+}
+
+// EndpointProtocol applies equality check predicate on the "endpoint_protocol" field. It's identical to EndpointProtocolEQ.
+func EndpointProtocol(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldEQ(FieldEndpointProtocol, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.UsageLog {
 	return predicate.UsageLog(sql.FieldEQ(FieldCreatedAt, v))
@@ -2478,6 +2488,156 @@ func CacheTTLOverriddenEQ(v bool) predicate.UsageLog {
 // CacheTTLOverriddenNEQ applies the NEQ predicate on the "cache_ttl_overridden" field.
 func CacheTTLOverriddenNEQ(v bool) predicate.UsageLog {
 	return predicate.UsageLog(sql.FieldNEQ(FieldCacheTTLOverridden, v))
+}
+
+// EndpointIDEQ applies the EQ predicate on the "endpoint_id" field.
+func EndpointIDEQ(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldEQ(FieldEndpointID, v))
+}
+
+// EndpointIDNEQ applies the NEQ predicate on the "endpoint_id" field.
+func EndpointIDNEQ(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldNEQ(FieldEndpointID, v))
+}
+
+// EndpointIDIn applies the In predicate on the "endpoint_id" field.
+func EndpointIDIn(vs ...string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldIn(FieldEndpointID, vs...))
+}
+
+// EndpointIDNotIn applies the NotIn predicate on the "endpoint_id" field.
+func EndpointIDNotIn(vs ...string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldNotIn(FieldEndpointID, vs...))
+}
+
+// EndpointIDGT applies the GT predicate on the "endpoint_id" field.
+func EndpointIDGT(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldGT(FieldEndpointID, v))
+}
+
+// EndpointIDGTE applies the GTE predicate on the "endpoint_id" field.
+func EndpointIDGTE(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldGTE(FieldEndpointID, v))
+}
+
+// EndpointIDLT applies the LT predicate on the "endpoint_id" field.
+func EndpointIDLT(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldLT(FieldEndpointID, v))
+}
+
+// EndpointIDLTE applies the LTE predicate on the "endpoint_id" field.
+func EndpointIDLTE(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldLTE(FieldEndpointID, v))
+}
+
+// EndpointIDContains applies the Contains predicate on the "endpoint_id" field.
+func EndpointIDContains(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldContains(FieldEndpointID, v))
+}
+
+// EndpointIDHasPrefix applies the HasPrefix predicate on the "endpoint_id" field.
+func EndpointIDHasPrefix(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldHasPrefix(FieldEndpointID, v))
+}
+
+// EndpointIDHasSuffix applies the HasSuffix predicate on the "endpoint_id" field.
+func EndpointIDHasSuffix(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldHasSuffix(FieldEndpointID, v))
+}
+
+// EndpointIDIsNil applies the IsNil predicate on the "endpoint_id" field.
+func EndpointIDIsNil() predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldIsNull(FieldEndpointID))
+}
+
+// EndpointIDNotNil applies the NotNil predicate on the "endpoint_id" field.
+func EndpointIDNotNil() predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldNotNull(FieldEndpointID))
+}
+
+// EndpointIDEqualFold applies the EqualFold predicate on the "endpoint_id" field.
+func EndpointIDEqualFold(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldEqualFold(FieldEndpointID, v))
+}
+
+// EndpointIDContainsFold applies the ContainsFold predicate on the "endpoint_id" field.
+func EndpointIDContainsFold(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldContainsFold(FieldEndpointID, v))
+}
+
+// EndpointProtocolEQ applies the EQ predicate on the "endpoint_protocol" field.
+func EndpointProtocolEQ(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldEQ(FieldEndpointProtocol, v))
+}
+
+// EndpointProtocolNEQ applies the NEQ predicate on the "endpoint_protocol" field.
+func EndpointProtocolNEQ(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldNEQ(FieldEndpointProtocol, v))
+}
+
+// EndpointProtocolIn applies the In predicate on the "endpoint_protocol" field.
+func EndpointProtocolIn(vs ...string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldIn(FieldEndpointProtocol, vs...))
+}
+
+// EndpointProtocolNotIn applies the NotIn predicate on the "endpoint_protocol" field.
+func EndpointProtocolNotIn(vs ...string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldNotIn(FieldEndpointProtocol, vs...))
+}
+
+// EndpointProtocolGT applies the GT predicate on the "endpoint_protocol" field.
+func EndpointProtocolGT(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldGT(FieldEndpointProtocol, v))
+}
+
+// EndpointProtocolGTE applies the GTE predicate on the "endpoint_protocol" field.
+func EndpointProtocolGTE(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldGTE(FieldEndpointProtocol, v))
+}
+
+// EndpointProtocolLT applies the LT predicate on the "endpoint_protocol" field.
+func EndpointProtocolLT(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldLT(FieldEndpointProtocol, v))
+}
+
+// EndpointProtocolLTE applies the LTE predicate on the "endpoint_protocol" field.
+func EndpointProtocolLTE(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldLTE(FieldEndpointProtocol, v))
+}
+
+// EndpointProtocolContains applies the Contains predicate on the "endpoint_protocol" field.
+func EndpointProtocolContains(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldContains(FieldEndpointProtocol, v))
+}
+
+// EndpointProtocolHasPrefix applies the HasPrefix predicate on the "endpoint_protocol" field.
+func EndpointProtocolHasPrefix(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldHasPrefix(FieldEndpointProtocol, v))
+}
+
+// EndpointProtocolHasSuffix applies the HasSuffix predicate on the "endpoint_protocol" field.
+func EndpointProtocolHasSuffix(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldHasSuffix(FieldEndpointProtocol, v))
+}
+
+// EndpointProtocolIsNil applies the IsNil predicate on the "endpoint_protocol" field.
+func EndpointProtocolIsNil() predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldIsNull(FieldEndpointProtocol))
+}
+
+// EndpointProtocolNotNil applies the NotNil predicate on the "endpoint_protocol" field.
+func EndpointProtocolNotNil() predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldNotNull(FieldEndpointProtocol))
+}
+
+// EndpointProtocolEqualFold applies the EqualFold predicate on the "endpoint_protocol" field.
+func EndpointProtocolEqualFold(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldEqualFold(FieldEndpointProtocol, v))
+}
+
+// EndpointProtocolContainsFold applies the ContainsFold predicate on the "endpoint_protocol" field.
+func EndpointProtocolContainsFold(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldContainsFold(FieldEndpointProtocol, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

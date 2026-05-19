@@ -617,6 +617,34 @@ func (_c *UsageLogCreate) SetNillableCacheTTLOverridden(v *bool) *UsageLogCreate
 	return _c
 }
 
+// SetEndpointID sets the "endpoint_id" field.
+func (_c *UsageLogCreate) SetEndpointID(v string) *UsageLogCreate {
+	_c.mutation.SetEndpointID(v)
+	return _c
+}
+
+// SetNillableEndpointID sets the "endpoint_id" field if the given value is not nil.
+func (_c *UsageLogCreate) SetNillableEndpointID(v *string) *UsageLogCreate {
+	if v != nil {
+		_c.SetEndpointID(*v)
+	}
+	return _c
+}
+
+// SetEndpointProtocol sets the "endpoint_protocol" field.
+func (_c *UsageLogCreate) SetEndpointProtocol(v string) *UsageLogCreate {
+	_c.mutation.SetEndpointProtocol(v)
+	return _c
+}
+
+// SetNillableEndpointProtocol sets the "endpoint_protocol" field if the given value is not nil.
+func (_c *UsageLogCreate) SetNillableEndpointProtocol(v *string) *UsageLogCreate {
+	if v != nil {
+		_c.SetEndpointProtocol(*v)
+	}
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *UsageLogCreate) SetCreatedAt(v time.Time) *UsageLogCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -898,6 +926,16 @@ func (_c *UsageLogCreate) check() error {
 	if _, ok := _c.mutation.CacheTTLOverridden(); !ok {
 		return &ValidationError{Name: "cache_ttl_overridden", err: errors.New(`ent: missing required field "UsageLog.cache_ttl_overridden"`)}
 	}
+	if v, ok := _c.mutation.EndpointID(); ok {
+		if err := usagelog.EndpointIDValidator(v); err != nil {
+			return &ValidationError{Name: "endpoint_id", err: fmt.Errorf(`ent: validator failed for field "UsageLog.endpoint_id": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.EndpointProtocol(); ok {
+		if err := usagelog.EndpointProtocolValidator(v); err != nil {
+			return &ValidationError{Name: "endpoint_protocol", err: fmt.Errorf(`ent: validator failed for field "UsageLog.endpoint_protocol": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "UsageLog.created_at"`)}
 	}
@@ -1096,6 +1134,14 @@ func (_c *UsageLogCreate) createSpec() (*UsageLog, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.CacheTTLOverridden(); ok {
 		_spec.SetField(usagelog.FieldCacheTTLOverridden, field.TypeBool, value)
 		_node.CacheTTLOverridden = value
+	}
+	if value, ok := _c.mutation.EndpointID(); ok {
+		_spec.SetField(usagelog.FieldEndpointID, field.TypeString, value)
+		_node.EndpointID = &value
+	}
+	if value, ok := _c.mutation.EndpointProtocol(); ok {
+		_spec.SetField(usagelog.FieldEndpointProtocol, field.TypeString, value)
+		_node.EndpointProtocol = &value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(usagelog.FieldCreatedAt, field.TypeTime, value)
@@ -2057,6 +2103,42 @@ func (u *UsageLogUpsert) SetCacheTTLOverridden(v bool) *UsageLogUpsert {
 // UpdateCacheTTLOverridden sets the "cache_ttl_overridden" field to the value that was provided on create.
 func (u *UsageLogUpsert) UpdateCacheTTLOverridden() *UsageLogUpsert {
 	u.SetExcluded(usagelog.FieldCacheTTLOverridden)
+	return u
+}
+
+// SetEndpointID sets the "endpoint_id" field.
+func (u *UsageLogUpsert) SetEndpointID(v string) *UsageLogUpsert {
+	u.Set(usagelog.FieldEndpointID, v)
+	return u
+}
+
+// UpdateEndpointID sets the "endpoint_id" field to the value that was provided on create.
+func (u *UsageLogUpsert) UpdateEndpointID() *UsageLogUpsert {
+	u.SetExcluded(usagelog.FieldEndpointID)
+	return u
+}
+
+// ClearEndpointID clears the value of the "endpoint_id" field.
+func (u *UsageLogUpsert) ClearEndpointID() *UsageLogUpsert {
+	u.SetNull(usagelog.FieldEndpointID)
+	return u
+}
+
+// SetEndpointProtocol sets the "endpoint_protocol" field.
+func (u *UsageLogUpsert) SetEndpointProtocol(v string) *UsageLogUpsert {
+	u.Set(usagelog.FieldEndpointProtocol, v)
+	return u
+}
+
+// UpdateEndpointProtocol sets the "endpoint_protocol" field to the value that was provided on create.
+func (u *UsageLogUpsert) UpdateEndpointProtocol() *UsageLogUpsert {
+	u.SetExcluded(usagelog.FieldEndpointProtocol)
+	return u
+}
+
+// ClearEndpointProtocol clears the value of the "endpoint_protocol" field.
+func (u *UsageLogUpsert) ClearEndpointProtocol() *UsageLogUpsert {
+	u.SetNull(usagelog.FieldEndpointProtocol)
 	return u
 }
 
@@ -3061,6 +3143,48 @@ func (u *UsageLogUpsertOne) SetCacheTTLOverridden(v bool) *UsageLogUpsertOne {
 func (u *UsageLogUpsertOne) UpdateCacheTTLOverridden() *UsageLogUpsertOne {
 	return u.Update(func(s *UsageLogUpsert) {
 		s.UpdateCacheTTLOverridden()
+	})
+}
+
+// SetEndpointID sets the "endpoint_id" field.
+func (u *UsageLogUpsertOne) SetEndpointID(v string) *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetEndpointID(v)
+	})
+}
+
+// UpdateEndpointID sets the "endpoint_id" field to the value that was provided on create.
+func (u *UsageLogUpsertOne) UpdateEndpointID() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateEndpointID()
+	})
+}
+
+// ClearEndpointID clears the value of the "endpoint_id" field.
+func (u *UsageLogUpsertOne) ClearEndpointID() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearEndpointID()
+	})
+}
+
+// SetEndpointProtocol sets the "endpoint_protocol" field.
+func (u *UsageLogUpsertOne) SetEndpointProtocol(v string) *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetEndpointProtocol(v)
+	})
+}
+
+// UpdateEndpointProtocol sets the "endpoint_protocol" field to the value that was provided on create.
+func (u *UsageLogUpsertOne) UpdateEndpointProtocol() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateEndpointProtocol()
+	})
+}
+
+// ClearEndpointProtocol clears the value of the "endpoint_protocol" field.
+func (u *UsageLogUpsertOne) ClearEndpointProtocol() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearEndpointProtocol()
 	})
 }
 
@@ -4231,6 +4355,48 @@ func (u *UsageLogUpsertBulk) SetCacheTTLOverridden(v bool) *UsageLogUpsertBulk {
 func (u *UsageLogUpsertBulk) UpdateCacheTTLOverridden() *UsageLogUpsertBulk {
 	return u.Update(func(s *UsageLogUpsert) {
 		s.UpdateCacheTTLOverridden()
+	})
+}
+
+// SetEndpointID sets the "endpoint_id" field.
+func (u *UsageLogUpsertBulk) SetEndpointID(v string) *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetEndpointID(v)
+	})
+}
+
+// UpdateEndpointID sets the "endpoint_id" field to the value that was provided on create.
+func (u *UsageLogUpsertBulk) UpdateEndpointID() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateEndpointID()
+	})
+}
+
+// ClearEndpointID clears the value of the "endpoint_id" field.
+func (u *UsageLogUpsertBulk) ClearEndpointID() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearEndpointID()
+	})
+}
+
+// SetEndpointProtocol sets the "endpoint_protocol" field.
+func (u *UsageLogUpsertBulk) SetEndpointProtocol(v string) *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetEndpointProtocol(v)
+	})
+}
+
+// UpdateEndpointProtocol sets the "endpoint_protocol" field to the value that was provided on create.
+func (u *UsageLogUpsertBulk) UpdateEndpointProtocol() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateEndpointProtocol()
+	})
+}
+
+// ClearEndpointProtocol clears the value of the "endpoint_protocol" field.
+func (u *UsageLogUpsertBulk) ClearEndpointProtocol() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearEndpointProtocol()
 	})
 }
 

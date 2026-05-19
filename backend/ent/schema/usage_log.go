@@ -192,6 +192,20 @@ func (UsageLog) Fields() []ent.Field {
 		field.Bool("cache_ttl_overridden").
 			Default(false),
 
+		// 多 Endpoint 快照（Phase 5 P5-1 引入）
+		// endpoint_id = Endpoint.stable_id 快照（修改 endpoint 不影响历史行）
+		field.String("endpoint_id").
+			MaxLen(128).
+			Optional().
+			Nillable().
+			Comment("Endpoint.stable_id 快照；NULL = 非 generic 账号或单 endpoint 派生"),
+		// endpoint_protocol = endpoint 的出站协议快照（取值见 glossary.md §1.1）
+		field.String("endpoint_protocol").
+			MaxLen(50).
+			Optional().
+			Nillable().
+			Comment("endpoint 出站协议快照；NULL = 非 generic 账号"),
+
 		// 时间戳（只有 created_at，日志不可修改）
 		field.Time("created_at").
 			Default(time.Now).

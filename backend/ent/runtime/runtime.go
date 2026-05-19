@@ -16,6 +16,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/channelmonitordailyrollup"
 	"github.com/Wei-Shaw/sub2api/ent/channelmonitorhistory"
 	"github.com/Wei-Shaw/sub2api/ent/channelmonitorrequesttemplate"
+	"github.com/Wei-Shaw/sub2api/ent/endpoint"
 	"github.com/Wei-Shaw/sub2api/ent/errorpassthroughrule"
 	"github.com/Wei-Shaw/sub2api/ent/group"
 	"github.com/Wei-Shaw/sub2api/ent/idempotencyrecord"
@@ -687,6 +688,48 @@ func init() {
 	channelmonitorrequesttemplate.DefaultBodyOverrideMode = channelmonitorrequesttemplateDescBodyOverrideMode.Default.(string)
 	// channelmonitorrequesttemplate.BodyOverrideModeValidator is a validator for the "body_override_mode" field. It is called by the builders before save.
 	channelmonitorrequesttemplate.BodyOverrideModeValidator = channelmonitorrequesttemplateDescBodyOverrideMode.Validators[0].(func(string) error)
+	endpointFields := schema.Endpoint{}.Fields()
+	_ = endpointFields
+	// endpointDescStableID is the schema descriptor for stable_id field.
+	endpointDescStableID := endpointFields[1].Descriptor()
+	// endpoint.StableIDValidator is a validator for the "stable_id" field. It is called by the builders before save.
+	endpoint.StableIDValidator = endpointDescStableID.Validators[0].(func(string) error)
+	// endpointDescOutboundProtocol is the schema descriptor for outbound_protocol field.
+	endpointDescOutboundProtocol := endpointFields[2].Descriptor()
+	// endpoint.OutboundProtocolValidator is a validator for the "outbound_protocol" field. It is called by the builders before save.
+	endpoint.OutboundProtocolValidator = endpointDescOutboundProtocol.Validators[0].(func(string) error)
+	// endpointDescBaseURL is the schema descriptor for base_url field.
+	endpointDescBaseURL := endpointFields[3].Descriptor()
+	// endpoint.BaseURLValidator is a validator for the "base_url" field. It is called by the builders before save.
+	endpoint.BaseURLValidator = endpointDescBaseURL.Validators[0].(func(string) error)
+	// endpointDescAuthHeader is the schema descriptor for auth_header field.
+	endpointDescAuthHeader := endpointFields[4].Descriptor()
+	// endpoint.DefaultAuthHeader holds the default value on creation for the auth_header field.
+	endpoint.DefaultAuthHeader = endpointDescAuthHeader.Default.(string)
+	// endpoint.AuthHeaderValidator is a validator for the "auth_header" field. It is called by the builders before save.
+	endpoint.AuthHeaderValidator = endpointDescAuthHeader.Validators[0].(func(string) error)
+	// endpointDescAuthScheme is the schema descriptor for auth_scheme field.
+	endpointDescAuthScheme := endpointFields[5].Descriptor()
+	// endpoint.DefaultAuthScheme holds the default value on creation for the auth_scheme field.
+	endpoint.DefaultAuthScheme = endpointDescAuthScheme.Default.(string)
+	// endpoint.AuthSchemeValidator is a validator for the "auth_scheme" field. It is called by the builders before save.
+	endpoint.AuthSchemeValidator = endpointDescAuthScheme.Validators[0].(func(string) error)
+	// endpointDescModelsSource is the schema descriptor for models_source field.
+	endpointDescModelsSource := endpointFields[6].Descriptor()
+	// endpoint.DefaultModelsSource holds the default value on creation for the models_source field.
+	endpoint.DefaultModelsSource = endpointDescModelsSource.Default.(string)
+	// endpoint.ModelsSourceValidator is a validator for the "models_source" field. It is called by the builders before save.
+	endpoint.ModelsSourceValidator = endpointDescModelsSource.Validators[0].(func(string) error)
+	// endpointDescPriority is the schema descriptor for priority field.
+	endpointDescPriority := endpointFields[7].Descriptor()
+	// endpoint.DefaultPriority holds the default value on creation for the priority field.
+	endpoint.DefaultPriority = endpointDescPriority.Default.(int)
+	// endpointDescHealth is the schema descriptor for health field.
+	endpointDescHealth := endpointFields[8].Descriptor()
+	// endpoint.DefaultHealth holds the default value on creation for the health field.
+	endpoint.DefaultHealth = endpointDescHealth.Default.(string)
+	// endpoint.HealthValidator is a validator for the "health" field. It is called by the builders before save.
+	endpoint.HealthValidator = endpointDescHealth.Validators[0].(func(string) error)
 	errorpassthroughruleMixin := schema.ErrorPassthroughRule{}.Mixin()
 	errorpassthroughruleMixinFields0 := errorpassthroughruleMixin[0].Fields()
 	_ = errorpassthroughruleMixinFields0
@@ -1997,8 +2040,16 @@ func init() {
 	usagelogDescCacheTTLOverridden := usagelogFields[44].Descriptor()
 	// usagelog.DefaultCacheTTLOverridden holds the default value on creation for the cache_ttl_overridden field.
 	usagelog.DefaultCacheTTLOverridden = usagelogDescCacheTTLOverridden.Default.(bool)
+	// usagelogDescEndpointID is the schema descriptor for endpoint_id field.
+	usagelogDescEndpointID := usagelogFields[45].Descriptor()
+	// usagelog.EndpointIDValidator is a validator for the "endpoint_id" field. It is called by the builders before save.
+	usagelog.EndpointIDValidator = usagelogDescEndpointID.Validators[0].(func(string) error)
+	// usagelogDescEndpointProtocol is the schema descriptor for endpoint_protocol field.
+	usagelogDescEndpointProtocol := usagelogFields[46].Descriptor()
+	// usagelog.EndpointProtocolValidator is a validator for the "endpoint_protocol" field. It is called by the builders before save.
+	usagelog.EndpointProtocolValidator = usagelogDescEndpointProtocol.Validators[0].(func(string) error)
 	// usagelogDescCreatedAt is the schema descriptor for created_at field.
-	usagelogDescCreatedAt := usagelogFields[45].Descriptor()
+	usagelogDescCreatedAt := usagelogFields[47].Descriptor()
 	// usagelog.DefaultCreatedAt holds the default value on creation for the created_at field.
 	usagelog.DefaultCreatedAt = usagelogDescCreatedAt.Default.(func() time.Time)
 	userMixin := schema.User{}.Mixin()
