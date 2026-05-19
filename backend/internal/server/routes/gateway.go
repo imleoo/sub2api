@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
+	"github.com/Wei-Shaw/sub2api/internal/domain"
 	"github.com/Wei-Shaw/sub2api/internal/handler"
 	"github.com/Wei-Shaw/sub2api/internal/plugin/promptanalytics"
 	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
@@ -47,17 +48,17 @@ func RegisterGatewayRoutes(
 	gateway.Use(gin.HandlerFunc(apiKeyAuth))
 	gateway.Use(requireGroupAnthropic)
 	{
-		// /v1/messages: auto-route based on group platform
+		// /v1/messages: route by inbound protocol (P2-3 双写期：proto 优先，platform 兜底)
 		gateway.POST("/messages", func(c *gin.Context) {
-			if getGroupPlatform(c) == service.PlatformOpenAI {
+			if isOpenAIInbound(c) {
 				h.OpenAIGateway.Messages(c)
 				return
 			}
 			h.Gateway.Messages(c)
 		})
-		// /v1/messages/count_tokens: OpenAI groups get 404
+		// /v1/messages/count_tokens: OpenAI inbound 不支持 token 计数（与旧行为一致）
 		gateway.POST("/messages/count_tokens", func(c *gin.Context) {
-			if getGroupPlatform(c) == service.PlatformOpenAI {
+			if isOpenAIInbound(c) {
 				c.JSON(http.StatusNotFound, gin.H{
 					"type": "error",
 					"error": gin.H{
@@ -71,32 +72,32 @@ func RegisterGatewayRoutes(
 		})
 		gateway.GET("/models", h.Gateway.Models)
 		gateway.GET("/usage", h.Gateway.Usage)
-		// OpenAI Responses API: auto-route based on group platform
+		// OpenAI Responses API: route by inbound protocol (P2-3)
 		gateway.POST("/responses", func(c *gin.Context) {
-			if getGroupPlatform(c) == service.PlatformOpenAI {
+			if isOpenAIInbound(c) {
 				h.OpenAIGateway.Responses(c)
 				return
 			}
 			h.Gateway.Responses(c)
 		})
 		gateway.POST("/responses/*subpath", func(c *gin.Context) {
-			if getGroupPlatform(c) == service.PlatformOpenAI {
+			if isOpenAIInbound(c) {
 				h.OpenAIGateway.Responses(c)
 				return
 			}
 			h.Gateway.Responses(c)
 		})
 		gateway.GET("/responses", h.OpenAIGateway.ResponsesWebSocket)
-		// OpenAI Chat Completions API: auto-route based on group platform
+		// OpenAI Chat Completions API: route by inbound protocol (P2-3)
 		gateway.POST("/chat/completions", func(c *gin.Context) {
-			if getGroupPlatform(c) == service.PlatformOpenAI {
+			if isOpenAIInbound(c) {
 				h.OpenAIGateway.ChatCompletions(c)
 				return
 			}
 			h.Gateway.ChatCompletions(c)
 		})
 		gateway.POST("/images/generations", func(c *gin.Context) {
-			if getGroupPlatform(c) != service.PlatformOpenAI {
+			if !isOpenAIInbound(c) {
 				c.JSON(http.StatusNotFound, gin.H{
 					"error": gin.H{
 						"type":    "not_found_error",
@@ -108,7 +109,7 @@ func RegisterGatewayRoutes(
 			h.OpenAIGateway.Images(c)
 		})
 		gateway.POST("/images/edits", func(c *gin.Context) {
-			if getGroupPlatform(c) != service.PlatformOpenAI {
+			if !isOpenAIInbound(c) {
 				c.JSON(http.StatusNotFound, gin.H{
 					"error": gin.H{
 						"type":    "not_found_error",
@@ -137,9 +138,9 @@ func RegisterGatewayRoutes(
 		gemini.POST("/models/*modelAction", h.Gateway.GeminiV1BetaModels)
 	}
 
-	// OpenAI Responses API（不带v1前缀的别名）— auto-route based on group platform
+	// OpenAI Responses API（不带v1前缀的别名）— P2-3 协议感知分流
 	responsesHandler := func(c *gin.Context) {
-		if getGroupPlatform(c) == service.PlatformOpenAI {
+		if isOpenAIInbound(c) {
 			h.OpenAIGateway.Responses(c)
 			return
 		}
@@ -155,17 +156,19 @@ func RegisterGatewayRoutes(
 		codexDirect.POST("/responses/*subpath", responsesHandler)
 		codexDirect.GET("/responses", h.OpenAIGateway.ResponsesWebSocket)
 	}
-	// OpenAI Chat Completions API（不带v1前缀的别名）— auto-route based on group platform
+	// OpenAI Chat Completions API（不带v1前缀的别名）— P2-3 协议感知分流
 	r.POST("/chat/completions", bodyLimit, clientRequestID, opsErrorLogger, promptAnalytics, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, func(c *gin.Context) {
-		if getGroupPlatform(c) == service.PlatformOpenAI {
+		if isOpenAIInbound(c) {
 			h.OpenAIGateway.ChatCompletions(c)
 			return
 		}
 		h.Gateway.ChatCompletions(c)
 	})
 	r.POST("/images/generations", bodyLimit, clientRequestID, opsErrorLogger, promptAnalytics, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, func(c *gin.Context) {
+		// fork 12 lingjing 警戒：lingjing 平台的 Seedream 同步生图复用此路由
+		// 协议感知判断：OpenAI 入站走 OpenAI handler；非 OpenAI 但 platform=lingjing 也允许
 		platform := getGroupPlatform(c)
-		if platform != service.PlatformOpenAI && platform != service.PlatformLingjing {
+		if !isOpenAIInbound(c) && platform != service.PlatformLingjing {
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": gin.H{
 					"type":    "not_found_error",
@@ -177,7 +180,7 @@ func RegisterGatewayRoutes(
 		h.OpenAIGateway.Images(c)
 	})
 	r.POST("/images/edits", bodyLimit, clientRequestID, opsErrorLogger, promptAnalytics, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, func(c *gin.Context) {
-		if getGroupPlatform(c) != service.PlatformOpenAI {
+		if !isOpenAIInbound(c) {
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": gin.H{
 					"type":    "not_found_error",
@@ -247,4 +250,35 @@ func getGroupPlatform(c *gin.Context) string {
 		return ""
 	}
 	return apiKey.Group.Platform
+}
+
+// getGroupInboundProtocol returns the inbound protocol of the requesting group (Phase 2 P2-3).
+//
+// Resolution order (docs/relay-architecture-design.md §3.2):
+//  1. Group.InboundProtocol if present and valid (per docs/glossary.md §1.1)
+//  2. fall back to platform-derived default (compatibility for legacy groups)
+//  3. empty string when no API key / no group context — caller should use legacy platform branch
+func getGroupInboundProtocol(c *gin.Context) string {
+	apiKey, ok := middleware.GetAPIKeyFromContext(c)
+	if !ok || apiKey.Group == nil {
+		return ""
+	}
+	return domain.ResolveInboundProtocol(apiKey.Group.InboundProtocol, apiKey.Group.Platform)
+}
+
+// isOpenAIInbound returns true when the requesting group's inbound protocol is OpenAI-shaped.
+//
+// Replaces all `getGroupPlatform(c) == service.PlatformOpenAI` branches with a protocol-aware
+// check that still falls back to the legacy platform field. Both openai_chat and openai_responses
+// inbound shapes route to the OpenAI handler family.
+func isOpenAIInbound(c *gin.Context) bool {
+	proto := getGroupInboundProtocol(c)
+	if proto == domain.ProtocolOpenAIChat || proto == domain.ProtocolOpenAIResponses {
+		return true
+	}
+	// 兜底（双写期）：proto 为空时按 platform 判断，保持旧行为
+	if proto == "" {
+		return getGroupPlatform(c) == service.PlatformOpenAI
+	}
+	return false
 }

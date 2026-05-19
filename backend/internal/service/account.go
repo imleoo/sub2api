@@ -21,7 +21,10 @@ type Account struct {
 	Name        string
 	Notes       *string
 	Platform    string
-	Type        string
+	// OutboundProtocol 出站协议（Phase 2 P2-1 引入；空 = 按 Platform/Type 派生）
+	// 取值见 docs/glossary.md §1.1
+	OutboundProtocol string
+	Type             string
 	Credentials map[string]any
 	Extra       map[string]any
 	ProxyID     *int64

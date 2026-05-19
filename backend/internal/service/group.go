@@ -14,10 +14,13 @@ type Group struct {
 	Name           string
 	Description    string
 	Platform       string
-	RateMultiplier float64
-	IsExclusive    bool
-	Status         string
-	Hydrated       bool // indicates the group was loaded from a trusted repository source
+	// InboundProtocol 入站协议（Phase 2 P2-1 引入；空 = 按 Platform 派生）
+	// 取值见 docs/glossary.md §1.1：anthropic_messages / openai_chat / openai_responses / gemini_v1beta
+	InboundProtocol string
+	RateMultiplier  float64
+	IsExclusive     bool
+	Status          string
+	Hydrated        bool // indicates the group was loaded from a trusted repository source
 
 	SubscriptionType    string
 	DailyLimitUSD       *float64
