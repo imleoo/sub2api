@@ -70,6 +70,12 @@ type UsageLogRepository interface {
 
 	// Account stats
 	GetAccountUsageStats(ctx context.Context, accountID int64, startTime, endTime time.Time) (*usagestats.AccountUsageStatsResponse, error)
+	// GetAccountStatsCrossGroup 返回账号跨 group 全量聚合（Phase 1 P1-2）。
+	// 与 GetAccountUsageStats 语义一致，但函数名显式表达"不被 group_id 切分"承诺。
+	GetAccountStatsCrossGroup(ctx context.Context, accountID int64, startTime, endTime time.Time) (*usagestats.AccountUsageStatsResponse, error)
+	// GetStatsByProvider 返回按 provider_key 跨 group 聚合的用量统计（Phase 1 P1-2）。
+	// provider 入参必须经 NormalizeProvider 规范化；详见 docs/generic-channel-design.md §5.4。
+	GetStatsByProvider(ctx context.Context, providerKey string, startTime, endTime time.Time) (*usagestats.AccountUsageStatsResponse, error)
 
 	// User stats
 	GetUserUsageStats(ctx context.Context, userID int64, startTime, endTime time.Time) (*usagestats.AccountUsageStatsResponse, error)
