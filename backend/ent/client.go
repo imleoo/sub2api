@@ -39,6 +39,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/pendingauthsession"
 	"github.com/Wei-Shaw/sub2api/ent/promocode"
 	"github.com/Wei-Shaw/sub2api/ent/promocodeusage"
+	"github.com/Wei-Shaw/sub2api/ent/providerpricing"
 	"github.com/Wei-Shaw/sub2api/ent/proxy"
 	"github.com/Wei-Shaw/sub2api/ent/redeemcode"
 	"github.com/Wei-Shaw/sub2api/ent/securitysecret"
@@ -109,6 +110,8 @@ type Client struct {
 	PromoCode *PromoCodeClient
 	// PromoCodeUsage is the client for interacting with the PromoCodeUsage builders.
 	PromoCodeUsage *PromoCodeUsageClient
+	// ProviderPricing is the client for interacting with the ProviderPricing builders.
+	ProviderPricing *ProviderPricingClient
 	// Proxy is the client for interacting with the Proxy builders.
 	Proxy *ProxyClient
 	// RedeemCode is the client for interacting with the RedeemCode builders.
@@ -170,6 +173,7 @@ func (c *Client) init() {
 	c.PendingAuthSession = NewPendingAuthSessionClient(c.config)
 	c.PromoCode = NewPromoCodeClient(c.config)
 	c.PromoCodeUsage = NewPromoCodeUsageClient(c.config)
+	c.ProviderPricing = NewProviderPricingClient(c.config)
 	c.Proxy = NewProxyClient(c.config)
 	c.RedeemCode = NewRedeemCodeClient(c.config)
 	c.SecuritySecret = NewSecuritySecretClient(c.config)
@@ -299,6 +303,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		PendingAuthSession:            NewPendingAuthSessionClient(cfg),
 		PromoCode:                     NewPromoCodeClient(cfg),
 		PromoCodeUsage:                NewPromoCodeUsageClient(cfg),
+		ProviderPricing:               NewProviderPricingClient(cfg),
 		Proxy:                         NewProxyClient(cfg),
 		RedeemCode:                    NewRedeemCodeClient(cfg),
 		SecuritySecret:                NewSecuritySecretClient(cfg),
@@ -355,6 +360,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		PendingAuthSession:            NewPendingAuthSessionClient(cfg),
 		PromoCode:                     NewPromoCodeClient(cfg),
 		PromoCodeUsage:                NewPromoCodeUsageClient(cfg),
+		ProviderPricing:               NewProviderPricingClient(cfg),
 		Proxy:                         NewProxyClient(cfg),
 		RedeemCode:                    NewRedeemCodeClient(cfg),
 		SecuritySecret:                NewSecuritySecretClient(cfg),
@@ -403,10 +409,11 @@ func (c *Client) Use(hooks ...Hook) {
 		c.ChannelMonitorRequestTemplate, c.ErrorPassthroughRule, c.Group,
 		c.IdempotencyRecord, c.IdentityAdoptionDecision, c.KeywordStat, c.LingjingTask,
 		c.ModelPricing, c.PaymentAuditLog, c.PaymentOrder, c.PaymentProviderInstance,
-		c.PendingAuthSession, c.PromoCode, c.PromoCodeUsage, c.Proxy, c.RedeemCode,
-		c.SecuritySecret, c.Setting, c.SubscriptionPlan, c.TLSFingerprintProfile,
-		c.UsageCleanupTask, c.UsageLog, c.User, c.UserAllowedGroup,
-		c.UserAttributeDefinition, c.UserAttributeValue, c.UserSubscription,
+		c.PendingAuthSession, c.PromoCode, c.PromoCodeUsage, c.ProviderPricing,
+		c.Proxy, c.RedeemCode, c.SecuritySecret, c.Setting, c.SubscriptionPlan,
+		c.TLSFingerprintProfile, c.UsageCleanupTask, c.UsageLog, c.User,
+		c.UserAllowedGroup, c.UserAttributeDefinition, c.UserAttributeValue,
+		c.UserSubscription,
 	} {
 		n.Use(hooks...)
 	}
@@ -422,10 +429,11 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.ChannelMonitorRequestTemplate, c.ErrorPassthroughRule, c.Group,
 		c.IdempotencyRecord, c.IdentityAdoptionDecision, c.KeywordStat, c.LingjingTask,
 		c.ModelPricing, c.PaymentAuditLog, c.PaymentOrder, c.PaymentProviderInstance,
-		c.PendingAuthSession, c.PromoCode, c.PromoCodeUsage, c.Proxy, c.RedeemCode,
-		c.SecuritySecret, c.Setting, c.SubscriptionPlan, c.TLSFingerprintProfile,
-		c.UsageCleanupTask, c.UsageLog, c.User, c.UserAllowedGroup,
-		c.UserAttributeDefinition, c.UserAttributeValue, c.UserSubscription,
+		c.PendingAuthSession, c.PromoCode, c.PromoCodeUsage, c.ProviderPricing,
+		c.Proxy, c.RedeemCode, c.SecuritySecret, c.Setting, c.SubscriptionPlan,
+		c.TLSFingerprintProfile, c.UsageCleanupTask, c.UsageLog, c.User,
+		c.UserAllowedGroup, c.UserAttributeDefinition, c.UserAttributeValue,
+		c.UserSubscription,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -482,6 +490,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.PromoCode.mutate(ctx, m)
 	case *PromoCodeUsageMutation:
 		return c.PromoCodeUsage.mutate(ctx, m)
+	case *ProviderPricingMutation:
+		return c.ProviderPricing.mutate(ctx, m)
 	case *ProxyMutation:
 		return c.Proxy.mutate(ctx, m)
 	case *RedeemCodeMutation:
@@ -4270,6 +4280,139 @@ func (c *PromoCodeUsageClient) mutate(ctx context.Context, m *PromoCodeUsageMuta
 	}
 }
 
+// ProviderPricingClient is a client for the ProviderPricing schema.
+type ProviderPricingClient struct {
+	config
+}
+
+// NewProviderPricingClient returns a client for the ProviderPricing from the given config.
+func NewProviderPricingClient(c config) *ProviderPricingClient {
+	return &ProviderPricingClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `providerpricing.Hooks(f(g(h())))`.
+func (c *ProviderPricingClient) Use(hooks ...Hook) {
+	c.hooks.ProviderPricing = append(c.hooks.ProviderPricing, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `providerpricing.Intercept(f(g(h())))`.
+func (c *ProviderPricingClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ProviderPricing = append(c.inters.ProviderPricing, interceptors...)
+}
+
+// Create returns a builder for creating a ProviderPricing entity.
+func (c *ProviderPricingClient) Create() *ProviderPricingCreate {
+	mutation := newProviderPricingMutation(c.config, OpCreate)
+	return &ProviderPricingCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ProviderPricing entities.
+func (c *ProviderPricingClient) CreateBulk(builders ...*ProviderPricingCreate) *ProviderPricingCreateBulk {
+	return &ProviderPricingCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ProviderPricingClient) MapCreateBulk(slice any, setFunc func(*ProviderPricingCreate, int)) *ProviderPricingCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ProviderPricingCreateBulk{err: fmt.Errorf("calling to ProviderPricingClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ProviderPricingCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ProviderPricingCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ProviderPricing.
+func (c *ProviderPricingClient) Update() *ProviderPricingUpdate {
+	mutation := newProviderPricingMutation(c.config, OpUpdate)
+	return &ProviderPricingUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ProviderPricingClient) UpdateOne(_m *ProviderPricing) *ProviderPricingUpdateOne {
+	mutation := newProviderPricingMutation(c.config, OpUpdateOne, withProviderPricing(_m))
+	return &ProviderPricingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ProviderPricingClient) UpdateOneID(id int64) *ProviderPricingUpdateOne {
+	mutation := newProviderPricingMutation(c.config, OpUpdateOne, withProviderPricingID(id))
+	return &ProviderPricingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ProviderPricing.
+func (c *ProviderPricingClient) Delete() *ProviderPricingDelete {
+	mutation := newProviderPricingMutation(c.config, OpDelete)
+	return &ProviderPricingDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ProviderPricingClient) DeleteOne(_m *ProviderPricing) *ProviderPricingDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ProviderPricingClient) DeleteOneID(id int64) *ProviderPricingDeleteOne {
+	builder := c.Delete().Where(providerpricing.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ProviderPricingDeleteOne{builder}
+}
+
+// Query returns a query builder for ProviderPricing.
+func (c *ProviderPricingClient) Query() *ProviderPricingQuery {
+	return &ProviderPricingQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeProviderPricing},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ProviderPricing entity by its id.
+func (c *ProviderPricingClient) Get(ctx context.Context, id int64) (*ProviderPricing, error) {
+	return c.Query().Where(providerpricing.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ProviderPricingClient) GetX(ctx context.Context, id int64) *ProviderPricing {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ProviderPricingClient) Hooks() []Hook {
+	return c.hooks.ProviderPricing
+}
+
+// Interceptors returns the client interceptors.
+func (c *ProviderPricingClient) Interceptors() []Interceptor {
+	return c.inters.ProviderPricing
+}
+
+func (c *ProviderPricingClient) mutate(ctx context.Context, m *ProviderPricingMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ProviderPricingCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ProviderPricingUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ProviderPricingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ProviderPricingDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ProviderPricing mutation op: %q", m.Op())
+	}
+}
+
 // ProxyClient is a client for the Proxy schema.
 type ProxyClient struct {
 	config
@@ -6446,8 +6589,8 @@ type (
 		ChannelMonitorHistory, ChannelMonitorRequestTemplate, ErrorPassthroughRule,
 		Group, IdempotencyRecord, IdentityAdoptionDecision, KeywordStat, LingjingTask,
 		ModelPricing, PaymentAuditLog, PaymentOrder, PaymentProviderInstance,
-		PendingAuthSession, PromoCode, PromoCodeUsage, Proxy, RedeemCode,
-		SecuritySecret, Setting, SubscriptionPlan, TLSFingerprintProfile,
+		PendingAuthSession, PromoCode, PromoCodeUsage, ProviderPricing, Proxy,
+		RedeemCode, SecuritySecret, Setting, SubscriptionPlan, TLSFingerprintProfile,
 		UsageCleanupTask, UsageLog, User, UserAllowedGroup, UserAttributeDefinition,
 		UserAttributeValue, UserSubscription []ent.Hook
 	}
@@ -6457,8 +6600,8 @@ type (
 		ChannelMonitorHistory, ChannelMonitorRequestTemplate, ErrorPassthroughRule,
 		Group, IdempotencyRecord, IdentityAdoptionDecision, KeywordStat, LingjingTask,
 		ModelPricing, PaymentAuditLog, PaymentOrder, PaymentProviderInstance,
-		PendingAuthSession, PromoCode, PromoCodeUsage, Proxy, RedeemCode,
-		SecuritySecret, Setting, SubscriptionPlan, TLSFingerprintProfile,
+		PendingAuthSession, PromoCode, PromoCodeUsage, ProviderPricing, Proxy,
+		RedeemCode, SecuritySecret, Setting, SubscriptionPlan, TLSFingerprintProfile,
 		UsageCleanupTask, UsageLog, User, UserAllowedGroup, UserAttributeDefinition,
 		UserAttributeValue, UserSubscription []ent.Interceptor
 	}

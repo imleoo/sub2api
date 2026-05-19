@@ -29,6 +29,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/pendingauthsession"
 	"github.com/Wei-Shaw/sub2api/ent/promocode"
 	"github.com/Wei-Shaw/sub2api/ent/promocodeusage"
+	"github.com/Wei-Shaw/sub2api/ent/providerpricing"
 	"github.com/Wei-Shaw/sub2api/ent/proxy"
 	"github.com/Wei-Shaw/sub2api/ent/redeemcode"
 	"github.com/Wei-Shaw/sub2api/ent/schema"
@@ -1418,6 +1419,92 @@ func init() {
 	promocodeusageDescUsedAt := promocodeusageFields[3].Descriptor()
 	// promocodeusage.DefaultUsedAt holds the default value on creation for the used_at field.
 	promocodeusage.DefaultUsedAt = promocodeusageDescUsedAt.Default.(func() time.Time)
+	providerpricingFields := schema.ProviderPricing{}.Fields()
+	_ = providerpricingFields
+	// providerpricingDescProvider is the schema descriptor for provider field.
+	providerpricingDescProvider := providerpricingFields[0].Descriptor()
+	// providerpricing.ProviderValidator is a validator for the "provider" field. It is called by the builders before save.
+	providerpricing.ProviderValidator = func() func(string) error {
+		validators := providerpricingDescProvider.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(provider string) error {
+			for _, fn := range fns {
+				if err := fn(provider); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// providerpricingDescModel is the schema descriptor for model field.
+	providerpricingDescModel := providerpricingFields[1].Descriptor()
+	// providerpricing.ModelValidator is a validator for the "model" field. It is called by the builders before save.
+	providerpricing.ModelValidator = func() func(string) error {
+		validators := providerpricingDescModel.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(model string) error {
+			for _, fn := range fns {
+				if err := fn(model); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// providerpricingDescBillingMode is the schema descriptor for billing_mode field.
+	providerpricingDescBillingMode := providerpricingFields[2].Descriptor()
+	// providerpricing.DefaultBillingMode holds the default value on creation for the billing_mode field.
+	providerpricing.DefaultBillingMode = providerpricingDescBillingMode.Default.(string)
+	// providerpricing.BillingModeValidator is a validator for the "billing_mode" field. It is called by the builders before save.
+	providerpricing.BillingModeValidator = providerpricingDescBillingMode.Validators[0].(func(string) error)
+	// providerpricingDescInputPrice is the schema descriptor for input_price field.
+	providerpricingDescInputPrice := providerpricingFields[3].Descriptor()
+	// providerpricing.DefaultInputPrice holds the default value on creation for the input_price field.
+	providerpricing.DefaultInputPrice = providerpricingDescInputPrice.Default.(float64)
+	// providerpricingDescOutputPrice is the schema descriptor for output_price field.
+	providerpricingDescOutputPrice := providerpricingFields[4].Descriptor()
+	// providerpricing.DefaultOutputPrice holds the default value on creation for the output_price field.
+	providerpricing.DefaultOutputPrice = providerpricingDescOutputPrice.Default.(float64)
+	// providerpricingDescCacheCreationPrice is the schema descriptor for cache_creation_price field.
+	providerpricingDescCacheCreationPrice := providerpricingFields[5].Descriptor()
+	// providerpricing.DefaultCacheCreationPrice holds the default value on creation for the cache_creation_price field.
+	providerpricing.DefaultCacheCreationPrice = providerpricingDescCacheCreationPrice.Default.(float64)
+	// providerpricingDescCacheReadPrice is the schema descriptor for cache_read_price field.
+	providerpricingDescCacheReadPrice := providerpricingFields[6].Descriptor()
+	// providerpricing.DefaultCacheReadPrice holds the default value on creation for the cache_read_price field.
+	providerpricing.DefaultCacheReadPrice = providerpricingDescCacheReadPrice.Default.(float64)
+	// providerpricingDescCurrency is the schema descriptor for currency field.
+	providerpricingDescCurrency := providerpricingFields[7].Descriptor()
+	// providerpricing.DefaultCurrency holds the default value on creation for the currency field.
+	providerpricing.DefaultCurrency = providerpricingDescCurrency.Default.(string)
+	// providerpricing.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
+	providerpricing.CurrencyValidator = providerpricingDescCurrency.Validators[0].(func(string) error)
+	// providerpricingDescEffectiveFrom is the schema descriptor for effective_from field.
+	providerpricingDescEffectiveFrom := providerpricingFields[8].Descriptor()
+	// providerpricing.DefaultEffectiveFrom holds the default value on creation for the effective_from field.
+	providerpricing.DefaultEffectiveFrom = providerpricingDescEffectiveFrom.Default.(func() time.Time)
+	// providerpricingDescSource is the schema descriptor for source field.
+	providerpricingDescSource := providerpricingFields[10].Descriptor()
+	// providerpricing.DefaultSource holds the default value on creation for the source field.
+	providerpricing.DefaultSource = providerpricingDescSource.Default.(string)
+	// providerpricing.SourceValidator is a validator for the "source" field. It is called by the builders before save.
+	providerpricing.SourceValidator = providerpricingDescSource.Validators[0].(func(string) error)
+	// providerpricingDescCreatedAt is the schema descriptor for created_at field.
+	providerpricingDescCreatedAt := providerpricingFields[11].Descriptor()
+	// providerpricing.DefaultCreatedAt holds the default value on creation for the created_at field.
+	providerpricing.DefaultCreatedAt = providerpricingDescCreatedAt.Default.(func() time.Time)
+	// providerpricingDescUpdatedAt is the schema descriptor for updated_at field.
+	providerpricingDescUpdatedAt := providerpricingFields[12].Descriptor()
+	// providerpricing.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	providerpricing.DefaultUpdatedAt = providerpricingDescUpdatedAt.Default.(func() time.Time)
+	// providerpricing.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	providerpricing.UpdateDefaultUpdatedAt = providerpricingDescUpdatedAt.UpdateDefault.(func() time.Time)
 	proxyMixin := schema.Proxy{}.Mixin()
 	proxyMixinHooks1 := proxyMixin[1].Hooks()
 	proxy.Hooks[0] = proxyMixinHooks1[0]

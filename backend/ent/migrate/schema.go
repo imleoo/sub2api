@@ -1221,6 +1221,36 @@ var (
 			},
 		},
 	}
+	// ProviderPricingsColumns holds the columns for the "provider_pricings" table.
+	ProviderPricingsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "provider", Type: field.TypeString, Size: 50},
+		{Name: "model", Type: field.TypeString, Size: 100},
+		{Name: "billing_mode", Type: field.TypeString, Size: 20, Default: "token"},
+		{Name: "input_price", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(20,10)"}},
+		{Name: "output_price", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(20,10)"}},
+		{Name: "cache_creation_price", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(20,10)"}},
+		{Name: "cache_read_price", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(20,10)"}},
+		{Name: "currency", Type: field.TypeString, Size: 8, Default: "USD"},
+		{Name: "effective_from", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "effective_to", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "source", Type: field.TypeString, Size: 50, Default: "manual"},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+	}
+	// ProviderPricingsTable holds the schema information for the "provider_pricings" table.
+	ProviderPricingsTable = &schema.Table{
+		Name:       "provider_pricings",
+		Columns:    ProviderPricingsColumns,
+		PrimaryKey: []*schema.Column{ProviderPricingsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "providerpricing_provider_model_effective_from",
+				Unique:  false,
+				Columns: []*schema.Column{ProviderPricingsColumns[1], ProviderPricingsColumns[2], ProviderPricingsColumns[9]},
+			},
+		},
+	}
 	// ProxiesColumns holds the columns for the "proxies" table.
 	ProxiesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -1848,6 +1878,7 @@ var (
 		PendingAuthSessionsTable,
 		PromoCodesTable,
 		PromoCodeUsagesTable,
+		ProviderPricingsTable,
 		ProxiesTable,
 		RedeemCodesTable,
 		SecuritySecretsTable,
@@ -1954,6 +1985,9 @@ func init() {
 	PromoCodeUsagesTable.ForeignKeys[1].RefTable = UsersTable
 	PromoCodeUsagesTable.Annotation = &entsql.Annotation{
 		Table: "promo_code_usages",
+	}
+	ProviderPricingsTable.Annotation = &entsql.Annotation{
+		Table: "provider_pricings",
 	}
 	ProxiesTable.Annotation = &entsql.Annotation{
 		Table: "proxies",
