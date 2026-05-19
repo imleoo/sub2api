@@ -647,6 +647,24 @@ func (s *SchedulerSnapshotService) loadAccountsFromDB(ctx context.Context, bucke
 		groupID = 0
 	}
 
+	// P5-6: protocol 桶为主路径（ProtocolBucketEnabled=true）。
+	// 注意：generic/lingjing 通过 Endpoint 实体路由，不走协议桶；
+	// mixed 模式（anthropic+antigravity）在协议层统一为 anthropic_messages，无需单独处理。
+	if s.cfg != nil && s.cfg.Gateway.Scheduling.ProtocolBucketEnabled {
+		protocol := platformToProtocol(bucket.Platform)
+		if protocol != "" {
+			if groupID > 0 {
+				return s.accountRepo.ListSchedulableByGroupIDAndOutboundProtocol(ctx, groupID, protocol)
+			}
+			if s.isRunModeSimple() {
+				return s.accountRepo.ListSchedulableByOutboundProtocol(ctx, protocol)
+			}
+			return s.accountRepo.ListSchedulableUngroupedByOutboundProtocol(ctx, protocol)
+		}
+		// protocol="" (generic/lingjing)：降级到 platform 查询
+	}
+
+	// TODO(P5-6 rollback): 以下 platform 维度查询分支计划于 2026-Q3 删除。
 	if useMixed {
 		platforms := []string{bucket.Platform, PlatformAntigravity}
 		var accounts []Account

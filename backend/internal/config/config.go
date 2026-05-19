@@ -989,6 +989,14 @@ type GatewaySchedulingConfig struct {
 	// 为 true 时每次 ListSchedulableAccounts 会异步运行协议维度影子查询并记录分歧埋点。
 	// lingjing 平台始终跳过影子比较。
 	DualBucketEnabled bool `mapstructure:"dual_bucket_enabled"`
+
+	// Phase 5 P5-6: 切单桶（protocol 维度成为主路径，platform 维度下线）。
+	// 为 true 时 loadAccountsFromDB 改用 ListSchedulableByOutboundProtocol 系列接口；
+	// 为 false（默认）时保持原 platform 维度查询（旧桶兜底，1 季度后删除）。
+	// 回滚：设回 false 即可，无需重启迁移。
+	//
+	// TODO(P5-6 rollback): 此字段及 platform 维度查询分支计划于 2026-Q3 删除。
+	ProtocolBucketEnabled bool `mapstructure:"protocol_bucket_enabled"`
 }
 
 func (s *ServerConfig) Address() string {
