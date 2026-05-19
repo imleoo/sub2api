@@ -269,7 +269,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	scheduledTestRunnerService := service.ProvideScheduledTestRunnerService(scheduledTestPlanRepository, scheduledTestService, accountTestService, rateLimitService, configConfig)
 	paymentOrderExpiryService := service.ProvidePaymentOrderExpiryService(paymentService)
 	channelMonitorRunner := service.ProvideChannelMonitorRunner(channelMonitorService, settingService)
-	lingjingPollRunner := service.ProvideLingjingPollRunner(lingjingTaskRepository, lingjingGatewayService, accountRepository, billingService, billingCacheService)
+	lingjingPollRunner := service.ProvideLingjingPollRunner(lingjingTaskRepository, lingjingGatewayService, accountRepository, billingService, billingCacheService, upstreamCostResolver, usageLogRepository)
 	v := provideCleanup(client, redisClient, opsMetricsCollector, opsAggregationService, opsAlertEvaluatorService, opsCleanupService, opsScheduledReportService, opsSystemLogSink, schedulerSnapshotService, tokenRefreshService, accountExpiryService, subscriptionExpiryService, usageCleanupService, idempotencyCleanupService, pricingService, emailQueueService, billingCacheService, usageRecordWorkerPool, subscriptionService, openAIGatewayService, scheduledTestRunnerService, backupService, paymentOrderExpiryService, channelMonitorRunner, lingjingPollRunner)
 	application := &Application{
 		Server:  httpServer,

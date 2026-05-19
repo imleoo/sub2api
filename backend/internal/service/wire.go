@@ -533,14 +533,19 @@ func ProvideChannelMonitorRunner(svc *ChannelMonitorService, settingService *Set
 
 // ProvideLingjingPollRunner 创建并启动灵境视频任务后台轮询器。
 // Runner.Stop 由 cleanup function 调用。
+//
+// Phase 0 P0-7 注入 upstreamCostResolver + usageLogRepo，使异步任务计费完成时
+// 同步写入 UsageLog 行（详见 docs/upstream-cost-snapshot.md §4.1 异步路径）。
 func ProvideLingjingPollRunner(
 	taskRepo LingjingTaskRepository,
 	svc *LingjingGatewayService,
 	accountRepo AccountRepository,
 	billingSvc *BillingService,
 	billingCache *BillingCacheService,
+	upstreamCostResolver *UpstreamCostResolver,
+	usageLogRepo UsageLogRepository,
 ) *LingjingPollRunner {
-	r := NewLingjingPollRunner(taskRepo, svc, accountRepo, billingSvc, billingCache)
+	r := NewLingjingPollRunner(taskRepo, svc, accountRepo, billingSvc, billingCache, upstreamCostResolver, usageLogRepo)
 	r.Start()
 	return r
 }
