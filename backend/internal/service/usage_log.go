@@ -149,6 +149,25 @@ type UsageLog struct {
 	// AccountStatsCost 账号统计定价预计算费用（nil = 使用默认公式 total_cost × account_rate_multiplier）
 	AccountStatsCost *float64
 
+	// 上游真实成本快照（Phase 0 P0-5 引入；与 PricingSource 严格同步：要么同时 NULL，要么同时非空）
+	// 命中 provider_pricing 表时由 applyUpstreamCostSnapshot() 填充；未命中或 flag=false 保持 NULL。
+	// 不允许混入 LiteLLM / account_stats_pricing 估算（docs/upstream-cost-snapshot.md §3.1）。
+	UpstreamUnitPriceInput         *float64
+	UpstreamUnitPriceOutput        *float64
+	UpstreamUnitPriceCacheCreation *float64
+	UpstreamUnitPriceCacheRead     *float64
+	UpstreamTotalCost              *float64
+
+	// Provider 规范化键快照（Phase 0 P0-5；规范化规则见 docs/glossary.md §1.3）
+	Provider *string
+
+	// PricingSource 计价来源标签：provider_table 或 NULL（不允许 litellm/fallback）
+	PricingSource *string
+
+	// 异步任务计费回填（Phase 0 P0-7 lingjing 用；同步请求保持 NULL）
+	AsyncTaskID     *string
+	CostFinalizedAt *time.Time
+
 	BillingType  int8
 	RequestType  RequestType
 	Stream       bool

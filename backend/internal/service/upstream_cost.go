@@ -87,6 +87,60 @@ func (r *UpstreamCostResolver) Resolve(
 	return &c, prices, pricingSourceProviderTable
 }
 
+// ApplyUpstreamCostSnapshot 在 UsageLog 装配点共调的 helper（Phase 0 P0-5）。
+//
+// 由 3 个 builder 装配点共调（gateway_service.go:8641 / openai_gateway_service.go:5316 /
+// usage_service.go:94），把 9 列上游成本快照字段填充到 UsageLog 上。
+//
+// 行为约束（docs/upstream-cost-snapshot.md §4.1）：
+//   - flagEnabled=false：直接 return（保持 9 列 NULL，回退到旧行为）
+//   - flagEnabled=true 但未命中：9 列保持 NULL（不混入估算）
+//   - flagEnabled=true 且命中：填 4 unit_price + upstream_total_cost + provider + pricing_source + cost_finalized_at
+//
+// 异步路径（P0-7 lingjing_poll_runner）**不应使用此 helper**，应直接构造 UsageLog 字段并强制 ON，
+// 避免 poll 期间 flag 切换导致同一任务两次轮询出现 NULL/非 NULL 摇摆。
+func ApplyUpstreamCostSnapshot(
+	ctx context.Context,
+	log *UsageLog,
+	resolver *UpstreamCostResolver,
+	provider, upstreamModel string,
+	tokens UsageTokens,
+	requestEnd time.Time,
+	flagEnabled bool,
+) {
+	if log == nil || resolver == nil {
+		return
+	}
+	if !flagEnabled {
+		// flag=false 时保持 9 列 NULL（旧行为）
+		return
+	}
+
+	cost, prices, source := resolver.Resolve(ctx, provider, upstreamModel, tokens, requestEnd)
+
+	// 始终写入 Provider（即便未命中 provider_pricing，provider 元信息仍有统计价值）
+	if provider != "" {
+		p := provider
+		log.Provider = &p
+	}
+
+	if cost == nil || prices == nil || source == "" {
+		// 未命中：保持 upstream_total_cost / unit_price / pricing_source / cost_finalized_at NULL
+		return
+	}
+
+	// 命中：写入 4 unit_price + upstream_total_cost + pricing_source + cost_finalized_at
+	log.UpstreamUnitPriceInput = &prices.InputPrice
+	log.UpstreamUnitPriceOutput = &prices.OutputPrice
+	log.UpstreamUnitPriceCacheCreation = &prices.CacheCreationPrice
+	log.UpstreamUnitPriceCacheRead = &prices.CacheReadPrice
+	log.UpstreamTotalCost = cost
+	srcCopy := source
+	log.PricingSource = &srcCopy
+	endCopy := requestEnd
+	log.CostFinalizedAt = &endCopy
+}
+
 // calculateUpstreamCost 按 BillingMode 分支计算上游成本。
 func calculateUpstreamCost(pricing *DBProviderPricing, tokens UsageTokens) float64 {
 	switch pricing.BillingMode {

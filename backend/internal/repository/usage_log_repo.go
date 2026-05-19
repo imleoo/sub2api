@@ -28,7 +28,7 @@ import (
 	gocache "github.com/patrickmn/go-cache"
 )
 
-const usageLogSelectColumns = "id, user_id, api_key_id, account_id, request_id, model, requested_model, upstream_model, group_id, subscription_id, input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens, cache_creation_5m_tokens, cache_creation_1h_tokens, image_output_tokens, image_output_cost, input_cost, output_cost, cache_creation_cost, cache_read_cost, total_cost, actual_cost, rate_multiplier, account_rate_multiplier, billing_type, request_type, stream, openai_ws_mode, duration_ms, first_token_ms, user_agent, ip_address, image_count, image_size, service_tier, reasoning_effort, inbound_endpoint, upstream_endpoint, cache_ttl_overridden, channel_id, model_mapping_chain, billing_tier, billing_mode, account_stats_cost, created_at"
+const usageLogSelectColumns = "id, user_id, api_key_id, account_id, request_id, model, requested_model, upstream_model, group_id, subscription_id, input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens, cache_creation_5m_tokens, cache_creation_1h_tokens, image_output_tokens, image_output_cost, input_cost, output_cost, cache_creation_cost, cache_read_cost, total_cost, actual_cost, rate_multiplier, account_rate_multiplier, billing_type, request_type, stream, openai_ws_mode, duration_ms, first_token_ms, user_agent, ip_address, image_count, image_size, service_tier, reasoning_effort, inbound_endpoint, upstream_endpoint, cache_ttl_overridden, channel_id, model_mapping_chain, billing_tier, billing_mode, account_stats_cost, upstream_unit_price_input, upstream_unit_price_output, upstream_unit_price_cache_creation, upstream_unit_price_cache_read, upstream_total_cost, provider, pricing_source, async_task_id, cost_finalized_at, created_at"
 
 // usageLogInsertArgTypes must stay in the same order as:
 //  1. prepareUsageLogInsert().args
@@ -83,6 +83,16 @@ var usageLogInsertArgTypes = [...]string{
 	"text",        // billing_tier
 	"text",        // billing_mode
 	"numeric",     // account_stats_cost
+	// Phase 0 P0-5 上游成本快照 9 列
+	"numeric",     // upstream_unit_price_input
+	"numeric",     // upstream_unit_price_output
+	"numeric",     // upstream_unit_price_cache_creation
+	"numeric",     // upstream_unit_price_cache_read
+	"numeric",     // upstream_total_cost
+	"text",        // provider
+	"text",        // pricing_source
+	"text",        // async_task_id
+	"timestamptz", // cost_finalized_at
 	"timestamptz", // created_at
 }
 
@@ -362,6 +372,15 @@ func (r *usageLogRepository) createSingle(ctx context.Context, sqlq sqlExecutor,
 			billing_tier,
 			billing_mode,
 			account_stats_cost,
+			upstream_unit_price_input,
+			upstream_unit_price_output,
+			upstream_unit_price_cache_creation,
+			upstream_unit_price_cache_read,
+			upstream_total_cost,
+			provider,
+			pricing_source,
+			async_task_id,
+			cost_finalized_at,
 			created_at
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7,
@@ -369,7 +388,8 @@ func (r *usageLogRepository) createSingle(ctx context.Context, sqlq sqlExecutor,
 			$10, $11, $12, $13,
 			$14, $15, $16, $17,
 			$18, $19, $20, $21, $22, $23,
-			$24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46
+			$24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46,
+			$47, $48, $49, $50, $51, $52, $53, $54, $55
 		)
 		ON CONFLICT (request_id, api_key_id) DO NOTHING
 		RETURNING id, created_at
@@ -877,6 +897,15 @@ func buildUsageLogBatchInsertQuery(keys []string, preparedByKey map[string]usage
 				billing_tier,
 				billing_mode,
 				account_stats_cost,
+				upstream_unit_price_input,
+				upstream_unit_price_output,
+				upstream_unit_price_cache_creation,
+				upstream_unit_price_cache_read,
+				upstream_total_cost,
+				provider,
+				pricing_source,
+				async_task_id,
+				cost_finalized_at,
 				created_at
 			)
 			SELECT
@@ -925,6 +954,15 @@ func buildUsageLogBatchInsertQuery(keys []string, preparedByKey map[string]usage
 				billing_tier,
 				billing_mode,
 				account_stats_cost,
+				upstream_unit_price_input,
+				upstream_unit_price_output,
+				upstream_unit_price_cache_creation,
+				upstream_unit_price_cache_read,
+				upstream_total_cost,
+				provider,
+				pricing_source,
+				async_task_id,
+				cost_finalized_at,
 				created_at
 			FROM input
 			ON CONFLICT (request_id, api_key_id) DO NOTHING
@@ -1087,6 +1125,15 @@ func buildUsageLogBestEffortInsertQuery(preparedList []usageLogInsertPrepared) (
 			billing_tier,
 			billing_mode,
 			account_stats_cost,
+			upstream_unit_price_input,
+			upstream_unit_price_output,
+			upstream_unit_price_cache_creation,
+			upstream_unit_price_cache_read,
+			upstream_total_cost,
+			provider,
+			pricing_source,
+			async_task_id,
+			cost_finalized_at,
 			created_at
 		)
 		SELECT
@@ -1135,6 +1182,15 @@ func buildUsageLogBestEffortInsertQuery(preparedList []usageLogInsertPrepared) (
 			billing_tier,
 			billing_mode,
 			account_stats_cost,
+			upstream_unit_price_input,
+			upstream_unit_price_output,
+			upstream_unit_price_cache_creation,
+			upstream_unit_price_cache_read,
+			upstream_total_cost,
+			provider,
+			pricing_source,
+			async_task_id,
+			cost_finalized_at,
 			created_at
 		FROM input
 		ON CONFLICT (request_id, api_key_id) DO NOTHING
@@ -1191,6 +1247,15 @@ func execUsageLogInsertNoResult(ctx context.Context, sqlq sqlExecutor, prepared 
 			billing_tier,
 			billing_mode,
 			account_stats_cost,
+			upstream_unit_price_input,
+			upstream_unit_price_output,
+			upstream_unit_price_cache_creation,
+			upstream_unit_price_cache_read,
+			upstream_total_cost,
+			provider,
+			pricing_source,
+			async_task_id,
+			cost_finalized_at,
 			created_at
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7,
@@ -1198,7 +1263,8 @@ func execUsageLogInsertNoResult(ctx context.Context, sqlq sqlExecutor, prepared 
 			$10, $11, $12, $13,
 			$14, $15, $16, $17,
 			$18, $19, $20, $21, $22, $23,
-			$24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46
+			$24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46,
+			$47, $48, $49, $50, $51, $52, $53, $54, $55
 		)
 		ON CONFLICT (request_id, api_key_id) DO NOTHING
 	`, prepared.args...)
@@ -1238,6 +1304,12 @@ func prepareUsageLogInsert(log *service.UsageLog) usageLogInsertPrepared {
 		requestedModel = strings.TrimSpace(log.Model)
 	}
 	upstreamModel := nullString(log.UpstreamModel)
+
+	// Phase 0 P0-5 上游成本快照 9 列（sql.Null* 处理 NULL 语义）
+	upstreamProvider := nullString(log.Provider)
+	pricingSource := nullString(log.PricingSource)
+	asyncTaskID := nullString(log.AsyncTaskID)
+	costFinalizedAt := nullTimePtr(log.CostFinalizedAt)
 
 	var requestIDArg any
 	if requestID != "" {
@@ -1295,6 +1367,16 @@ func prepareUsageLogInsert(log *service.UsageLog) usageLogInsertPrepared {
 			billingTier,
 			billingMode,
 			log.AccountStatsCost, // account_stats_cost
+			// Phase 0 P0-5 上游成本快照 9 列：与 pricing_source 严格同步（同时 NULL 或同时非空）
+			log.UpstreamUnitPriceInput,
+			log.UpstreamUnitPriceOutput,
+			log.UpstreamUnitPriceCacheCreation,
+			log.UpstreamUnitPriceCacheRead,
+			log.UpstreamTotalCost,
+			upstreamProvider,
+			pricingSource,
+			asyncTaskID,
+			costFinalizedAt,
 			createdAt,
 		},
 	}
@@ -4115,7 +4197,17 @@ func scanUsageLog(scanner interface{ Scan(...any) error }) (*service.UsageLog, e
 		billingTier           sql.NullString
 		billingMode           sql.NullString
 		accountStatsCost      sql.NullFloat64
-		createdAt             time.Time
+		// Phase 0 P0-5 上游成本快照 9 列
+		upstreamUnitPriceInput         sql.NullFloat64
+		upstreamUnitPriceOutput        sql.NullFloat64
+		upstreamUnitPriceCacheCreation sql.NullFloat64
+		upstreamUnitPriceCacheRead     sql.NullFloat64
+		upstreamTotalCost              sql.NullFloat64
+		upstreamProvider               sql.NullString
+		pricingSource                  sql.NullString
+		asyncTaskID                    sql.NullString
+		costFinalizedAt                sql.NullTime
+		createdAt                      time.Time
 	)
 
 	if err := scanner.Scan(
@@ -4165,6 +4257,16 @@ func scanUsageLog(scanner interface{ Scan(...any) error }) (*service.UsageLog, e
 		&billingTier,
 		&billingMode,
 		&accountStatsCost,
+		// Phase 0 P0-5 上游成本快照 9 列
+		&upstreamUnitPriceInput,
+		&upstreamUnitPriceOutput,
+		&upstreamUnitPriceCacheCreation,
+		&upstreamUnitPriceCacheRead,
+		&upstreamTotalCost,
+		&upstreamProvider,
+		&pricingSource,
+		&asyncTaskID,
+		&costFinalizedAt,
 		&createdAt,
 	); err != nil {
 		return nil, err
@@ -4263,6 +4365,36 @@ func scanUsageLog(scanner interface{ Scan(...any) error }) (*service.UsageLog, e
 	}
 	if accountStatsCost.Valid {
 		log.AccountStatsCost = &accountStatsCost.Float64
+	}
+
+	// Phase 0 P0-5 上游成本快照 9 列回填（NULL 安全：Valid=false 时保持 nil）
+	if upstreamUnitPriceInput.Valid {
+		log.UpstreamUnitPriceInput = &upstreamUnitPriceInput.Float64
+	}
+	if upstreamUnitPriceOutput.Valid {
+		log.UpstreamUnitPriceOutput = &upstreamUnitPriceOutput.Float64
+	}
+	if upstreamUnitPriceCacheCreation.Valid {
+		log.UpstreamUnitPriceCacheCreation = &upstreamUnitPriceCacheCreation.Float64
+	}
+	if upstreamUnitPriceCacheRead.Valid {
+		log.UpstreamUnitPriceCacheRead = &upstreamUnitPriceCacheRead.Float64
+	}
+	if upstreamTotalCost.Valid {
+		log.UpstreamTotalCost = &upstreamTotalCost.Float64
+	}
+	if upstreamProvider.Valid {
+		log.Provider = &upstreamProvider.String
+	}
+	if pricingSource.Valid {
+		log.PricingSource = &pricingSource.String
+	}
+	if asyncTaskID.Valid {
+		log.AsyncTaskID = &asyncTaskID.String
+	}
+	if costFinalizedAt.Valid {
+		t := costFinalizedAt.Time
+		log.CostFinalizedAt = &t
 	}
 
 	return log, nil
@@ -4397,6 +4529,14 @@ func nullString(v *string) sql.NullString {
 		return sql.NullString{}
 	}
 	return sql.NullString{String: *v, Valid: true}
+}
+
+// nullTimePtr 将 *time.Time 转为 sql.NullTime；nil 或零值视为 NULL（Phase 0 P0-5 用）。
+func nullTimePtr(v *time.Time) sql.NullTime {
+	if v == nil || v.IsZero() {
+		return sql.NullTime{}
+	}
+	return sql.NullTime{Time: *v, Valid: true}
 }
 
 func coalesceTrimmedString(v sql.NullString, fallback string) string {

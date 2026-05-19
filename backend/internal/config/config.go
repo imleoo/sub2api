@@ -647,6 +647,13 @@ type GatewayConfig struct {
 	// ImageConcurrency: 图片生成独立并发限制配置（默认关闭）
 	ImageConcurrency ImageConcurrencyConfig `mapstructure:"image_concurrency"`
 
+	// UpstreamCostEnabled: 上游成本快照双轨写入开关（Phase 0 P0-5 引入）
+	// true（默认）：UsageLog 装配点调 ApplyUpstreamCostSnapshot 填充 9 列上游成本字段
+	// false：保持 9 列 NULL，回退到旧行为；可热切回滚（USAGE_UPSTREAM_COST_ENABLED 环境变量）
+	// 注意：异步路径（lingjing_poll_runner P0-7）**不读此 flag**，强制 ON
+	// 详见 docs/upstream-cost-snapshot.md §4.1 / §7
+	UpstreamCostEnabled bool `mapstructure:"upstream_cost_enabled"`
+
 	// HTTP 上游连接池配置（性能优化：支持高并发场景调优）
 	// MaxIdleConns: 所有主机的最大空闲连接总数
 	MaxIdleConns int `mapstructure:"max_idle_conns"`
@@ -1665,6 +1672,7 @@ func setDefaults() {
 	viper.SetDefault("idempotency.cleanup_batch_size", 500)
 
 	// Gateway
+	viper.SetDefault("gateway.upstream_cost_enabled", true)  // Phase 0 P0-5：上游成本快照双轨写入开关，默认 ON，可热切回滚
 	viper.SetDefault("gateway.response_header_timeout", 600) // 600秒(10分钟)等待上游响应头，LLM高负载时可能排队较久
 	viper.SetDefault("gateway.log_upstream_error_body", true)
 	viper.SetDefault("gateway.log_upstream_error_body_max_bytes", 2048)

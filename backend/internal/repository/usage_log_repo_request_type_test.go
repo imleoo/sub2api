@@ -86,6 +86,16 @@ func TestUsageLogRepositoryCreateSyncRequestTypeAndLegacyFields(t *testing.T) {
 			sqlmock.AnyArg(), // billing_tier
 			sqlmock.AnyArg(), // billing_mode
 			sqlmock.AnyArg(), // account_stats_cost
+			// Phase 0 P0-5 上游成本快照 9 列
+			sqlmock.AnyArg(), // upstream_unit_price_input
+			sqlmock.AnyArg(), // upstream_unit_price_output
+			sqlmock.AnyArg(), // upstream_unit_price_cache_creation
+			sqlmock.AnyArg(), // upstream_unit_price_cache_read
+			sqlmock.AnyArg(), // upstream_total_cost
+			sqlmock.AnyArg(), // provider
+			sqlmock.AnyArg(), // pricing_source
+			sqlmock.AnyArg(), // async_task_id
+			sqlmock.AnyArg(), // cost_finalized_at
 			createdAt,
 		).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "created_at"}).AddRow(int64(99), createdAt))
@@ -165,6 +175,16 @@ func TestUsageLogRepositoryCreate_PersistsServiceTier(t *testing.T) {
 			sqlmock.AnyArg(), // billing_tier
 			sqlmock.AnyArg(), // billing_mode
 			sqlmock.AnyArg(), // account_stats_cost
+			// Phase 0 P0-5 上游成本快照 9 列
+			sqlmock.AnyArg(), // upstream_unit_price_input
+			sqlmock.AnyArg(), // upstream_unit_price_output
+			sqlmock.AnyArg(), // upstream_unit_price_cache_creation
+			sqlmock.AnyArg(), // upstream_unit_price_cache_read
+			sqlmock.AnyArg(), // upstream_total_cost
+			sqlmock.AnyArg(), // provider
+			sqlmock.AnyArg(), // pricing_source
+			sqlmock.AnyArg(), // async_task_id
+			sqlmock.AnyArg(), // cost_finalized_at
 			createdAt,
 		).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "created_at"}).AddRow(int64(100), createdAt))
@@ -577,6 +597,16 @@ func TestScanUsageLogRequestTypeAndLegacyFallback(t *testing.T) {
 			sql.NullString{},  // billing_tier
 			sql.NullString{},  // billing_mode
 			sql.NullFloat64{}, // account_stats_cost
+			// Phase 0 P0-5 上游成本快照 9 列（全 NULL 表示未命中）
+			sql.NullFloat64{}, // upstream_unit_price_input
+			sql.NullFloat64{}, // upstream_unit_price_output
+			sql.NullFloat64{}, // upstream_unit_price_cache_creation
+			sql.NullFloat64{}, // upstream_unit_price_cache_read
+			sql.NullFloat64{}, // upstream_total_cost
+			sql.NullString{},  // provider
+			sql.NullString{},  // pricing_source
+			sql.NullString{},  // async_task_id
+			sql.NullTime{},    // cost_finalized_at
 			now,
 		}})
 		require.NoError(t, err)
@@ -625,6 +655,16 @@ func TestScanUsageLogRequestTypeAndLegacyFallback(t *testing.T) {
 			sql.NullString{},  // billing_tier
 			sql.NullString{},  // billing_mode
 			sql.NullFloat64{}, // account_stats_cost
+			// Phase 0 P0-5 上游成本快照 9 列（全 NULL 表示未命中）
+			sql.NullFloat64{}, // upstream_unit_price_input
+			sql.NullFloat64{}, // upstream_unit_price_output
+			sql.NullFloat64{}, // upstream_unit_price_cache_creation
+			sql.NullFloat64{}, // upstream_unit_price_cache_read
+			sql.NullFloat64{}, // upstream_total_cost
+			sql.NullString{},  // provider
+			sql.NullString{},  // pricing_source
+			sql.NullString{},  // async_task_id
+			sql.NullTime{},    // cost_finalized_at
 			now,
 		}})
 		require.NoError(t, err)
@@ -673,6 +713,16 @@ func TestScanUsageLogRequestTypeAndLegacyFallback(t *testing.T) {
 			sql.NullString{},  // billing_tier
 			sql.NullString{},  // billing_mode
 			sql.NullFloat64{}, // account_stats_cost
+			// Phase 0 P0-5 上游成本快照 9 列（全 NULL 表示未命中）
+			sql.NullFloat64{}, // upstream_unit_price_input
+			sql.NullFloat64{}, // upstream_unit_price_output
+			sql.NullFloat64{}, // upstream_unit_price_cache_creation
+			sql.NullFloat64{}, // upstream_unit_price_cache_read
+			sql.NullFloat64{}, // upstream_total_cost
+			sql.NullString{},  // provider
+			sql.NullString{},  // pricing_source
+			sql.NullString{},  // async_task_id
+			sql.NullTime{},    // cost_finalized_at
 			now,
 		}})
 		require.NoError(t, err)

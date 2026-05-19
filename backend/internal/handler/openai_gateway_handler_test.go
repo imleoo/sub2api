@@ -1190,6 +1190,7 @@ func runOpenAIResponsesWebSocketUsageLogCase(t *testing.T, tc openAIResponsesWSU
 		channelSvc,
 		nil,
 		nil,
+		nil, // upstreamCostResolver: Phase 0 P0-5
 	)
 
 	cache := &concurrencyCacheMock{

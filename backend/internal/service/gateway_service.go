@@ -571,6 +571,7 @@ type GatewayService struct {
 	debugGatewayBodyFile  atomic.Pointer[os.File] // non-nil when SUB2API_DEBUG_GATEWAY_BODY is set
 	tlsFPProfileService   *TLSFingerprintProfileService
 	balanceNotifyService  *BalanceNotifyService
+	upstreamCostResolver  *UpstreamCostResolver // Phase 0 P0-5：上游成本快照解析器（可空，flag=false 时不调用）
 }
 
 // NewGatewayService creates a new GatewayService
@@ -601,6 +602,7 @@ func NewGatewayService(
 	channelService *ChannelService,
 	resolver *ModelPricingResolver,
 	balanceNotifyService *BalanceNotifyService,
+	upstreamCostResolver *UpstreamCostResolver,
 ) *GatewayService {
 	userGroupRateTTL := resolveUserGroupRateCacheTTL(cfg)
 	modelsListTTL := resolveModelsListCacheTTL(cfg)
@@ -636,6 +638,7 @@ func NewGatewayService(
 		channelService:       channelService,
 		resolver:             resolver,
 		balanceNotifyService: balanceNotifyService,
+		upstreamCostResolver: upstreamCostResolver,
 	}
 	svc.userGroupRateResolver = newUserGroupRateResolver(
 		userGroupRateRepo,
@@ -8687,7 +8690,60 @@ func (s *GatewayService) buildRecordUsageLog(
 		usageLog.ActualCost = cost.ActualCost
 	}
 
+	// Phase 0 P0-5：上游成本快照双轨写入（与售价链正交；cfg=nil 时按 flag=false 处理）
+	flagEnabled := false
+	if s.cfg != nil {
+		flagEnabled = s.cfg.Gateway.UpstreamCostEnabled
+	}
+	ApplyUpstreamCostSnapshot(
+		ctx,
+		usageLog,
+		s.upstreamCostResolver,
+		resolveProviderKey(account),
+		resolveUpstreamModelForCost(result),
+		claudeUsageToTokens(result.Usage),
+		usageLog.CreatedAt,
+		flagEnabled,
+	)
+
 	return usageLog
+}
+
+// resolveProviderKey 从账号推导 provider_key。
+//
+// Phase 0 仅按 account.Platform 推导（原厂账号 platform 即 provider_key）；
+// Phase 1 P1-1 会改成读 account.extra.provider 并 normalize_provider，那时
+// DeepSeek / 硅基流动等聚合渠道才能命中 provider_pricing。
+func resolveProviderKey(account *Account) string {
+	if account == nil {
+		return ""
+	}
+	return account.Platform
+}
+
+// resolveUpstreamModelForCost 取上游模型名（命中 provider_pricing 用），
+// 优先 result.UpstreamModel（已应用模型映射），fallback result.Model。
+func resolveUpstreamModelForCost(result *ForwardResult) string {
+	if result == nil {
+		return ""
+	}
+	if result.UpstreamModel != "" {
+		return result.UpstreamModel
+	}
+	return result.Model
+}
+
+// claudeUsageToTokens 把 ClaudeUsage 映射成 UsageTokens（Phase 0 P0-5 上游成本快照用）。
+func claudeUsageToTokens(u ClaudeUsage) UsageTokens {
+	return UsageTokens{
+		InputTokens:           u.InputTokens,
+		OutputTokens:          u.OutputTokens,
+		CacheCreationTokens:   u.CacheCreationInputTokens,
+		CacheReadTokens:       u.CacheReadInputTokens,
+		CacheCreation5mTokens: u.CacheCreation5mTokens,
+		CacheCreation1hTokens: u.CacheCreation1hTokens,
+		ImageOutputTokens:     u.ImageOutputTokens,
+	}
 }
 
 // resolveBillingMode 根据计费结果和请求类型确定计费模式。

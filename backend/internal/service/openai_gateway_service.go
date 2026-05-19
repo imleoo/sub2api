@@ -209,6 +209,22 @@ type OpenAIUsage struct {
 	ImageOutputTokens        int `json:"image_output_tokens,omitempty"`
 }
 
+// openAIUsageToTokens 把 OpenAIUsage 映射成 UsageTokens（Phase 0 P0-5 上游成本快照用）。
+// imageCount 用作 image billing_mode 计费的张数兜底。
+func openAIUsageToTokens(u OpenAIUsage, imageCount int) UsageTokens {
+	imgTokens := u.ImageOutputTokens
+	if imgTokens == 0 && imageCount > 0 {
+		imgTokens = imageCount
+	}
+	return UsageTokens{
+		InputTokens:         u.InputTokens,
+		OutputTokens:        u.OutputTokens,
+		CacheCreationTokens: u.CacheCreationInputTokens,
+		CacheReadTokens:     u.CacheReadInputTokens,
+		ImageOutputTokens:   imgTokens,
+	}
+}
+
 // OpenAIForwardResult represents the result of forwarding
 type OpenAIForwardResult struct {
 	RequestID  string
@@ -336,6 +352,7 @@ type OpenAIGatewayService struct {
 	channelService        *ChannelService
 	balanceNotifyService  *BalanceNotifyService
 	settingService        *SettingService
+	upstreamCostResolver  *UpstreamCostResolver // Phase 0 P0-5：上游成本快照解析器
 
 	openaiWSPoolOnce              sync.Once
 	openaiWSStateStoreOnce        sync.Once
@@ -384,6 +401,7 @@ func NewOpenAIGatewayService(
 	channelService *ChannelService,
 	balanceNotifyService *BalanceNotifyService,
 	settingService *SettingService,
+	upstreamCostResolver *UpstreamCostResolver,
 ) *OpenAIGatewayService {
 	svc := &OpenAIGatewayService{
 		accountRepo:         accountRepo,
@@ -417,6 +435,7 @@ func NewOpenAIGatewayService(
 		settingService:        settingService,
 		responseHeaderFilter:  compileResponseHeaderFilter(cfg),
 		codexSnapshotThrottle: newAccountWriteThrottle(openAICodexSnapshotPersistMinInterval),
+		upstreamCostResolver:  upstreamCostResolver,
 	}
 	svc.logOpenAIWSModeBootstrap()
 	return svc
@@ -5390,6 +5409,24 @@ func (s *OpenAIGatewayService) RecordUsage(ctx context.Context, input *OpenAIRec
 		applyAccountStatsCost(ctx, usageLog, s.channelService, s.billingService,
 			account.ID, *apiKey.GroupID, result.UpstreamModel, result.Model,
 			tokens, cost.TotalCost,
+		)
+	}
+
+	// Phase 0 P0-5：上游成本快照双轨写入（与售价链正交）
+	if s.cfg != nil {
+		upstreamModel := result.UpstreamModel
+		if upstreamModel == "" {
+			upstreamModel = result.Model
+		}
+		ApplyUpstreamCostSnapshot(
+			ctx,
+			usageLog,
+			s.upstreamCostResolver,
+			resolveProviderKey(account),
+			upstreamModel,
+			openAIUsageToTokens(result.Usage, result.ImageCount),
+			usageLog.CreatedAt,
+			s.cfg.Gateway.UpstreamCostEnabled,
 		)
 	}
 

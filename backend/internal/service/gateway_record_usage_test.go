@@ -44,6 +44,7 @@ func newGatewayRecordUsageServiceForTest(usageRepo UsageLogRepository, userRepo 
 		nil,
 		nil,
 		nil,
+		nil, // upstreamCostResolver: Phase 0 P0-5
 	)
 }
 

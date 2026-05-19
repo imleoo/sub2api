@@ -38,6 +38,11 @@ type CreateUsageLogRequest struct {
 	RateMultiplier        float64 `json:"rate_multiplier"`
 	Stream                bool    `json:"stream"`
 	DurationMs            *int    `json:"duration_ms"`
+
+	// Phase 0 P0-5：可选 provider 元信息，用于上游成本快照命中查询
+	// 留空时 ApplyUpstreamCostSnapshot 立即返回，9 列保持 NULL（合法两态）
+	Provider      string `json:"provider,omitempty"`
+	UpstreamModel string `json:"upstream_model,omitempty"`
 }
 
 // UsageStats 使用统计
@@ -58,6 +63,10 @@ type UsageService struct {
 	userRepo             UserRepository
 	entClient            *dbent.Client
 	authCacheInvalidator APIKeyAuthCacheInvalidator
+
+	// Phase 0 P0-5：上游成本快照（可空；nil 或 flag=false 时不调用）
+	upstreamCostResolver *UpstreamCostResolver
+	upstreamCostEnabled  bool
 }
 
 // NewUsageService 创建使用统计服务实例
@@ -68,6 +77,17 @@ func NewUsageService(usageRepo UsageLogRepository, userRepo UserRepository, entC
 		entClient:            entClient,
 		authCacheInvalidator: authCacheInvalidator,
 	}
+}
+
+// SetUpstreamCostResolver 注入上游成本解析器与 flag（Phase 0 P0-5）。
+//
+// 由 wire 在构造后调用；测试代码可省略，9 列保持 NULL 是合法两态。
+func (s *UsageService) SetUpstreamCostResolver(resolver *UpstreamCostResolver, enabled bool) {
+	if s == nil {
+		return
+	}
+	s.upstreamCostResolver = resolver
+	s.upstreamCostEnabled = enabled
 }
 
 // Create 创建使用日志
@@ -112,7 +132,32 @@ func (s *UsageService) Create(ctx context.Context, req CreateUsageLogRequest) (*
 		RateMultiplier:        req.RateMultiplier,
 		Stream:                req.Stream,
 		DurationMs:            req.DurationMs,
+		CreatedAt:             time.Now(),
 	}
+
+	// Phase 0 P0-5：上游成本快照双轨写入（与售价链正交）
+	// req 未携带 Provider/UpstreamModel 时，helper 会立即返回，9 列保持 NULL（合法两态）
+	upstreamModel := req.UpstreamModel
+	if upstreamModel == "" {
+		upstreamModel = req.Model
+	}
+	ApplyUpstreamCostSnapshot(
+		ctx,
+		usageLog,
+		s.upstreamCostResolver,
+		req.Provider,
+		upstreamModel,
+		UsageTokens{
+			InputTokens:           req.InputTokens,
+			OutputTokens:          req.OutputTokens,
+			CacheCreationTokens:   req.CacheCreationTokens,
+			CacheReadTokens:       req.CacheReadTokens,
+			CacheCreation5mTokens: req.CacheCreation5mTokens,
+			CacheCreation1hTokens: req.CacheCreation1hTokens,
+		},
+		usageLog.CreatedAt,
+		s.upstreamCostEnabled,
+	)
 
 	inserted, err := s.usageRepo.Create(txCtx, usageLog)
 	if err != nil {
