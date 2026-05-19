@@ -155,6 +155,27 @@ func NewProtocolBridgeRegistry() *ProtocolBridgeRegistry {
 		Description:      "OpenAI Responses 客户端访问只支持 Chat Completions 的 OpenAI-compatible 上游（实现中）",
 	})
 
+	// Bridge #6（Phase 4 P4-1 占位）: Gemini v1beta 入站 → OpenAI Chat Completions 上游
+	// 实现状态：apicompat.ForwardGeminiAsChat 为 stub，返回 ErrGeminiToOpenAINotImplemented
+	// 注册目的：让 Gemini 客户端走 BridgeCapabilities 调度路径；完整实现见独立 PR
+	r.mustRegister(BridgeMetadata{
+		ID:               BridgeID(domain.ProtocolGeminiV1Beta, domain.ProtocolOpenAIChat),
+		InboundProtocol:  domain.ProtocolGeminiV1Beta,
+		OutboundProtocol: domain.ProtocolOpenAIChat,
+		Implementation:   "apicompat.ForwardGeminiAsChat (stub, P4-1 follow-up)",
+		Description:      "Gemini 客户端通过 /v1beta/models/:model:generateContent 访问 DeepSeek/Kimi/Qwen 等 OpenAI-compatible 上游（实现中）",
+	})
+
+	// Bridge #7（Phase 4 P4-1 占位）: Gemini v1beta 入站 → Anthropic Messages 上游
+	// 实现状态：apicompat.ForwardGeminiAsAnthropic 为 stub，返回 ErrGeminiToAnthropicNotImplemented
+	r.mustRegister(BridgeMetadata{
+		ID:               BridgeID(domain.ProtocolGeminiV1Beta, domain.ProtocolAnthropicMessages),
+		InboundProtocol:  domain.ProtocolGeminiV1Beta,
+		OutboundProtocol: domain.ProtocolAnthropicMessages,
+		Implementation:   "apicompat.ForwardGeminiAsAnthropic (stub, P4-1 follow-up)",
+		Description:      "Gemini 客户端通过 /v1beta/models/:model:generateContent 访问 Anthropic Claude 上游（实现中）",
+	})
+
 	return r
 }
 

@@ -11,8 +11,8 @@ import (
 
 func TestNewProtocolBridgeRegistry_RegistersForkBridges(t *testing.T) {
 	r := NewProtocolBridgeRegistry()
-	// Phase 3 P3-5 后桥数 = 5：fork 2 条 + P3-3 anthropic→chat stub + P3-5 chat→anthropic / responses→chat stubs
-	require.Equal(t, 5, r.Count(), "fork 2 桥 + P3-3 stub + P3-5 双 stub")
+	// Phase 4 P4-1 后桥数 = 7：fork 2 条 + P3-3 stub + P3-5 双 stub + P4-1 gemini 双 stub
+	require.Equal(t, 7, r.Count(), "fork 2 桥 + P3-3 stub + P3-5 双 stub + P4-1 gemini 双 stub")
 
 	// Bridge #1
 	b1, ok := r.Lookup(domain.ProtocolAnthropicMessages, domain.ProtocolOpenAIResponses)
@@ -40,8 +40,25 @@ func TestBridgeID_Format(t *testing.T) {
 
 func TestRegistry_LookupMissReturnsFalse(t *testing.T) {
 	r := NewProtocolBridgeRegistry()
-	_, ok := r.Lookup(domain.ProtocolGeminiV1Beta, domain.ProtocolAnthropicMessages)
-	require.False(t, ok, "Gemini→Anthropic 桥在 Phase 4 才注册")
+	// gemini_v1beta->openai_responses 桥未在任何 Phase 注册
+	_, ok := r.Lookup(domain.ProtocolGeminiV1Beta, domain.ProtocolOpenAIResponses)
+	require.False(t, ok, "gemini_v1beta->openai_responses 桥未注册")
+}
+
+func TestRegistry_GeminiBridgesRegistered(t *testing.T) {
+	r := NewProtocolBridgeRegistry()
+
+	// Bridge #6 (P4-1 stub): gemini_v1beta → openai_chat
+	b6, ok := r.Lookup(domain.ProtocolGeminiV1Beta, domain.ProtocolOpenAIChat)
+	require.True(t, ok)
+	require.Equal(t, "gemini_v1beta->openai_chat", b6.ID)
+	require.Contains(t, b6.Implementation, "stub")
+
+	// Bridge #7 (P4-1 stub): gemini_v1beta → anthropic_messages
+	b7, ok := r.Lookup(domain.ProtocolGeminiV1Beta, domain.ProtocolAnthropicMessages)
+	require.True(t, ok)
+	require.Equal(t, "gemini_v1beta->anthropic_messages", b7.ID)
+	require.Contains(t, b7.Implementation, "stub")
 }
 
 func TestRegistry_RegisterRejectsInvalidProtocol(t *testing.T) {
@@ -80,13 +97,15 @@ func TestRegistry_RegisterEmptyID(t *testing.T) {
 func TestRegistry_ListReturnsSorted(t *testing.T) {
 	r := NewProtocolBridgeRegistry()
 	list := r.List()
-	require.Len(t, list, 5) // P3-5 后 5 桥
+	require.Len(t, list, 7) // P4-1 后 7 桥
 	// ID 字典序
 	require.Equal(t, "anthropic_messages->openai_chat", list[0].ID)
 	require.Equal(t, "anthropic_messages->openai_responses", list[1].ID)
-	require.Equal(t, "openai_chat->anthropic_messages", list[2].ID)
-	require.Equal(t, "openai_responses->anthropic_messages", list[3].ID)
-	require.Equal(t, "openai_responses->openai_chat", list[4].ID)
+	require.Equal(t, "gemini_v1beta->anthropic_messages", list[2].ID)
+	require.Equal(t, "gemini_v1beta->openai_chat", list[3].ID)
+	require.Equal(t, "openai_chat->anthropic_messages", list[4].ID)
+	require.Equal(t, "openai_responses->anthropic_messages", list[5].ID)
+	require.Equal(t, "openai_responses->openai_chat", list[6].ID)
 }
 
 func TestRegistry_LookupByID(t *testing.T) {
