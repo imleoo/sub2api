@@ -1,12 +1,63 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"sync"
 
 	"github.com/Wei-Shaw/sub2api/internal/domain"
 )
+
+// ProtocolBridge 是协议桥的统一执行接口（Phase 3 P3-4 引入）。
+//
+// 桥数 ≥3 时按 plan 抽 interface（P3-3 完成后桥数=3 触发本步）。
+// 接口的设计意图（docs/relay-architecture-design.md §4.2 BridgeInput / BridgePlan 简化版）：
+//
+//	桥 = "请求转换 + 上游调用 + 响应转换" 的单元，所有桥共享 ID/Inbound/Outbound 元数据。
+//	实际转发逻辑（Forward 方法）由各实现负责；当前 fork 现有桥的 ForwardAsAnthropic /
+//	ForwardAsResponses 暂未迁移到此接口（避免动 fork 已稳定的代码），但 Registry 元数据
+//	可统一通过 Metadata() 暴露给监控 / 调度 / BridgeCapabilities（P3-6 落地）。
+//
+// 实现路线（按 sprint-plan P3-4 + P3-5）：
+//   - P3-4：定义 interface，已有 stub 桥（apicompat.ForwardAnthropicAsChatCompletions）改为
+//     interface 实现的方式注册
+//   - P3-5：新桥（chatcompletions→anthropic / responses→chatcompletions）按 interface 落地
+//   - P3-6+：fork 现有 ForwardAsAnthropic / ForwardAsResponses 渐进迁移到 interface
+type ProtocolBridge interface {
+	// Metadata 返回桥的稳定元数据（用于 Registry 注册 / 监控 / 调度）。
+	Metadata() BridgeMetadata
+	// Forward 执行请求转发：转换请求 → 调用上游 → 转换响应。
+	// 当前阶段桥实现可返回 ErrBridgeNotImplemented 表示未就绪；调度层应配合
+	// BridgeCapabilities 标记 FitUnknown 避免选中未实现的桥。
+	Forward(ctx context.Context, payload *BridgePayload) (*BridgeResult, error)
+}
+
+// BridgePayload 是 Forward 的输入：原始请求体 + 上下文（账号 / endpoint / stream 偏好等）。
+//
+// 字段最小化（P3-4 范围）；P3-5 会按需扩展（RequestFeatures 嗅探结果、能力探测 hint 等）。
+type BridgePayload struct {
+	// Body 客户端原始请求体（按 InboundProtocol 解析）
+	Body []byte
+	// Model 客户端请求的模型名（未经映射）
+	Model string
+	// Stream 客户端是否要求流式响应
+	Stream bool
+}
+
+// BridgeResult 是 Forward 的输出：转换后的响应 + 元信息。
+type BridgeResult struct {
+	// Body 转换后写回客户端的响应体（按 InboundProtocol 编码）
+	Body []byte
+	// ContentType 响应 Content-Type，便于 handler 透传
+	ContentType string
+	// UsageTokenInput / UsageTokenOutput 桥层观察到的 token 用量（可能与上游账单一致也可能近似）
+	UsageTokenInput  int
+	UsageTokenOutput int
+}
+
+// ErrBridgeNotImplemented 桥实现尚未就绪的通用信号（Phase 3 P3-4）。
+var ErrBridgeNotImplemented = fmt.Errorf("bridge implementation not yet available")
 
 // Phase 3 P3-1 Bridge Registry（map，**不抽 interface**）。
 //
@@ -179,4 +230,62 @@ func (r *ProtocolBridgeRegistry) Count() int {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return len(r.bridges)
+}
+
+// --- Phase 3 P3-4 interface-based registration ---
+//
+// 注册表同时支持元数据注册（fork 已有桥，Implementation 字符串引用）和
+// interface 实现注册（新桥，运行时可通过 Lookup + GetBridge 拿到 ProtocolBridge 调用 Forward）。
+
+// implementations 保存按桥 ID 索引的 interface 实现（与 bridges 元数据 map 并存）。
+// 拆开存的好处：fork 已有桥保留元数据但不需要 wrap interface（避免破坏稳定代码）。
+var bridgeImplsMu sync.RWMutex
+var bridgeImpls = map[string]ProtocolBridge{}
+
+// RegisterBridge 在全局注册表中加入一个 interface 实现。
+//
+// 与 ProtocolBridgeRegistry 的 Register 互补：
+//   - Register：注册元数据（fork 旧桥 / stub 桥用）
+//   - RegisterBridge：注册可执行实现（新桥用）
+//
+// 注册时会校验 bridge.Metadata() 的 protocol 合法性（避免短名 / 空 ID）。
+func RegisterBridge(b ProtocolBridge) error {
+	if b == nil {
+		return fmt.Errorf("nil ProtocolBridge")
+	}
+	meta := b.Metadata()
+	if meta.ID == "" {
+		return fmt.Errorf("bridge metadata ID is required")
+	}
+	if !domain.IsValidProtocol(meta.InboundProtocol) {
+		return fmt.Errorf("invalid inbound protocol %q", meta.InboundProtocol)
+	}
+	if !domain.IsValidProtocol(meta.OutboundProtocol) {
+		return fmt.Errorf("invalid outbound protocol %q", meta.OutboundProtocol)
+	}
+	bridgeImplsMu.Lock()
+	defer bridgeImplsMu.Unlock()
+	if _, exists := bridgeImpls[meta.ID]; exists {
+		return fmt.Errorf("bridge %q implementation already registered", meta.ID)
+	}
+	bridgeImpls[meta.ID] = b
+	return nil
+}
+
+// LookupBridge 按桥 ID 查找已注册的 interface 实现；未注册返回 (nil, false)。
+//
+// 与 ProtocolBridgeRegistry.Lookup 互补：调用方先用元数据 Lookup 判断桥是否存在，
+// 再用 LookupBridge 拿到执行器调用 Forward。
+func LookupBridge(id string) (ProtocolBridge, bool) {
+	bridgeImplsMu.RLock()
+	defer bridgeImplsMu.RUnlock()
+	b, ok := bridgeImpls[id]
+	return b, ok
+}
+
+// ResetBridgeImpls 仅供测试使用，清空全局实现表。
+func ResetBridgeImpls() {
+	bridgeImplsMu.Lock()
+	defer bridgeImplsMu.Unlock()
+	bridgeImpls = map[string]ProtocolBridge{}
 }
