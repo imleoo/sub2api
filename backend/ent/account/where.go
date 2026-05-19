@@ -85,6 +85,11 @@ func Platform(v string) predicate.Account {
 	return predicate.Account(sql.FieldEQ(FieldPlatform, v))
 }
 
+// OutboundProtocol applies equality check predicate on the "outbound_protocol" field. It's identical to OutboundProtocolEQ.
+func OutboundProtocol(v string) predicate.Account {
+	return predicate.Account(sql.FieldEQ(FieldOutboundProtocol, v))
+}
+
 // Type applies equality check predicate on the "type" field. It's identical to TypeEQ.
 func Type(v string) predicate.Account {
 	return predicate.Account(sql.FieldEQ(FieldType, v))
@@ -518,6 +523,81 @@ func PlatformEqualFold(v string) predicate.Account {
 // PlatformContainsFold applies the ContainsFold predicate on the "platform" field.
 func PlatformContainsFold(v string) predicate.Account {
 	return predicate.Account(sql.FieldContainsFold(FieldPlatform, v))
+}
+
+// OutboundProtocolEQ applies the EQ predicate on the "outbound_protocol" field.
+func OutboundProtocolEQ(v string) predicate.Account {
+	return predicate.Account(sql.FieldEQ(FieldOutboundProtocol, v))
+}
+
+// OutboundProtocolNEQ applies the NEQ predicate on the "outbound_protocol" field.
+func OutboundProtocolNEQ(v string) predicate.Account {
+	return predicate.Account(sql.FieldNEQ(FieldOutboundProtocol, v))
+}
+
+// OutboundProtocolIn applies the In predicate on the "outbound_protocol" field.
+func OutboundProtocolIn(vs ...string) predicate.Account {
+	return predicate.Account(sql.FieldIn(FieldOutboundProtocol, vs...))
+}
+
+// OutboundProtocolNotIn applies the NotIn predicate on the "outbound_protocol" field.
+func OutboundProtocolNotIn(vs ...string) predicate.Account {
+	return predicate.Account(sql.FieldNotIn(FieldOutboundProtocol, vs...))
+}
+
+// OutboundProtocolGT applies the GT predicate on the "outbound_protocol" field.
+func OutboundProtocolGT(v string) predicate.Account {
+	return predicate.Account(sql.FieldGT(FieldOutboundProtocol, v))
+}
+
+// OutboundProtocolGTE applies the GTE predicate on the "outbound_protocol" field.
+func OutboundProtocolGTE(v string) predicate.Account {
+	return predicate.Account(sql.FieldGTE(FieldOutboundProtocol, v))
+}
+
+// OutboundProtocolLT applies the LT predicate on the "outbound_protocol" field.
+func OutboundProtocolLT(v string) predicate.Account {
+	return predicate.Account(sql.FieldLT(FieldOutboundProtocol, v))
+}
+
+// OutboundProtocolLTE applies the LTE predicate on the "outbound_protocol" field.
+func OutboundProtocolLTE(v string) predicate.Account {
+	return predicate.Account(sql.FieldLTE(FieldOutboundProtocol, v))
+}
+
+// OutboundProtocolContains applies the Contains predicate on the "outbound_protocol" field.
+func OutboundProtocolContains(v string) predicate.Account {
+	return predicate.Account(sql.FieldContains(FieldOutboundProtocol, v))
+}
+
+// OutboundProtocolHasPrefix applies the HasPrefix predicate on the "outbound_protocol" field.
+func OutboundProtocolHasPrefix(v string) predicate.Account {
+	return predicate.Account(sql.FieldHasPrefix(FieldOutboundProtocol, v))
+}
+
+// OutboundProtocolHasSuffix applies the HasSuffix predicate on the "outbound_protocol" field.
+func OutboundProtocolHasSuffix(v string) predicate.Account {
+	return predicate.Account(sql.FieldHasSuffix(FieldOutboundProtocol, v))
+}
+
+// OutboundProtocolIsNil applies the IsNil predicate on the "outbound_protocol" field.
+func OutboundProtocolIsNil() predicate.Account {
+	return predicate.Account(sql.FieldIsNull(FieldOutboundProtocol))
+}
+
+// OutboundProtocolNotNil applies the NotNil predicate on the "outbound_protocol" field.
+func OutboundProtocolNotNil() predicate.Account {
+	return predicate.Account(sql.FieldNotNull(FieldOutboundProtocol))
+}
+
+// OutboundProtocolEqualFold applies the EqualFold predicate on the "outbound_protocol" field.
+func OutboundProtocolEqualFold(v string) predicate.Account {
+	return predicate.Account(sql.FieldEqualFold(FieldOutboundProtocol, v))
+}
+
+// OutboundProtocolContainsFold applies the ContainsFold predicate on the "outbound_protocol" field.
+func OutboundProtocolContainsFold(v string) predicate.Account {
+	return predicate.Account(sql.FieldContainsFold(FieldOutboundProtocol, v))
 }
 
 // TypeEQ applies the EQ predicate on the "type" field.

@@ -2289,6 +2289,7 @@ type AccountMutation struct {
 	name                      *string
 	notes                     *string
 	platform                  *string
+	outbound_protocol         *string
 	_type                     *string
 	credentials               *map[string]interface{}
 	extra                     *map[string]interface{}
@@ -2666,6 +2667,55 @@ func (m *AccountMutation) OldPlatform(ctx context.Context) (v string, err error)
 // ResetPlatform resets all changes to the "platform" field.
 func (m *AccountMutation) ResetPlatform() {
 	m.platform = nil
+}
+
+// SetOutboundProtocol sets the "outbound_protocol" field.
+func (m *AccountMutation) SetOutboundProtocol(s string) {
+	m.outbound_protocol = &s
+}
+
+// OutboundProtocol returns the value of the "outbound_protocol" field in the mutation.
+func (m *AccountMutation) OutboundProtocol() (r string, exists bool) {
+	v := m.outbound_protocol
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOutboundProtocol returns the old "outbound_protocol" field's value of the Account entity.
+// If the Account object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AccountMutation) OldOutboundProtocol(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOutboundProtocol is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOutboundProtocol requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOutboundProtocol: %w", err)
+	}
+	return oldValue.OutboundProtocol, nil
+}
+
+// ClearOutboundProtocol clears the value of the "outbound_protocol" field.
+func (m *AccountMutation) ClearOutboundProtocol() {
+	m.outbound_protocol = nil
+	m.clearedFields[account.FieldOutboundProtocol] = struct{}{}
+}
+
+// OutboundProtocolCleared returns if the "outbound_protocol" field was cleared in this mutation.
+func (m *AccountMutation) OutboundProtocolCleared() bool {
+	_, ok := m.clearedFields[account.FieldOutboundProtocol]
+	return ok
+}
+
+// ResetOutboundProtocol resets all changes to the "outbound_protocol" field.
+func (m *AccountMutation) ResetOutboundProtocol() {
+	m.outbound_protocol = nil
+	delete(m.clearedFields, account.FieldOutboundProtocol)
 }
 
 // SetType sets the "type" field.
@@ -3879,7 +3929,7 @@ func (m *AccountMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AccountMutation) Fields() []string {
-	fields := make([]string, 0, 28)
+	fields := make([]string, 0, 29)
 	if m.created_at != nil {
 		fields = append(fields, account.FieldCreatedAt)
 	}
@@ -3897,6 +3947,9 @@ func (m *AccountMutation) Fields() []string {
 	}
 	if m.platform != nil {
 		fields = append(fields, account.FieldPlatform)
+	}
+	if m.outbound_protocol != nil {
+		fields = append(fields, account.FieldOutboundProtocol)
 	}
 	if m._type != nil {
 		fields = append(fields, account.FieldType)
@@ -3984,6 +4037,8 @@ func (m *AccountMutation) Field(name string) (ent.Value, bool) {
 		return m.Notes()
 	case account.FieldPlatform:
 		return m.Platform()
+	case account.FieldOutboundProtocol:
+		return m.OutboundProtocol()
 	case account.FieldType:
 		return m.GetType()
 	case account.FieldCredentials:
@@ -4049,6 +4104,8 @@ func (m *AccountMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldNotes(ctx)
 	case account.FieldPlatform:
 		return m.OldPlatform(ctx)
+	case account.FieldOutboundProtocol:
+		return m.OldOutboundProtocol(ctx)
 	case account.FieldType:
 		return m.OldType(ctx)
 	case account.FieldCredentials:
@@ -4143,6 +4200,13 @@ func (m *AccountMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetPlatform(v)
+		return nil
+	case account.FieldOutboundProtocol:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOutboundProtocol(v)
 		return nil
 	case account.FieldType:
 		v, ok := value.(string)
@@ -4385,6 +4449,9 @@ func (m *AccountMutation) ClearedFields() []string {
 	if m.FieldCleared(account.FieldNotes) {
 		fields = append(fields, account.FieldNotes)
 	}
+	if m.FieldCleared(account.FieldOutboundProtocol) {
+		fields = append(fields, account.FieldOutboundProtocol)
+	}
 	if m.FieldCleared(account.FieldProxyID) {
 		fields = append(fields, account.FieldProxyID)
 	}
@@ -4443,6 +4510,9 @@ func (m *AccountMutation) ClearField(name string) error {
 		return nil
 	case account.FieldNotes:
 		m.ClearNotes()
+		return nil
+	case account.FieldOutboundProtocol:
+		m.ClearOutboundProtocol()
 		return nil
 	case account.FieldProxyID:
 		m.ClearProxyID()
@@ -4508,6 +4578,9 @@ func (m *AccountMutation) ResetField(name string) error {
 		return nil
 	case account.FieldPlatform:
 		m.ResetPlatform()
+		return nil
+	case account.FieldOutboundProtocol:
+		m.ResetOutboundProtocol()
 		return nil
 	case account.FieldType:
 		m.ResetType()
@@ -14763,6 +14836,7 @@ type GroupMutation struct {
 	is_exclusive                            *bool
 	status                                  *string
 	platform                                *string
+	inbound_protocol                        *string
 	subscription_type                       *string
 	daily_limit_usd                         *float64
 	adddaily_limit_usd                      *float64
@@ -15291,6 +15365,55 @@ func (m *GroupMutation) OldPlatform(ctx context.Context) (v string, err error) {
 // ResetPlatform resets all changes to the "platform" field.
 func (m *GroupMutation) ResetPlatform() {
 	m.platform = nil
+}
+
+// SetInboundProtocol sets the "inbound_protocol" field.
+func (m *GroupMutation) SetInboundProtocol(s string) {
+	m.inbound_protocol = &s
+}
+
+// InboundProtocol returns the value of the "inbound_protocol" field in the mutation.
+func (m *GroupMutation) InboundProtocol() (r string, exists bool) {
+	v := m.inbound_protocol
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInboundProtocol returns the old "inbound_protocol" field's value of the Group entity.
+// If the Group object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GroupMutation) OldInboundProtocol(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInboundProtocol is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInboundProtocol requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInboundProtocol: %w", err)
+	}
+	return oldValue.InboundProtocol, nil
+}
+
+// ClearInboundProtocol clears the value of the "inbound_protocol" field.
+func (m *GroupMutation) ClearInboundProtocol() {
+	m.inbound_protocol = nil
+	m.clearedFields[group.FieldInboundProtocol] = struct{}{}
+}
+
+// InboundProtocolCleared returns if the "inbound_protocol" field was cleared in this mutation.
+func (m *GroupMutation) InboundProtocolCleared() bool {
+	_, ok := m.clearedFields[group.FieldInboundProtocol]
+	return ok
+}
+
+// ResetInboundProtocol resets all changes to the "inbound_protocol" field.
+func (m *GroupMutation) ResetInboundProtocol() {
+	m.inbound_protocol = nil
+	delete(m.clearedFields, group.FieldInboundProtocol)
 }
 
 // SetSubscriptionType sets the "subscription_type" field.
@@ -16931,7 +17054,7 @@ func (m *GroupMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GroupMutation) Fields() []string {
-	fields := make([]string, 0, 34)
+	fields := make([]string, 0, 35)
 	if m.created_at != nil {
 		fields = append(fields, group.FieldCreatedAt)
 	}
@@ -16958,6 +17081,9 @@ func (m *GroupMutation) Fields() []string {
 	}
 	if m.platform != nil {
 		fields = append(fields, group.FieldPlatform)
+	}
+	if m.inbound_protocol != nil {
+		fields = append(fields, group.FieldInboundProtocol)
 	}
 	if m.subscription_type != nil {
 		fields = append(fields, group.FieldSubscriptionType)
@@ -17060,6 +17186,8 @@ func (m *GroupMutation) Field(name string) (ent.Value, bool) {
 		return m.Status()
 	case group.FieldPlatform:
 		return m.Platform()
+	case group.FieldInboundProtocol:
+		return m.InboundProtocol()
 	case group.FieldSubscriptionType:
 		return m.SubscriptionType()
 	case group.FieldDailyLimitUsd:
@@ -17137,6 +17265,8 @@ func (m *GroupMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldStatus(ctx)
 	case group.FieldPlatform:
 		return m.OldPlatform(ctx)
+	case group.FieldInboundProtocol:
+		return m.OldInboundProtocol(ctx)
 	case group.FieldSubscriptionType:
 		return m.OldSubscriptionType(ctx)
 	case group.FieldDailyLimitUsd:
@@ -17258,6 +17388,13 @@ func (m *GroupMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetPlatform(v)
+		return nil
+	case group.FieldInboundProtocol:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInboundProtocol(v)
 		return nil
 	case group.FieldSubscriptionType:
 		v, ok := value.(string)
@@ -17629,6 +17766,9 @@ func (m *GroupMutation) ClearedFields() []string {
 	if m.FieldCleared(group.FieldDescription) {
 		fields = append(fields, group.FieldDescription)
 	}
+	if m.FieldCleared(group.FieldInboundProtocol) {
+		fields = append(fields, group.FieldInboundProtocol)
+	}
 	if m.FieldCleared(group.FieldDailyLimitUsd) {
 		fields = append(fields, group.FieldDailyLimitUsd)
 	}
@@ -17675,6 +17815,9 @@ func (m *GroupMutation) ClearField(name string) error {
 		return nil
 	case group.FieldDescription:
 		m.ClearDescription()
+		return nil
+	case group.FieldInboundProtocol:
+		m.ClearInboundProtocol()
 		return nil
 	case group.FieldDailyLimitUsd:
 		m.ClearDailyLimitUsd()
@@ -17737,6 +17880,9 @@ func (m *GroupMutation) ResetField(name string) error {
 		return nil
 	case group.FieldPlatform:
 		m.ResetPlatform()
+		return nil
+	case group.FieldInboundProtocol:
+		m.ResetInboundProtocol()
 		return nil
 	case group.FieldSubscriptionType:
 		m.ResetSubscriptionType()

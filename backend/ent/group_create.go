@@ -147,6 +147,20 @@ func (_c *GroupCreate) SetNillablePlatform(v *string) *GroupCreate {
 	return _c
 }
 
+// SetInboundProtocol sets the "inbound_protocol" field.
+func (_c *GroupCreate) SetInboundProtocol(v string) *GroupCreate {
+	_c.mutation.SetInboundProtocol(v)
+	return _c
+}
+
+// SetNillableInboundProtocol sets the "inbound_protocol" field if the given value is not nil.
+func (_c *GroupCreate) SetNillableInboundProtocol(v *string) *GroupCreate {
+	if v != nil {
+		_c.SetInboundProtocol(*v)
+	}
+	return _c
+}
+
 // SetSubscriptionType sets the "subscription_type" field.
 func (_c *GroupCreate) SetSubscriptionType(v string) *GroupCreate {
 	_c.mutation.SetSubscriptionType(v)
@@ -638,6 +652,10 @@ func (_c *GroupCreate) defaults() error {
 		v := group.DefaultPlatform
 		_c.mutation.SetPlatform(v)
 	}
+	if _, ok := _c.mutation.InboundProtocol(); !ok {
+		v := group.DefaultInboundProtocol
+		_c.mutation.SetInboundProtocol(v)
+	}
 	if _, ok := _c.mutation.SubscriptionType(); !ok {
 		v := group.DefaultSubscriptionType
 		_c.mutation.SetSubscriptionType(v)
@@ -741,6 +759,11 @@ func (_c *GroupCreate) check() error {
 	if v, ok := _c.mutation.Platform(); ok {
 		if err := group.PlatformValidator(v); err != nil {
 			return &ValidationError{Name: "platform", err: fmt.Errorf(`ent: validator failed for field "Group.platform": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.InboundProtocol(); ok {
+		if err := group.InboundProtocolValidator(v); err != nil {
+			return &ValidationError{Name: "inbound_protocol", err: fmt.Errorf(`ent: validator failed for field "Group.inbound_protocol": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.SubscriptionType(); !ok {
@@ -863,6 +886,10 @@ func (_c *GroupCreate) createSpec() (*Group, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Platform(); ok {
 		_spec.SetField(group.FieldPlatform, field.TypeString, value)
 		_node.Platform = value
+	}
+	if value, ok := _c.mutation.InboundProtocol(); ok {
+		_spec.SetField(group.FieldInboundProtocol, field.TypeString, value)
+		_node.InboundProtocol = value
 	}
 	if value, ok := _c.mutation.SubscriptionType(); ok {
 		_spec.SetField(group.FieldSubscriptionType, field.TypeString, value)
@@ -1231,6 +1258,24 @@ func (u *GroupUpsert) SetPlatform(v string) *GroupUpsert {
 // UpdatePlatform sets the "platform" field to the value that was provided on create.
 func (u *GroupUpsert) UpdatePlatform() *GroupUpsert {
 	u.SetExcluded(group.FieldPlatform)
+	return u
+}
+
+// SetInboundProtocol sets the "inbound_protocol" field.
+func (u *GroupUpsert) SetInboundProtocol(v string) *GroupUpsert {
+	u.Set(group.FieldInboundProtocol, v)
+	return u
+}
+
+// UpdateInboundProtocol sets the "inbound_protocol" field to the value that was provided on create.
+func (u *GroupUpsert) UpdateInboundProtocol() *GroupUpsert {
+	u.SetExcluded(group.FieldInboundProtocol)
+	return u
+}
+
+// ClearInboundProtocol clears the value of the "inbound_protocol" field.
+func (u *GroupUpsert) ClearInboundProtocol() *GroupUpsert {
+	u.SetNull(group.FieldInboundProtocol)
 	return u
 }
 
@@ -1835,6 +1880,27 @@ func (u *GroupUpsertOne) SetPlatform(v string) *GroupUpsertOne {
 func (u *GroupUpsertOne) UpdatePlatform() *GroupUpsertOne {
 	return u.Update(func(s *GroupUpsert) {
 		s.UpdatePlatform()
+	})
+}
+
+// SetInboundProtocol sets the "inbound_protocol" field.
+func (u *GroupUpsertOne) SetInboundProtocol(v string) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetInboundProtocol(v)
+	})
+}
+
+// UpdateInboundProtocol sets the "inbound_protocol" field to the value that was provided on create.
+func (u *GroupUpsertOne) UpdateInboundProtocol() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateInboundProtocol()
+	})
+}
+
+// ClearInboundProtocol clears the value of the "inbound_protocol" field.
+func (u *GroupUpsertOne) ClearInboundProtocol() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearInboundProtocol()
 	})
 }
 
@@ -2676,6 +2742,27 @@ func (u *GroupUpsertBulk) SetPlatform(v string) *GroupUpsertBulk {
 func (u *GroupUpsertBulk) UpdatePlatform() *GroupUpsertBulk {
 	return u.Update(func(s *GroupUpsert) {
 		s.UpdatePlatform()
+	})
+}
+
+// SetInboundProtocol sets the "inbound_protocol" field.
+func (u *GroupUpsertBulk) SetInboundProtocol(v string) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetInboundProtocol(v)
+	})
+}
+
+// UpdateInboundProtocol sets the "inbound_protocol" field to the value that was provided on create.
+func (u *GroupUpsertBulk) UpdateInboundProtocol() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateInboundProtocol()
+	})
+}
+
+// ClearInboundProtocol clears the value of the "inbound_protocol" field.
+func (u *GroupUpsertBulk) ClearInboundProtocol() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.ClearInboundProtocol()
 	})
 }
 

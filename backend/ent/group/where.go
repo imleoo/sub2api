@@ -100,6 +100,11 @@ func Platform(v string) predicate.Group {
 	return predicate.Group(sql.FieldEQ(FieldPlatform, v))
 }
 
+// InboundProtocol applies equality check predicate on the "inbound_protocol" field. It's identical to InboundProtocolEQ.
+func InboundProtocol(v string) predicate.Group {
+	return predicate.Group(sql.FieldEQ(FieldInboundProtocol, v))
+}
+
 // SubscriptionType applies equality check predicate on the "subscription_type" field. It's identical to SubscriptionTypeEQ.
 func SubscriptionType(v string) predicate.Group {
 	return predicate.Group(sql.FieldEQ(FieldSubscriptionType, v))
@@ -658,6 +663,81 @@ func PlatformEqualFold(v string) predicate.Group {
 // PlatformContainsFold applies the ContainsFold predicate on the "platform" field.
 func PlatformContainsFold(v string) predicate.Group {
 	return predicate.Group(sql.FieldContainsFold(FieldPlatform, v))
+}
+
+// InboundProtocolEQ applies the EQ predicate on the "inbound_protocol" field.
+func InboundProtocolEQ(v string) predicate.Group {
+	return predicate.Group(sql.FieldEQ(FieldInboundProtocol, v))
+}
+
+// InboundProtocolNEQ applies the NEQ predicate on the "inbound_protocol" field.
+func InboundProtocolNEQ(v string) predicate.Group {
+	return predicate.Group(sql.FieldNEQ(FieldInboundProtocol, v))
+}
+
+// InboundProtocolIn applies the In predicate on the "inbound_protocol" field.
+func InboundProtocolIn(vs ...string) predicate.Group {
+	return predicate.Group(sql.FieldIn(FieldInboundProtocol, vs...))
+}
+
+// InboundProtocolNotIn applies the NotIn predicate on the "inbound_protocol" field.
+func InboundProtocolNotIn(vs ...string) predicate.Group {
+	return predicate.Group(sql.FieldNotIn(FieldInboundProtocol, vs...))
+}
+
+// InboundProtocolGT applies the GT predicate on the "inbound_protocol" field.
+func InboundProtocolGT(v string) predicate.Group {
+	return predicate.Group(sql.FieldGT(FieldInboundProtocol, v))
+}
+
+// InboundProtocolGTE applies the GTE predicate on the "inbound_protocol" field.
+func InboundProtocolGTE(v string) predicate.Group {
+	return predicate.Group(sql.FieldGTE(FieldInboundProtocol, v))
+}
+
+// InboundProtocolLT applies the LT predicate on the "inbound_protocol" field.
+func InboundProtocolLT(v string) predicate.Group {
+	return predicate.Group(sql.FieldLT(FieldInboundProtocol, v))
+}
+
+// InboundProtocolLTE applies the LTE predicate on the "inbound_protocol" field.
+func InboundProtocolLTE(v string) predicate.Group {
+	return predicate.Group(sql.FieldLTE(FieldInboundProtocol, v))
+}
+
+// InboundProtocolContains applies the Contains predicate on the "inbound_protocol" field.
+func InboundProtocolContains(v string) predicate.Group {
+	return predicate.Group(sql.FieldContains(FieldInboundProtocol, v))
+}
+
+// InboundProtocolHasPrefix applies the HasPrefix predicate on the "inbound_protocol" field.
+func InboundProtocolHasPrefix(v string) predicate.Group {
+	return predicate.Group(sql.FieldHasPrefix(FieldInboundProtocol, v))
+}
+
+// InboundProtocolHasSuffix applies the HasSuffix predicate on the "inbound_protocol" field.
+func InboundProtocolHasSuffix(v string) predicate.Group {
+	return predicate.Group(sql.FieldHasSuffix(FieldInboundProtocol, v))
+}
+
+// InboundProtocolIsNil applies the IsNil predicate on the "inbound_protocol" field.
+func InboundProtocolIsNil() predicate.Group {
+	return predicate.Group(sql.FieldIsNull(FieldInboundProtocol))
+}
+
+// InboundProtocolNotNil applies the NotNil predicate on the "inbound_protocol" field.
+func InboundProtocolNotNil() predicate.Group {
+	return predicate.Group(sql.FieldNotNull(FieldInboundProtocol))
+}
+
+// InboundProtocolEqualFold applies the EqualFold predicate on the "inbound_protocol" field.
+func InboundProtocolEqualFold(v string) predicate.Group {
+	return predicate.Group(sql.FieldEqualFold(FieldInboundProtocol, v))
+}
+
+// InboundProtocolContainsFold applies the ContainsFold predicate on the "inbound_protocol" field.
+func InboundProtocolContainsFold(v string) predicate.Group {
+	return predicate.Group(sql.FieldContainsFold(FieldInboundProtocol, v))
 }
 
 // SubscriptionTypeEQ applies the EQ predicate on the "subscription_type" field.

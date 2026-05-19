@@ -27,6 +27,8 @@ const (
 	FieldNotes = "notes"
 	// FieldPlatform holds the string denoting the platform field in the database.
 	FieldPlatform = "platform"
+	// FieldOutboundProtocol holds the string denoting the outbound_protocol field in the database.
+	FieldOutboundProtocol = "outbound_protocol"
 	// FieldType holds the string denoting the type field in the database.
 	FieldType = "type"
 	// FieldCredentials holds the string denoting the credentials field in the database.
@@ -118,6 +120,7 @@ var Columns = []string{
 	FieldName,
 	FieldNotes,
 	FieldPlatform,
+	FieldOutboundProtocol,
 	FieldType,
 	FieldCredentials,
 	FieldExtra,
@@ -176,6 +179,10 @@ var (
 	NameValidator func(string) error
 	// PlatformValidator is a validator for the "platform" field. It is called by the builders before save.
 	PlatformValidator func(string) error
+	// DefaultOutboundProtocol holds the default value on creation for the "outbound_protocol" field.
+	DefaultOutboundProtocol string
+	// OutboundProtocolValidator is a validator for the "outbound_protocol" field. It is called by the builders before save.
+	OutboundProtocolValidator func(string) error
 	// TypeValidator is a validator for the "type" field. It is called by the builders before save.
 	TypeValidator func(string) error
 	// DefaultCredentials holds the default value on creation for the "credentials" field.
@@ -236,6 +243,11 @@ func ByNotes(opts ...sql.OrderTermOption) OrderOption {
 // ByPlatform orders the results by the platform field.
 func ByPlatform(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPlatform, opts...).ToFunc()
+}
+
+// ByOutboundProtocol orders the results by the outbound_protocol field.
+func ByOutboundProtocol(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOutboundProtocol, opts...).ToFunc()
 }
 
 // ByType orders the results by the type field.

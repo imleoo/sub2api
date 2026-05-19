@@ -65,6 +65,15 @@ func (Account) Fields() []ent.Field {
 			MaxLen(50).
 			NotEmpty(),
 
+		// Phase 2 P2-1：出站协议字段（与 platform 双写兼容）。
+		// 取值见 docs/glossary.md §1.1：anthropic_messages | openai_chat | openai_responses | gemini_v1beta
+		// 空值表示历史账号，需按 platform/type 派生（详见 service.resolveAccountOutboundProtocol P2-3 改造）。
+		field.String("outbound_protocol").
+			MaxLen(30).
+			Optional().
+			Default("").
+			Comment("出站协议（Phase 2 引入；空 = 按 platform/type 派生）"),
+
 		// type: 认证类型，如 "api_key", "oauth", "cookie" 等
 		// 不同类型决定了 credentials 中存储的数据结构
 		field.String("type").

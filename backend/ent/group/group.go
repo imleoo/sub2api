@@ -34,6 +34,8 @@ const (
 	FieldStatus = "status"
 	// FieldPlatform holds the string denoting the platform field in the database.
 	FieldPlatform = "platform"
+	// FieldInboundProtocol holds the string denoting the inbound_protocol field in the database.
+	FieldInboundProtocol = "inbound_protocol"
 	// FieldSubscriptionType holds the string denoting the subscription_type field in the database.
 	FieldSubscriptionType = "subscription_type"
 	// FieldDailyLimitUsd holds the string denoting the daily_limit_usd field in the database.
@@ -168,6 +170,7 @@ var Columns = []string{
 	FieldIsExclusive,
 	FieldStatus,
 	FieldPlatform,
+	FieldInboundProtocol,
 	FieldSubscriptionType,
 	FieldDailyLimitUsd,
 	FieldWeeklyLimitUsd,
@@ -242,6 +245,10 @@ var (
 	DefaultPlatform string
 	// PlatformValidator is a validator for the "platform" field. It is called by the builders before save.
 	PlatformValidator func(string) error
+	// DefaultInboundProtocol holds the default value on creation for the "inbound_protocol" field.
+	DefaultInboundProtocol string
+	// InboundProtocolValidator is a validator for the "inbound_protocol" field. It is called by the builders before save.
+	InboundProtocolValidator func(string) error
 	// DefaultSubscriptionType holds the default value on creation for the "subscription_type" field.
 	DefaultSubscriptionType string
 	// SubscriptionTypeValidator is a validator for the "subscription_type" field. It is called by the builders before save.
@@ -331,6 +338,11 @@ func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 // ByPlatform orders the results by the platform field.
 func ByPlatform(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPlatform, opts...).ToFunc()
+}
+
+// ByInboundProtocol orders the results by the inbound_protocol field.
+func ByInboundProtocol(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInboundProtocol, opts...).ToFunc()
 }
 
 // BySubscriptionType orders the results by the subscription_type field.

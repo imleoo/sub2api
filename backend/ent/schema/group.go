@@ -55,6 +55,14 @@ func (Group) Fields() []ent.Field {
 		field.String("platform").
 			MaxLen(50).
 			Default(domain.PlatformAnthropic),
+		// Phase 2 P2-1：入站协议字段（与 platform 双写兼容）。
+		// 取值见 docs/glossary.md §1.1：anthropic_messages | openai_chat | openai_responses | gemini_v1beta
+		// 空值表示历史 group，需按 platform 派生（详见 routes/gateway.go P2-3 改造）。
+		field.String("inbound_protocol").
+			MaxLen(30).
+			Optional().
+			Default("").
+			Comment("入站协议（Phase 2 引入；空 = 按 platform 派生）"),
 		field.String("subscription_type").
 			MaxLen(20).
 			Default(domain.SubscriptionTypeStandard),

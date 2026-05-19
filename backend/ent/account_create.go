@@ -93,6 +93,20 @@ func (_c *AccountCreate) SetPlatform(v string) *AccountCreate {
 	return _c
 }
 
+// SetOutboundProtocol sets the "outbound_protocol" field.
+func (_c *AccountCreate) SetOutboundProtocol(v string) *AccountCreate {
+	_c.mutation.SetOutboundProtocol(v)
+	return _c
+}
+
+// SetNillableOutboundProtocol sets the "outbound_protocol" field if the given value is not nil.
+func (_c *AccountCreate) SetNillableOutboundProtocol(v *string) *AccountCreate {
+	if v != nil {
+		_c.SetOutboundProtocol(*v)
+	}
+	return _c
+}
+
 // SetType sets the "type" field.
 func (_c *AccountCreate) SetType(v string) *AccountCreate {
 	_c.mutation.SetType(v)
@@ -463,6 +477,10 @@ func (_c *AccountCreate) defaults() error {
 		v := account.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.OutboundProtocol(); !ok {
+		v := account.DefaultOutboundProtocol
+		_c.mutation.SetOutboundProtocol(v)
+	}
 	if _, ok := _c.mutation.Credentials(); !ok {
 		if account.DefaultCredentials == nil {
 			return fmt.Errorf("ent: uninitialized account.DefaultCredentials (forgotten import ent/runtime?)")
@@ -526,6 +544,11 @@ func (_c *AccountCreate) check() error {
 	if v, ok := _c.mutation.Platform(); ok {
 		if err := account.PlatformValidator(v); err != nil {
 			return &ValidationError{Name: "platform", err: fmt.Errorf(`ent: validator failed for field "Account.platform": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.OutboundProtocol(); ok {
+		if err := account.OutboundProtocolValidator(v); err != nil {
+			return &ValidationError{Name: "outbound_protocol", err: fmt.Errorf(`ent: validator failed for field "Account.outbound_protocol": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.GetType(); !ok {
@@ -620,6 +643,10 @@ func (_c *AccountCreate) createSpec() (*Account, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Platform(); ok {
 		_spec.SetField(account.FieldPlatform, field.TypeString, value)
 		_node.Platform = value
+	}
+	if value, ok := _c.mutation.OutboundProtocol(); ok {
+		_spec.SetField(account.FieldOutboundProtocol, field.TypeString, value)
+		_node.OutboundProtocol = value
 	}
 	if value, ok := _c.mutation.GetType(); ok {
 		_spec.SetField(account.FieldType, field.TypeString, value)
@@ -879,6 +906,24 @@ func (u *AccountUpsert) SetPlatform(v string) *AccountUpsert {
 // UpdatePlatform sets the "platform" field to the value that was provided on create.
 func (u *AccountUpsert) UpdatePlatform() *AccountUpsert {
 	u.SetExcluded(account.FieldPlatform)
+	return u
+}
+
+// SetOutboundProtocol sets the "outbound_protocol" field.
+func (u *AccountUpsert) SetOutboundProtocol(v string) *AccountUpsert {
+	u.Set(account.FieldOutboundProtocol, v)
+	return u
+}
+
+// UpdateOutboundProtocol sets the "outbound_protocol" field to the value that was provided on create.
+func (u *AccountUpsert) UpdateOutboundProtocol() *AccountUpsert {
+	u.SetExcluded(account.FieldOutboundProtocol)
+	return u
+}
+
+// ClearOutboundProtocol clears the value of the "outbound_protocol" field.
+func (u *AccountUpsert) ClearOutboundProtocol() *AccountUpsert {
+	u.SetNull(account.FieldOutboundProtocol)
 	return u
 }
 
@@ -1374,6 +1419,27 @@ func (u *AccountUpsertOne) SetPlatform(v string) *AccountUpsertOne {
 func (u *AccountUpsertOne) UpdatePlatform() *AccountUpsertOne {
 	return u.Update(func(s *AccountUpsert) {
 		s.UpdatePlatform()
+	})
+}
+
+// SetOutboundProtocol sets the "outbound_protocol" field.
+func (u *AccountUpsertOne) SetOutboundProtocol(v string) *AccountUpsertOne {
+	return u.Update(func(s *AccountUpsert) {
+		s.SetOutboundProtocol(v)
+	})
+}
+
+// UpdateOutboundProtocol sets the "outbound_protocol" field to the value that was provided on create.
+func (u *AccountUpsertOne) UpdateOutboundProtocol() *AccountUpsertOne {
+	return u.Update(func(s *AccountUpsert) {
+		s.UpdateOutboundProtocol()
+	})
+}
+
+// ClearOutboundProtocol clears the value of the "outbound_protocol" field.
+func (u *AccountUpsertOne) ClearOutboundProtocol() *AccountUpsertOne {
+	return u.Update(func(s *AccountUpsert) {
+		s.ClearOutboundProtocol()
 	})
 }
 
@@ -2096,6 +2162,27 @@ func (u *AccountUpsertBulk) SetPlatform(v string) *AccountUpsertBulk {
 func (u *AccountUpsertBulk) UpdatePlatform() *AccountUpsertBulk {
 	return u.Update(func(s *AccountUpsert) {
 		s.UpdatePlatform()
+	})
+}
+
+// SetOutboundProtocol sets the "outbound_protocol" field.
+func (u *AccountUpsertBulk) SetOutboundProtocol(v string) *AccountUpsertBulk {
+	return u.Update(func(s *AccountUpsert) {
+		s.SetOutboundProtocol(v)
+	})
+}
+
+// UpdateOutboundProtocol sets the "outbound_protocol" field to the value that was provided on create.
+func (u *AccountUpsertBulk) UpdateOutboundProtocol() *AccountUpsertBulk {
+	return u.Update(func(s *AccountUpsert) {
+		s.UpdateOutboundProtocol()
+	})
+}
+
+// ClearOutboundProtocol clears the value of the "outbound_protocol" field.
+func (u *AccountUpsertBulk) ClearOutboundProtocol() *AccountUpsertBulk {
+	return u.Update(func(s *AccountUpsert) {
+		s.ClearOutboundProtocol()
 	})
 }
 

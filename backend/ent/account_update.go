@@ -105,6 +105,26 @@ func (_u *AccountUpdate) SetNillablePlatform(v *string) *AccountUpdate {
 	return _u
 }
 
+// SetOutboundProtocol sets the "outbound_protocol" field.
+func (_u *AccountUpdate) SetOutboundProtocol(v string) *AccountUpdate {
+	_u.mutation.SetOutboundProtocol(v)
+	return _u
+}
+
+// SetNillableOutboundProtocol sets the "outbound_protocol" field if the given value is not nil.
+func (_u *AccountUpdate) SetNillableOutboundProtocol(v *string) *AccountUpdate {
+	if v != nil {
+		_u.SetOutboundProtocol(*v)
+	}
+	return _u
+}
+
+// ClearOutboundProtocol clears the value of the "outbound_protocol" field.
+func (_u *AccountUpdate) ClearOutboundProtocol() *AccountUpdate {
+	_u.mutation.ClearOutboundProtocol()
+	return _u
+}
+
 // SetType sets the "type" field.
 func (_u *AccountUpdate) SetType(v string) *AccountUpdate {
 	_u.mutation.SetType(v)
@@ -645,6 +665,11 @@ func (_u *AccountUpdate) check() error {
 			return &ValidationError{Name: "platform", err: fmt.Errorf(`ent: validator failed for field "Account.platform": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.OutboundProtocol(); ok {
+		if err := account.OutboundProtocolValidator(v); err != nil {
+			return &ValidationError{Name: "outbound_protocol", err: fmt.Errorf(`ent: validator failed for field "Account.outbound_protocol": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.GetType(); ok {
 		if err := account.TypeValidator(v); err != nil {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`ent: validator failed for field "Account.type": %w`, err)}
@@ -695,6 +720,12 @@ func (_u *AccountUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.Platform(); ok {
 		_spec.SetField(account.FieldPlatform, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.OutboundProtocol(); ok {
+		_spec.SetField(account.FieldOutboundProtocol, field.TypeString, value)
+	}
+	if _u.mutation.OutboundProtocolCleared() {
+		_spec.ClearField(account.FieldOutboundProtocol, field.TypeString)
 	}
 	if value, ok := _u.mutation.GetType(); ok {
 		_spec.SetField(account.FieldType, field.TypeString, value)
@@ -1029,6 +1060,26 @@ func (_u *AccountUpdateOne) SetNillablePlatform(v *string) *AccountUpdateOne {
 	if v != nil {
 		_u.SetPlatform(*v)
 	}
+	return _u
+}
+
+// SetOutboundProtocol sets the "outbound_protocol" field.
+func (_u *AccountUpdateOne) SetOutboundProtocol(v string) *AccountUpdateOne {
+	_u.mutation.SetOutboundProtocol(v)
+	return _u
+}
+
+// SetNillableOutboundProtocol sets the "outbound_protocol" field if the given value is not nil.
+func (_u *AccountUpdateOne) SetNillableOutboundProtocol(v *string) *AccountUpdateOne {
+	if v != nil {
+		_u.SetOutboundProtocol(*v)
+	}
+	return _u
+}
+
+// ClearOutboundProtocol clears the value of the "outbound_protocol" field.
+func (_u *AccountUpdateOne) ClearOutboundProtocol() *AccountUpdateOne {
+	_u.mutation.ClearOutboundProtocol()
 	return _u
 }
 
@@ -1585,6 +1636,11 @@ func (_u *AccountUpdateOne) check() error {
 			return &ValidationError{Name: "platform", err: fmt.Errorf(`ent: validator failed for field "Account.platform": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.OutboundProtocol(); ok {
+		if err := account.OutboundProtocolValidator(v); err != nil {
+			return &ValidationError{Name: "outbound_protocol", err: fmt.Errorf(`ent: validator failed for field "Account.outbound_protocol": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.GetType(); ok {
 		if err := account.TypeValidator(v); err != nil {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`ent: validator failed for field "Account.type": %w`, err)}
@@ -1652,6 +1708,12 @@ func (_u *AccountUpdateOne) sqlSave(ctx context.Context) (_node *Account, err er
 	}
 	if value, ok := _u.mutation.Platform(); ok {
 		_spec.SetField(account.FieldPlatform, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.OutboundProtocol(); ok {
+		_spec.SetField(account.FieldOutboundProtocol, field.TypeString, value)
+	}
+	if _u.mutation.OutboundProtocolCleared() {
+		_spec.ClearField(account.FieldOutboundProtocol, field.TypeString)
 	}
 	if value, ok := _u.mutation.GetType(); ok {
 		_spec.SetField(account.FieldType, field.TypeString, value)
