@@ -8,6 +8,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **技术栈**：Go 1.26（具体小版本以 `backend/go.mod` 为准）+ Gin + Ent ORM；Vue 3.4+（Vite 5 + TailwindCSS + Pinia）+ PostgreSQL 18 + Redis 8
 
+### 延伸阅读（优先于全局搜索）
+
+在动手前如果需要更深背景，先看这里再决定要不要 grep：
+
+- [`claudedocs/系统架构设计文档.md`](claudedocs/系统架构设计文档.md) — 整体架构（分层、网关、后台服务）
+- [`claudedocs/repo-wiki.md`](claudedocs/repo-wiki.md) — 仓库结构 wiki
+- [`claudedocs/api-reference.md`](claudedocs/api-reference.md) / [`API_DOCUMENTATION.md`](API_DOCUMENTATION.md) — REST API 契约
+- [`claudedocs/admin-manual.md`](claudedocs/admin-manual.md) — 管理后台行为与字段含义
+- [`claudedocs/自定义开发功能列表.md`](claudedocs/自定义开发功能列表.md) — fork 自定义功能、高风险文件、合并清单（**唯一源**）
+- [`DEV_GUIDE.md`](DEV_GUIDE.md) — 仓库自带的开发指南
+
 ## zhiguofan 分支差异化开发
 
 fork 功能列表、高风险文件、合并检查清单详见 **[`claudedocs/自定义开发功能列表.md`](claudedocs/自定义开发功能列表.md)**，该文档为唯一维护源，本节不再重复。
@@ -38,6 +49,9 @@ cd frontend && pnpm run lint:check
 > 当前 `Makefile` 是空文件，没有可用 target。所有构建/测试/生成/开发环境命令请直接进入 `backend/`、`frontend/` 或调用 `script/dev_local.sh`（见下方）。
 
 ### 后端（Go）
+
+> 以下命令全部在 `backend/` 目录下执行（包含 `go generate ./ent` 与 `go generate ./cmd/server`）。
+
 ```bash
 cd backend
 
@@ -47,7 +61,7 @@ go run ./cmd/server/
 # 构建（含前端嵌入）
 go build -tags embed -o sub2api ./cmd/server
 
-# 单元测试
+# 单元测试（-tags=unit 会过滤掉 integration/e2e build tag 文件）
 go test -tags=unit ./...
 
 # 运行指定测试
@@ -62,10 +76,10 @@ go test -tags=e2e -v -timeout=300s ./internal/integration/...
 # Lint 检查
 golangci-lint run ./...
 
-# Schema 变更后重新生成 Ent ORM
+# Schema 变更后重新生成 Ent ORM（在 backend/ 下执行）
 go generate ./ent
 
-# Wire DI 变更后重新生成
+# Wire DI 变更后重新生成（在 backend/ 下执行）
 go generate ./cmd/server
 ```
 
@@ -177,7 +191,7 @@ Vitest 配置要求语句/分支/函数/行均达到 80% 覆盖率（`frontend/v
 - **Wire DI 变更**：修改 Wire providers 后运行 `go generate ./cmd/server`
 - **接口变更**：给 Go interface 新增方法后，**所有**实现该接口的 test stub 都必须补全。查找方式：`grep -r "type.*Stub.*struct\|type.*Mock.*struct" internal/`
 - **golangci-lint v2.9**：CI 自动运行 lint，推送前确保代码通过检查
-- **GitHub Workflows**：zhiguofan 分支所有 `.github/workflows/*.yml` 的 `on:` 必须仅保留 `workflow_dispatch:`。上游同步后务必逐文件检查，上游会携带 push/PR/schedule 触发器，合并时会被覆盖，需手动恢复
+- **GitHub Workflows 触发器**：zhiguofan 分支所有 `.github/workflows/*.yml` 的 `on:` 必须仅保留 `workflow_dispatch:`（详见"已知陷阱"中的踩坑场景）
 
 ## 已知陷阱
 
@@ -192,10 +206,10 @@ Vitest 配置要求语句/分支/函数/行均达到 80% 覆盖率（`frontend/v
 ### node_modules 冲突
 之前用 npm 装过 `node_modules` 后再用 pnpm 会报 `EPERM` 错误。解决：`rm -rf frontend/node_modules && pnpm install`
 
-## 分支策略
-
-- **禁止**推送 `fix/openai-connection-test` 分支到 `main`
-- 只能将 `main` merge 到 `fix/openai-connection-test`
+### 上游同步会覆盖 GitHub Workflows 触发器
+**现象**：合并完上游后，CI 突然在 `push` / `pull_request` / `schedule` 上自动触发，消耗云端配额或泄露非预期构建。
+**根因**：zhiguofan 分支约定所有 workflow 仅保留 `workflow_dispatch:`，但上游 `.github/workflows/*.yml` 携带其它触发器，`git merge upstream/main` 会覆盖本地 `on:` 配置。
+**修复**：每次跑完 `./script/sync_upstream_to_zhiguofan.sh` 或手动 merge 上游后，逐文件检查 `.github/workflows/*.yml`，把 `on:` 恢复为仅 `workflow_dispatch:`，再 commit。
 
 ## CI/CD
 
