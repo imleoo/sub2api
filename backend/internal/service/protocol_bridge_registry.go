@@ -75,6 +75,17 @@ func NewProtocolBridgeRegistry() *ProtocolBridgeRegistry {
 		Description:      "OpenAI Responses 客户端通过 /v1/responses 访问 Anthropic 上游账号",
 	})
 
+	// Bridge #3（Phase 3 P3-3 占位）: Anthropic Messages 入站 → OpenAI Chat Completions 上游
+	// 实现状态：apicompat.ForwardAnthropicAsChatCompletions 为 stub，返回 ErrAnthropicToChatNotImplemented
+	// 注册目的：让桥数=3 解锁 P3-4 interface 抽离；完整实现见独立 PR
+	r.mustRegister(BridgeMetadata{
+		ID:               BridgeID(domain.ProtocolAnthropicMessages, domain.ProtocolOpenAIChat),
+		InboundProtocol:  domain.ProtocolAnthropicMessages,
+		OutboundProtocol: domain.ProtocolOpenAIChat,
+		Implementation:   "apicompat.ForwardAnthropicAsChatCompletions (stub, P3-3 follow-up)",
+		Description:      "Claude Code 客户端通过 /v1/messages 访问 DeepSeek/Kimi/Qwen 等 OpenAI Chat Completions 上游（实现中）",
+	})
+
 	return r
 }
 

@@ -11,7 +11,8 @@ import (
 
 func TestNewProtocolBridgeRegistry_RegistersForkBridges(t *testing.T) {
 	r := NewProtocolBridgeRegistry()
-	require.Equal(t, 2, r.Count(), "fork 当前已有 2 条桥（forward as anthropic / forward as responses）")
+	// Phase 3 P3-3 后桥数 = 3：fork 2 条 + anthropic→chat stub
+	require.Equal(t, 3, r.Count(), "fork 2 桥（forward as anthropic / forward as responses）+ P3-3 anthropic→chat stub")
 
 	// Bridge #1
 	b1, ok := r.Lookup(domain.ProtocolAnthropicMessages, domain.ProtocolOpenAIResponses)
@@ -24,6 +25,12 @@ func TestNewProtocolBridgeRegistry_RegistersForkBridges(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, "openai_responses->anthropic_messages", b2.ID)
 	require.Contains(t, b2.Implementation, "ForwardAsResponses")
+
+	// Bridge #3 (P3-3 stub)
+	b3, ok := r.Lookup(domain.ProtocolAnthropicMessages, domain.ProtocolOpenAIChat)
+	require.True(t, ok)
+	require.Equal(t, "anthropic_messages->openai_chat", b3.ID)
+	require.Contains(t, b3.Implementation, "stub")
 }
 
 func TestBridgeID_Format(t *testing.T) {
@@ -73,9 +80,11 @@ func TestRegistry_RegisterEmptyID(t *testing.T) {
 func TestRegistry_ListReturnsSorted(t *testing.T) {
 	r := NewProtocolBridgeRegistry()
 	list := r.List()
-	require.Len(t, list, 2)
-	require.Equal(t, "anthropic_messages->openai_responses", list[0].ID)
-	require.Equal(t, "openai_responses->anthropic_messages", list[1].ID, "ID 字典序")
+	require.Len(t, list, 3) // P3-3 后 3 桥
+	// ID 字典序：anthropic_messages->openai_chat / openai_responses / openai_responses->anthropic_messages
+	require.Equal(t, "anthropic_messages->openai_chat", list[0].ID)
+	require.Equal(t, "anthropic_messages->openai_responses", list[1].ID)
+	require.Equal(t, "openai_responses->anthropic_messages", list[2].ID)
 }
 
 func TestRegistry_LookupByID(t *testing.T) {
