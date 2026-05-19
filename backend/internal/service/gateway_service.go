@@ -8709,16 +8709,21 @@ func (s *GatewayService) buildRecordUsageLog(
 	return usageLog
 }
 
-// resolveProviderKey 从账号推导 provider_key。
+// resolveProviderKey 从账号推导 provider_key（Phase 1 P1-1 已升级）。
 //
-// Phase 0 仅按 account.Platform 推导（原厂账号 platform 即 provider_key）；
-// Phase 1 P1-1 会改成读 account.extra.provider 并 normalize_provider，那时
-// DeepSeek / 硅基流动等聚合渠道才能命中 provider_pricing。
+// 优先级：
+//  1. account.extra.provider（DeepSeek / 硅基流动等 OpenAI-compatible 渠道写在 extra）
+//  2. account.Platform（原厂账号：anthropic / openai / gemini / antigravity / lingjing）
+//
+// 两路均经 NormalizeProvider 规范化（详见 docs/glossary.md §1.3 别名表）。
 func resolveProviderKey(account *Account) string {
 	if account == nil {
 		return ""
 	}
-	return account.Platform
+	if v := NormalizeProvider(account.GetExtraString("provider")); v != "" {
+		return v
+	}
+	return NormalizeProvider(account.Platform)
 }
 
 // resolveUpstreamModelForCost 取上游模型名（命中 provider_pricing 用），
