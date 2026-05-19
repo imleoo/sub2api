@@ -35,6 +35,7 @@ type AdminHandlers struct {
 	Affiliate              *admin.AffiliateHandler
 	ModelPricing           *admin.ModelPricingHandler
 	ProviderPricing        *admin.ProviderPricingHandler
+	DualBucketStats        *admin.DualBucketStatsHandler
 }
 
 // Handlers contains all HTTP handlers

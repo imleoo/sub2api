@@ -529,6 +529,85 @@ func filterSchedulerCredentials(credentials map[string]any) map[string]any {
 	return filtered
 }
 
+// ── P5-5: 双桶比较计数 ──────────────────────────────────────────────────────
+
+const (
+	// dualBucketTotalPrefix  sched:dual:t:{platform}:{YYYY-MM-DD}
+	dualBucketTotalPrefix    = "sched:dual:t:"
+	dualBucketDivergedPrefix = "sched:dual:d:"
+	// 保留 8 天窗口，足够覆盖 7 天查询 + 时区边界
+	dualBucketTTL = 8 * 24 * time.Hour
+)
+
+func dualBucketDateKey(prefix, platform, date string) string {
+	return prefix + platform + ":" + date
+}
+
+func (c *schedulerCache) IncrDualBucketTotal(ctx context.Context, platform string) (int64, error) {
+	date := time.Now().UTC().Format("2006-01-02")
+	key := dualBucketDateKey(dualBucketTotalPrefix, platform, date)
+	val, err := c.rdb.Incr(ctx, key).Result()
+	if err != nil {
+		return 0, err
+	}
+	// 首次写入时设置 TTL（INCR 后 TTL=-1 时才设置，避免覆盖）
+	if val == 1 {
+		_ = c.rdb.Expire(ctx, key, dualBucketTTL).Err()
+	}
+	return val, nil
+}
+
+func (c *schedulerCache) IncrDualBucketDiverged(ctx context.Context, platform string) (int64, error) {
+	date := time.Now().UTC().Format("2006-01-02")
+	key := dualBucketDateKey(dualBucketDivergedPrefix, platform, date)
+	val, err := c.rdb.Incr(ctx, key).Result()
+	if err != nil {
+		return 0, err
+	}
+	if val == 1 {
+		_ = c.rdb.Expire(ctx, key, dualBucketTTL).Err()
+	}
+	return val, nil
+}
+
+func (c *schedulerCache) GetDualBucketStats(ctx context.Context, platform string, days int) ([]service.DualBucketDayStats, error) {
+	if days <= 0 || days > 30 {
+		days = 7
+	}
+	now := time.Now().UTC()
+	stats := make([]service.DualBucketDayStats, 0, days)
+
+	for i := days - 1; i >= 0; i-- {
+		date := now.AddDate(0, 0, -i).Format("2006-01-02")
+		tKey := dualBucketDateKey(dualBucketTotalPrefix, platform, date)
+		dKey := dualBucketDateKey(dualBucketDivergedPrefix, platform, date)
+
+		vals, err := c.rdb.MGet(ctx, tKey, dKey).Result()
+		if err != nil {
+			return nil, err
+		}
+		var total, diverged int64
+		if vals[0] != nil {
+			if s, ok := vals[0].(string); ok {
+				total, _ = strconv.ParseInt(s, 10, 64)
+			}
+		}
+		if vals[1] != nil {
+			if s, ok := vals[1].(string); ok {
+				diverged, _ = strconv.ParseInt(s, 10, 64)
+			}
+		}
+		stats = append(stats, service.DualBucketDayStats{
+			Date:     date,
+			Total:    total,
+			Diverged: diverged,
+		})
+	}
+	return stats, nil
+}
+
+// ── filterSchedulerExtra ───────────────────────────────────────────────────
+
 func filterSchedulerExtra(extra map[string]any) map[string]any {
 	if len(extra) == 0 {
 		return nil

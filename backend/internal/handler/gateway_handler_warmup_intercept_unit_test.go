@@ -58,6 +58,15 @@ func (f *fakeSchedulerCache) ListBuckets(_ context.Context) ([]service.Scheduler
 }
 func (f *fakeSchedulerCache) GetOutboxWatermark(_ context.Context) (int64, error) { return 0, nil }
 func (f *fakeSchedulerCache) SetOutboxWatermark(_ context.Context, _ int64) error { return nil }
+func (f *fakeSchedulerCache) IncrDualBucketTotal(_ context.Context, _ string) (int64, error) {
+	return 0, nil
+}
+func (f *fakeSchedulerCache) IncrDualBucketDiverged(_ context.Context, _ string) (int64, error) {
+	return 0, nil
+}
+func (f *fakeSchedulerCache) GetDualBucketStats(_ context.Context, _ string, _ int) ([]service.DualBucketDayStats, error) {
+	return nil, nil
+}
 
 type fakeGroupRepo struct {
 	group *service.Group

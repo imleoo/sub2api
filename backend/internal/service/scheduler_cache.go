@@ -43,6 +43,13 @@ func ParseSchedulerBucket(raw string) (SchedulerBucket, bool) {
 	}, true
 }
 
+// DualBucketDayStats 存储某平台某天的双桶比较统计。
+type DualBucketDayStats struct {
+	Date     string // YYYY-MM-DD
+	Total    int64
+	Diverged int64
+}
+
 // SchedulerCache 负责调度快照与账号快照的缓存读写。
 type SchedulerCache interface {
 	// GetSnapshot 读取快照并返回命中与否（ready + active + 数据完整）。
@@ -67,4 +74,12 @@ type SchedulerCache interface {
 	GetOutboxWatermark(ctx context.Context) (int64, error)
 	// SetOutboxWatermark 保存 outbox 水位。
 	SetOutboxWatermark(ctx context.Context, id int64) error
+
+	// P5-5: 双桶比较计数，用于监控 dashboard 与报警规则（≥1% 差异触发告警）。
+	// IncrDualBucketTotal 增加今日比较次数计数。
+	IncrDualBucketTotal(ctx context.Context, platform string) (int64, error)
+	// IncrDualBucketDiverged 增加今日分歧次数计数。
+	IncrDualBucketDiverged(ctx context.Context, platform string) (int64, error)
+	// GetDualBucketStats 返回指定平台最近 days 天的统计（含今天）。
+	GetDualBucketStats(ctx context.Context, platform string, days int) ([]DualBucketDayStats, error)
 }

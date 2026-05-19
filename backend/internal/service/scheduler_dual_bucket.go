@@ -77,6 +77,22 @@ func (s *SchedulerSnapshotService) runDualBucketShadow(
 			"diverged", diverged,
 		)
 
+		// 累积计数以支持监控 dashboard 与 ≥1% 差异报警（P5-5）
+		if s.cache != nil {
+			total, _ := s.cache.IncrDualBucketTotal(ctx, platform)
+			if diverged {
+				div, _ := s.cache.IncrDualBucketDiverged(ctx, platform)
+				if total > 0 && float64(div)/float64(total) >= 0.01 {
+					slog.Warn("scheduler.dual_bucket alert: divergence ≥1%",
+						"platform", platform,
+						"today_total", total,
+						"today_diverged", div,
+						"rate", float64(div)/float64(total),
+					)
+				}
+			}
+		}
+
 		if diverged {
 			// 记录分歧账号 ID，用于离线排查
 			added, removed := diffIDSlices(oldIDs, newIDs)

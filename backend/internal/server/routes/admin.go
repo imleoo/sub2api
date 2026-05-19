@@ -99,6 +99,9 @@ func RegisterAdminRoutes(
 
 		// 上游 Provider 单价管理（Phase 0 P0-3，写入 UsageLog.upstream_total_cost）
 		registerProviderPricingRoutes(admin, h)
+
+		// 调度器双桶监控统计（Phase 5 P5-5）
+		registerSchedulerRoutes(admin, h)
 	}
 }
 
@@ -650,5 +653,14 @@ func registerAffiliateRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 			users.PUT("/:user_id", h.Admin.Affiliate.UpdateUserSettings)
 			users.DELETE("/:user_id", h.Admin.Affiliate.ClearUserSettings)
 		}
+	}
+}
+
+// registerSchedulerRoutes 注册调度器监控路由（Phase 5 P5-5）。
+func registerSchedulerRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	sched := admin.Group("/scheduler")
+	{
+		// GET /api/v1/admin/scheduler/dual-bucket-stats?platform=anthropic&days=7
+		sched.GET("/dual-bucket-stats", h.Admin.DualBucketStats.GetStats)
 	}
 }

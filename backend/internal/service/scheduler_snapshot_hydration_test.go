@@ -60,6 +60,16 @@ func (c *snapshotHydrationCache) SetOutboxWatermark(ctx context.Context, id int6
 	return nil
 }
 
+func (c *snapshotHydrationCache) IncrDualBucketTotal(_ context.Context, _ string) (int64, error) {
+	return 0, nil
+}
+func (c *snapshotHydrationCache) IncrDualBucketDiverged(_ context.Context, _ string) (int64, error) {
+	return 0, nil
+}
+func (c *snapshotHydrationCache) GetDualBucketStats(_ context.Context, _ string, _ int) ([]DualBucketDayStats, error) {
+	return nil, nil
+}
+
 func TestOpenAISelectAccountWithLoadAwareness_HydratesSelectedAccountFromSchedulerSnapshot(t *testing.T) {
 	cache := &snapshotHydrationCache{
 		snapshot: []*Account{
