@@ -365,6 +365,132 @@ func (_c *UsageLogCreate) SetNillableAccountRateMultiplier(v *float64) *UsageLog
 	return _c
 }
 
+// SetUpstreamUnitPriceInput sets the "upstream_unit_price_input" field.
+func (_c *UsageLogCreate) SetUpstreamUnitPriceInput(v float64) *UsageLogCreate {
+	_c.mutation.SetUpstreamUnitPriceInput(v)
+	return _c
+}
+
+// SetNillableUpstreamUnitPriceInput sets the "upstream_unit_price_input" field if the given value is not nil.
+func (_c *UsageLogCreate) SetNillableUpstreamUnitPriceInput(v *float64) *UsageLogCreate {
+	if v != nil {
+		_c.SetUpstreamUnitPriceInput(*v)
+	}
+	return _c
+}
+
+// SetUpstreamUnitPriceOutput sets the "upstream_unit_price_output" field.
+func (_c *UsageLogCreate) SetUpstreamUnitPriceOutput(v float64) *UsageLogCreate {
+	_c.mutation.SetUpstreamUnitPriceOutput(v)
+	return _c
+}
+
+// SetNillableUpstreamUnitPriceOutput sets the "upstream_unit_price_output" field if the given value is not nil.
+func (_c *UsageLogCreate) SetNillableUpstreamUnitPriceOutput(v *float64) *UsageLogCreate {
+	if v != nil {
+		_c.SetUpstreamUnitPriceOutput(*v)
+	}
+	return _c
+}
+
+// SetUpstreamUnitPriceCacheCreation sets the "upstream_unit_price_cache_creation" field.
+func (_c *UsageLogCreate) SetUpstreamUnitPriceCacheCreation(v float64) *UsageLogCreate {
+	_c.mutation.SetUpstreamUnitPriceCacheCreation(v)
+	return _c
+}
+
+// SetNillableUpstreamUnitPriceCacheCreation sets the "upstream_unit_price_cache_creation" field if the given value is not nil.
+func (_c *UsageLogCreate) SetNillableUpstreamUnitPriceCacheCreation(v *float64) *UsageLogCreate {
+	if v != nil {
+		_c.SetUpstreamUnitPriceCacheCreation(*v)
+	}
+	return _c
+}
+
+// SetUpstreamUnitPriceCacheRead sets the "upstream_unit_price_cache_read" field.
+func (_c *UsageLogCreate) SetUpstreamUnitPriceCacheRead(v float64) *UsageLogCreate {
+	_c.mutation.SetUpstreamUnitPriceCacheRead(v)
+	return _c
+}
+
+// SetNillableUpstreamUnitPriceCacheRead sets the "upstream_unit_price_cache_read" field if the given value is not nil.
+func (_c *UsageLogCreate) SetNillableUpstreamUnitPriceCacheRead(v *float64) *UsageLogCreate {
+	if v != nil {
+		_c.SetUpstreamUnitPriceCacheRead(*v)
+	}
+	return _c
+}
+
+// SetUpstreamTotalCost sets the "upstream_total_cost" field.
+func (_c *UsageLogCreate) SetUpstreamTotalCost(v float64) *UsageLogCreate {
+	_c.mutation.SetUpstreamTotalCost(v)
+	return _c
+}
+
+// SetNillableUpstreamTotalCost sets the "upstream_total_cost" field if the given value is not nil.
+func (_c *UsageLogCreate) SetNillableUpstreamTotalCost(v *float64) *UsageLogCreate {
+	if v != nil {
+		_c.SetUpstreamTotalCost(*v)
+	}
+	return _c
+}
+
+// SetProvider sets the "provider" field.
+func (_c *UsageLogCreate) SetProvider(v string) *UsageLogCreate {
+	_c.mutation.SetProvider(v)
+	return _c
+}
+
+// SetNillableProvider sets the "provider" field if the given value is not nil.
+func (_c *UsageLogCreate) SetNillableProvider(v *string) *UsageLogCreate {
+	if v != nil {
+		_c.SetProvider(*v)
+	}
+	return _c
+}
+
+// SetPricingSource sets the "pricing_source" field.
+func (_c *UsageLogCreate) SetPricingSource(v string) *UsageLogCreate {
+	_c.mutation.SetPricingSource(v)
+	return _c
+}
+
+// SetNillablePricingSource sets the "pricing_source" field if the given value is not nil.
+func (_c *UsageLogCreate) SetNillablePricingSource(v *string) *UsageLogCreate {
+	if v != nil {
+		_c.SetPricingSource(*v)
+	}
+	return _c
+}
+
+// SetAsyncTaskID sets the "async_task_id" field.
+func (_c *UsageLogCreate) SetAsyncTaskID(v string) *UsageLogCreate {
+	_c.mutation.SetAsyncTaskID(v)
+	return _c
+}
+
+// SetNillableAsyncTaskID sets the "async_task_id" field if the given value is not nil.
+func (_c *UsageLogCreate) SetNillableAsyncTaskID(v *string) *UsageLogCreate {
+	if v != nil {
+		_c.SetAsyncTaskID(*v)
+	}
+	return _c
+}
+
+// SetCostFinalizedAt sets the "cost_finalized_at" field.
+func (_c *UsageLogCreate) SetCostFinalizedAt(v time.Time) *UsageLogCreate {
+	_c.mutation.SetCostFinalizedAt(v)
+	return _c
+}
+
+// SetNillableCostFinalizedAt sets the "cost_finalized_at" field if the given value is not nil.
+func (_c *UsageLogCreate) SetNillableCostFinalizedAt(v *time.Time) *UsageLogCreate {
+	if v != nil {
+		_c.SetCostFinalizedAt(*v)
+	}
+	return _c
+}
+
 // SetBillingType sets the "billing_type" field.
 func (_c *UsageLogCreate) SetBillingType(v int8) *UsageLogCreate {
 	_c.mutation.SetBillingType(v)
@@ -730,6 +856,21 @@ func (_c *UsageLogCreate) check() error {
 	if _, ok := _c.mutation.RateMultiplier(); !ok {
 		return &ValidationError{Name: "rate_multiplier", err: errors.New(`ent: missing required field "UsageLog.rate_multiplier"`)}
 	}
+	if v, ok := _c.mutation.Provider(); ok {
+		if err := usagelog.ProviderValidator(v); err != nil {
+			return &ValidationError{Name: "provider", err: fmt.Errorf(`ent: validator failed for field "UsageLog.provider": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.PricingSource(); ok {
+		if err := usagelog.PricingSourceValidator(v); err != nil {
+			return &ValidationError{Name: "pricing_source", err: fmt.Errorf(`ent: validator failed for field "UsageLog.pricing_source": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.AsyncTaskID(); ok {
+		if err := usagelog.AsyncTaskIDValidator(v); err != nil {
+			return &ValidationError{Name: "async_task_id", err: fmt.Errorf(`ent: validator failed for field "UsageLog.async_task_id": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.BillingType(); !ok {
 		return &ValidationError{Name: "billing_type", err: errors.New(`ent: missing required field "UsageLog.billing_type"`)}
 	}
@@ -883,6 +1024,42 @@ func (_c *UsageLogCreate) createSpec() (*UsageLog, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.AccountRateMultiplier(); ok {
 		_spec.SetField(usagelog.FieldAccountRateMultiplier, field.TypeFloat64, value)
 		_node.AccountRateMultiplier = &value
+	}
+	if value, ok := _c.mutation.UpstreamUnitPriceInput(); ok {
+		_spec.SetField(usagelog.FieldUpstreamUnitPriceInput, field.TypeFloat64, value)
+		_node.UpstreamUnitPriceInput = &value
+	}
+	if value, ok := _c.mutation.UpstreamUnitPriceOutput(); ok {
+		_spec.SetField(usagelog.FieldUpstreamUnitPriceOutput, field.TypeFloat64, value)
+		_node.UpstreamUnitPriceOutput = &value
+	}
+	if value, ok := _c.mutation.UpstreamUnitPriceCacheCreation(); ok {
+		_spec.SetField(usagelog.FieldUpstreamUnitPriceCacheCreation, field.TypeFloat64, value)
+		_node.UpstreamUnitPriceCacheCreation = &value
+	}
+	if value, ok := _c.mutation.UpstreamUnitPriceCacheRead(); ok {
+		_spec.SetField(usagelog.FieldUpstreamUnitPriceCacheRead, field.TypeFloat64, value)
+		_node.UpstreamUnitPriceCacheRead = &value
+	}
+	if value, ok := _c.mutation.UpstreamTotalCost(); ok {
+		_spec.SetField(usagelog.FieldUpstreamTotalCost, field.TypeFloat64, value)
+		_node.UpstreamTotalCost = &value
+	}
+	if value, ok := _c.mutation.Provider(); ok {
+		_spec.SetField(usagelog.FieldProvider, field.TypeString, value)
+		_node.Provider = &value
+	}
+	if value, ok := _c.mutation.PricingSource(); ok {
+		_spec.SetField(usagelog.FieldPricingSource, field.TypeString, value)
+		_node.PricingSource = &value
+	}
+	if value, ok := _c.mutation.AsyncTaskID(); ok {
+		_spec.SetField(usagelog.FieldAsyncTaskID, field.TypeString, value)
+		_node.AsyncTaskID = &value
+	}
+	if value, ok := _c.mutation.CostFinalizedAt(); ok {
+		_spec.SetField(usagelog.FieldCostFinalizedAt, field.TypeTime, value)
+		_node.CostFinalizedAt = &value
 	}
 	if value, ok := _c.mutation.BillingType(); ok {
 		_spec.SetField(usagelog.FieldBillingType, field.TypeInt8, value)
@@ -1526,6 +1703,198 @@ func (u *UsageLogUpsert) AddAccountRateMultiplier(v float64) *UsageLogUpsert {
 // ClearAccountRateMultiplier clears the value of the "account_rate_multiplier" field.
 func (u *UsageLogUpsert) ClearAccountRateMultiplier() *UsageLogUpsert {
 	u.SetNull(usagelog.FieldAccountRateMultiplier)
+	return u
+}
+
+// SetUpstreamUnitPriceInput sets the "upstream_unit_price_input" field.
+func (u *UsageLogUpsert) SetUpstreamUnitPriceInput(v float64) *UsageLogUpsert {
+	u.Set(usagelog.FieldUpstreamUnitPriceInput, v)
+	return u
+}
+
+// UpdateUpstreamUnitPriceInput sets the "upstream_unit_price_input" field to the value that was provided on create.
+func (u *UsageLogUpsert) UpdateUpstreamUnitPriceInput() *UsageLogUpsert {
+	u.SetExcluded(usagelog.FieldUpstreamUnitPriceInput)
+	return u
+}
+
+// AddUpstreamUnitPriceInput adds v to the "upstream_unit_price_input" field.
+func (u *UsageLogUpsert) AddUpstreamUnitPriceInput(v float64) *UsageLogUpsert {
+	u.Add(usagelog.FieldUpstreamUnitPriceInput, v)
+	return u
+}
+
+// ClearUpstreamUnitPriceInput clears the value of the "upstream_unit_price_input" field.
+func (u *UsageLogUpsert) ClearUpstreamUnitPriceInput() *UsageLogUpsert {
+	u.SetNull(usagelog.FieldUpstreamUnitPriceInput)
+	return u
+}
+
+// SetUpstreamUnitPriceOutput sets the "upstream_unit_price_output" field.
+func (u *UsageLogUpsert) SetUpstreamUnitPriceOutput(v float64) *UsageLogUpsert {
+	u.Set(usagelog.FieldUpstreamUnitPriceOutput, v)
+	return u
+}
+
+// UpdateUpstreamUnitPriceOutput sets the "upstream_unit_price_output" field to the value that was provided on create.
+func (u *UsageLogUpsert) UpdateUpstreamUnitPriceOutput() *UsageLogUpsert {
+	u.SetExcluded(usagelog.FieldUpstreamUnitPriceOutput)
+	return u
+}
+
+// AddUpstreamUnitPriceOutput adds v to the "upstream_unit_price_output" field.
+func (u *UsageLogUpsert) AddUpstreamUnitPriceOutput(v float64) *UsageLogUpsert {
+	u.Add(usagelog.FieldUpstreamUnitPriceOutput, v)
+	return u
+}
+
+// ClearUpstreamUnitPriceOutput clears the value of the "upstream_unit_price_output" field.
+func (u *UsageLogUpsert) ClearUpstreamUnitPriceOutput() *UsageLogUpsert {
+	u.SetNull(usagelog.FieldUpstreamUnitPriceOutput)
+	return u
+}
+
+// SetUpstreamUnitPriceCacheCreation sets the "upstream_unit_price_cache_creation" field.
+func (u *UsageLogUpsert) SetUpstreamUnitPriceCacheCreation(v float64) *UsageLogUpsert {
+	u.Set(usagelog.FieldUpstreamUnitPriceCacheCreation, v)
+	return u
+}
+
+// UpdateUpstreamUnitPriceCacheCreation sets the "upstream_unit_price_cache_creation" field to the value that was provided on create.
+func (u *UsageLogUpsert) UpdateUpstreamUnitPriceCacheCreation() *UsageLogUpsert {
+	u.SetExcluded(usagelog.FieldUpstreamUnitPriceCacheCreation)
+	return u
+}
+
+// AddUpstreamUnitPriceCacheCreation adds v to the "upstream_unit_price_cache_creation" field.
+func (u *UsageLogUpsert) AddUpstreamUnitPriceCacheCreation(v float64) *UsageLogUpsert {
+	u.Add(usagelog.FieldUpstreamUnitPriceCacheCreation, v)
+	return u
+}
+
+// ClearUpstreamUnitPriceCacheCreation clears the value of the "upstream_unit_price_cache_creation" field.
+func (u *UsageLogUpsert) ClearUpstreamUnitPriceCacheCreation() *UsageLogUpsert {
+	u.SetNull(usagelog.FieldUpstreamUnitPriceCacheCreation)
+	return u
+}
+
+// SetUpstreamUnitPriceCacheRead sets the "upstream_unit_price_cache_read" field.
+func (u *UsageLogUpsert) SetUpstreamUnitPriceCacheRead(v float64) *UsageLogUpsert {
+	u.Set(usagelog.FieldUpstreamUnitPriceCacheRead, v)
+	return u
+}
+
+// UpdateUpstreamUnitPriceCacheRead sets the "upstream_unit_price_cache_read" field to the value that was provided on create.
+func (u *UsageLogUpsert) UpdateUpstreamUnitPriceCacheRead() *UsageLogUpsert {
+	u.SetExcluded(usagelog.FieldUpstreamUnitPriceCacheRead)
+	return u
+}
+
+// AddUpstreamUnitPriceCacheRead adds v to the "upstream_unit_price_cache_read" field.
+func (u *UsageLogUpsert) AddUpstreamUnitPriceCacheRead(v float64) *UsageLogUpsert {
+	u.Add(usagelog.FieldUpstreamUnitPriceCacheRead, v)
+	return u
+}
+
+// ClearUpstreamUnitPriceCacheRead clears the value of the "upstream_unit_price_cache_read" field.
+func (u *UsageLogUpsert) ClearUpstreamUnitPriceCacheRead() *UsageLogUpsert {
+	u.SetNull(usagelog.FieldUpstreamUnitPriceCacheRead)
+	return u
+}
+
+// SetUpstreamTotalCost sets the "upstream_total_cost" field.
+func (u *UsageLogUpsert) SetUpstreamTotalCost(v float64) *UsageLogUpsert {
+	u.Set(usagelog.FieldUpstreamTotalCost, v)
+	return u
+}
+
+// UpdateUpstreamTotalCost sets the "upstream_total_cost" field to the value that was provided on create.
+func (u *UsageLogUpsert) UpdateUpstreamTotalCost() *UsageLogUpsert {
+	u.SetExcluded(usagelog.FieldUpstreamTotalCost)
+	return u
+}
+
+// AddUpstreamTotalCost adds v to the "upstream_total_cost" field.
+func (u *UsageLogUpsert) AddUpstreamTotalCost(v float64) *UsageLogUpsert {
+	u.Add(usagelog.FieldUpstreamTotalCost, v)
+	return u
+}
+
+// ClearUpstreamTotalCost clears the value of the "upstream_total_cost" field.
+func (u *UsageLogUpsert) ClearUpstreamTotalCost() *UsageLogUpsert {
+	u.SetNull(usagelog.FieldUpstreamTotalCost)
+	return u
+}
+
+// SetProvider sets the "provider" field.
+func (u *UsageLogUpsert) SetProvider(v string) *UsageLogUpsert {
+	u.Set(usagelog.FieldProvider, v)
+	return u
+}
+
+// UpdateProvider sets the "provider" field to the value that was provided on create.
+func (u *UsageLogUpsert) UpdateProvider() *UsageLogUpsert {
+	u.SetExcluded(usagelog.FieldProvider)
+	return u
+}
+
+// ClearProvider clears the value of the "provider" field.
+func (u *UsageLogUpsert) ClearProvider() *UsageLogUpsert {
+	u.SetNull(usagelog.FieldProvider)
+	return u
+}
+
+// SetPricingSource sets the "pricing_source" field.
+func (u *UsageLogUpsert) SetPricingSource(v string) *UsageLogUpsert {
+	u.Set(usagelog.FieldPricingSource, v)
+	return u
+}
+
+// UpdatePricingSource sets the "pricing_source" field to the value that was provided on create.
+func (u *UsageLogUpsert) UpdatePricingSource() *UsageLogUpsert {
+	u.SetExcluded(usagelog.FieldPricingSource)
+	return u
+}
+
+// ClearPricingSource clears the value of the "pricing_source" field.
+func (u *UsageLogUpsert) ClearPricingSource() *UsageLogUpsert {
+	u.SetNull(usagelog.FieldPricingSource)
+	return u
+}
+
+// SetAsyncTaskID sets the "async_task_id" field.
+func (u *UsageLogUpsert) SetAsyncTaskID(v string) *UsageLogUpsert {
+	u.Set(usagelog.FieldAsyncTaskID, v)
+	return u
+}
+
+// UpdateAsyncTaskID sets the "async_task_id" field to the value that was provided on create.
+func (u *UsageLogUpsert) UpdateAsyncTaskID() *UsageLogUpsert {
+	u.SetExcluded(usagelog.FieldAsyncTaskID)
+	return u
+}
+
+// ClearAsyncTaskID clears the value of the "async_task_id" field.
+func (u *UsageLogUpsert) ClearAsyncTaskID() *UsageLogUpsert {
+	u.SetNull(usagelog.FieldAsyncTaskID)
+	return u
+}
+
+// SetCostFinalizedAt sets the "cost_finalized_at" field.
+func (u *UsageLogUpsert) SetCostFinalizedAt(v time.Time) *UsageLogUpsert {
+	u.Set(usagelog.FieldCostFinalizedAt, v)
+	return u
+}
+
+// UpdateCostFinalizedAt sets the "cost_finalized_at" field to the value that was provided on create.
+func (u *UsageLogUpsert) UpdateCostFinalizedAt() *UsageLogUpsert {
+	u.SetExcluded(usagelog.FieldCostFinalizedAt)
+	return u
+}
+
+// ClearCostFinalizedAt clears the value of the "cost_finalized_at" field.
+func (u *UsageLogUpsert) ClearCostFinalizedAt() *UsageLogUpsert {
+	u.SetNull(usagelog.FieldCostFinalizedAt)
 	return u
 }
 
@@ -2279,6 +2648,230 @@ func (u *UsageLogUpsertOne) UpdateAccountRateMultiplier() *UsageLogUpsertOne {
 func (u *UsageLogUpsertOne) ClearAccountRateMultiplier() *UsageLogUpsertOne {
 	return u.Update(func(s *UsageLogUpsert) {
 		s.ClearAccountRateMultiplier()
+	})
+}
+
+// SetUpstreamUnitPriceInput sets the "upstream_unit_price_input" field.
+func (u *UsageLogUpsertOne) SetUpstreamUnitPriceInput(v float64) *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetUpstreamUnitPriceInput(v)
+	})
+}
+
+// AddUpstreamUnitPriceInput adds v to the "upstream_unit_price_input" field.
+func (u *UsageLogUpsertOne) AddUpstreamUnitPriceInput(v float64) *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.AddUpstreamUnitPriceInput(v)
+	})
+}
+
+// UpdateUpstreamUnitPriceInput sets the "upstream_unit_price_input" field to the value that was provided on create.
+func (u *UsageLogUpsertOne) UpdateUpstreamUnitPriceInput() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateUpstreamUnitPriceInput()
+	})
+}
+
+// ClearUpstreamUnitPriceInput clears the value of the "upstream_unit_price_input" field.
+func (u *UsageLogUpsertOne) ClearUpstreamUnitPriceInput() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearUpstreamUnitPriceInput()
+	})
+}
+
+// SetUpstreamUnitPriceOutput sets the "upstream_unit_price_output" field.
+func (u *UsageLogUpsertOne) SetUpstreamUnitPriceOutput(v float64) *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetUpstreamUnitPriceOutput(v)
+	})
+}
+
+// AddUpstreamUnitPriceOutput adds v to the "upstream_unit_price_output" field.
+func (u *UsageLogUpsertOne) AddUpstreamUnitPriceOutput(v float64) *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.AddUpstreamUnitPriceOutput(v)
+	})
+}
+
+// UpdateUpstreamUnitPriceOutput sets the "upstream_unit_price_output" field to the value that was provided on create.
+func (u *UsageLogUpsertOne) UpdateUpstreamUnitPriceOutput() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateUpstreamUnitPriceOutput()
+	})
+}
+
+// ClearUpstreamUnitPriceOutput clears the value of the "upstream_unit_price_output" field.
+func (u *UsageLogUpsertOne) ClearUpstreamUnitPriceOutput() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearUpstreamUnitPriceOutput()
+	})
+}
+
+// SetUpstreamUnitPriceCacheCreation sets the "upstream_unit_price_cache_creation" field.
+func (u *UsageLogUpsertOne) SetUpstreamUnitPriceCacheCreation(v float64) *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetUpstreamUnitPriceCacheCreation(v)
+	})
+}
+
+// AddUpstreamUnitPriceCacheCreation adds v to the "upstream_unit_price_cache_creation" field.
+func (u *UsageLogUpsertOne) AddUpstreamUnitPriceCacheCreation(v float64) *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.AddUpstreamUnitPriceCacheCreation(v)
+	})
+}
+
+// UpdateUpstreamUnitPriceCacheCreation sets the "upstream_unit_price_cache_creation" field to the value that was provided on create.
+func (u *UsageLogUpsertOne) UpdateUpstreamUnitPriceCacheCreation() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateUpstreamUnitPriceCacheCreation()
+	})
+}
+
+// ClearUpstreamUnitPriceCacheCreation clears the value of the "upstream_unit_price_cache_creation" field.
+func (u *UsageLogUpsertOne) ClearUpstreamUnitPriceCacheCreation() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearUpstreamUnitPriceCacheCreation()
+	})
+}
+
+// SetUpstreamUnitPriceCacheRead sets the "upstream_unit_price_cache_read" field.
+func (u *UsageLogUpsertOne) SetUpstreamUnitPriceCacheRead(v float64) *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetUpstreamUnitPriceCacheRead(v)
+	})
+}
+
+// AddUpstreamUnitPriceCacheRead adds v to the "upstream_unit_price_cache_read" field.
+func (u *UsageLogUpsertOne) AddUpstreamUnitPriceCacheRead(v float64) *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.AddUpstreamUnitPriceCacheRead(v)
+	})
+}
+
+// UpdateUpstreamUnitPriceCacheRead sets the "upstream_unit_price_cache_read" field to the value that was provided on create.
+func (u *UsageLogUpsertOne) UpdateUpstreamUnitPriceCacheRead() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateUpstreamUnitPriceCacheRead()
+	})
+}
+
+// ClearUpstreamUnitPriceCacheRead clears the value of the "upstream_unit_price_cache_read" field.
+func (u *UsageLogUpsertOne) ClearUpstreamUnitPriceCacheRead() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearUpstreamUnitPriceCacheRead()
+	})
+}
+
+// SetUpstreamTotalCost sets the "upstream_total_cost" field.
+func (u *UsageLogUpsertOne) SetUpstreamTotalCost(v float64) *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetUpstreamTotalCost(v)
+	})
+}
+
+// AddUpstreamTotalCost adds v to the "upstream_total_cost" field.
+func (u *UsageLogUpsertOne) AddUpstreamTotalCost(v float64) *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.AddUpstreamTotalCost(v)
+	})
+}
+
+// UpdateUpstreamTotalCost sets the "upstream_total_cost" field to the value that was provided on create.
+func (u *UsageLogUpsertOne) UpdateUpstreamTotalCost() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateUpstreamTotalCost()
+	})
+}
+
+// ClearUpstreamTotalCost clears the value of the "upstream_total_cost" field.
+func (u *UsageLogUpsertOne) ClearUpstreamTotalCost() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearUpstreamTotalCost()
+	})
+}
+
+// SetProvider sets the "provider" field.
+func (u *UsageLogUpsertOne) SetProvider(v string) *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetProvider(v)
+	})
+}
+
+// UpdateProvider sets the "provider" field to the value that was provided on create.
+func (u *UsageLogUpsertOne) UpdateProvider() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateProvider()
+	})
+}
+
+// ClearProvider clears the value of the "provider" field.
+func (u *UsageLogUpsertOne) ClearProvider() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearProvider()
+	})
+}
+
+// SetPricingSource sets the "pricing_source" field.
+func (u *UsageLogUpsertOne) SetPricingSource(v string) *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetPricingSource(v)
+	})
+}
+
+// UpdatePricingSource sets the "pricing_source" field to the value that was provided on create.
+func (u *UsageLogUpsertOne) UpdatePricingSource() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdatePricingSource()
+	})
+}
+
+// ClearPricingSource clears the value of the "pricing_source" field.
+func (u *UsageLogUpsertOne) ClearPricingSource() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearPricingSource()
+	})
+}
+
+// SetAsyncTaskID sets the "async_task_id" field.
+func (u *UsageLogUpsertOne) SetAsyncTaskID(v string) *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetAsyncTaskID(v)
+	})
+}
+
+// UpdateAsyncTaskID sets the "async_task_id" field to the value that was provided on create.
+func (u *UsageLogUpsertOne) UpdateAsyncTaskID() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateAsyncTaskID()
+	})
+}
+
+// ClearAsyncTaskID clears the value of the "async_task_id" field.
+func (u *UsageLogUpsertOne) ClearAsyncTaskID() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearAsyncTaskID()
+	})
+}
+
+// SetCostFinalizedAt sets the "cost_finalized_at" field.
+func (u *UsageLogUpsertOne) SetCostFinalizedAt(v time.Time) *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetCostFinalizedAt(v)
+	})
+}
+
+// UpdateCostFinalizedAt sets the "cost_finalized_at" field to the value that was provided on create.
+func (u *UsageLogUpsertOne) UpdateCostFinalizedAt() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateCostFinalizedAt()
+	})
+}
+
+// ClearCostFinalizedAt clears the value of the "cost_finalized_at" field.
+func (u *UsageLogUpsertOne) ClearCostFinalizedAt() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearCostFinalizedAt()
 	})
 }
 
@@ -3225,6 +3818,230 @@ func (u *UsageLogUpsertBulk) UpdateAccountRateMultiplier() *UsageLogUpsertBulk {
 func (u *UsageLogUpsertBulk) ClearAccountRateMultiplier() *UsageLogUpsertBulk {
 	return u.Update(func(s *UsageLogUpsert) {
 		s.ClearAccountRateMultiplier()
+	})
+}
+
+// SetUpstreamUnitPriceInput sets the "upstream_unit_price_input" field.
+func (u *UsageLogUpsertBulk) SetUpstreamUnitPriceInput(v float64) *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetUpstreamUnitPriceInput(v)
+	})
+}
+
+// AddUpstreamUnitPriceInput adds v to the "upstream_unit_price_input" field.
+func (u *UsageLogUpsertBulk) AddUpstreamUnitPriceInput(v float64) *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.AddUpstreamUnitPriceInput(v)
+	})
+}
+
+// UpdateUpstreamUnitPriceInput sets the "upstream_unit_price_input" field to the value that was provided on create.
+func (u *UsageLogUpsertBulk) UpdateUpstreamUnitPriceInput() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateUpstreamUnitPriceInput()
+	})
+}
+
+// ClearUpstreamUnitPriceInput clears the value of the "upstream_unit_price_input" field.
+func (u *UsageLogUpsertBulk) ClearUpstreamUnitPriceInput() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearUpstreamUnitPriceInput()
+	})
+}
+
+// SetUpstreamUnitPriceOutput sets the "upstream_unit_price_output" field.
+func (u *UsageLogUpsertBulk) SetUpstreamUnitPriceOutput(v float64) *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetUpstreamUnitPriceOutput(v)
+	})
+}
+
+// AddUpstreamUnitPriceOutput adds v to the "upstream_unit_price_output" field.
+func (u *UsageLogUpsertBulk) AddUpstreamUnitPriceOutput(v float64) *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.AddUpstreamUnitPriceOutput(v)
+	})
+}
+
+// UpdateUpstreamUnitPriceOutput sets the "upstream_unit_price_output" field to the value that was provided on create.
+func (u *UsageLogUpsertBulk) UpdateUpstreamUnitPriceOutput() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateUpstreamUnitPriceOutput()
+	})
+}
+
+// ClearUpstreamUnitPriceOutput clears the value of the "upstream_unit_price_output" field.
+func (u *UsageLogUpsertBulk) ClearUpstreamUnitPriceOutput() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearUpstreamUnitPriceOutput()
+	})
+}
+
+// SetUpstreamUnitPriceCacheCreation sets the "upstream_unit_price_cache_creation" field.
+func (u *UsageLogUpsertBulk) SetUpstreamUnitPriceCacheCreation(v float64) *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetUpstreamUnitPriceCacheCreation(v)
+	})
+}
+
+// AddUpstreamUnitPriceCacheCreation adds v to the "upstream_unit_price_cache_creation" field.
+func (u *UsageLogUpsertBulk) AddUpstreamUnitPriceCacheCreation(v float64) *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.AddUpstreamUnitPriceCacheCreation(v)
+	})
+}
+
+// UpdateUpstreamUnitPriceCacheCreation sets the "upstream_unit_price_cache_creation" field to the value that was provided on create.
+func (u *UsageLogUpsertBulk) UpdateUpstreamUnitPriceCacheCreation() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateUpstreamUnitPriceCacheCreation()
+	})
+}
+
+// ClearUpstreamUnitPriceCacheCreation clears the value of the "upstream_unit_price_cache_creation" field.
+func (u *UsageLogUpsertBulk) ClearUpstreamUnitPriceCacheCreation() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearUpstreamUnitPriceCacheCreation()
+	})
+}
+
+// SetUpstreamUnitPriceCacheRead sets the "upstream_unit_price_cache_read" field.
+func (u *UsageLogUpsertBulk) SetUpstreamUnitPriceCacheRead(v float64) *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetUpstreamUnitPriceCacheRead(v)
+	})
+}
+
+// AddUpstreamUnitPriceCacheRead adds v to the "upstream_unit_price_cache_read" field.
+func (u *UsageLogUpsertBulk) AddUpstreamUnitPriceCacheRead(v float64) *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.AddUpstreamUnitPriceCacheRead(v)
+	})
+}
+
+// UpdateUpstreamUnitPriceCacheRead sets the "upstream_unit_price_cache_read" field to the value that was provided on create.
+func (u *UsageLogUpsertBulk) UpdateUpstreamUnitPriceCacheRead() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateUpstreamUnitPriceCacheRead()
+	})
+}
+
+// ClearUpstreamUnitPriceCacheRead clears the value of the "upstream_unit_price_cache_read" field.
+func (u *UsageLogUpsertBulk) ClearUpstreamUnitPriceCacheRead() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearUpstreamUnitPriceCacheRead()
+	})
+}
+
+// SetUpstreamTotalCost sets the "upstream_total_cost" field.
+func (u *UsageLogUpsertBulk) SetUpstreamTotalCost(v float64) *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetUpstreamTotalCost(v)
+	})
+}
+
+// AddUpstreamTotalCost adds v to the "upstream_total_cost" field.
+func (u *UsageLogUpsertBulk) AddUpstreamTotalCost(v float64) *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.AddUpstreamTotalCost(v)
+	})
+}
+
+// UpdateUpstreamTotalCost sets the "upstream_total_cost" field to the value that was provided on create.
+func (u *UsageLogUpsertBulk) UpdateUpstreamTotalCost() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateUpstreamTotalCost()
+	})
+}
+
+// ClearUpstreamTotalCost clears the value of the "upstream_total_cost" field.
+func (u *UsageLogUpsertBulk) ClearUpstreamTotalCost() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearUpstreamTotalCost()
+	})
+}
+
+// SetProvider sets the "provider" field.
+func (u *UsageLogUpsertBulk) SetProvider(v string) *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetProvider(v)
+	})
+}
+
+// UpdateProvider sets the "provider" field to the value that was provided on create.
+func (u *UsageLogUpsertBulk) UpdateProvider() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateProvider()
+	})
+}
+
+// ClearProvider clears the value of the "provider" field.
+func (u *UsageLogUpsertBulk) ClearProvider() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearProvider()
+	})
+}
+
+// SetPricingSource sets the "pricing_source" field.
+func (u *UsageLogUpsertBulk) SetPricingSource(v string) *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetPricingSource(v)
+	})
+}
+
+// UpdatePricingSource sets the "pricing_source" field to the value that was provided on create.
+func (u *UsageLogUpsertBulk) UpdatePricingSource() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdatePricingSource()
+	})
+}
+
+// ClearPricingSource clears the value of the "pricing_source" field.
+func (u *UsageLogUpsertBulk) ClearPricingSource() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearPricingSource()
+	})
+}
+
+// SetAsyncTaskID sets the "async_task_id" field.
+func (u *UsageLogUpsertBulk) SetAsyncTaskID(v string) *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetAsyncTaskID(v)
+	})
+}
+
+// UpdateAsyncTaskID sets the "async_task_id" field to the value that was provided on create.
+func (u *UsageLogUpsertBulk) UpdateAsyncTaskID() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateAsyncTaskID()
+	})
+}
+
+// ClearAsyncTaskID clears the value of the "async_task_id" field.
+func (u *UsageLogUpsertBulk) ClearAsyncTaskID() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearAsyncTaskID()
+	})
+}
+
+// SetCostFinalizedAt sets the "cost_finalized_at" field.
+func (u *UsageLogUpsertBulk) SetCostFinalizedAt(v time.Time) *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetCostFinalizedAt(v)
+	})
+}
+
+// UpdateCostFinalizedAt sets the "cost_finalized_at" field to the value that was provided on create.
+func (u *UsageLogUpsertBulk) UpdateCostFinalizedAt() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateCostFinalizedAt()
+	})
+}
+
+// ClearCostFinalizedAt clears the value of the "cost_finalized_at" field.
+func (u *UsageLogUpsertBulk) ClearCostFinalizedAt() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearCostFinalizedAt()
 	})
 }
 

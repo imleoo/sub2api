@@ -68,6 +68,24 @@ const (
 	FieldRateMultiplier = "rate_multiplier"
 	// FieldAccountRateMultiplier holds the string denoting the account_rate_multiplier field in the database.
 	FieldAccountRateMultiplier = "account_rate_multiplier"
+	// FieldUpstreamUnitPriceInput holds the string denoting the upstream_unit_price_input field in the database.
+	FieldUpstreamUnitPriceInput = "upstream_unit_price_input"
+	// FieldUpstreamUnitPriceOutput holds the string denoting the upstream_unit_price_output field in the database.
+	FieldUpstreamUnitPriceOutput = "upstream_unit_price_output"
+	// FieldUpstreamUnitPriceCacheCreation holds the string denoting the upstream_unit_price_cache_creation field in the database.
+	FieldUpstreamUnitPriceCacheCreation = "upstream_unit_price_cache_creation"
+	// FieldUpstreamUnitPriceCacheRead holds the string denoting the upstream_unit_price_cache_read field in the database.
+	FieldUpstreamUnitPriceCacheRead = "upstream_unit_price_cache_read"
+	// FieldUpstreamTotalCost holds the string denoting the upstream_total_cost field in the database.
+	FieldUpstreamTotalCost = "upstream_total_cost"
+	// FieldProvider holds the string denoting the provider field in the database.
+	FieldProvider = "provider"
+	// FieldPricingSource holds the string denoting the pricing_source field in the database.
+	FieldPricingSource = "pricing_source"
+	// FieldAsyncTaskID holds the string denoting the async_task_id field in the database.
+	FieldAsyncTaskID = "async_task_id"
+	// FieldCostFinalizedAt holds the string denoting the cost_finalized_at field in the database.
+	FieldCostFinalizedAt = "cost_finalized_at"
 	// FieldBillingType holds the string denoting the billing_type field in the database.
 	FieldBillingType = "billing_type"
 	// FieldStream holds the string denoting the stream field in the database.
@@ -167,6 +185,15 @@ var Columns = []string{
 	FieldActualCost,
 	FieldRateMultiplier,
 	FieldAccountRateMultiplier,
+	FieldUpstreamUnitPriceInput,
+	FieldUpstreamUnitPriceOutput,
+	FieldUpstreamUnitPriceCacheCreation,
+	FieldUpstreamUnitPriceCacheRead,
+	FieldUpstreamTotalCost,
+	FieldProvider,
+	FieldPricingSource,
+	FieldAsyncTaskID,
+	FieldCostFinalizedAt,
 	FieldBillingType,
 	FieldStream,
 	FieldDurationMs,
@@ -230,6 +257,12 @@ var (
 	DefaultActualCost float64
 	// DefaultRateMultiplier holds the default value on creation for the "rate_multiplier" field.
 	DefaultRateMultiplier float64
+	// ProviderValidator is a validator for the "provider" field. It is called by the builders before save.
+	ProviderValidator func(string) error
+	// PricingSourceValidator is a validator for the "pricing_source" field. It is called by the builders before save.
+	PricingSourceValidator func(string) error
+	// AsyncTaskIDValidator is a validator for the "async_task_id" field. It is called by the builders before save.
+	AsyncTaskIDValidator func(string) error
 	// DefaultBillingType holds the default value on creation for the "billing_type" field.
 	DefaultBillingType int8
 	// DefaultStream holds the default value on creation for the "stream" field.
@@ -389,6 +422,51 @@ func ByRateMultiplier(opts ...sql.OrderTermOption) OrderOption {
 // ByAccountRateMultiplier orders the results by the account_rate_multiplier field.
 func ByAccountRateMultiplier(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAccountRateMultiplier, opts...).ToFunc()
+}
+
+// ByUpstreamUnitPriceInput orders the results by the upstream_unit_price_input field.
+func ByUpstreamUnitPriceInput(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUpstreamUnitPriceInput, opts...).ToFunc()
+}
+
+// ByUpstreamUnitPriceOutput orders the results by the upstream_unit_price_output field.
+func ByUpstreamUnitPriceOutput(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUpstreamUnitPriceOutput, opts...).ToFunc()
+}
+
+// ByUpstreamUnitPriceCacheCreation orders the results by the upstream_unit_price_cache_creation field.
+func ByUpstreamUnitPriceCacheCreation(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUpstreamUnitPriceCacheCreation, opts...).ToFunc()
+}
+
+// ByUpstreamUnitPriceCacheRead orders the results by the upstream_unit_price_cache_read field.
+func ByUpstreamUnitPriceCacheRead(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUpstreamUnitPriceCacheRead, opts...).ToFunc()
+}
+
+// ByUpstreamTotalCost orders the results by the upstream_total_cost field.
+func ByUpstreamTotalCost(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUpstreamTotalCost, opts...).ToFunc()
+}
+
+// ByProvider orders the results by the provider field.
+func ByProvider(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProvider, opts...).ToFunc()
+}
+
+// ByPricingSource orders the results by the pricing_source field.
+func ByPricingSource(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPricingSource, opts...).ToFunc()
+}
+
+// ByAsyncTaskID orders the results by the async_task_id field.
+func ByAsyncTaskID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAsyncTaskID, opts...).ToFunc()
+}
+
+// ByCostFinalizedAt orders the results by the cost_finalized_at field.
+func ByCostFinalizedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCostFinalizedAt, opts...).ToFunc()
 }
 
 // ByBillingType orders the results by the billing_type field.

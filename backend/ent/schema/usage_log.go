@@ -107,6 +107,60 @@ func (UsageLog) Fields() []ent.Field {
 			Nillable().
 			SchemaType(map[string]string{dialect.Postgres: "decimal(10,4)"}),
 
+		// 上游真实成本快照（Phase 0 P0-2 引入）
+		// 与 pricing_source 严格同步：要么同时 NULL，要么同时非空。
+		// NULL = 无上游成本快照（provider_pricing 未命中 / masking 短路 / 异步任务待回填），统计页须显式标注。
+		// 不允许混入 LiteLLM / account_stats_pricing 估算。详见 docs/upstream-cost-snapshot.md §3.1。
+		field.Float("upstream_unit_price_input").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{dialect.Postgres: "decimal(20,10)"}),
+		field.Float("upstream_unit_price_output").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{dialect.Postgres: "decimal(20,10)"}),
+		field.Float("upstream_unit_price_cache_creation").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{dialect.Postgres: "decimal(20,10)"}),
+		field.Float("upstream_unit_price_cache_read").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{dialect.Postgres: "decimal(20,10)"}),
+		field.Float("upstream_total_cost").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{dialect.Postgres: "decimal(20,10)"}).
+			Comment("上游真实成本快照；NULL 表示无上游单价"),
+
+		// Provider 规范化键快照（Phase 0 P0-2 引入）
+		// 规范化规则见 docs/glossary.md §1.3 normalize_provider 别名表
+		field.String("provider").
+			MaxLen(50).
+			Optional().
+			Nillable().
+			Comment("规范化的 provider_key，如 anthropic/openai/deepseek/siliconflow"),
+
+		// 计价来源标签（Phase 0 P0-2 引入）
+		// 与 upstream_total_cost 严格同步：provider_table（命中 provider_pricing）或 NULL
+		// 预留 upstream_billing（未来接上游账单 API）；不允许写入 litellm/fallback 等估算来源
+		field.String("pricing_source").
+			MaxLen(20).
+			Optional().
+			Nillable(),
+
+		// 异步任务计费回填（Phase 0 P0-7 引入，与 fork 12 lingjing_poll_runner 对齐）
+		// 同步请求 NULL；lingjing 等异步任务记录 gen_task_id
+		field.String("async_task_id").
+			MaxLen(64).
+			Optional().
+			Nillable(),
+		// 成本最终确定时刻；同步=request_end，异步=poll_runner 触发计费时刻
+		field.Time("cost_finalized_at").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{dialect.Postgres: "timestamptz"}),
+
 		// 其他字段
 		field.Int8("billing_type").
 			Default(0),

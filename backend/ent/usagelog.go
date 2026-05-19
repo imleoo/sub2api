@@ -76,6 +76,24 @@ type UsageLog struct {
 	RateMultiplier float64 `json:"rate_multiplier,omitempty"`
 	// AccountRateMultiplier holds the value of the "account_rate_multiplier" field.
 	AccountRateMultiplier *float64 `json:"account_rate_multiplier,omitempty"`
+	// UpstreamUnitPriceInput holds the value of the "upstream_unit_price_input" field.
+	UpstreamUnitPriceInput *float64 `json:"upstream_unit_price_input,omitempty"`
+	// UpstreamUnitPriceOutput holds the value of the "upstream_unit_price_output" field.
+	UpstreamUnitPriceOutput *float64 `json:"upstream_unit_price_output,omitempty"`
+	// UpstreamUnitPriceCacheCreation holds the value of the "upstream_unit_price_cache_creation" field.
+	UpstreamUnitPriceCacheCreation *float64 `json:"upstream_unit_price_cache_creation,omitempty"`
+	// UpstreamUnitPriceCacheRead holds the value of the "upstream_unit_price_cache_read" field.
+	UpstreamUnitPriceCacheRead *float64 `json:"upstream_unit_price_cache_read,omitempty"`
+	// 上游真实成本快照；NULL 表示无上游单价
+	UpstreamTotalCost *float64 `json:"upstream_total_cost,omitempty"`
+	// 规范化的 provider_key，如 anthropic/openai/deepseek/siliconflow
+	Provider *string `json:"provider,omitempty"`
+	// PricingSource holds the value of the "pricing_source" field.
+	PricingSource *string `json:"pricing_source,omitempty"`
+	// AsyncTaskID holds the value of the "async_task_id" field.
+	AsyncTaskID *string `json:"async_task_id,omitempty"`
+	// CostFinalizedAt holds the value of the "cost_finalized_at" field.
+	CostFinalizedAt *time.Time `json:"cost_finalized_at,omitempty"`
 	// BillingType holds the value of the "billing_type" field.
 	BillingType int8 `json:"billing_type,omitempty"`
 	// Stream holds the value of the "stream" field.
@@ -181,13 +199,13 @@ func (*UsageLog) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case usagelog.FieldStream, usagelog.FieldCacheTTLOverridden:
 			values[i] = new(sql.NullBool)
-		case usagelog.FieldInputCost, usagelog.FieldOutputCost, usagelog.FieldCacheCreationCost, usagelog.FieldCacheReadCost, usagelog.FieldTotalCost, usagelog.FieldActualCost, usagelog.FieldRateMultiplier, usagelog.FieldAccountRateMultiplier:
+		case usagelog.FieldInputCost, usagelog.FieldOutputCost, usagelog.FieldCacheCreationCost, usagelog.FieldCacheReadCost, usagelog.FieldTotalCost, usagelog.FieldActualCost, usagelog.FieldRateMultiplier, usagelog.FieldAccountRateMultiplier, usagelog.FieldUpstreamUnitPriceInput, usagelog.FieldUpstreamUnitPriceOutput, usagelog.FieldUpstreamUnitPriceCacheCreation, usagelog.FieldUpstreamUnitPriceCacheRead, usagelog.FieldUpstreamTotalCost:
 			values[i] = new(sql.NullFloat64)
 		case usagelog.FieldID, usagelog.FieldUserID, usagelog.FieldAPIKeyID, usagelog.FieldAccountID, usagelog.FieldChannelID, usagelog.FieldGroupID, usagelog.FieldSubscriptionID, usagelog.FieldInputTokens, usagelog.FieldOutputTokens, usagelog.FieldCacheCreationTokens, usagelog.FieldCacheReadTokens, usagelog.FieldCacheCreation5mTokens, usagelog.FieldCacheCreation1hTokens, usagelog.FieldBillingType, usagelog.FieldDurationMs, usagelog.FieldFirstTokenMs, usagelog.FieldImageCount:
 			values[i] = new(sql.NullInt64)
-		case usagelog.FieldRequestID, usagelog.FieldModel, usagelog.FieldRequestedModel, usagelog.FieldUpstreamModel, usagelog.FieldModelMappingChain, usagelog.FieldBillingTier, usagelog.FieldBillingMode, usagelog.FieldUserAgent, usagelog.FieldIPAddress, usagelog.FieldImageSize:
+		case usagelog.FieldRequestID, usagelog.FieldModel, usagelog.FieldRequestedModel, usagelog.FieldUpstreamModel, usagelog.FieldModelMappingChain, usagelog.FieldBillingTier, usagelog.FieldBillingMode, usagelog.FieldProvider, usagelog.FieldPricingSource, usagelog.FieldAsyncTaskID, usagelog.FieldUserAgent, usagelog.FieldIPAddress, usagelog.FieldImageSize:
 			values[i] = new(sql.NullString)
-		case usagelog.FieldCreatedAt:
+		case usagelog.FieldCostFinalizedAt, usagelog.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -380,6 +398,69 @@ func (_m *UsageLog) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.AccountRateMultiplier = new(float64)
 				*_m.AccountRateMultiplier = value.Float64
+			}
+		case usagelog.FieldUpstreamUnitPriceInput:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field upstream_unit_price_input", values[i])
+			} else if value.Valid {
+				_m.UpstreamUnitPriceInput = new(float64)
+				*_m.UpstreamUnitPriceInput = value.Float64
+			}
+		case usagelog.FieldUpstreamUnitPriceOutput:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field upstream_unit_price_output", values[i])
+			} else if value.Valid {
+				_m.UpstreamUnitPriceOutput = new(float64)
+				*_m.UpstreamUnitPriceOutput = value.Float64
+			}
+		case usagelog.FieldUpstreamUnitPriceCacheCreation:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field upstream_unit_price_cache_creation", values[i])
+			} else if value.Valid {
+				_m.UpstreamUnitPriceCacheCreation = new(float64)
+				*_m.UpstreamUnitPriceCacheCreation = value.Float64
+			}
+		case usagelog.FieldUpstreamUnitPriceCacheRead:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field upstream_unit_price_cache_read", values[i])
+			} else if value.Valid {
+				_m.UpstreamUnitPriceCacheRead = new(float64)
+				*_m.UpstreamUnitPriceCacheRead = value.Float64
+			}
+		case usagelog.FieldUpstreamTotalCost:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field upstream_total_cost", values[i])
+			} else if value.Valid {
+				_m.UpstreamTotalCost = new(float64)
+				*_m.UpstreamTotalCost = value.Float64
+			}
+		case usagelog.FieldProvider:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field provider", values[i])
+			} else if value.Valid {
+				_m.Provider = new(string)
+				*_m.Provider = value.String
+			}
+		case usagelog.FieldPricingSource:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field pricing_source", values[i])
+			} else if value.Valid {
+				_m.PricingSource = new(string)
+				*_m.PricingSource = value.String
+			}
+		case usagelog.FieldAsyncTaskID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field async_task_id", values[i])
+			} else if value.Valid {
+				_m.AsyncTaskID = new(string)
+				*_m.AsyncTaskID = value.String
+			}
+		case usagelog.FieldCostFinalizedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field cost_finalized_at", values[i])
+			} else if value.Valid {
+				_m.CostFinalizedAt = new(time.Time)
+				*_m.CostFinalizedAt = value.Time
 			}
 		case usagelog.FieldBillingType:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -604,6 +685,51 @@ func (_m *UsageLog) String() string {
 	if v := _m.AccountRateMultiplier; v != nil {
 		builder.WriteString("account_rate_multiplier=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.UpstreamUnitPriceInput; v != nil {
+		builder.WriteString("upstream_unit_price_input=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.UpstreamUnitPriceOutput; v != nil {
+		builder.WriteString("upstream_unit_price_output=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.UpstreamUnitPriceCacheCreation; v != nil {
+		builder.WriteString("upstream_unit_price_cache_creation=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.UpstreamUnitPriceCacheRead; v != nil {
+		builder.WriteString("upstream_unit_price_cache_read=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.UpstreamTotalCost; v != nil {
+		builder.WriteString("upstream_total_cost=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.Provider; v != nil {
+		builder.WriteString("provider=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.PricingSource; v != nil {
+		builder.WriteString("pricing_source=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.AsyncTaskID; v != nil {
+		builder.WriteString("async_task_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.CostFinalizedAt; v != nil {
+		builder.WriteString("cost_finalized_at=")
+		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("billing_type=")

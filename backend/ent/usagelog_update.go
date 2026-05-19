@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -569,6 +570,221 @@ func (_u *UsageLogUpdate) ClearAccountRateMultiplier() *UsageLogUpdate {
 	return _u
 }
 
+// SetUpstreamUnitPriceInput sets the "upstream_unit_price_input" field.
+func (_u *UsageLogUpdate) SetUpstreamUnitPriceInput(v float64) *UsageLogUpdate {
+	_u.mutation.ResetUpstreamUnitPriceInput()
+	_u.mutation.SetUpstreamUnitPriceInput(v)
+	return _u
+}
+
+// SetNillableUpstreamUnitPriceInput sets the "upstream_unit_price_input" field if the given value is not nil.
+func (_u *UsageLogUpdate) SetNillableUpstreamUnitPriceInput(v *float64) *UsageLogUpdate {
+	if v != nil {
+		_u.SetUpstreamUnitPriceInput(*v)
+	}
+	return _u
+}
+
+// AddUpstreamUnitPriceInput adds value to the "upstream_unit_price_input" field.
+func (_u *UsageLogUpdate) AddUpstreamUnitPriceInput(v float64) *UsageLogUpdate {
+	_u.mutation.AddUpstreamUnitPriceInput(v)
+	return _u
+}
+
+// ClearUpstreamUnitPriceInput clears the value of the "upstream_unit_price_input" field.
+func (_u *UsageLogUpdate) ClearUpstreamUnitPriceInput() *UsageLogUpdate {
+	_u.mutation.ClearUpstreamUnitPriceInput()
+	return _u
+}
+
+// SetUpstreamUnitPriceOutput sets the "upstream_unit_price_output" field.
+func (_u *UsageLogUpdate) SetUpstreamUnitPriceOutput(v float64) *UsageLogUpdate {
+	_u.mutation.ResetUpstreamUnitPriceOutput()
+	_u.mutation.SetUpstreamUnitPriceOutput(v)
+	return _u
+}
+
+// SetNillableUpstreamUnitPriceOutput sets the "upstream_unit_price_output" field if the given value is not nil.
+func (_u *UsageLogUpdate) SetNillableUpstreamUnitPriceOutput(v *float64) *UsageLogUpdate {
+	if v != nil {
+		_u.SetUpstreamUnitPriceOutput(*v)
+	}
+	return _u
+}
+
+// AddUpstreamUnitPriceOutput adds value to the "upstream_unit_price_output" field.
+func (_u *UsageLogUpdate) AddUpstreamUnitPriceOutput(v float64) *UsageLogUpdate {
+	_u.mutation.AddUpstreamUnitPriceOutput(v)
+	return _u
+}
+
+// ClearUpstreamUnitPriceOutput clears the value of the "upstream_unit_price_output" field.
+func (_u *UsageLogUpdate) ClearUpstreamUnitPriceOutput() *UsageLogUpdate {
+	_u.mutation.ClearUpstreamUnitPriceOutput()
+	return _u
+}
+
+// SetUpstreamUnitPriceCacheCreation sets the "upstream_unit_price_cache_creation" field.
+func (_u *UsageLogUpdate) SetUpstreamUnitPriceCacheCreation(v float64) *UsageLogUpdate {
+	_u.mutation.ResetUpstreamUnitPriceCacheCreation()
+	_u.mutation.SetUpstreamUnitPriceCacheCreation(v)
+	return _u
+}
+
+// SetNillableUpstreamUnitPriceCacheCreation sets the "upstream_unit_price_cache_creation" field if the given value is not nil.
+func (_u *UsageLogUpdate) SetNillableUpstreamUnitPriceCacheCreation(v *float64) *UsageLogUpdate {
+	if v != nil {
+		_u.SetUpstreamUnitPriceCacheCreation(*v)
+	}
+	return _u
+}
+
+// AddUpstreamUnitPriceCacheCreation adds value to the "upstream_unit_price_cache_creation" field.
+func (_u *UsageLogUpdate) AddUpstreamUnitPriceCacheCreation(v float64) *UsageLogUpdate {
+	_u.mutation.AddUpstreamUnitPriceCacheCreation(v)
+	return _u
+}
+
+// ClearUpstreamUnitPriceCacheCreation clears the value of the "upstream_unit_price_cache_creation" field.
+func (_u *UsageLogUpdate) ClearUpstreamUnitPriceCacheCreation() *UsageLogUpdate {
+	_u.mutation.ClearUpstreamUnitPriceCacheCreation()
+	return _u
+}
+
+// SetUpstreamUnitPriceCacheRead sets the "upstream_unit_price_cache_read" field.
+func (_u *UsageLogUpdate) SetUpstreamUnitPriceCacheRead(v float64) *UsageLogUpdate {
+	_u.mutation.ResetUpstreamUnitPriceCacheRead()
+	_u.mutation.SetUpstreamUnitPriceCacheRead(v)
+	return _u
+}
+
+// SetNillableUpstreamUnitPriceCacheRead sets the "upstream_unit_price_cache_read" field if the given value is not nil.
+func (_u *UsageLogUpdate) SetNillableUpstreamUnitPriceCacheRead(v *float64) *UsageLogUpdate {
+	if v != nil {
+		_u.SetUpstreamUnitPriceCacheRead(*v)
+	}
+	return _u
+}
+
+// AddUpstreamUnitPriceCacheRead adds value to the "upstream_unit_price_cache_read" field.
+func (_u *UsageLogUpdate) AddUpstreamUnitPriceCacheRead(v float64) *UsageLogUpdate {
+	_u.mutation.AddUpstreamUnitPriceCacheRead(v)
+	return _u
+}
+
+// ClearUpstreamUnitPriceCacheRead clears the value of the "upstream_unit_price_cache_read" field.
+func (_u *UsageLogUpdate) ClearUpstreamUnitPriceCacheRead() *UsageLogUpdate {
+	_u.mutation.ClearUpstreamUnitPriceCacheRead()
+	return _u
+}
+
+// SetUpstreamTotalCost sets the "upstream_total_cost" field.
+func (_u *UsageLogUpdate) SetUpstreamTotalCost(v float64) *UsageLogUpdate {
+	_u.mutation.ResetUpstreamTotalCost()
+	_u.mutation.SetUpstreamTotalCost(v)
+	return _u
+}
+
+// SetNillableUpstreamTotalCost sets the "upstream_total_cost" field if the given value is not nil.
+func (_u *UsageLogUpdate) SetNillableUpstreamTotalCost(v *float64) *UsageLogUpdate {
+	if v != nil {
+		_u.SetUpstreamTotalCost(*v)
+	}
+	return _u
+}
+
+// AddUpstreamTotalCost adds value to the "upstream_total_cost" field.
+func (_u *UsageLogUpdate) AddUpstreamTotalCost(v float64) *UsageLogUpdate {
+	_u.mutation.AddUpstreamTotalCost(v)
+	return _u
+}
+
+// ClearUpstreamTotalCost clears the value of the "upstream_total_cost" field.
+func (_u *UsageLogUpdate) ClearUpstreamTotalCost() *UsageLogUpdate {
+	_u.mutation.ClearUpstreamTotalCost()
+	return _u
+}
+
+// SetProvider sets the "provider" field.
+func (_u *UsageLogUpdate) SetProvider(v string) *UsageLogUpdate {
+	_u.mutation.SetProvider(v)
+	return _u
+}
+
+// SetNillableProvider sets the "provider" field if the given value is not nil.
+func (_u *UsageLogUpdate) SetNillableProvider(v *string) *UsageLogUpdate {
+	if v != nil {
+		_u.SetProvider(*v)
+	}
+	return _u
+}
+
+// ClearProvider clears the value of the "provider" field.
+func (_u *UsageLogUpdate) ClearProvider() *UsageLogUpdate {
+	_u.mutation.ClearProvider()
+	return _u
+}
+
+// SetPricingSource sets the "pricing_source" field.
+func (_u *UsageLogUpdate) SetPricingSource(v string) *UsageLogUpdate {
+	_u.mutation.SetPricingSource(v)
+	return _u
+}
+
+// SetNillablePricingSource sets the "pricing_source" field if the given value is not nil.
+func (_u *UsageLogUpdate) SetNillablePricingSource(v *string) *UsageLogUpdate {
+	if v != nil {
+		_u.SetPricingSource(*v)
+	}
+	return _u
+}
+
+// ClearPricingSource clears the value of the "pricing_source" field.
+func (_u *UsageLogUpdate) ClearPricingSource() *UsageLogUpdate {
+	_u.mutation.ClearPricingSource()
+	return _u
+}
+
+// SetAsyncTaskID sets the "async_task_id" field.
+func (_u *UsageLogUpdate) SetAsyncTaskID(v string) *UsageLogUpdate {
+	_u.mutation.SetAsyncTaskID(v)
+	return _u
+}
+
+// SetNillableAsyncTaskID sets the "async_task_id" field if the given value is not nil.
+func (_u *UsageLogUpdate) SetNillableAsyncTaskID(v *string) *UsageLogUpdate {
+	if v != nil {
+		_u.SetAsyncTaskID(*v)
+	}
+	return _u
+}
+
+// ClearAsyncTaskID clears the value of the "async_task_id" field.
+func (_u *UsageLogUpdate) ClearAsyncTaskID() *UsageLogUpdate {
+	_u.mutation.ClearAsyncTaskID()
+	return _u
+}
+
+// SetCostFinalizedAt sets the "cost_finalized_at" field.
+func (_u *UsageLogUpdate) SetCostFinalizedAt(v time.Time) *UsageLogUpdate {
+	_u.mutation.SetCostFinalizedAt(v)
+	return _u
+}
+
+// SetNillableCostFinalizedAt sets the "cost_finalized_at" field if the given value is not nil.
+func (_u *UsageLogUpdate) SetNillableCostFinalizedAt(v *time.Time) *UsageLogUpdate {
+	if v != nil {
+		_u.SetCostFinalizedAt(*v)
+	}
+	return _u
+}
+
+// ClearCostFinalizedAt clears the value of the "cost_finalized_at" field.
+func (_u *UsageLogUpdate) ClearCostFinalizedAt() *UsageLogUpdate {
+	_u.mutation.ClearCostFinalizedAt()
+	return _u
+}
+
 // SetBillingType sets the "billing_type" field.
 func (_u *UsageLogUpdate) SetBillingType(v int8) *UsageLogUpdate {
 	_u.mutation.ResetBillingType()
@@ -877,6 +1093,21 @@ func (_u *UsageLogUpdate) check() error {
 			return &ValidationError{Name: "billing_mode", err: fmt.Errorf(`ent: validator failed for field "UsageLog.billing_mode": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Provider(); ok {
+		if err := usagelog.ProviderValidator(v); err != nil {
+			return &ValidationError{Name: "provider", err: fmt.Errorf(`ent: validator failed for field "UsageLog.provider": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.PricingSource(); ok {
+		if err := usagelog.PricingSourceValidator(v); err != nil {
+			return &ValidationError{Name: "pricing_source", err: fmt.Errorf(`ent: validator failed for field "UsageLog.pricing_source": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.AsyncTaskID(); ok {
+		if err := usagelog.AsyncTaskIDValidator(v); err != nil {
+			return &ValidationError{Name: "async_task_id", err: fmt.Errorf(`ent: validator failed for field "UsageLog.async_task_id": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.UserAgent(); ok {
 		if err := usagelog.UserAgentValidator(v); err != nil {
 			return &ValidationError{Name: "user_agent", err: fmt.Errorf(`ent: validator failed for field "UsageLog.user_agent": %w`, err)}
@@ -1047,6 +1278,75 @@ func (_u *UsageLogUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.AccountRateMultiplierCleared() {
 		_spec.ClearField(usagelog.FieldAccountRateMultiplier, field.TypeFloat64)
+	}
+	if value, ok := _u.mutation.UpstreamUnitPriceInput(); ok {
+		_spec.SetField(usagelog.FieldUpstreamUnitPriceInput, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedUpstreamUnitPriceInput(); ok {
+		_spec.AddField(usagelog.FieldUpstreamUnitPriceInput, field.TypeFloat64, value)
+	}
+	if _u.mutation.UpstreamUnitPriceInputCleared() {
+		_spec.ClearField(usagelog.FieldUpstreamUnitPriceInput, field.TypeFloat64)
+	}
+	if value, ok := _u.mutation.UpstreamUnitPriceOutput(); ok {
+		_spec.SetField(usagelog.FieldUpstreamUnitPriceOutput, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedUpstreamUnitPriceOutput(); ok {
+		_spec.AddField(usagelog.FieldUpstreamUnitPriceOutput, field.TypeFloat64, value)
+	}
+	if _u.mutation.UpstreamUnitPriceOutputCleared() {
+		_spec.ClearField(usagelog.FieldUpstreamUnitPriceOutput, field.TypeFloat64)
+	}
+	if value, ok := _u.mutation.UpstreamUnitPriceCacheCreation(); ok {
+		_spec.SetField(usagelog.FieldUpstreamUnitPriceCacheCreation, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedUpstreamUnitPriceCacheCreation(); ok {
+		_spec.AddField(usagelog.FieldUpstreamUnitPriceCacheCreation, field.TypeFloat64, value)
+	}
+	if _u.mutation.UpstreamUnitPriceCacheCreationCleared() {
+		_spec.ClearField(usagelog.FieldUpstreamUnitPriceCacheCreation, field.TypeFloat64)
+	}
+	if value, ok := _u.mutation.UpstreamUnitPriceCacheRead(); ok {
+		_spec.SetField(usagelog.FieldUpstreamUnitPriceCacheRead, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedUpstreamUnitPriceCacheRead(); ok {
+		_spec.AddField(usagelog.FieldUpstreamUnitPriceCacheRead, field.TypeFloat64, value)
+	}
+	if _u.mutation.UpstreamUnitPriceCacheReadCleared() {
+		_spec.ClearField(usagelog.FieldUpstreamUnitPriceCacheRead, field.TypeFloat64)
+	}
+	if value, ok := _u.mutation.UpstreamTotalCost(); ok {
+		_spec.SetField(usagelog.FieldUpstreamTotalCost, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedUpstreamTotalCost(); ok {
+		_spec.AddField(usagelog.FieldUpstreamTotalCost, field.TypeFloat64, value)
+	}
+	if _u.mutation.UpstreamTotalCostCleared() {
+		_spec.ClearField(usagelog.FieldUpstreamTotalCost, field.TypeFloat64)
+	}
+	if value, ok := _u.mutation.Provider(); ok {
+		_spec.SetField(usagelog.FieldProvider, field.TypeString, value)
+	}
+	if _u.mutation.ProviderCleared() {
+		_spec.ClearField(usagelog.FieldProvider, field.TypeString)
+	}
+	if value, ok := _u.mutation.PricingSource(); ok {
+		_spec.SetField(usagelog.FieldPricingSource, field.TypeString, value)
+	}
+	if _u.mutation.PricingSourceCleared() {
+		_spec.ClearField(usagelog.FieldPricingSource, field.TypeString)
+	}
+	if value, ok := _u.mutation.AsyncTaskID(); ok {
+		_spec.SetField(usagelog.FieldAsyncTaskID, field.TypeString, value)
+	}
+	if _u.mutation.AsyncTaskIDCleared() {
+		_spec.ClearField(usagelog.FieldAsyncTaskID, field.TypeString)
+	}
+	if value, ok := _u.mutation.CostFinalizedAt(); ok {
+		_spec.SetField(usagelog.FieldCostFinalizedAt, field.TypeTime, value)
+	}
+	if _u.mutation.CostFinalizedAtCleared() {
+		_spec.ClearField(usagelog.FieldCostFinalizedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.BillingType(); ok {
 		_spec.SetField(usagelog.FieldBillingType, field.TypeInt8, value)
@@ -1804,6 +2104,221 @@ func (_u *UsageLogUpdateOne) ClearAccountRateMultiplier() *UsageLogUpdateOne {
 	return _u
 }
 
+// SetUpstreamUnitPriceInput sets the "upstream_unit_price_input" field.
+func (_u *UsageLogUpdateOne) SetUpstreamUnitPriceInput(v float64) *UsageLogUpdateOne {
+	_u.mutation.ResetUpstreamUnitPriceInput()
+	_u.mutation.SetUpstreamUnitPriceInput(v)
+	return _u
+}
+
+// SetNillableUpstreamUnitPriceInput sets the "upstream_unit_price_input" field if the given value is not nil.
+func (_u *UsageLogUpdateOne) SetNillableUpstreamUnitPriceInput(v *float64) *UsageLogUpdateOne {
+	if v != nil {
+		_u.SetUpstreamUnitPriceInput(*v)
+	}
+	return _u
+}
+
+// AddUpstreamUnitPriceInput adds value to the "upstream_unit_price_input" field.
+func (_u *UsageLogUpdateOne) AddUpstreamUnitPriceInput(v float64) *UsageLogUpdateOne {
+	_u.mutation.AddUpstreamUnitPriceInput(v)
+	return _u
+}
+
+// ClearUpstreamUnitPriceInput clears the value of the "upstream_unit_price_input" field.
+func (_u *UsageLogUpdateOne) ClearUpstreamUnitPriceInput() *UsageLogUpdateOne {
+	_u.mutation.ClearUpstreamUnitPriceInput()
+	return _u
+}
+
+// SetUpstreamUnitPriceOutput sets the "upstream_unit_price_output" field.
+func (_u *UsageLogUpdateOne) SetUpstreamUnitPriceOutput(v float64) *UsageLogUpdateOne {
+	_u.mutation.ResetUpstreamUnitPriceOutput()
+	_u.mutation.SetUpstreamUnitPriceOutput(v)
+	return _u
+}
+
+// SetNillableUpstreamUnitPriceOutput sets the "upstream_unit_price_output" field if the given value is not nil.
+func (_u *UsageLogUpdateOne) SetNillableUpstreamUnitPriceOutput(v *float64) *UsageLogUpdateOne {
+	if v != nil {
+		_u.SetUpstreamUnitPriceOutput(*v)
+	}
+	return _u
+}
+
+// AddUpstreamUnitPriceOutput adds value to the "upstream_unit_price_output" field.
+func (_u *UsageLogUpdateOne) AddUpstreamUnitPriceOutput(v float64) *UsageLogUpdateOne {
+	_u.mutation.AddUpstreamUnitPriceOutput(v)
+	return _u
+}
+
+// ClearUpstreamUnitPriceOutput clears the value of the "upstream_unit_price_output" field.
+func (_u *UsageLogUpdateOne) ClearUpstreamUnitPriceOutput() *UsageLogUpdateOne {
+	_u.mutation.ClearUpstreamUnitPriceOutput()
+	return _u
+}
+
+// SetUpstreamUnitPriceCacheCreation sets the "upstream_unit_price_cache_creation" field.
+func (_u *UsageLogUpdateOne) SetUpstreamUnitPriceCacheCreation(v float64) *UsageLogUpdateOne {
+	_u.mutation.ResetUpstreamUnitPriceCacheCreation()
+	_u.mutation.SetUpstreamUnitPriceCacheCreation(v)
+	return _u
+}
+
+// SetNillableUpstreamUnitPriceCacheCreation sets the "upstream_unit_price_cache_creation" field if the given value is not nil.
+func (_u *UsageLogUpdateOne) SetNillableUpstreamUnitPriceCacheCreation(v *float64) *UsageLogUpdateOne {
+	if v != nil {
+		_u.SetUpstreamUnitPriceCacheCreation(*v)
+	}
+	return _u
+}
+
+// AddUpstreamUnitPriceCacheCreation adds value to the "upstream_unit_price_cache_creation" field.
+func (_u *UsageLogUpdateOne) AddUpstreamUnitPriceCacheCreation(v float64) *UsageLogUpdateOne {
+	_u.mutation.AddUpstreamUnitPriceCacheCreation(v)
+	return _u
+}
+
+// ClearUpstreamUnitPriceCacheCreation clears the value of the "upstream_unit_price_cache_creation" field.
+func (_u *UsageLogUpdateOne) ClearUpstreamUnitPriceCacheCreation() *UsageLogUpdateOne {
+	_u.mutation.ClearUpstreamUnitPriceCacheCreation()
+	return _u
+}
+
+// SetUpstreamUnitPriceCacheRead sets the "upstream_unit_price_cache_read" field.
+func (_u *UsageLogUpdateOne) SetUpstreamUnitPriceCacheRead(v float64) *UsageLogUpdateOne {
+	_u.mutation.ResetUpstreamUnitPriceCacheRead()
+	_u.mutation.SetUpstreamUnitPriceCacheRead(v)
+	return _u
+}
+
+// SetNillableUpstreamUnitPriceCacheRead sets the "upstream_unit_price_cache_read" field if the given value is not nil.
+func (_u *UsageLogUpdateOne) SetNillableUpstreamUnitPriceCacheRead(v *float64) *UsageLogUpdateOne {
+	if v != nil {
+		_u.SetUpstreamUnitPriceCacheRead(*v)
+	}
+	return _u
+}
+
+// AddUpstreamUnitPriceCacheRead adds value to the "upstream_unit_price_cache_read" field.
+func (_u *UsageLogUpdateOne) AddUpstreamUnitPriceCacheRead(v float64) *UsageLogUpdateOne {
+	_u.mutation.AddUpstreamUnitPriceCacheRead(v)
+	return _u
+}
+
+// ClearUpstreamUnitPriceCacheRead clears the value of the "upstream_unit_price_cache_read" field.
+func (_u *UsageLogUpdateOne) ClearUpstreamUnitPriceCacheRead() *UsageLogUpdateOne {
+	_u.mutation.ClearUpstreamUnitPriceCacheRead()
+	return _u
+}
+
+// SetUpstreamTotalCost sets the "upstream_total_cost" field.
+func (_u *UsageLogUpdateOne) SetUpstreamTotalCost(v float64) *UsageLogUpdateOne {
+	_u.mutation.ResetUpstreamTotalCost()
+	_u.mutation.SetUpstreamTotalCost(v)
+	return _u
+}
+
+// SetNillableUpstreamTotalCost sets the "upstream_total_cost" field if the given value is not nil.
+func (_u *UsageLogUpdateOne) SetNillableUpstreamTotalCost(v *float64) *UsageLogUpdateOne {
+	if v != nil {
+		_u.SetUpstreamTotalCost(*v)
+	}
+	return _u
+}
+
+// AddUpstreamTotalCost adds value to the "upstream_total_cost" field.
+func (_u *UsageLogUpdateOne) AddUpstreamTotalCost(v float64) *UsageLogUpdateOne {
+	_u.mutation.AddUpstreamTotalCost(v)
+	return _u
+}
+
+// ClearUpstreamTotalCost clears the value of the "upstream_total_cost" field.
+func (_u *UsageLogUpdateOne) ClearUpstreamTotalCost() *UsageLogUpdateOne {
+	_u.mutation.ClearUpstreamTotalCost()
+	return _u
+}
+
+// SetProvider sets the "provider" field.
+func (_u *UsageLogUpdateOne) SetProvider(v string) *UsageLogUpdateOne {
+	_u.mutation.SetProvider(v)
+	return _u
+}
+
+// SetNillableProvider sets the "provider" field if the given value is not nil.
+func (_u *UsageLogUpdateOne) SetNillableProvider(v *string) *UsageLogUpdateOne {
+	if v != nil {
+		_u.SetProvider(*v)
+	}
+	return _u
+}
+
+// ClearProvider clears the value of the "provider" field.
+func (_u *UsageLogUpdateOne) ClearProvider() *UsageLogUpdateOne {
+	_u.mutation.ClearProvider()
+	return _u
+}
+
+// SetPricingSource sets the "pricing_source" field.
+func (_u *UsageLogUpdateOne) SetPricingSource(v string) *UsageLogUpdateOne {
+	_u.mutation.SetPricingSource(v)
+	return _u
+}
+
+// SetNillablePricingSource sets the "pricing_source" field if the given value is not nil.
+func (_u *UsageLogUpdateOne) SetNillablePricingSource(v *string) *UsageLogUpdateOne {
+	if v != nil {
+		_u.SetPricingSource(*v)
+	}
+	return _u
+}
+
+// ClearPricingSource clears the value of the "pricing_source" field.
+func (_u *UsageLogUpdateOne) ClearPricingSource() *UsageLogUpdateOne {
+	_u.mutation.ClearPricingSource()
+	return _u
+}
+
+// SetAsyncTaskID sets the "async_task_id" field.
+func (_u *UsageLogUpdateOne) SetAsyncTaskID(v string) *UsageLogUpdateOne {
+	_u.mutation.SetAsyncTaskID(v)
+	return _u
+}
+
+// SetNillableAsyncTaskID sets the "async_task_id" field if the given value is not nil.
+func (_u *UsageLogUpdateOne) SetNillableAsyncTaskID(v *string) *UsageLogUpdateOne {
+	if v != nil {
+		_u.SetAsyncTaskID(*v)
+	}
+	return _u
+}
+
+// ClearAsyncTaskID clears the value of the "async_task_id" field.
+func (_u *UsageLogUpdateOne) ClearAsyncTaskID() *UsageLogUpdateOne {
+	_u.mutation.ClearAsyncTaskID()
+	return _u
+}
+
+// SetCostFinalizedAt sets the "cost_finalized_at" field.
+func (_u *UsageLogUpdateOne) SetCostFinalizedAt(v time.Time) *UsageLogUpdateOne {
+	_u.mutation.SetCostFinalizedAt(v)
+	return _u
+}
+
+// SetNillableCostFinalizedAt sets the "cost_finalized_at" field if the given value is not nil.
+func (_u *UsageLogUpdateOne) SetNillableCostFinalizedAt(v *time.Time) *UsageLogUpdateOne {
+	if v != nil {
+		_u.SetCostFinalizedAt(*v)
+	}
+	return _u
+}
+
+// ClearCostFinalizedAt clears the value of the "cost_finalized_at" field.
+func (_u *UsageLogUpdateOne) ClearCostFinalizedAt() *UsageLogUpdateOne {
+	_u.mutation.ClearCostFinalizedAt()
+	return _u
+}
+
 // SetBillingType sets the "billing_type" field.
 func (_u *UsageLogUpdateOne) SetBillingType(v int8) *UsageLogUpdateOne {
 	_u.mutation.ResetBillingType()
@@ -2125,6 +2640,21 @@ func (_u *UsageLogUpdateOne) check() error {
 			return &ValidationError{Name: "billing_mode", err: fmt.Errorf(`ent: validator failed for field "UsageLog.billing_mode": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Provider(); ok {
+		if err := usagelog.ProviderValidator(v); err != nil {
+			return &ValidationError{Name: "provider", err: fmt.Errorf(`ent: validator failed for field "UsageLog.provider": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.PricingSource(); ok {
+		if err := usagelog.PricingSourceValidator(v); err != nil {
+			return &ValidationError{Name: "pricing_source", err: fmt.Errorf(`ent: validator failed for field "UsageLog.pricing_source": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.AsyncTaskID(); ok {
+		if err := usagelog.AsyncTaskIDValidator(v); err != nil {
+			return &ValidationError{Name: "async_task_id", err: fmt.Errorf(`ent: validator failed for field "UsageLog.async_task_id": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.UserAgent(); ok {
 		if err := usagelog.UserAgentValidator(v); err != nil {
 			return &ValidationError{Name: "user_agent", err: fmt.Errorf(`ent: validator failed for field "UsageLog.user_agent": %w`, err)}
@@ -2312,6 +2842,75 @@ func (_u *UsageLogUpdateOne) sqlSave(ctx context.Context) (_node *UsageLog, err 
 	}
 	if _u.mutation.AccountRateMultiplierCleared() {
 		_spec.ClearField(usagelog.FieldAccountRateMultiplier, field.TypeFloat64)
+	}
+	if value, ok := _u.mutation.UpstreamUnitPriceInput(); ok {
+		_spec.SetField(usagelog.FieldUpstreamUnitPriceInput, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedUpstreamUnitPriceInput(); ok {
+		_spec.AddField(usagelog.FieldUpstreamUnitPriceInput, field.TypeFloat64, value)
+	}
+	if _u.mutation.UpstreamUnitPriceInputCleared() {
+		_spec.ClearField(usagelog.FieldUpstreamUnitPriceInput, field.TypeFloat64)
+	}
+	if value, ok := _u.mutation.UpstreamUnitPriceOutput(); ok {
+		_spec.SetField(usagelog.FieldUpstreamUnitPriceOutput, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedUpstreamUnitPriceOutput(); ok {
+		_spec.AddField(usagelog.FieldUpstreamUnitPriceOutput, field.TypeFloat64, value)
+	}
+	if _u.mutation.UpstreamUnitPriceOutputCleared() {
+		_spec.ClearField(usagelog.FieldUpstreamUnitPriceOutput, field.TypeFloat64)
+	}
+	if value, ok := _u.mutation.UpstreamUnitPriceCacheCreation(); ok {
+		_spec.SetField(usagelog.FieldUpstreamUnitPriceCacheCreation, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedUpstreamUnitPriceCacheCreation(); ok {
+		_spec.AddField(usagelog.FieldUpstreamUnitPriceCacheCreation, field.TypeFloat64, value)
+	}
+	if _u.mutation.UpstreamUnitPriceCacheCreationCleared() {
+		_spec.ClearField(usagelog.FieldUpstreamUnitPriceCacheCreation, field.TypeFloat64)
+	}
+	if value, ok := _u.mutation.UpstreamUnitPriceCacheRead(); ok {
+		_spec.SetField(usagelog.FieldUpstreamUnitPriceCacheRead, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedUpstreamUnitPriceCacheRead(); ok {
+		_spec.AddField(usagelog.FieldUpstreamUnitPriceCacheRead, field.TypeFloat64, value)
+	}
+	if _u.mutation.UpstreamUnitPriceCacheReadCleared() {
+		_spec.ClearField(usagelog.FieldUpstreamUnitPriceCacheRead, field.TypeFloat64)
+	}
+	if value, ok := _u.mutation.UpstreamTotalCost(); ok {
+		_spec.SetField(usagelog.FieldUpstreamTotalCost, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedUpstreamTotalCost(); ok {
+		_spec.AddField(usagelog.FieldUpstreamTotalCost, field.TypeFloat64, value)
+	}
+	if _u.mutation.UpstreamTotalCostCleared() {
+		_spec.ClearField(usagelog.FieldUpstreamTotalCost, field.TypeFloat64)
+	}
+	if value, ok := _u.mutation.Provider(); ok {
+		_spec.SetField(usagelog.FieldProvider, field.TypeString, value)
+	}
+	if _u.mutation.ProviderCleared() {
+		_spec.ClearField(usagelog.FieldProvider, field.TypeString)
+	}
+	if value, ok := _u.mutation.PricingSource(); ok {
+		_spec.SetField(usagelog.FieldPricingSource, field.TypeString, value)
+	}
+	if _u.mutation.PricingSourceCleared() {
+		_spec.ClearField(usagelog.FieldPricingSource, field.TypeString)
+	}
+	if value, ok := _u.mutation.AsyncTaskID(); ok {
+		_spec.SetField(usagelog.FieldAsyncTaskID, field.TypeString, value)
+	}
+	if _u.mutation.AsyncTaskIDCleared() {
+		_spec.ClearField(usagelog.FieldAsyncTaskID, field.TypeString)
+	}
+	if value, ok := _u.mutation.CostFinalizedAt(); ok {
+		_spec.SetField(usagelog.FieldCostFinalizedAt, field.TypeTime, value)
+	}
+	if _u.mutation.CostFinalizedAtCleared() {
+		_spec.ClearField(usagelog.FieldCostFinalizedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.BillingType(); ok {
 		_spec.SetField(usagelog.FieldBillingType, field.TypeInt8, value)
