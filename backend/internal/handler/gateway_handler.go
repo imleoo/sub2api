@@ -52,6 +52,8 @@ type GatewayHandler struct {
 	maxAccountSwitchesGemini  int
 	cfg                       *config.Config
 	settingService            *service.SettingService
+	// bridgeRegistry Phase 4 P4-3: Bridge Registry 用于 Gemini 入站跨协议路由
+	bridgeRegistry *service.ProtocolBridgeRegistry
 }
 
 // NewGatewayHandler creates a new GatewayHandler
@@ -70,6 +72,7 @@ func NewGatewayHandler(
 	userMsgQueueService *service.UserMessageQueueService,
 	cfg *config.Config,
 	settingService *service.SettingService,
+	bridgeRegistry *service.ProtocolBridgeRegistry,
 ) *GatewayHandler {
 	pingInterval := time.Duration(0)
 	maxAccountSwitches := 10
@@ -107,6 +110,7 @@ func NewGatewayHandler(
 		maxAccountSwitchesGemini:  maxAccountSwitchesGemini,
 		cfg:                       cfg,
 		settingService:            settingService,
+		bridgeRegistry:            bridgeRegistry,
 	}
 }
 

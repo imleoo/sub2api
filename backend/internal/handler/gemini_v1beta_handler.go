@@ -467,12 +467,45 @@ func (h *GatewayHandler) GeminiV1BetaModels(c *gin.Context) {
 		// 账号槽位/等待计数需要在超时或断开时安全回收
 		accountReleaseFunc = wrapReleaseOnDone(c.Request.Context(), accountReleaseFunc)
 
-		// 5) forward (根据平台分流)
+		// 5) forward (根据协议/平台分流)
 		var result *service.ForwardResult
 		requestCtx := c.Request.Context()
 		if fs.SwitchCount > 0 {
 			requestCtx = service.WithAccountSwitchCount(requestCtx, fs.SwitchCount, h.metadataBridgeEnabled())
 		}
+
+		// Phase 4 P4-3: Bridge Registry 路由
+		// 当账号 outbound_protocol 非 gemini_v1beta（即不走原生 Gemini 路径）时，
+		// 通过 Bridge Registry 查找合适的跨协议桥。
+		// 保留 native 路径（gemini_v1beta outbound 或未设置时仍走原有分流）。
+		outboundProto := domain.ResolveOutboundProtocol(account.OutboundProtocol, account.Platform)
+		if outboundProto != "" && outboundProto != domain.ProtocolGeminiV1Beta {
+			bridgeMeta, ok := h.bridgeRegistry.Lookup(domain.ProtocolGeminiV1Beta, outboundProto)
+			if !ok {
+				reqLog.Warn("gemini.bridge_not_found",
+					zap.String("inbound", domain.ProtocolGeminiV1Beta),
+					zap.String("outbound", outboundProto),
+				)
+				if accountReleaseFunc != nil {
+					accountReleaseFunc()
+				}
+				googleError(c, http.StatusServiceUnavailable, "No bridge available for gemini_v1beta->"+outboundProto)
+				return
+			}
+			// 桥存在但尚未实现（Stub 阶段返回 503；完整实现后此分支调用 apicompat.ForwardGeminiAs*）
+			reqLog.Info("gemini.bridge_routing_stub",
+				zap.String("bridge_id", bridgeMeta.ID),
+				zap.String("outbound_protocol", outboundProto),
+				zap.String("implementation", bridgeMeta.Implementation),
+			)
+			if accountReleaseFunc != nil {
+				accountReleaseFunc()
+			}
+			googleError(c, http.StatusServiceUnavailable, "Bridge "+bridgeMeta.ID+" not yet implemented")
+			return
+		}
+
+		// native 路径：gemini_v1beta → gemini_v1beta（原有平台分流逻辑不变）
 		if account.Platform == service.PlatformAntigravity && account.Type != service.AccountTypeAPIKey {
 			result, err = h.antigravityGatewayService.ForwardGemini(requestCtx, c, account, modelName, action, stream, body, hasBoundSession)
 		} else {
@@ -540,6 +573,7 @@ func (h *GatewayHandler) GeminiV1BetaModels(c *gin.Context) {
 				ForceCacheBilling:     fs.ForceCacheBilling,
 				APIKeyService:         h.apiKeyService,
 				ChannelUsageFields:    channelMapping.ToUsageFields(reqModel, result.UpstreamModel),
+				InboundProtocol:       domain.ProtocolGeminiV1Beta,
 			}); err != nil {
 				logger.L().With(
 					zap.String("component", "handler.gemini_v1beta.models"),

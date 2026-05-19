@@ -8336,6 +8336,12 @@ type RecordUsageLongContextInput struct {
 	LongContextMultiplier float64            // 超出阈值部分的倍率（如 2.0）
 	ForceCacheBilling     bool               // 强制缓存计费：将 input_tokens 转为 cache_read 计费（用于粘性会话切换）
 	APIKeyService         APIKeyQuotaUpdater // API Key 配额服务（可选）
+	// InboundProtocol Phase 4 P4-3：入站协议（如 "gemini_v1beta"），桥路由时由 handler 设置。
+	// 空 = 按 Account.Platform 派生的默认协议。
+	InboundProtocol string
+	// BridgeID Phase 4 P4-3：当桥路由介入时的桥 ID（如 "gemini_v1beta->openai_chat"）。
+	// 空 = native 路径（无桥）。
+	BridgeID string
 
 	ChannelUsageFields // 渠道映射信息（由 handler 在 Forward 前解析）
 }

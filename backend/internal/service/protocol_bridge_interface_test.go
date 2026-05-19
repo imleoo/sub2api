@@ -102,9 +102,9 @@ func TestProtocolBridge_ForwardSignature(t *testing.T) {
 func TestMetadataAndImplsParallel(t *testing.T) {
 	ResetBridgeImpls()
 
-	// 元数据 Registry：fork 启动时注册 3 条（含 stub）
+	// 元数据 Registry：P4-1 后注册 7 条（fork 2 + P3-3 stub + P3-5 双 stub + P4-1 gemini 双 stub）
 	meta := NewProtocolBridgeRegistry()
-	require.Equal(t, 3, meta.Count())
+	require.Equal(t, 7, meta.Count())
 
 	// interface 实现 Registry：暂时为空（fork 旧桥未迁移）
 	_, ok := LookupBridge(BridgeID(domain.ProtocolAnthropicMessages, domain.ProtocolOpenAIResponses))
