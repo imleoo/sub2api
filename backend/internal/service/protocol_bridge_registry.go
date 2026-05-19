@@ -137,6 +137,24 @@ func NewProtocolBridgeRegistry() *ProtocolBridgeRegistry {
 		Description:      "Claude Code 客户端通过 /v1/messages 访问 DeepSeek/Kimi/Qwen 等 OpenAI Chat Completions 上游（实现中）",
 	})
 
+	// Bridge #4（Phase 3 P3-5 占位）: OpenAI Chat Completions 入站 → Anthropic Messages 上游
+	r.mustRegister(BridgeMetadata{
+		ID:               BridgeID(domain.ProtocolOpenAIChat, domain.ProtocolAnthropicMessages),
+		InboundProtocol:  domain.ProtocolOpenAIChat,
+		OutboundProtocol: domain.ProtocolAnthropicMessages,
+		Implementation:   "apicompat.ForwardChatAsAnthropic (stub, P3-5 follow-up)",
+		Description:      "OpenAI Chat Completions 客户端访问 Anthropic 上游账号（实现中）",
+	})
+
+	// Bridge #5（Phase 3 P3-5 占位）: OpenAI Responses 入站 → OpenAI Chat Completions 上游（同源协议互转）
+	r.mustRegister(BridgeMetadata{
+		ID:               BridgeID(domain.ProtocolOpenAIResponses, domain.ProtocolOpenAIChat),
+		InboundProtocol:  domain.ProtocolOpenAIResponses,
+		OutboundProtocol: domain.ProtocolOpenAIChat,
+		Implementation:   "apicompat.ForwardResponsesAsChat (stub, P3-5 follow-up)",
+		Description:      "OpenAI Responses 客户端访问只支持 Chat Completions 的 OpenAI-compatible 上游（实现中）",
+	})
+
 	return r
 }
 
