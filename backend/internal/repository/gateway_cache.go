@@ -9,7 +9,10 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-const stickySessionPrefix = "sticky_session:"
+const (
+	stickySessionPrefix  = "sticky_session:"
+	stickyEndpointPrefix = "sticky_endpoint:"
+)
 
 type gatewayCache struct {
 	rdb *redis.Client
@@ -23,6 +26,12 @@ func NewGatewayCache(rdb *redis.Client) service.GatewayCache {
 // 格式: sticky_session:{groupID}:{sessionHash}
 func buildSessionKey(groupID int64, sessionHash string) string {
 	return fmt.Sprintf("%s%d:%s", stickySessionPrefix, groupID, sessionHash)
+}
+
+// buildEndpointKey 构建 endpoint sticky key（P5-3）
+// 格式: sticky_endpoint:{groupID}:{sessionHash}
+func buildEndpointKey(groupID int64, sessionHash string) string {
+	return fmt.Sprintf("%s%d:%s", stickyEndpointPrefix, groupID, sessionHash)
 }
 
 func (c *gatewayCache) GetSessionAccountID(ctx context.Context, groupID int64, sessionHash string) (int64, error) {
@@ -49,5 +58,32 @@ func (c *gatewayCache) RefreshSessionTTL(ctx context.Context, groupID int64, ses
 // or unschedulable), allowing subsequent requests to select a new available account.
 func (c *gatewayCache) DeleteSessionAccountID(ctx context.Context, groupID int64, sessionHash string) error {
 	key := buildSessionKey(groupID, sessionHash)
+	return c.rdb.Del(ctx, key).Err()
+}
+
+// GetSessionEndpointStableID 返回会话绑定的 endpoint stable_id（P5-3）。
+// 当 key 不存在（旧会话或非 generic 账号）时返回 ("", nil)。
+func (c *gatewayCache) GetSessionEndpointStableID(ctx context.Context, groupID int64, sessionHash string) (string, error) {
+	key := buildEndpointKey(groupID, sessionHash)
+	val, err := c.rdb.Get(ctx, key).Result()
+	if err != nil {
+		return "", nil // 未命中视为正常（旧会话平滑降级）
+	}
+	return val, nil
+}
+
+// SetSessionEndpointStableID 存储会话 → endpoint stable_id 绑定（P5-3）。
+func (c *gatewayCache) SetSessionEndpointStableID(ctx context.Context, groupID int64, sessionHash string, stableID string, ttl time.Duration) error {
+	if stableID == "" {
+		return nil
+	}
+	key := buildEndpointKey(groupID, sessionHash)
+	return c.rdb.Set(ctx, key, stableID, ttl).Err()
+}
+
+// DeleteSessionEndpointStableID 清除 endpoint 维度绑定（P5-3）。
+// 与 DeleteSessionAccountID 配对调用，best-effort，忽略未命中。
+func (c *gatewayCache) DeleteSessionEndpointStableID(ctx context.Context, groupID int64, sessionHash string) error {
+	key := buildEndpointKey(groupID, sessionHash)
 	return c.rdb.Del(ctx, key).Err()
 }

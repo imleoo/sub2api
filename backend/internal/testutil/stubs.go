@@ -100,6 +100,15 @@ func (c StubGatewayCache) RefreshSessionTTL(_ context.Context, _ int64, _ string
 func (c StubGatewayCache) DeleteSessionAccountID(_ context.Context, _ int64, _ string) error {
 	return nil
 }
+func (c StubGatewayCache) GetSessionEndpointStableID(_ context.Context, _ int64, _ string) (string, error) {
+	return "", nil
+}
+func (c StubGatewayCache) SetSessionEndpointStableID(_ context.Context, _ int64, _ string, _ string, _ time.Duration) error {
+	return nil
+}
+func (c StubGatewayCache) DeleteSessionEndpointStableID(_ context.Context, _ int64, _ string) error {
+	return nil
+}
 
 // ============================================================
 // StubSessionLimitCache — service.SessionLimitCache 的空实现

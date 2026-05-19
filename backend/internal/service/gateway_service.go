@@ -398,6 +398,14 @@ type GatewayCache interface {
 	// DeleteSessionAccountID 删除粘性会话绑定，用于账号不可用时主动清理
 	// Delete sticky session binding, used to proactively clean up when account becomes unavailable
 	DeleteSessionAccountID(ctx context.Context, groupID int64, sessionHash string) error
+
+	// P5-3: endpoint 维度粘性 —— generic 账号多 endpoint 黏性用
+	// GetSessionEndpointStableID 返回会话绑定的 endpoint stable_id；未命中返回 ""。
+	GetSessionEndpointStableID(ctx context.Context, groupID int64, sessionHash string) (string, error)
+	// SetSessionEndpointStableID 存储会话 → endpoint stable_id 绑定。
+	SetSessionEndpointStableID(ctx context.Context, groupID int64, sessionHash string, stableID string, ttl time.Duration) error
+	// DeleteSessionEndpointStableID 清除 endpoint 维度绑定（与 DeleteSessionAccountID 同步调用）。
+	DeleteSessionEndpointStableID(ctx context.Context, groupID int64, sessionHash string) error
 }
 
 // derefGroupID safely dereferences *int64 to int64, returning 0 if nil
@@ -747,6 +755,19 @@ func (s *GatewayService) BindStickySession(ctx context.Context, groupID *int64, 
 	return s.cache.SetSessionAccountID(ctx, derefGroupID(groupID), sessionHash, accountID, stickySessionTTL)
 }
 
+// BindStickySessionWithEndpoint sets session -> (account, endpoint) binding with standard TTL.
+// Used for generic accounts with multiple endpoints to ensure the same endpoint is used
+// for the duration of a session (P5-3).
+func (s *GatewayService) BindStickySessionWithEndpoint(ctx context.Context, groupID *int64, sessionHash string, accountID int64, endpointStableID string) error {
+	if err := s.BindStickySession(ctx, groupID, sessionHash, accountID); err != nil {
+		return err
+	}
+	if endpointStableID == "" || s.cache == nil {
+		return nil
+	}
+	return s.cache.SetSessionEndpointStableID(ctx, derefGroupID(groupID), sessionHash, endpointStableID, stickySessionTTL)
+}
+
 // GetCachedSessionAccountID retrieves the account ID bound to a sticky session.
 // Returns 0 if no binding exists or on error.
 func (s *GatewayService) GetCachedSessionAccountID(ctx context.Context, groupID *int64, sessionHash string) (int64, error) {
@@ -758,6 +779,30 @@ func (s *GatewayService) GetCachedSessionAccountID(ctx context.Context, groupID 
 		return 0, err
 	}
 	return accountID, nil
+}
+
+// GetCachedSessionBinding retrieves both account and endpoint sticky bindings for a session.
+// endpointStableID is "" when no endpoint binding exists (single-endpoint or legacy session).
+func (s *GatewayService) GetCachedSessionBinding(ctx context.Context, groupID *int64, sessionHash string) (accountID int64, endpointStableID string, err error) {
+	if sessionHash == "" || s.cache == nil {
+		return 0, "", nil
+	}
+	gid := derefGroupID(groupID)
+	accountID, err = s.cache.GetSessionAccountID(ctx, gid, sessionHash)
+	if err != nil || accountID <= 0 {
+		return accountID, "", err
+	}
+	endpointStableID, _ = s.cache.GetSessionEndpointStableID(ctx, gid, sessionHash)
+	return accountID, endpointStableID, nil
+}
+
+// deleteSessionBinding removes both account and endpoint sticky bindings for a session (best-effort).
+func (s *GatewayService) deleteSessionBinding(ctx context.Context, groupID int64, sessionHash string) {
+	if s.cache == nil || sessionHash == "" {
+		return
+	}
+	_ = s.cache.DeleteSessionAccountID(ctx, groupID, sessionHash)
+	_ = s.cache.DeleteSessionEndpointStableID(ctx, groupID, sessionHash)
 }
 
 // FindGeminiSession 查找 Gemini 会话（基于内容摘要链的 Fallback 匹配）
@@ -1715,7 +1760,7 @@ func (s *GatewayService) SelectAccountWithLoadAwareness(ctx context.Context, gro
 								stickyCacheMissReason, stickyAccountID, shortSessionHash(sessionHash), currentRPM, baseRPM)
 						}
 					} else {
-						_ = s.cache.DeleteSessionAccountID(ctx, derefGroupID(groupID), sessionHash)
+						s.deleteSessionBinding(ctx, derefGroupID(groupID), sessionHash)
 						logger.LegacyPrintf("service.gateway", "[StickyCacheMiss] reason=account_cleared account_id=%d session=%s current_rpm=0 base_rpm=0",
 							stickyAccountID, shortSessionHash(sessionHash))
 					}
@@ -1823,7 +1868,7 @@ func (s *GatewayService) SelectAccountWithLoadAwareness(ctx context.Context, gro
 						"reason", "should_clear_sticky_session",
 						"session", shortSessionHash(sessionHash),
 					)
-					_ = s.cache.DeleteSessionAccountID(ctx, derefGroupID(groupID), sessionHash)
+					s.deleteSessionBinding(ctx, derefGroupID(groupID), sessionHash)
 				}
 
 				// 注意：不再检查 isAccountInGroup，因为 accountByID 已经从按分组过滤的
@@ -3025,7 +3070,7 @@ func (s *GatewayService) selectAccountForModelWithPlatform(ctx context.Context, 
 					if err == nil {
 						clearSticky := shouldClearStickySession(account, requestedModel)
 						if clearSticky {
-							_ = s.cache.DeleteSessionAccountID(ctx, derefGroupID(groupID), sessionHash)
+							s.deleteSessionBinding(ctx, derefGroupID(groupID), sessionHash)
 						}
 						if !clearSticky && s.isAccountInGroup(account, groupID) && account.Platform == platform && (requestedModel == "" || s.isModelSupportedByAccountWithContext(ctx, account, requestedModel)) && s.isAccountSchedulableForModelSelection(ctx, account, requestedModel) && s.isAccountSchedulableForQuota(account) && s.isAccountSchedulableForWindowCost(ctx, account, true) && s.isAccountSchedulableForRPM(ctx, account, true) && !s.isStickyAccountUpstreamRestricted(ctx, groupID, account, requestedModel) {
 							if s.debugModelRoutingEnabled() {
@@ -3144,7 +3189,7 @@ func (s *GatewayService) selectAccountForModelWithPlatform(ctx context.Context, 
 				if err == nil {
 					clearSticky := shouldClearStickySession(account, requestedModel)
 					if clearSticky {
-						_ = s.cache.DeleteSessionAccountID(ctx, derefGroupID(groupID), sessionHash)
+						s.deleteSessionBinding(ctx, derefGroupID(groupID), sessionHash)
 					}
 					if !clearSticky && s.isAccountInGroup(account, groupID) && account.Platform == platform && (requestedModel == "" || s.isModelSupportedByAccountWithContext(ctx, account, requestedModel)) && s.isAccountSchedulableForModelSelection(ctx, account, requestedModel) && s.isAccountSchedulableForQuota(account) && s.isAccountSchedulableForWindowCost(ctx, account, true) && s.isAccountSchedulableForRPM(ctx, account, true) {
 						return account, nil
@@ -3283,7 +3328,7 @@ func (s *GatewayService) selectAccountWithMixedScheduling(ctx context.Context, g
 					if err == nil {
 						clearSticky := shouldClearStickySession(account, requestedModel)
 						if clearSticky {
-							_ = s.cache.DeleteSessionAccountID(ctx, derefGroupID(groupID), sessionHash)
+							s.deleteSessionBinding(ctx, derefGroupID(groupID), sessionHash)
 						}
 						if !clearSticky && s.isAccountInGroup(account, groupID) && (requestedModel == "" || s.isModelSupportedByAccountWithContext(ctx, account, requestedModel)) && s.isAccountSchedulableForModelSelection(ctx, account, requestedModel) && s.isAccountSchedulableForQuota(account) && s.isAccountSchedulableForWindowCost(ctx, account, true) && s.isAccountSchedulableForRPM(ctx, account, true) {
 							if account.Platform == nativePlatform || (account.Platform == PlatformAntigravity && account.IsMixedSchedulingEnabled()) {
@@ -3404,7 +3449,7 @@ func (s *GatewayService) selectAccountWithMixedScheduling(ctx context.Context, g
 				if err == nil {
 					clearSticky := shouldClearStickySession(account, requestedModel)
 					if clearSticky {
-						_ = s.cache.DeleteSessionAccountID(ctx, derefGroupID(groupID), sessionHash)
+						s.deleteSessionBinding(ctx, derefGroupID(groupID), sessionHash)
 					}
 					if !clearSticky && s.isAccountInGroup(account, groupID) && (requestedModel == "" || s.isModelSupportedByAccountWithContext(ctx, account, requestedModel)) && s.isAccountSchedulableForModelSelection(ctx, account, requestedModel) && s.isAccountSchedulableForQuota(account) && s.isAccountSchedulableForWindowCost(ctx, account, true) && s.isAccountSchedulableForRPM(ctx, account, true) && !s.isStickyAccountUpstreamRestricted(ctx, groupID, account, requestedModel) {
 						if account.Platform == nativePlatform || (account.Platform == PlatformAntigravity && account.IsMixedSchedulingEnabled()) {

@@ -296,6 +296,15 @@ func (m *mockGatewayCacheForGemini) DeleteSessionAccountID(ctx context.Context, 
 	delete(m.sessionBindings, sessionHash)
 	return nil
 }
+func (m *mockGatewayCacheForGemini) GetSessionEndpointStableID(_ context.Context, _ int64, _ string) (string, error) {
+	return "", nil
+}
+func (m *mockGatewayCacheForGemini) SetSessionEndpointStableID(_ context.Context, _ int64, _ string, _ string, _ time.Duration) error {
+	return nil
+}
+func (m *mockGatewayCacheForGemini) DeleteSessionEndpointStableID(_ context.Context, _ int64, _ string) error {
+	return nil
+}
 
 // TestGeminiMessagesCompatService_SelectAccountForModelWithExclusions_GeminiPlatform 测试 Gemini 单平台选择
 func TestGeminiMessagesCompatService_SelectAccountForModelWithExclusions_GeminiPlatform(t *testing.T) {

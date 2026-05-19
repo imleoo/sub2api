@@ -148,6 +148,15 @@ func (c *schedulerTestGatewayCache) DeleteSessionAccountID(ctx context.Context, 
 	delete(c.sessionBindings, sessionHash)
 	return nil
 }
+func (c *schedulerTestGatewayCache) GetSessionEndpointStableID(_ context.Context, _ int64, _ string) (string, error) {
+	return "", nil
+}
+func (c *schedulerTestGatewayCache) SetSessionEndpointStableID(_ context.Context, _ int64, _ string, _ string, _ time.Duration) error {
+	return nil
+}
+func (c *schedulerTestGatewayCache) DeleteSessionEndpointStableID(_ context.Context, _ int64, _ string) error {
+	return nil
+}
 
 func newSchedulerTestOpenAIWSV2Config() *config.Config {
 	cfg := &config.Config{}

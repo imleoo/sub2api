@@ -209,6 +209,9 @@ func (s *OpenAIGatewayService) deleteStickySessionAccountID(ctx context.Context,
 	}
 
 	err := s.cache.DeleteSessionAccountID(ctx, derefGroupID(groupID), primaryKey)
+	// P5-3: 同步清除 endpoint 维度绑定（best-effort）
+	_ = s.cache.DeleteSessionEndpointStableID(ctx, derefGroupID(groupID), primaryKey)
+
 	if !s.openAISessionHashReadOldFallbackEnabled() && !s.openAISessionHashDualWriteOldEnabled() {
 		return err
 	}
@@ -216,6 +219,7 @@ func (s *OpenAIGatewayService) deleteStickySessionAccountID(ctx context.Context,
 	legacyKey := s.openAILegacySessionCacheKey(ctx, sessionHash)
 	if legacyKey != "" {
 		_ = s.cache.DeleteSessionAccountID(ctx, derefGroupID(groupID), legacyKey)
+		_ = s.cache.DeleteSessionEndpointStableID(ctx, derefGroupID(groupID), legacyKey)
 	}
 	return err
 }

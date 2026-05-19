@@ -243,6 +243,15 @@ func (m *mockGatewayCacheForPlatform) DeleteSessionAccountID(ctx context.Context
 	delete(m.sessionBindings, sessionHash)
 	return nil
 }
+func (m *mockGatewayCacheForPlatform) GetSessionEndpointStableID(_ context.Context, _ int64, _ string) (string, error) {
+	return "", nil
+}
+func (m *mockGatewayCacheForPlatform) SetSessionEndpointStableID(_ context.Context, _ int64, _ string, _ string, _ time.Duration) error {
+	return nil
+}
+func (m *mockGatewayCacheForPlatform) DeleteSessionEndpointStableID(_ context.Context, _ int64, _ string) error {
+	return nil
+}
 
 type mockGroupRepoForGateway struct {
 	groups           map[int64]*Group
