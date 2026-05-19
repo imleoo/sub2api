@@ -3151,6 +3151,16 @@ export default {
       apiKeyRequired: 'API Key *',
       apiKeyPlaceholder: 'sk-ant-api03-...',
       apiKeyHint: 'Your Claude Console API Key',
+      // Phase 1 P1-3: OpenAI APIKey Provider preset
+      providers: {
+        label: 'Provider',
+        hint: 'Choose an OpenAI-compatible upstream channel; the preset auto-fills the base URL so usage logs can hit provider_pricing for accurate cost snapshots.',
+        openai: 'OpenAI (Official)',
+        deepseek: 'DeepSeek',
+        doubao: 'Doubao (Volcengine)',
+        siliconflow: 'SiliconFlow',
+        custom: 'Custom (manual entry)'
+      },
       // OpenAI specific hints
       openai: {
         baseUrlHint: 'Leave default for official OpenAI API',

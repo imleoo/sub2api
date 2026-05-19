@@ -3298,6 +3298,16 @@ export default {
       apiKeyRequired: 'API Key *',
       apiKeyPlaceholder: 'sk-ant-api03-...',
       apiKeyHint: '您的 Claude Console API Key',
+      // Phase 1 P1-3: OpenAI APIKey Provider 预设
+      providers: {
+        label: '渠道（Provider）',
+        hint: '选择 OpenAI-compatible 上游渠道；预设会自动填充 base_url，便于命中 provider_pricing 上游成本快照',
+        openai: 'OpenAI（官方）',
+        deepseek: 'DeepSeek',
+        doubao: '豆包（火山引擎）',
+        siliconflow: '硅基流动',
+        custom: '自定义（手动填写）'
+      },
       // OpenAI specific hints
       openai: {
         baseUrlHint: '留空使用官方 OpenAI API',

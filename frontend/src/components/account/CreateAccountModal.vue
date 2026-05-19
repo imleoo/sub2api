@@ -932,6 +932,18 @@
 
       <!-- API Key input (only for apikey type) -->
       <div v-if="form.type === 'apikey'" class="space-y-4">
+        <!-- Phase 1 P1-3: OpenAI APIKey Provider 预设（DeepSeek/豆包/硅基流动等 OpenAI-compatible 渠道）-->
+        <div v-if="form.platform === 'openai'">
+          <label class="input-label">{{ t('admin.accounts.providers.label') }}</label>
+          <select v-model="openaiProviderPreset" class="input">
+            <option value="openai">{{ t('admin.accounts.providers.openai') }}</option>
+            <option value="deepseek">{{ t('admin.accounts.providers.deepseek') }}</option>
+            <option value="doubao">{{ t('admin.accounts.providers.doubao') }}</option>
+            <option value="siliconflow">{{ t('admin.accounts.providers.siliconflow') }}</option>
+            <option value="custom">{{ t('admin.accounts.providers.custom') }}</option>
+          </select>
+          <p class="input-hint">{{ t('admin.accounts.providers.hint') }}</p>
+        </div>
         <div>
           <label class="input-label">{{ t('admin.accounts.baseUrl') }}</label>
           <input
@@ -3085,6 +3097,28 @@ const accountCategory = ref<'oauth-based' | 'apikey' | 'bedrock' | 'service_acco
 const addMethod = ref<AddMethod>('oauth') // For oauth-based: 'oauth' or 'setup-token'
 const apiKeyBaseUrl = ref('https://api.anthropic.com')
 const apiKeyValue = ref('')
+
+// Phase 1 P1-3: OpenAI APIKey Provider 预设（OpenAI/DeepSeek/豆包/硅基流动/自定义）
+// 切换时联动 apiKeyBaseUrl；写入 extra.provider 用于 P0-5 上游成本快照命中
+type OpenAIProviderPreset = 'openai' | 'deepseek' | 'doubao' | 'siliconflow' | 'custom'
+const openaiProviderPreset = ref<OpenAIProviderPreset>('openai')
+
+// providerPresetBaseURL 是预设 → 默认 base_url 的映射（与 backend NormalizeProvider 别名表对齐）
+const providerPresetBaseURL: Record<Exclude<OpenAIProviderPreset, 'custom'>, string> = {
+  openai: 'https://api.openai.com',
+  deepseek: 'https://api.deepseek.com',
+  // 火山引擎豆包兼容 endpoint（不同租户可能有变体，custom 兜底）
+  doubao: 'https://ark.cn-beijing.volces.com/api/v3',
+  siliconflow: 'https://api.siliconflow.cn/v1'
+}
+
+// 预设 → extra.provider 规范键（custom 不写）
+const providerPresetKey: Record<Exclude<OpenAIProviderPreset, 'custom'>, string> = {
+  openai: 'openai',
+  deepseek: 'deepseek',
+  doubao: 'doubao',
+  siliconflow: 'siliconflow'
+}
 const editQuotaLimit = ref<number | null>(null)
 const editQuotaDailyLimit = ref<number | null>(null)
 const editQuotaWeeklyLimit = ref<number | null>(null)
@@ -3387,10 +3421,21 @@ watch(
   { immediate: true }
 )
 
+// Phase 1 P1-3：openaiProviderPreset 切换时联动 apiKeyBaseUrl（custom 保持用户输入）
+watch(openaiProviderPreset, (preset) => {
+  if (form.platform !== 'openai') return
+  if (preset === 'custom') return
+  apiKeyBaseUrl.value = providerPresetBaseURL[preset]
+})
+
 // Reset platform-specific settings when platform changes
 watch(
   () => form.platform,
   (newPlatform) => {
+    // Phase 1 P1-3：切换平台时重置 OpenAI 预设回默认（避免 deepseek 预设残留到非 openai 平台）
+    if (newPlatform !== 'openai') {
+      openaiProviderPreset.value = 'openai'
+    }
     // Reset base URL based on platform
     apiKeyBaseUrl.value =
       (newPlatform === 'openai')
@@ -3890,6 +3935,13 @@ const buildOpenAIExtra = (base?: Record<string, unknown>): Record<string, unknow
   } else if (accountCategory.value === 'apikey') {
     extra.openai_apikey_responses_websockets_v2_mode = openaiAPIKeyResponsesWebSocketV2Mode.value
     extra.openai_apikey_responses_websockets_v2_enabled = isOpenAIWSModeEnabled(openaiAPIKeyResponsesWebSocketV2Mode.value)
+    // Phase 1 P1-3：写入 extra.provider 规范键（DeepSeek 等聚合渠道可命中 provider_pricing）
+    // 'custom' 时不写 extra.provider，后端按 platform 推导（兜底回 'openai'）
+    if (openaiProviderPreset.value !== 'custom') {
+      extra.provider = providerPresetKey[openaiProviderPreset.value]
+    } else {
+      delete extra.provider
+    }
   }
   // 清理兼容旧键，统一改用分类型开关。
   delete extra.responses_websockets_v2_enabled
