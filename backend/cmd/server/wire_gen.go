@@ -8,6 +8,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/handler"
@@ -274,6 +275,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	application := &Application{
 		Server:  httpServer,
 		Cleanup: v,
+		SQLDB:   db,
 	}
 	return application, nil
 }
@@ -283,6 +285,8 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 type Application struct {
 	Server  *http.Server
 	Cleanup func()
+	// SQLDB 用于启动健康检查等需要直接读 DB 的运维场景（Phase 2 P2-4 引入）。
+	SQLDB *sql.DB
 }
 
 func providePrivacyClientFactory() service.PrivacyClientFactory {

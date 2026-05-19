@@ -20,6 +20,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/handler"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
+	"github.com/Wei-Shaw/sub2api/internal/service"
 	"github.com/Wei-Shaw/sub2api/internal/setup"
 	"github.com/Wei-Shaw/sub2api/internal/web"
 
@@ -150,6 +151,20 @@ func runMainServer() {
 		log.Fatalf("Failed to initialize application: %v", err)
 	}
 	defer app.Cleanup()
+
+	// Phase 2 P2-4：启动后异步跑一次 platform vs protocol 双字段一致性扫描。
+	// 不阻塞 server 启动（DB 慢 / 表大时也不耽误监听）；扫描结果通过 slog ERROR 暴露给运维。
+	// 不一致行数由 service.LoadGroupProtocolMismatchCount/AccountProtocolMismatchCount 暴露给 metric exporter。
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if app.SQLDB == nil {
+			return
+		}
+		if _, err := service.RunProtocolConsistencyCheck(ctx, app.SQLDB); err != nil {
+			log.Printf("[P2-4] protocol consistency check failed: %v", err)
+		}
+	}()
 
 	// 启动服务器
 	go func() {
