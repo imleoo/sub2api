@@ -78,6 +78,15 @@ func (r stubOpenAIAccountRepo) ListSchedulableByPlatform(ctx context.Context, pl
 func (r stubOpenAIAccountRepo) ListSchedulableUngroupedByPlatform(ctx context.Context, platform string) ([]Account, error) {
 	return r.ListSchedulableByPlatform(ctx, platform)
 }
+func (r stubOpenAIAccountRepo) ListSchedulableByOutboundProtocol(context.Context, string) ([]Account, error) {
+	return nil, nil
+}
+func (r stubOpenAIAccountRepo) ListSchedulableByGroupIDAndOutboundProtocol(context.Context, int64, string) ([]Account, error) {
+	return nil, nil
+}
+func (r stubOpenAIAccountRepo) ListSchedulableUngroupedByOutboundProtocol(context.Context, string) ([]Account, error) {
+	return nil, nil
+}
 
 type stubConcurrencyCache struct {
 	ConcurrencyCache

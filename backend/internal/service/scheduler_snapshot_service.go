@@ -136,6 +136,11 @@ func (s *SchedulerSnapshotService) ListSchedulableAccounts(ctx context.Context, 
 		}
 	}
 
+	// Phase 5 P5-2: 双桶影子比较（feature flag 控制；lingjing 跳过）
+	if s.cfg != nil && s.cfg.Gateway.Scheduling.DualBucketEnabled && s.accountRepo != nil {
+		s.runDualBucketShadow(platform, bucket.GroupID, accounts)
+	}
+
 	return accounts, useMixed, nil
 }
 

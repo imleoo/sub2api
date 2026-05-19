@@ -153,6 +153,15 @@ func (m *mockAccountRepoForPlatform) ListSchedulableUngroupedByPlatform(ctx cont
 func (m *mockAccountRepoForPlatform) ListSchedulableUngroupedByPlatforms(ctx context.Context, platforms []string) ([]Account, error) {
 	return m.ListSchedulableByPlatforms(ctx, platforms)
 }
+func (m *mockAccountRepoForPlatform) ListSchedulableByOutboundProtocol(context.Context, string) ([]Account, error) {
+	return nil, nil
+}
+func (m *mockAccountRepoForPlatform) ListSchedulableByGroupIDAndOutboundProtocol(context.Context, int64, string) ([]Account, error) {
+	return nil, nil
+}
+func (m *mockAccountRepoForPlatform) ListSchedulableUngroupedByOutboundProtocol(context.Context, string) ([]Account, error) {
+	return nil, nil
+}
 func (m *mockAccountRepoForPlatform) SetRateLimited(ctx context.Context, id int64, resetAt time.Time) error {
 	return nil
 }

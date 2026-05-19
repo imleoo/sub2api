@@ -1045,6 +1045,72 @@ func (r *accountRepository) ListSchedulableByGroupIDAndPlatforms(ctx context.Con
 	})
 }
 
+// Phase 5 P5-2: 协议维度调度查询（双桶影子路径，lingjing 不参与）
+
+func (r *accountRepository) ListSchedulableByOutboundProtocol(ctx context.Context, protocol string) ([]service.Account, error) {
+	now := time.Now()
+	accounts, err := r.client.Account.Query().
+		Where(
+			dbaccount.OutboundProtocolEQ(protocol),
+			dbaccount.StatusEQ(service.StatusActive),
+			dbaccount.SchedulableEQ(true),
+			tempUnschedulablePredicate(),
+			notExpiredPredicate(now),
+			dbaccount.Or(dbaccount.OverloadUntilIsNil(), dbaccount.OverloadUntilLTE(now)),
+			dbaccount.Or(dbaccount.RateLimitResetAtIsNil(), dbaccount.RateLimitResetAtLTE(now)),
+		).
+		Order(dbent.Asc(dbaccount.FieldPriority)).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r.accountsToService(ctx, accounts)
+}
+
+func (r *accountRepository) ListSchedulableByGroupIDAndOutboundProtocol(ctx context.Context, groupID int64, protocol string) ([]service.Account, error) {
+	now := time.Now()
+	accounts, err := r.client.Account.Query().
+		Where(
+			dbaccount.OutboundProtocolEQ(protocol),
+			dbaccount.StatusEQ(service.StatusActive),
+			dbaccount.SchedulableEQ(true),
+			dbaccount.HasAccountGroupsWith(
+				dbaccountgroup.GroupIDEQ(groupID),
+			),
+			tempUnschedulablePredicate(),
+			notExpiredPredicate(now),
+			dbaccount.Or(dbaccount.OverloadUntilIsNil(), dbaccount.OverloadUntilLTE(now)),
+			dbaccount.Or(dbaccount.RateLimitResetAtIsNil(), dbaccount.RateLimitResetAtLTE(now)),
+		).
+		Order(dbent.Asc(dbaccount.FieldPriority)).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r.accountsToService(ctx, accounts)
+}
+
+func (r *accountRepository) ListSchedulableUngroupedByOutboundProtocol(ctx context.Context, protocol string) ([]service.Account, error) {
+	now := time.Now()
+	accounts, err := r.client.Account.Query().
+		Where(
+			dbaccount.OutboundProtocolEQ(protocol),
+			dbaccount.StatusEQ(service.StatusActive),
+			dbaccount.SchedulableEQ(true),
+			dbaccount.Not(dbaccount.HasAccountGroups()),
+			tempUnschedulablePredicate(),
+			notExpiredPredicate(now),
+			dbaccount.Or(dbaccount.OverloadUntilIsNil(), dbaccount.OverloadUntilLTE(now)),
+			dbaccount.Or(dbaccount.RateLimitResetAtIsNil(), dbaccount.RateLimitResetAtLTE(now)),
+		).
+		Order(dbent.Asc(dbaccount.FieldPriority)).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r.accountsToService(ctx, accounts)
+}
+
 func (r *accountRepository) SetRateLimited(ctx context.Context, id int64, resetAt time.Time) error {
 	now := time.Now()
 	_, err := r.client.Account.Update().

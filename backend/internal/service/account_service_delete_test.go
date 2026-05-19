@@ -207,6 +207,16 @@ func (s *accountRepoStub) ResetQuotaUsed(ctx context.Context, id int64) error {
 	return nil
 }
 
+func (s *accountRepoStub) ListSchedulableByOutboundProtocol(context.Context, string) ([]Account, error) {
+	panic("unexpected ListSchedulableByOutboundProtocol call")
+}
+func (s *accountRepoStub) ListSchedulableByGroupIDAndOutboundProtocol(context.Context, int64, string) ([]Account, error) {
+	panic("unexpected ListSchedulableByGroupIDAndOutboundProtocol call")
+}
+func (s *accountRepoStub) ListSchedulableUngroupedByOutboundProtocol(context.Context, string) ([]Account, error) {
+	panic("unexpected ListSchedulableUngroupedByOutboundProtocol call")
+}
+
 // TestAccountService_Delete_NotFound 测试删除不存在的账号时返回正确的错误。
 // 预期行为：
 //   - ExistsByID 返回 false（账号不存在）

@@ -59,6 +59,12 @@ type AccountRepository interface {
 	ListSchedulableUngroupedByPlatform(ctx context.Context, platform string) ([]Account, error)
 	ListSchedulableUngroupedByPlatforms(ctx context.Context, platforms []string) ([]Account, error)
 
+	// Phase 5 P5-2: 协议维度调度查询（双桶影子路径）
+	// 按 outbound_protocol 筛选而非 platform，lingjing 不参与。
+	ListSchedulableByOutboundProtocol(ctx context.Context, protocol string) ([]Account, error)
+	ListSchedulableByGroupIDAndOutboundProtocol(ctx context.Context, groupID int64, protocol string) ([]Account, error)
+	ListSchedulableUngroupedByOutboundProtocol(ctx context.Context, protocol string) ([]Account, error)
+
 	SetRateLimited(ctx context.Context, id int64, resetAt time.Time) error
 	SetModelRateLimit(ctx context.Context, id int64, scope string, resetAt time.Time) error
 	SetOverloaded(ctx context.Context, id int64, until time.Time) error

@@ -103,6 +103,15 @@ func (s *stubAntigravityAccountRepo) UpdateExtra(ctx context.Context, id int64, 
 	s.extraUpdateCalls = append(s.extraUpdateCalls, extraUpdateCall{accountID: id, updates: updates})
 	return nil
 }
+func (s *stubAntigravityAccountRepo) ListSchedulableByOutboundProtocol(context.Context, string) ([]Account, error) {
+	return nil, nil
+}
+func (s *stubAntigravityAccountRepo) ListSchedulableByGroupIDAndOutboundProtocol(context.Context, int64, string) ([]Account, error) {
+	return nil, nil
+}
+func (s *stubAntigravityAccountRepo) ListSchedulableUngroupedByOutboundProtocol(context.Context, string) ([]Account, error) {
+	return nil, nil
+}
 
 func TestAntigravityRetryLoop_NoURLFallback_UsesConfiguredBaseURL(t *testing.T) {
 	t.Setenv(antigravityForwardBaseURLEnv, "")

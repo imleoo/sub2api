@@ -984,6 +984,11 @@ type GatewaySchedulingConfig struct {
 	// 全量重建周期配置
 	// 全量重建周期（秒），0 表示禁用
 	FullRebuildIntervalSeconds int `mapstructure:"full_rebuild_interval_seconds"`
+
+	// Phase 5 P5-2: 双桶并存影子对比（4 周观察期）。
+	// 为 true 时每次 ListSchedulableAccounts 会异步运行协议维度影子查询并记录分歧埋点。
+	// lingjing 平台始终跳过影子比较。
+	DualBucketEnabled bool `mapstructure:"dual_bucket_enabled"`
 }
 
 func (s *ServerConfig) Address() string {
