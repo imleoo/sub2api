@@ -1,0 +1,4 @@
+data: {"candidates":[{"content":{"parts":[{"text":"I can see a cat in the image."}],"role":"model"},"index":0}],"usageMetadata":{"promptTokenCount":258,"candidatesTokenCount":9,"totalTokenCount":267}}
+
+data: {"candidates":[{"content":{"parts":[{"text":" It appears to be a tabby cat."}],"role":"model"},"finishReason":"STOP","index":0}],"usageMetadata":{"promptTokenCount":258,"candidatesTokenCount":17,"totalTokenCount":275}}
+
