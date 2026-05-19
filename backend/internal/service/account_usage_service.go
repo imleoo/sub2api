@@ -1140,6 +1140,34 @@ func (s *AccountUsageService) GetUserUsageStats(ctx context.Context, userID int6
 	return stats, nil
 }
 
+// GetAccountStatsCrossGroup 返回账号跨 group 全量聚合（Phase 1 P1-2 / P1-4）。
+//
+// 与 GetAccountUsageStats 行为一致——账号挂多 group 时跨 group 求和；
+// 函数名显式表达"不被 group_id 切分"承诺。详见 docs/generic-channel-design.md §5.4。
+func (s *AccountUsageService) GetAccountStatsCrossGroup(ctx context.Context, accountID int64, startTime, endTime time.Time) (*usagestats.AccountUsageStatsResponse, error) {
+	stats, err := s.usageLogRepo.GetAccountStatsCrossGroup(ctx, accountID, startTime, endTime)
+	if err != nil {
+		return nil, fmt.Errorf("get account stats cross group failed: %w", err)
+	}
+	return stats, nil
+}
+
+// GetStatsByProvider 返回按 provider_key 跨 group 聚合的用量统计（Phase 1 P1-2 / P1-4）。
+//
+// providerKey 必须是 NormalizeProvider 规范化后的值；为空返回 nil。
+// 调用栈不出现 group_id 强过滤；详见 docs/generic-channel-design.md §5.4 第 2 条。
+func (s *AccountUsageService) GetStatsByProvider(ctx context.Context, providerKey string, startTime, endTime time.Time) (*usagestats.AccountUsageStatsResponse, error) {
+	providerKey = NormalizeProvider(providerKey)
+	if providerKey == "" {
+		return nil, fmt.Errorf("provider key is required")
+	}
+	stats, err := s.usageLogRepo.GetStatsByProvider(ctx, providerKey, startTime, endTime)
+	if err != nil {
+		return nil, fmt.Errorf("get stats by provider failed: %w", err)
+	}
+	return stats, nil
+}
+
 // fetchOAuthUsageRaw 从 Anthropic API 获取原始响应（不构建 UsageInfo）
 // 如果账号开启了 TLS 指纹，则使用 TLS 指纹伪装
 // 如果有缓存的 Fingerprint，则使用缓存的 User-Agent 等信息

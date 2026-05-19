@@ -878,6 +878,72 @@ func (h *AccountHandler) GetStats(c *gin.Context) {
 	response.Success(c, stats)
 }
 
+// GetStatsCrossGroup 返回账号跨 group 全量聚合（Phase 1 P1-2 / P1-4）。
+//
+// 与 GetStats 行为一致（实质是同一聚合调用栈），但显式命名表达
+// "不被 group_id 切分"的语义承诺。前端 P1-4 AccountDistributionChart 使用此接口。
+//
+// GET /api/v1/admin/accounts/:id/stats-cross-group?days=30
+func (h *AccountHandler) GetStatsCrossGroup(c *gin.Context) {
+	accountID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		response.BadRequest(c, "Invalid account ID")
+		return
+	}
+
+	days := 30
+	if daysStr := c.Query("days"); daysStr != "" {
+		if d, err := strconv.Atoi(daysStr); err == nil && d > 0 && d <= 90 {
+			days = d
+		}
+	}
+
+	now := timezone.Now()
+	endTime := timezone.StartOfDay(now.AddDate(0, 0, 1))
+	startTime := timezone.StartOfDay(now.AddDate(0, 0, -days+1))
+
+	stats, err := h.accountUsageService.GetAccountStatsCrossGroup(c.Request.Context(), accountID, startTime, endTime)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	response.Success(c, stats)
+}
+
+// GetStatsByProvider 返回按 provider_key 跨 group 聚合的用量统计（Phase 1 P1-2 / P1-4）。
+//
+// provider 路径参数会经 NormalizeProvider 规范化（防止 "DeepSeek"/"deep-seek" 等别名漂移）。
+// 前端 P1-4 ProviderDistributionChart 使用此接口。
+//
+// GET /api/v1/admin/usage/by-provider/:provider?days=30
+func (h *AccountHandler) GetStatsByProvider(c *gin.Context) {
+	providerKey := strings.TrimSpace(c.Param("provider"))
+	if providerKey == "" {
+		response.BadRequest(c, "provider is required")
+		return
+	}
+
+	days := 30
+	if daysStr := c.Query("days"); daysStr != "" {
+		if d, err := strconv.Atoi(daysStr); err == nil && d > 0 && d <= 90 {
+			days = d
+		}
+	}
+
+	now := timezone.Now()
+	endTime := timezone.StartOfDay(now.AddDate(0, 0, 1))
+	startTime := timezone.StartOfDay(now.AddDate(0, 0, -days+1))
+
+	stats, err := h.accountUsageService.GetStatsByProvider(c.Request.Context(), providerKey, startTime, endTime)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	response.Success(c, stats)
+}
+
 // ClearError handles clearing account error
 // POST /api/v1/admin/accounts/:id/clear-error
 func (h *AccountHandler) ClearError(c *gin.Context) {

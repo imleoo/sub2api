@@ -322,6 +322,8 @@ func registerAccountRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		accounts.POST("/:id/refresh", h.Admin.Account.Refresh)
 		accounts.POST("/:id/set-privacy", h.Admin.Account.SetPrivacy)
 		accounts.GET("/:id/stats", h.Admin.Account.GetStats)
+		// Phase 1 P1-4：账号跨 group 全量聚合（语义 alias，显式承诺不被 group_id 切分）
+		accounts.GET("/:id/stats-cross-group", h.Admin.Account.GetStatsCrossGroup)
 		accounts.POST("/:id/clear-error", h.Admin.Account.ClearError)
 		accounts.GET("/:id/usage", h.Admin.Account.GetUsage)
 		accounts.GET("/:id/today-stats", h.Admin.Account.GetTodayStats)
@@ -531,6 +533,9 @@ func registerUsageRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		usage.GET("/cleanup-tasks", h.Admin.Usage.ListCleanupTasks)
 		usage.POST("/cleanup-tasks", h.Admin.Usage.CreateCleanupTask)
 		usage.POST("/cleanup-tasks/:id/cancel", h.Admin.Usage.CancelCleanupTask)
+		// Phase 1 P1-4：按 provider_key 跨 group 聚合（前端 ProviderDistributionChart 使用）
+		// 路径上的 provider 会经 NormalizeProvider 规范化，防止别名漂移
+		usage.GET("/by-provider/:provider", h.Admin.Account.GetStatsByProvider)
 	}
 }
 

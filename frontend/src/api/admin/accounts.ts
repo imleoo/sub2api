@@ -218,6 +218,35 @@ export async function getStats(id: number, days: number = 30): Promise<AccountUs
 }
 
 /**
+ * Get account stats with explicit cross-group semantics (Phase 1 P1-4).
+ *
+ * Equivalent to {@link getStats}, but the API path makes the "not split by group_id"
+ * promise explicit — used by the AccountDistributionChart which needs to display
+ * "covered groups = N" without group-level partitioning.
+ */
+export async function getStatsCrossGroup(id: number, days: number = 30): Promise<AccountUsageStatsResponse> {
+  const { data } = await apiClient.get<AccountUsageStatsResponse>(`/admin/accounts/${id}/stats-cross-group`, {
+    params: { days }
+  })
+  return data
+}
+
+/**
+ * Get usage statistics aggregated by provider_key (Phase 1 P1-4).
+ *
+ * The `provider` argument must be a normalized provider_key
+ * (see backend `service.NormalizeProvider`). Aliases like "DeepSeek" / "deep-seek"
+ * are NOT accepted — pass `"deepseek"` instead.
+ */
+export async function getStatsByProvider(provider: string, days: number = 30): Promise<AccountUsageStatsResponse> {
+  const { data } = await apiClient.get<AccountUsageStatsResponse>(
+    `/admin/usage/by-provider/${encodeURIComponent(provider)}`,
+    { params: { days } }
+  )
+  return data
+}
+
+/**
  * Clear account error
  * @param id - Account ID
  * @returns Updated account
