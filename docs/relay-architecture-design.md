@@ -59,9 +59,19 @@ Group.Platform != "openai"
   /v1/messages          -> Gateway.Messages
   /v1/chat/completions  -> Gateway.ChatCompletions
   /v1/responses         -> Gateway.Responses
+
+# fork 第 12 项 lingjing 异步任务分流（routes/gateway.go:168, 193-203）
+Group.Platform = "openai" && Account.IsLingjing()
+  /v1/images/generations -> LingjingGateway.ForwardSeedreamImage（同步轮询 60s）
+
+Group.Platform = "lingjing"
+  /lingjing/v1/video/submit -> LingjingHandler.SubmitVideoTask（异步 HTTP 202 + taskId）
+  /lingjing/v1/video/:taskId -> LingjingHandler.GetVideoTaskStatus（poll 查询）
 ```
 
 `/v1beta/*` 入口也仍以 Gemini handler 为主，并在 handler 内校验 `Group.Platform == gemini` 或显式 force platform。也就是说，入口层尚未按 `Group.InboundProtocol` 解耦。
+
+> **fork 第 12 项 lingjing 注意**：lingjing 平台是 5 个 platform 中的**第 5 个**（详见 `glossary.md §1.2`），**有自己的 ForcePlatform middleware**（`routes/gateway.go:198`，第 4 处 ForcePlatform）。Phase 2 P2-3 改造时**不能并入"7 处 platform 分流"批量改造**——lingjing 的 `/lingjing/v1/video/*` 路由组和 `/v1/images/generations` 的 lingjing 分支需单独维护，且 Phase 5 多 endpoint 重构**不纳入 lingjing**（详见 §6 与 `generic-channel-design.md` §10）。
 
 ### 2.2 现有协议转换点
 
@@ -368,6 +378,8 @@ type GroupFeaturePolicy struct {
 
 ## 6. Generic Channel 定位
 
+> **fork 第 12 项 lingjing 不属于 Generic Channel**：Phase 5 引入 `platform=generic` 多 endpoint 账号时，lingjing 不参与（详见 `generic-channel-design.md` §10）。lingjing 的异步任务制（Seedance 视频走 HTTP 202 + poll_runner）与 generic 设计的同步 endpoint 选择 + Bridge 转换模型不兼容，应作为独立 platform 持续维护。多 endpoint Generic 不是"万能容器"。计费侧 lingjing **仍接入** Phase 0 P0-7 上游成本快照（见 `upstream-cost-snapshot.md` §4.1），与调度层正交。
+
 Generic Channel 是 Layer 3 的一种账号类型，用于承载当前 `anthropic`、`openai`、`gemini` 三类内置平台之外的通用渠道。它覆盖两类上游：
 
 - **原厂兼容接口**：DeepSeek、豆包等有独立厂商身份，但主要以 OpenAI-compatible 或厂商自定义兼容协议对外提供 API。
@@ -570,6 +582,7 @@ Bridge 转换不可能 100% 保留语义。调度器必须把损失显式化，�
 | Anthropic `cache_control` -> OpenAI Responses | 不完全等价 | 按具体 Responses 兼容能力判定 Native/Lossy/Dropped；默认不接受 Dropped |
 | Anthropic `thinking` -> OpenAI reasoning | 语义不等价 | `Lossy`，仅 `lossy_ok` 或更宽策略可选 |
 | OpenAI SSE -> Anthropic SSE | 事件语义不同 | writer/reader 流式桥，单测覆盖事件序列 |
+| 异步任务 poll 期间 UsageLog 行级成本 = NULL（fork 第 12 项 lingjing） | 实时毛利视图覆盖率波动 | poll 期间用 `lingjing_task.status` join 显示"待结算"；poll_runner 完成回填 `upstream_total_cost` + `cost_finalized_at` 后自然消失；BI 按 `cost_finalized_at` 而非 `created_at` 聚合实时毛利 |
 
 ### 9.2 调度复杂度
 

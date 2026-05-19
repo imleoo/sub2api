@@ -34,9 +34,12 @@ PlatformAnthropic   = "anthropic"
 PlatformOpenAI      = "openai"
 PlatformGemini      = "gemini"
 PlatformAntigravity = "antigravity"
+PlatformLingjing    = "lingjing"  // fork 第 12 项，京东云灵境 Doubao Seedream/Seedance
 ```
 
-前端类型也只枚举了固定平台，账号创建表单没有通用渠道入口。直接写入 `platform=generic` 虽然数据库能保存，但路由、调度、模型同步和前端展示不会自动可用。
+> `PlatformLingjing` 是**专有异步任务平台**（Doubao Seedream 图同步、Seedance 视频异步），**不属于 generic 范畴**；详见本文 §10 排除条款。
+
+前端类型 fork 已枚举 `'lingjing'` 与 `'antigravity'`（fork 12 引入 `frontend/src/types/index.ts`），账号创建表单已有 lingjing 入口，但**没有通用渠道入口**。直接写入 `platform=generic` 虽然数据库能保存，但路由、调度、模型同步和前端展示不会自动可用。
 
 ### 2.2 数据库存储不是主要阻塞点
 
@@ -201,6 +204,8 @@ OpenAI-compatible 通用渠道
 - `extra.provider_type`
 - `extra.protocol = "openai"`
 
+**不复活 OAuth UI**（fork 第 11 项约束）：fork 已从 `CreateAccountModal.vue` / `EditAccountModal.vue` 删除所有 OAuth 相关 handler（`handleOpenAIExchange` / `handleAnthropicExchange` / `handleGeminiExchange` / `OPENAI_MOBILE_RT_CLIENT_ID` 等）。Phase 1 P1-3 加 Provider 预设下拉时，仅暴露 **API Key / Setup Token** 两种入口；后端 `ForwardAsAnthropic` 内部的 OAuth codex 伪装链（`applyCodexOAuthTransformWithOptions`）照常工作，与前端 UI 入口解耦。
+
 统计页面必须在 `frontend/src/components/charts/` 下增加两个与 `GroupDistributionChart` 同级的视图：
 
 | 视图 | 聚合维度 | 绑定 API | 关键 UI 元素 |
@@ -229,6 +234,7 @@ OpenAI-compatible 通用渠道
 3. **账号汇总等式**：当账号被多个 group 复用，按 Account 维度返回的 token/cost 必须等于该账号在所有 group 下行级 UsageLog 之和；前后端对账测试为 Phase 1 必跑项。
 4. **厂商汇总等式**：同一 `provider_key` 下若挂多个 Account（如同一管理员开了两把 DeepSeek key），其总账等于这些 Account 总账之和，与 Account 所属 group 数量无关。
 5. **历史快照独立性**：删除或停用 Account、修改 `extra.provider` 不会擦除或回写历史 UsageLog 的 `provider`/`account_id`/`platform`，保证历史账单可追溯。
+6. **异步任务汇总等式**（fork 第 12 项 lingjing）：lingjing 视频任务的 token/cost 总账 = `lingjing_task` 表中所有已 finalized 任务的 `actual_cost` 之和 = UsageLog 中 `async_task_id IS NOT NULL` 且 `upstream_total_cost IS NOT NULL` 行的求和。两路对账每日 ≤0.1% 差异；超出阈值触发告警。lingjing 异步任务**不参与同步路径的 7 天 shadow 对账**（详见 `upstream-cost-snapshot.md` §4.2）。
 
 ---
 
@@ -329,4 +335,35 @@ Phase 5 验收：
 - Phase 1（全局阶段编号）：不新增 `platform=generic`，先用 provider 元信息增强现有 OpenAI-compatible 接入；新增 Account/Provider 跨 group 聚合视图。
 - Phase 5（全局阶段编号）：在 Phase 0 计费快照、Phase 2 协议字段双写、Phase 3 Bridge Registry、Phase 4 Gemini 桥就绪后，引入真正 Generic 多 endpoint 账号，并完成 scheduler snapshot 双桶并存验证。
 - 详细阶段路线与依赖见 `docs/relay-architecture-design.md` §7。
+
+---
+
+## 10. lingjing 平台与 Generic 边界（fork 第 12 项排除条款）
+
+`PlatformLingjing`（fork 第 12 项）虽然是内置 4 平台之外的"第 5 平台"，但**不归入 generic 范畴**。理由：
+
+1. **异步任务制**：Seedance 视频任务通过 HTTP 202 + taskId + 后台 poll_runner（5s ticker / 10 workers / max 240 次轮询）完成计费，与 generic 设计的"同步 endpoint 选择 + Bridge 转换"模型不兼容。
+2. **专用路由组**：`/lingjing/v1/video/*` 是独立路由（`backend/internal/server/routes/gateway.go:193-203`），不复用 `/v1/messages` / `/v1/chat/completions` / `/v1/responses` 入口；自带第 4 处 ForcePlatform middleware（L198）。
+3. **专用 service 链**：`lingjing_client.go` / `lingjing_gateway_service.go` / `lingjing_images.go` / `lingjing_poll_runner.go` / `lingjing_task_port.go` 共 5 个独立 service 文件，不走通用 gateway service。
+4. **独立 ent 实体**：`backend/ent/schema/lingjing_task.go` 持久化任务状态（gen_task_id、status、result_url、billing 字段等），generic 不需要这类持久化。
+5. **混合调度**：`/v1/images/generations` 的 Seedream 同步生图复用 OpenAI 路由（`routes/gateway.go:168` 加 `lingjing` 平台分支）；Seedance 视频走专用路由。这种"复用+专用"混合模式不应被 generic 多 endpoint 抽象吞掉。
+
+### 10.1 Phase 5 实施约束
+
+引入 `platform=generic` 多 endpoint 账号时：
+
+- **P5-1 schema 迁移**：endpoint 实体迁移脚本在 `WHERE platform != 'lingjing'` 范围内执行，lingjing 账号保持单 endpoint 派生即可。
+- **P5-2 scheduler 双桶并存**：lingjing 不进入双桶对比（异步任务无 endpoint 概念）。
+- **P5-3 sticky_session key**：lingjing 不需要 sticky（异步任务通过 `gen_task_id` 关联，与 endpoint 无关）。
+- **P5-4 前端表单**：lingjing 表单保持现状（fork 第 12 项已实现 `CreateAccountModal.vue` 的 lingjing 入口），不复用 generic 多 endpoint 列表表单。
+
+### 10.2 与上游成本快照的协调
+
+虽然 lingjing 不归 generic，但 **Phase 0 P0-7 仍负责** lingjing 异步计费接入 `upstream_total_cost`（见 `upstream-cost-snapshot.md` §4.1）。这是计费侧的统一接入，与"是否属于 generic"无关：
+
+- 计费层：lingjing **进入** `upstream_total_cost` / `provider_pricing` / 毛利视图统一体系（fork 12 第 12 项 + P0-7）。
+- 调度层：lingjing **不进入** generic 多 endpoint / Bridge Registry / scheduler 协议桶（本节 §10.1）。
+
+两个维度正交，互不依赖。
+
 

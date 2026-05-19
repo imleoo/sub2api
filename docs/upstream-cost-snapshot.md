@@ -21,6 +21,15 @@
 - `backend/internal/service/account_stats_pricing.go` 已有"账号侧成本估算"四级回退链：自定义规则 / 客户计费 / LiteLLM 模型表 / `total_cost × account_rate_multiplier`。**但这是估算，不是上游真实账单快照**。
 - 已有 `account_rate_multiplier` 字段可作为"上游倍率系数"的折算手段；但语义模糊，不能替代显式"上游单价 × token 数 = 上游成本"。
 
+### 与 fork 既有计费链的边界（fork 第 5 项）
+
+`billing_service.applyDiscount()` 与 `pricing_service.loadDiscounts()`（fork 第 5 项「模型折扣 + 人民币定价」）作用于 `actual_cost`（客户售价），与本期 `upstream_total_cost`（上游成本）**正交**：
+
+- `total_cost` → `actual_cost`：应用 `account_rate_multiplier` × `model_discounts.json` 折扣后的客户最终售价，**Phase 0 不动**。
+- `upstream_total_cost` → 新增上游真实成本快照，来自 `provider_pricing` 表，**Phase 0 新建**。
+- 毛利公式：`actual_cost - upstream_total_cost`（折扣已在 `actual_cost` 内消化，**不重复扣减**）。
+- BI 报表标题必须显式区分"上游成本"与"客户折扣"，避免运营误读为同一概念。
+
 ### 设计原则
 
 - 上游成本与售价**双轨快照**，写入同一行，事后不可被账号配置或价表变更回溯改写。
@@ -72,6 +81,15 @@ field.String("provider").
 field.String("pricing_source").
     MaxLen(20).Optional().Nillable().
     Comment("provider_table（命中 provider_pricing 表）；预留 upstream_billing（未来接上游账单 API）；NULL 表示无上游成本快照，不允许写入 litellm/fallback 等估算来源"),
+
+// 异步任务计费回填（Phase 0 P0-7 引入，与 fork 第 12 项 lingjing_poll_runner 对齐）
+field.String("async_task_id").
+    MaxLen(64).Optional().Nillable().
+    Comment("lingjing 等异步任务 gen_task_id；同步请求保持 NULL"),
+field.Time("cost_finalized_at").
+    Optional().Nillable().
+    SchemaType(map[string]string{dialect.Postgres: "timestamptz"}).
+    Comment("成本最终确定时刻；同步=request_end，异步=poll_runner 触发计费时刻"),
 ```
 
 **不新增索引**：写入热表加索引代价高，等 Phase 1 跨 group 聚合视图上线后视查询模式再加。
@@ -146,10 +164,13 @@ func (ProviderPricing) Indexes() []ent.Index {
 
 `upstream_total_cost` 与 `pricing_source` 是**两态**字段，不是估算回退链：
 
-| `provider_pricing` 是否命中 | `upstream_total_cost` | `pricing_source` | 含义 |
-|---|---|---|---|
-| 命中（精确或通配，且 `effective_from ≤ now < effective_to`） | 非空（按命中单价计算） | `"provider_table"` | 真实上游成本快照 |
-| 未命中 | NULL | NULL | 无上游成本快照；统计页打"无快照"标签并从毛利聚合排除 |
+| 场景 | `upstream_total_cost` | `pricing_source` | `async_task_id` | `cost_finalized_at` | 含义 |
+|---|---|---|---|---|---|
+| 命中（精确或通配，且 `effective_from ≤ now < effective_to`） | 非空 | `"provider_table"` | NULL | request_end 时刻 | 同步请求真实成本快照 |
+| 未命中 | NULL | NULL | NULL | NULL | 无上游成本快照；统计页打"无快照"标签并从毛利聚合排除 |
+| Response Masking 短路（fork 8） | NULL | NULL | NULL | request_end 时刻 | 请求未打上游，与"无快照"同语义；单独归为"masking 短路"维度 |
+| 异步任务待回填（fork 12） | NULL | NULL | 非空 | NULL | poll_runner 未完成；归为"待结算"维度，不计"无快照异常" |
+| 异步任务已回填（fork 12） | 非空 | `"provider_table"` | 非空 | poll 触发时刻 | poll_runner 写入；统一进入毛利聚合 |
 
 **绝不把 LiteLLM、自定义规则、默认公式的估算写入 `upstream_total_cost`**。LiteLLM 公开价表对 DeepSeek/豆包等第三方渠道未必准确；自定义规则与默认公式是为"账号统计估算"设计，不是上游真实成本。让运营看到"看似真实但实际可能错"的成本，会比看到 NULL 更糟。
 
@@ -201,13 +222,16 @@ func resolveUpstreamCost(
 
 ### 4.1 双轨写入
 
-> **修改点定位**：`writeUsageLogBestEffort`（`gateway_service.go:8260`）本身只是 ent.Create 兜底封装，不构造任何字段，**不在这里改**。UsageLog 字段构造在 3 个调用上游：
+> **修改点定位**：`writeUsageLogBestEffort`（`gateway_service.go:8260`）本身只是 ent.Create 兜底封装，不构造任何字段，**不在这里改**。UsageLog 字段构造在 **4 个调用上游**：
 >
 > - `backend/internal/service/gateway_service.go:8638`（builder 函数，行 8641 起 `usageLog := &UsageLog{...}`）
-> - `backend/internal/service/openai_gateway_service.go:5309`
+> - `backend/internal/service/openai_gateway_service.go:5316`（注意：glossary §5 的 5309 是函数边界，实际 `&UsageLog{` 初始化在 5316）
 > - `backend/internal/service/usage_service.go:94`
+> - `backend/internal/service/lingjing_poll_runner.go`（fork 第 12 项异步计费触发点，**Phase 0 P0-7 新增**）
 >
-> 上游成本快照应在每个构造点装配，或抽出公共 `applyUpstreamCostSnapshot(usageLog, ...)` helper 由三处共调。
+> 上游成本快照应在每个构造点装配，或抽出公共 `applyUpstreamCostSnapshot(usageLog, ...)` helper 由四处共调。
+>
+> **异步路径例外**：lingjing_poll_runner 的装配**强制 ON**，不走 `USAGE_UPSTREAM_COST_ENABLED` feature flag——避免 poll 期间 flag 切换导致同一任务两次轮询出现 NULL/非 NULL 摇摆。
 
 UsageLog 构造时同时计算：
 
@@ -226,6 +250,7 @@ Phase 0 发布的第一周走 shadow write：
 - 后台对账 job 每天对比：仅对 `upstream_total_cost` 非空的行，对比它与 `resolveAccountStatsCost()` 估算的差异，按 provider/account/model 维度产出报告。
 - 差异 ≥10% 的 provider 单独标注，运营审核单价表后再切展示侧。
 - `upstream_total_cost = NULL` 的行**不进入差异对账**，因为缺少快照值不是误差而是"无快照"。
+- **异步任务排除同步 shadow 对账**（fork 12）：lingjing 异步任务的 `upstream_total_cost` 由 poll_runner 异步写入，不参与同步路径的 7 天 shadow 对账；其对账由 `lingjing_task` 表与 UsageLog `async_task_id` join 校验，独立运行（每日差异 ≤0.1%）。
 
 ### 4.3 切换展示
 
@@ -280,6 +305,8 @@ Phase 0 验收：
 5. 同一 provider 在不同时间段调价：调价后写入的行 `upstream_unit_price_*` 反映新价；调价前的历史行保持旧价快照，不被回写。
 6. 毛利视图：按 provider 聚合，`margin = sum(actual_cost) - sum(upstream_total_cost)`，仅对 `upstream_total_cost` 非空的行汇总；视图上"无上游成本快照"行数与占比明示。
 7. 字段一致性约束（单元/集成测试）：扫描全表，**不应存在** `(upstream_total_cost IS NULL AND pricing_source IS NOT NULL)` 或 `(upstream_total_cost IS NOT NULL AND pricing_source IS NULL)` 的行。
+8. **lingjing 异步计费链**（fork 12）：调 Seedance 视频任务，HTTP 202 返回时 UsageLog 行 `upstream_total_cost = NULL` + `async_task_id != NULL` + `cost_finalized_at = NULL`；240 次轮询内任意一次 `status=success` 后，poll_runner 更新该行 `upstream_total_cost` 非空 + `cost_finalized_at` 非空；轮询超时（240 次后 timeout）保持 NULL，并归入"待结算超时"维度而非"无快照"。
+9. **Response Masking 短路计费**（fork 8）：访问 `IsResponseMaskingEnabled()==true` 的账号、命中 `isIdentityQuestion()` 的请求，UsageLog 行 `upstream_total_cost = NULL` + `pricing_source = NULL`（**不允许写 0**）；运营毛利视图不把这类行计入"无快照异常"，单独归为"masking 短路"维度（按 `actual_cost > 0 AND upstream_total_cost IS NULL AND async_task_id IS NULL AND pricing_source IS NULL` 识别）。
 
 ---
 
@@ -294,6 +321,9 @@ Phase 0 验收：
 | Shadow write 期间字段写入与展示不一致引起客服困惑 | 中 | 低 | 内部仅运营看，shadow 周期 ≤7 天，差异 ≥10% 单独审核 |
 | 删除 provider_pricing 行导致历史快照悬挂 | 低 | 中 | UsageLog 自带单价快照，删 provider_pricing 不影响历史 |
 | 字段过多影响 UsageLog 写入吞吐 | 低 | 中 | 新增字段全部可空 + 不加索引；监控 P99 写入延时 |
+| lingjing 异步 poll 期间 UsageLog 行级成本暂时 NULL，毛利视图误归为"无快照异常"（fork 12） | 中 | 中 | UI 按 `async_task_id IS NULL/NOT NULL` 分桶展示；BI 报表按 `cost_finalized_at` 而非 `created_at` 聚合实时毛利 |
+| Masking 短路计费被混入"无快照"运营异常列表（fork 8） | 低 | 低 | 验收用例 9 守护；运营页"无快照异常"列表 SQL 加 `AND pricing_source IS NOT DISTINCT FROM NULL AND async_task_id IS NULL` 以区分四态 |
+| 折扣链路（`applyDiscount`）与上游成本链路口径混淆，BI 把"折后售价"当成"上游成本"（fork 5） | 中 | 高 | §1 边界小节作为运营/BI 培训材料；BI 报表列名强制区分"上游成本"与"客户折扣后售价"；联调时强制断言 `actual_cost ≥ upstream_total_cost` |
 
 **回滚策略**：
 
