@@ -23,6 +23,10 @@ const (
 	PlatformGemini      = "gemini"
 	PlatformAntigravity = "antigravity"
 	PlatformLingjing    = "lingjing"
+	// PlatformGeneric 表示多 endpoint 通用账号（P5-4）。
+	// 此类账号不绑定特定 AI 平台，通过 Endpoint 实体携带 base_url/outbound_protocol 路由，
+	// 不参与双桶影子比较（与 lingjing 相同处理）。
+	PlatformGeneric = "generic"
 )
 
 // Account type constants

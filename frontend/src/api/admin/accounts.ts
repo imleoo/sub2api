@@ -19,7 +19,9 @@ import type {
   CodexSessionImportRequest,
   CodexSessionImportResult,
   CheckMixedChannelRequest,
-  CheckMixedChannelResponse
+  CheckMixedChannelResponse,
+  AccountEndpoint,
+  AccountEndpointInput
 } from '@/types'
 
 /**
@@ -627,6 +629,12 @@ export async function setPrivacy(id: number): Promise<Account> {
   return data
 }
 
+const getAccountEndpoints = (id: number): Promise<AccountEndpoint[]> =>
+  apiClient.get(`/admin/accounts/${id}/endpoints`)
+
+const updateAccountEndpoints = (id: number, endpoints: AccountEndpointInput[]): Promise<AccountEndpoint[]> =>
+  apiClient.put(`/admin/accounts/${id}/endpoints`, endpoints)
+
 export const accountsAPI = {
   list,
   listWithEtag,
@@ -661,7 +669,9 @@ export const accountsAPI = {
   importCodexSession,
   batchClearError,
   batchRefresh,
-  setPrivacy
+  setPrivacy,
+  getAccountEndpoints,
+  updateAccountEndpoints
 }
 
 export default accountsAPI

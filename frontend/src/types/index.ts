@@ -486,7 +486,7 @@ export interface PaginationConfig {
 
 // ==================== API Key & Group Types ====================
 
-export type GroupPlatform = 'anthropic' | 'openai' | 'gemini' | 'antigravity' | 'lingjing'
+export type GroupPlatform = 'anthropic' | 'openai' | 'gemini' | 'antigravity' | 'lingjing' | 'generic'
 
 export type SubscriptionType = 'standard' | 'subscription'
 
@@ -669,9 +669,30 @@ export interface UpdateGroupRequest {
 
 // ==================== Account & Proxy Types ====================
 
-export type AccountPlatform = 'anthropic' | 'openai' | 'gemini' | 'antigravity' | 'lingjing'
+export type AccountPlatform = 'anthropic' | 'openai' | 'gemini' | 'antigravity' | 'lingjing' | 'generic'
 export type AccountType = 'apikey' | 'bedrock' | 'service_account'
 export type ProxyProtocol = 'http' | 'https' | 'socks5' | 'socks5h'
+
+export type OutboundProtocol = 'openai_chat' | 'openai_responses' | 'anthropic_messages' | 'gemini_v1beta'
+export type ModelsSource = 'remote' | 'manual' | 'static_preset'
+
+export interface AccountEndpointInput {
+  stable_id?: string
+  outbound_protocol: OutboundProtocol
+  base_url: string
+  auth_header?: string
+  auth_scheme?: string
+  models_source?: ModelsSource
+  priority?: number
+}
+
+export interface AccountEndpoint extends AccountEndpointInput {
+  id: number
+  account_id: number
+  health: 'healthy' | 'degraded' | 'disabled'
+  created_at: string
+  updated_at: string
+}
 
 // Claude Model type (returned by /v1/models and account models API)
 export interface ClaudeModel {
@@ -997,6 +1018,7 @@ export interface CreateAccountRequest {
   expires_at?: number | null
   auto_pause_on_expired?: boolean
   confirm_mixed_channel_risk?: boolean
+  endpoints?: AccountEndpointInput[] // platform=generic 专用
 }
 
 export interface UpdateAccountRequest {

@@ -38,6 +38,7 @@ const (
 	PlatformGemini      = domain.PlatformGemini
 	PlatformAntigravity = domain.PlatformAntigravity
 	PlatformLingjing    = domain.PlatformLingjing
+	PlatformGeneric     = domain.PlatformGeneric
 )
 
 // Account type constants

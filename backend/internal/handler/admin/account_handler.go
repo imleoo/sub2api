@@ -49,6 +49,7 @@ type AccountHandler struct {
 	sessionLimitCache     service.SessionLimitCache
 	rpmCache              service.RPMCache
 	tokenCacheInvalidator service.TokenCacheInvalidator
+	endpointRepo          service.EndpointRepository
 }
 
 // NewAccountHandler creates a new admin account handler
@@ -62,6 +63,7 @@ func NewAccountHandler(
 	sessionLimitCache service.SessionLimitCache,
 	rpmCache service.RPMCache,
 	tokenCacheInvalidator service.TokenCacheInvalidator,
+	endpointRepo service.EndpointRepository,
 ) *AccountHandler {
 	return &AccountHandler{
 		adminService:          adminService,
@@ -73,26 +75,39 @@ func NewAccountHandler(
 		sessionLimitCache:     sessionLimitCache,
 		rpmCache:              rpmCache,
 		tokenCacheInvalidator: tokenCacheInvalidator,
+		endpointRepo:          endpointRepo,
 	}
+}
+
+// AccountEndpointInput 表示创建/更新账号时提交的 endpoint 数据（platform=generic 专用）。
+type AccountEndpointInput struct {
+	StableID         string `json:"stable_id"`                                                                                    // 留空时由后端生成
+	OutboundProtocol string `json:"outbound_protocol" binding:"required"` // anthropic_messages | openai_chat | openai_responses | gemini_v1beta
+	BaseURL          string `json:"base_url" binding:"required"`
+	AuthHeader       string `json:"auth_header"`  // 默认 Authorization
+	AuthScheme       string `json:"auth_scheme"`  // 默认 Bearer
+	ModelsSource     string `json:"models_source"` // remote | manual | static_preset
+	Priority         int    `json:"priority"`
 }
 
 // CreateAccountRequest represents create account request
 type CreateAccountRequest struct {
-	Name                    string         `json:"name" binding:"required"`
-	Notes                   *string        `json:"notes"`
-	Platform                string         `json:"platform" binding:"required"`
-	Type                    string         `json:"type" binding:"required,oneof=oauth setup-token apikey upstream bedrock service_account"`
-	Credentials             map[string]any `json:"credentials" binding:"required"`
-	Extra                   map[string]any `json:"extra"`
-	ProxyID                 *int64         `json:"proxy_id"`
-	Concurrency             int            `json:"concurrency"`
-	Priority                int            `json:"priority"`
-	RateMultiplier          *float64       `json:"rate_multiplier"`
-	LoadFactor              *int           `json:"load_factor"`
-	GroupIDs                []int64        `json:"group_ids"`
-	ExpiresAt               *int64         `json:"expires_at"`
-	AutoPauseOnExpired      *bool          `json:"auto_pause_on_expired"`
-	ConfirmMixedChannelRisk *bool          `json:"confirm_mixed_channel_risk"` // 用户确认混合渠道风险
+	Name                    string                 `json:"name" binding:"required"`
+	Notes                   *string                `json:"notes"`
+	Platform                string                 `json:"platform" binding:"required"`
+	Type                    string                 `json:"type" binding:"required,oneof=oauth setup-token apikey upstream bedrock service_account"`
+	Credentials             map[string]any         `json:"credentials" binding:"required"`
+	Extra                   map[string]any         `json:"extra"`
+	ProxyID                 *int64                 `json:"proxy_id"`
+	Concurrency             int                    `json:"concurrency"`
+	Priority                int                    `json:"priority"`
+	RateMultiplier          *float64               `json:"rate_multiplier"`
+	LoadFactor              *int                   `json:"load_factor"`
+	GroupIDs                []int64                `json:"group_ids"`
+	ExpiresAt               *int64                 `json:"expires_at"`
+	AutoPauseOnExpired      *bool                  `json:"auto_pause_on_expired"`
+	ConfirmMixedChannelRisk *bool                  `json:"confirm_mixed_channel_risk"` // 用户确认混合渠道风险
+	Endpoints               []AccountEndpointInput `json:"endpoints"`                  // platform=generic 专用
 }
 
 // UpdateAccountRequest represents update account request
@@ -568,6 +583,17 @@ func (h *AccountHandler) Create(c *gin.Context) {
 	// OpenAI APIKey 账号创建后异步探测上游 /v1/responses 能力。
 	// 探测失败不影响账号创建响应。
 	h.scheduleOpenAIResponsesProbe(createdAccount)
+
+	// platform=generic: create endpoints (best-effort, warn on failure)
+	if req.Platform == "generic" && len(req.Endpoints) > 0 && createdAccount != nil && h.endpointRepo != nil {
+		for _, inp := range req.Endpoints {
+			dbEp := endpointInputToDBEndpoint(createdAccount.ID, inp)
+			if err := h.endpointRepo.Create(c.Request.Context(), dbEp); err != nil {
+				slog.Warn("failed to create endpoint for generic account", "account_id", createdAccount.ID, "err", err)
+			}
+		}
+	}
+
 	response.Success(c, result.Data)
 }
 
@@ -1845,4 +1871,102 @@ func sanitizeExtraBaseRPM(extra map[string]any) {
 		v = 10000
 	}
 	extra["base_rpm"] = v
+}
+
+// GetAccountEndpoints returns all endpoints for an account.
+// GET /api/v1/admin/accounts/:id/endpoints
+func (h *AccountHandler) GetAccountEndpoints(c *gin.Context) {
+	if h.endpointRepo == nil {
+		response.BadRequest(c, "endpoint management not supported")
+		return
+	}
+	accountID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		response.BadRequest(c, "invalid account id")
+		return
+	}
+	endpoints, err := h.endpointRepo.ListByAccountID(c.Request.Context(), accountID)
+	if err != nil {
+		response.InternalError(c, "failed to list endpoints")
+		return
+	}
+	response.Success(c, endpoints)
+}
+
+// UpdateAccountEndpoints replaces all endpoints for an account (full replacement).
+// PUT /api/v1/admin/accounts/:id/endpoints
+func (h *AccountHandler) UpdateAccountEndpoints(c *gin.Context) {
+	if h.endpointRepo == nil {
+		response.BadRequest(c, "endpoint management not supported")
+		return
+	}
+	accountID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		response.BadRequest(c, "invalid account id")
+		return
+	}
+	var inputs []AccountEndpointInput
+	if err := c.ShouldBindJSON(&inputs); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+	ctx := c.Request.Context()
+	// Delete existing endpoints
+	existing, err := h.endpointRepo.ListByAccountID(ctx, accountID)
+	if err != nil {
+		response.InternalError(c, "failed to list existing endpoints")
+		return
+	}
+	for _, ep := range existing {
+		if err := h.endpointRepo.Delete(ctx, ep.ID); err != nil {
+			response.InternalError(c, "failed to delete existing endpoint")
+			return
+		}
+	}
+	// Create new endpoints
+	created := make([]*service.DBEndpoint, 0, len(inputs))
+	for _, inp := range inputs {
+		dbEp := endpointInputToDBEndpoint(accountID, inp)
+		if err := h.endpointRepo.Create(ctx, dbEp); err != nil {
+			response.InternalError(c, "failed to create endpoint: "+err.Error())
+			return
+		}
+		created = append(created, dbEp)
+	}
+	response.Success(c, created)
+}
+
+// endpointInputToDBEndpoint converts an AccountEndpointInput to a service.DBEndpoint.
+func endpointInputToDBEndpoint(accountID int64, inp AccountEndpointInput) *service.DBEndpoint {
+	stableID := inp.StableID
+	if stableID == "" {
+		stableID = inp.OutboundProtocol + "-" + strconv.FormatInt(time.Now().UnixNano(), 36)
+	}
+	authHeader := inp.AuthHeader
+	if authHeader == "" {
+		authHeader = "Authorization"
+	}
+	authScheme := inp.AuthScheme
+	if authScheme == "" {
+		authScheme = "Bearer"
+	}
+	modelsSource := inp.ModelsSource
+	if modelsSource == "" {
+		modelsSource = "remote"
+	}
+	priority := inp.Priority
+	if priority == 0 {
+		priority = 100
+	}
+	return &service.DBEndpoint{
+		AccountID:        accountID,
+		StableID:         stableID,
+		OutboundProtocol: inp.OutboundProtocol,
+		BaseURL:          inp.BaseURL,
+		AuthHeader:       authHeader,
+		AuthScheme:       authScheme,
+		ModelsSource:     modelsSource,
+		Priority:         priority,
+		Health:           "healthy",
+	}
 }

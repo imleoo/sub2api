@@ -26,8 +26,83 @@
         <p class="input-hint">{{ t('admin.accounts.notesHint') }}</p>
       </div>
 
-      <!-- API Key fields (only for apikey type) -->
-      <div v-if="account.type === 'apikey'" class="space-y-4">
+      <!-- Generic Channel: Endpoint List Editor -->
+      <div v-if="account.platform === 'generic'" class="space-y-4">
+        <div class="flex items-center justify-between">
+          <label class="input-label mb-0">{{ t('admin.accounts.generic.endpoints') }}</label>
+          <button
+            type="button"
+            @click="addGenericEndpoint"
+            class="flex items-center gap-1.5 rounded-md bg-purple-50 px-3 py-1.5 text-sm font-medium text-purple-700 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400 dark:hover:bg-purple-900/30"
+          >
+            <Icon name="plus" size="sm" />
+            {{ t('admin.accounts.generic.addEndpoint') }}
+          </button>
+        </div>
+        <div v-if="genericEndpointsLoading" class="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+          Loading...
+        </div>
+        <div v-else-if="genericEndpoints.length === 0" class="rounded-lg border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-500 dark:border-dark-500 dark:text-gray-400">
+          {{ t('admin.accounts.generic.noEndpoints') }}
+        </div>
+        <div v-else v-for="(ep, idx) in genericEndpoints" :key="idx" class="rounded-lg border border-gray-200 p-4 dark:border-dark-600">
+          <div class="mb-3 flex items-center justify-between">
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {{ t('admin.accounts.generic.endpointIndex', { index: idx + 1 }) }}
+            </span>
+            <button type="button" @click="removeGenericEndpoint(idx)" class="text-sm text-red-500 hover:text-red-700 dark:text-red-400">
+              {{ t('admin.accounts.generic.removeEndpoint') }}
+            </button>
+          </div>
+          <div class="space-y-3">
+            <div>
+              <label class="input-label">{{ t('admin.accounts.generic.outboundProtocol') }}</label>
+              <select v-model="ep.outbound_protocol" class="input mt-1">
+                <option value="openai_chat">{{ t('admin.accounts.generic.protocols.openai_chat') }}</option>
+                <option value="openai_responses">{{ t('admin.accounts.generic.protocols.openai_responses') }}</option>
+                <option value="anthropic_messages">{{ t('admin.accounts.generic.protocols.anthropic_messages') }}</option>
+                <option value="gemini_v1beta">{{ t('admin.accounts.generic.protocols.gemini_v1beta') }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="input-label">{{ t('admin.accounts.generic.baseUrl') }}</label>
+              <input v-model="ep.base_url" type="url" class="input mt-1 font-mono" :placeholder="t('admin.accounts.generic.baseUrlPlaceholder')" />
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="input-label">{{ t('admin.accounts.generic.authHeader') }}</label>
+                <input v-model="ep.auth_header" type="text" class="input mt-1 font-mono" :placeholder="t('admin.accounts.generic.authHeaderPlaceholder')" />
+              </div>
+              <div>
+                <label class="input-label">{{ t('admin.accounts.generic.authScheme') }}</label>
+                <input v-model="ep.auth_scheme" type="text" class="input mt-1 font-mono" :placeholder="t('admin.accounts.generic.authSchemePlaceholder')" />
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="input-label">{{ t('admin.accounts.generic.modelsSource') }}</label>
+                <select v-model="ep.models_source" class="input mt-1">
+                  <option value="remote">{{ t('admin.accounts.generic.modelsSources.remote') }}</option>
+                  <option value="manual">{{ t('admin.accounts.generic.modelsSources.manual') }}</option>
+                  <option value="static_preset">{{ t('admin.accounts.generic.modelsSources.static_preset') }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="input-label">{{ t('admin.accounts.generic.priority') }}</label>
+                <input v-model.number="ep.priority" type="number" min="1" max="9999" class="input mt-1" />
+              </div>
+            </div>
+            <div>
+              <label class="input-label">{{ t('admin.accounts.generic.stableId') }}</label>
+              <input v-model="ep.stable_id" type="text" class="input mt-1 font-mono" :placeholder="t('admin.accounts.generic.stableIdPlaceholder')" :disabled="!!ep.stable_id" />
+              <p class="input-hint">{{ t('admin.accounts.generic.stableIdHint') }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- API Key fields (only for apikey type, non-generic) -->
+      <div v-if="account.type === 'apikey' && account.platform !== 'generic'" class="space-y-4">
         <div>
           <label class="input-label">{{ t('admin.accounts.baseUrl') }}</label>
           <input
@@ -1499,7 +1574,7 @@ import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { adminAPI } from '@/api/admin'
 import { useQuotaNotifyState } from '@/composables/useQuotaNotifyState'
-import type { Account, Proxy, AdminGroup, CheckMixedChannelResponse, OpenAICompactMode } from '@/types'
+import type { Account, Proxy, AdminGroup, CheckMixedChannelResponse, OpenAICompactMode, AccountEndpoint, AccountEndpointInput } from '@/types'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import Select from '@/components/common/Select.vue'
@@ -1610,6 +1685,44 @@ const antigravityWhitelistModels = ref<string[]>([])
 const antigravityModelMappings = ref<ModelMapping[]>([])
 const tempUnschedEnabled = ref(false)
 const tempUnschedRules = ref<TempUnschedRuleForm[]>([])
+const genericEndpoints = ref<AccountEndpointInput[]>([])
+const genericEndpointsLoading = ref(false)
+
+const addGenericEndpoint = () => {
+  genericEndpoints.value.push({
+    outbound_protocol: 'openai_chat',
+    base_url: '',
+    auth_header: 'Authorization',
+    auth_scheme: 'Bearer',
+    models_source: 'remote',
+    priority: (genericEndpoints.value.length + 1) * 100
+  })
+}
+
+const removeGenericEndpoint = (idx: number) => {
+  genericEndpoints.value.splice(idx, 1)
+}
+
+const loadGenericEndpoints = async (accountId: number) => {
+  genericEndpointsLoading.value = true
+  try {
+    const endpoints: AccountEndpoint[] = await adminAPI.accounts.getAccountEndpoints(accountId)
+    genericEndpoints.value = endpoints.map(ep => ({
+      stable_id: ep.stable_id,
+      outbound_protocol: ep.outbound_protocol as AccountEndpointInput['outbound_protocol'],
+      base_url: ep.base_url,
+      auth_header: ep.auth_header,
+      auth_scheme: ep.auth_scheme,
+      models_source: ep.models_source as AccountEndpointInput['models_source'],
+      priority: ep.priority
+    }))
+  } catch {
+    genericEndpoints.value = []
+  } finally {
+    genericEndpointsLoading.value = false
+  }
+}
+
 const getModelMappingKey = createStableObjectKeyResolver<ModelMapping>('edit-model-mapping')
 const getOpenAICompactModelMappingKey = createStableObjectKeyResolver<ModelMapping>('edit-openai-compact-model-mapping')
 const getTempUnschedRuleKey = createStableObjectKeyResolver<TempUnschedRuleForm>('edit-temp-unsched-rule')
@@ -2172,6 +2285,11 @@ watch(
     if (!wasShow || newAccount !== previousAccount) {
       syncFormFromAccount(newAccount)
       loadTLSProfiles()
+      if (newAccount.platform === 'generic') {
+        loadGenericEndpoints(newAccount.id)
+      } else {
+        genericEndpoints.value = []
+      }
     }
   },
   { immediate: true }
@@ -2842,6 +2960,18 @@ const handleSubmit = async () => {
     }
 
     await submitUpdateAccount(accountID, updatePayload)
+
+    // For generic platform, save endpoints separately
+    if (props.account?.platform === 'generic' && genericEndpoints.value.length > 0) {
+      const validEndpoints = genericEndpoints.value.filter(ep => ep.base_url.trim() && ep.outbound_protocol)
+      if (validEndpoints.length > 0) {
+        try {
+          await adminAPI.accounts.updateAccountEndpoints(accountID, validEndpoints)
+        } catch {
+          appStore.showError(t('admin.accounts.generic.noEndpoints'))
+        }
+      }
+    }
   } catch (error: any) {
     appStore.showError(error.message || t('admin.accounts.failedToUpdate'))
   }

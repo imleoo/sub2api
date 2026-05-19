@@ -147,6 +147,21 @@
             <Icon name="sparkles" size="sm" />
             灵境
           </button>
+          <button
+            type="button"
+            @click="form.platform = 'generic'"
+            :class="[
+              'flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-all',
+              form.platform === 'generic'
+                ? 'bg-white text-purple-600 shadow-sm dark:bg-dark-600 dark:text-purple-400'
+                : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
+            ]"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+            </svg>
+            通用渠道
+          </button>
         </div>
       </div>
 
@@ -719,6 +734,114 @@
               <span class="text-xs text-gray-500 dark:text-gray-400">京东云灵境 API Key</span>
             </div>
           </button>
+        </div>
+      </div>
+
+      <!-- Generic Channel Endpoint List -->
+      <div v-if="form.platform === 'generic'" class="space-y-4">
+        <div class="flex items-center justify-between">
+          <label class="input-label mb-0">{{ t('admin.accounts.generic.endpoints') }}</label>
+          <button
+            type="button"
+            @click="addGenericEndpoint"
+            class="flex items-center gap-1.5 rounded-md bg-purple-50 px-3 py-1.5 text-sm font-medium text-purple-700 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400 dark:hover:bg-purple-900/30"
+          >
+            <Icon name="plus" size="sm" />
+            {{ t('admin.accounts.generic.addEndpoint') }}
+          </button>
+        </div>
+        <div v-if="genericEndpoints.length === 0" class="rounded-lg border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-500 dark:border-dark-500 dark:text-gray-400">
+          {{ t('admin.accounts.generic.noEndpoints') }}
+        </div>
+        <div v-for="(ep, idx) in genericEndpoints" :key="idx" class="rounded-lg border border-gray-200 p-4 dark:border-dark-600">
+          <div class="mb-3 flex items-center justify-between">
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {{ t('admin.accounts.generic.endpointIndex', { index: idx + 1 }) }}
+            </span>
+            <button
+              type="button"
+              @click="removeGenericEndpoint(idx)"
+              class="text-sm text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+            >
+              {{ t('admin.accounts.generic.removeEndpoint') }}
+            </button>
+          </div>
+          <div class="space-y-3">
+            <!-- Outbound Protocol -->
+            <div>
+              <label class="input-label">{{ t('admin.accounts.generic.outboundProtocol') }}</label>
+              <select v-model="ep.outbound_protocol" class="input mt-1">
+                <option value="openai_chat">{{ t('admin.accounts.generic.protocols.openai_chat') }}</option>
+                <option value="openai_responses">{{ t('admin.accounts.generic.protocols.openai_responses') }}</option>
+                <option value="anthropic_messages">{{ t('admin.accounts.generic.protocols.anthropic_messages') }}</option>
+                <option value="gemini_v1beta">{{ t('admin.accounts.generic.protocols.gemini_v1beta') }}</option>
+              </select>
+            </div>
+            <!-- Base URL -->
+            <div>
+              <label class="input-label">{{ t('admin.accounts.generic.baseUrl') }}</label>
+              <input
+                v-model="ep.base_url"
+                type="url"
+                class="input mt-1 font-mono"
+                :placeholder="t('admin.accounts.generic.baseUrlPlaceholder')"
+              />
+            </div>
+            <!-- Auth Header + Scheme (same row) -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="input-label">{{ t('admin.accounts.generic.authHeader') }}</label>
+                <input
+                  v-model="ep.auth_header"
+                  type="text"
+                  class="input mt-1 font-mono"
+                  :placeholder="t('admin.accounts.generic.authHeaderPlaceholder')"
+                />
+              </div>
+              <div>
+                <label class="input-label">{{ t('admin.accounts.generic.authScheme') }}</label>
+                <input
+                  v-model="ep.auth_scheme"
+                  type="text"
+                  class="input mt-1 font-mono"
+                  :placeholder="t('admin.accounts.generic.authSchemePlaceholder')"
+                />
+              </div>
+            </div>
+            <!-- Models Source + Priority (same row) -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="input-label">{{ t('admin.accounts.generic.modelsSource') }}</label>
+                <select v-model="ep.models_source" class="input mt-1">
+                  <option value="remote">{{ t('admin.accounts.generic.modelsSources.remote') }}</option>
+                  <option value="manual">{{ t('admin.accounts.generic.modelsSources.manual') }}</option>
+                  <option value="static_preset">{{ t('admin.accounts.generic.modelsSources.static_preset') }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="input-label">{{ t('admin.accounts.generic.priority') }}</label>
+                <input
+                  v-model.number="ep.priority"
+                  type="number"
+                  min="1"
+                  max="9999"
+                  class="input mt-1"
+                />
+                <p class="input-hint">{{ t('admin.accounts.generic.priorityHint') }}</p>
+              </div>
+            </div>
+            <!-- Stable ID (advanced, collapsed by default) -->
+            <div>
+              <label class="input-label">{{ t('admin.accounts.generic.stableId') }}</label>
+              <input
+                v-model="ep.stable_id"
+                type="text"
+                class="input mt-1 font-mono"
+                :placeholder="t('admin.accounts.generic.stableIdPlaceholder')"
+              />
+              <p class="input-hint">{{ t('admin.accounts.generic.stableIdHint') }}</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -3004,7 +3127,8 @@ import type {
   AccountType,
   CheckMixedChannelResponse,
   CreateAccountRequest,
-  OpenAICompactMode
+  OpenAICompactMode,
+  AccountEndpointInput
 } from '@/types'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
@@ -3190,6 +3314,23 @@ const vertexLocation = ref('global')
 const vertexServiceAccountDragActive = ref(false)
 const tempUnschedEnabled = ref(false)
 const tempUnschedRules = ref<TempUnschedRuleForm[]>([])
+const genericEndpoints = ref<AccountEndpointInput[]>([])
+
+const addGenericEndpoint = () => {
+  genericEndpoints.value.push({
+    outbound_protocol: 'openai_chat',
+    base_url: '',
+    auth_header: 'Authorization',
+    auth_scheme: 'Bearer',
+    models_source: 'remote',
+    priority: (genericEndpoints.value.length + 1) * 100
+  })
+}
+
+const removeGenericEndpoint = (idx: number) => {
+  genericEndpoints.value.splice(idx, 1)
+}
+
 const getModelMappingKey = createStableObjectKeyResolver<ModelMapping>('create-model-mapping')
 const getOpenAICompactModelMappingKey = createStableObjectKeyResolver<ModelMapping>('create-openai-compact-model-mapping')
 const getAntigravityModelMappingKey = createStableObjectKeyResolver<ModelMapping>('create-antigravity-model-mapping')
@@ -3905,6 +4046,7 @@ const resetForm = () => {
   vertexLocation.value = 'global'
   tempUnschedEnabled.value = false
   tempUnschedRules.value = []
+  genericEndpoints.value = []
   geminiOAuthType.value = 'code_assist'
   geminiTierGoogleOne.value = 'google_one_free'
   geminiTierGcp.value = 'gcp_standard'
@@ -4189,6 +4331,25 @@ const handleSubmit = async () => {
     return
   }
 
+  // Generic Channel: create directly with endpoint list
+  if (form.platform === 'generic') {
+    if (!form.name.trim()) {
+      appStore.showError(t('admin.accounts.pleaseEnterAccountName'))
+      return
+    }
+    if (genericEndpoints.value.length === 0) {
+      appStore.showError(t('admin.accounts.generic.noEndpoints'))
+      return
+    }
+    const validEndpoints = genericEndpoints.value.filter(ep => ep.base_url.trim() && ep.outbound_protocol)
+    if (validEndpoints.length === 0) {
+      appStore.showError(t('admin.accounts.generic.noEndpoints'))
+      return
+    }
+    await createAccountAndFinish('generic', 'apikey' as AccountType, {})
+    return
+  }
+
   // Determine default base URL based on platform
   const defaultBaseUrl =
     form.platform === 'openai'
@@ -4317,7 +4478,10 @@ const createAccountAndFinish = async (
     rate_multiplier: form.rate_multiplier,
     group_ids: form.group_ids,
     expires_at: form.expires_at,
-    auto_pause_on_expired: autoPauseOnExpired.value
+    auto_pause_on_expired: autoPauseOnExpired.value,
+    ...(platform === 'generic' && genericEndpoints.value.length > 0
+      ? { endpoints: genericEndpoints.value.filter(ep => ep.base_url && ep.outbound_protocol) }
+      : {})
   })
 }
 
