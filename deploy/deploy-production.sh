@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Sub2API Production Verification & Deployment Script
+# TokenPanel Production Verification & Deployment Script
 # =============================================================================
 # This script automates the process of:
 #   1. Loading production environment variables
@@ -70,5 +70,5 @@ print_info "Deploying application using docker-compose.production.yml..."
 docker compose -f "${COMPOSE_FILE}" up -d --remove-orphans
 
 print_success "Deployment successful! Checking status..."
-docker ps --filter "name=sub2api-prd"
-print_info "To view logs, run: docker logs -f sub2api-prd"
+docker ps --filter "name=tokenpanel-prd"
+print_info "To view logs, run: docker logs -f tokenpanel-prd"

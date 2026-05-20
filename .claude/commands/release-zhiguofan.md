@@ -111,7 +111,91 @@ git push origin "${TAG}"
 
 推送失败时报告原因，不回滚本地状态（本地 tag 和分支已是干净状态，可重试 push）。
 
-### Step 9：切回工作分支
+### Step 9：创建 GitHub Release（本地构建）
+
+> **说明**：GitHub Actions 当前因账单问题无法运行，改由本地构建后手动上传。Actions 恢复后可改回触发 `release.yml` workflow。
+
+#### 9.1 构建前端（如 dist 不存在或有变更）
+
+```bash
+cd frontend && pnpm run build && cd ..
+```
+
+#### 9.2 交叉编译五平台二进制
+
+```bash
+BUILD_DIR="/tmp/tokenpanel-release-${VERSION}"
+rm -rf "$BUILD_DIR" && mkdir -p "$BUILD_DIR"
+COMMIT=$(git rev-parse --short HEAD)
+DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+LDFLAGS="-s -w -X main.Commit=${COMMIT} -X main.Date=${DATE} -X main.BuildType=release"
+
+cd backend
+for PLATFORM in "linux/amd64" "linux/arm64" "darwin/amd64" "darwin/arm64"; do
+  GOOS=${PLATFORM%/*} GOARCH=${PLATFORM#*/} CGO_ENABLED=0 \
+    go build -tags=embed -ldflags="$LDFLAGS" \
+    -o "$BUILD_DIR/tokenpanel_${PLATFORM%/*}_${PLATFORM#*/}" ./cmd/server/
+done
+GOOS=windows GOARCH=amd64 CGO_ENABLED=0 \
+  go build -tags=embed -ldflags="$LDFLAGS" \
+  -o "$BUILD_DIR/tokenpanel_windows_amd64.exe" ./cmd/server/
+cd ..
+```
+
+#### 9.3 打包并生成 checksums
+
+```bash
+cd "$BUILD_DIR"
+for PLATFORM in linux_amd64 linux_arm64 darwin_amd64 darwin_arm64; do
+  tar -czf "tokenpanel_${VERSION}_${PLATFORM}.tar.gz" "tokenpanel_${PLATFORM}"
+done
+zip "tokenpanel_${VERSION}_windows_amd64.zip" "tokenpanel_windows_amd64.exe"
+shasum -a 256 tokenpanel_${VERSION}_*.tar.gz tokenpanel_${VERSION}_windows_amd64.zip > checksums.txt
+cd -
+```
+
+#### 9.4 创建 GitHub Release 并上传产物
+
+```bash
+gh release create "${TAG}" \
+  --repo imleoo/tokenpanel \
+  --title "TokenPanel ${TAG}" \
+  --notes "基于上游 v0.${VERSION#1.}" \
+  --latest
+
+cd "$BUILD_DIR"
+for f in tokenpanel_${VERSION}_*.tar.gz tokenpanel_${VERSION}_windows_amd64.zip checksums.txt; do
+  gh release upload "${TAG}" "$f" --repo imleoo/tokenpanel --clobber
+done
+cd -
+```
+
+#### 9.5 构建并推送 Docker 镜像到 GHCR
+
+```bash
+# 将 linux/amd64 二进制复制到项目根（Dockerfile COPY 需要在 build context 内）
+cp "$BUILD_DIR/tokenpanel_linux_amd64" ./tokenpanel
+
+docker build \
+  --platform linux/amd64 \
+  -f Dockerfile.goreleaser \
+  -t "ghcr.io/imleoo/tokenpanel:${VERSION}" \
+  -t "ghcr.io/imleoo/tokenpanel:latest" \
+  --label "org.opencontainers.image.version=${VERSION}" \
+  --label "org.opencontainers.image.revision=${COMMIT}" \
+  .
+
+# 确认已登录 GHCR（需要 write:packages scope）
+echo $(gh auth token) | docker login ghcr.io -u imleoo --password-stdin
+docker push "ghcr.io/imleoo/tokenpanel:${VERSION}"
+docker push "ghcr.io/imleoo/tokenpanel:latest"
+
+# 清理
+rm -f ./tokenpanel
+rm -rf "$BUILD_DIR"
+```
+
+### Step 10：切回工作分支
 
 ```bash
 git checkout feature/maas-refactor
@@ -125,14 +209,16 @@ git checkout feature/maas-refactor
 
 ```
 发布完成
-  Tag   : v{VERSION}
-  Branch: zhiguofan → origin/zhiguofan
-  Commit: {zhiguofan 当前 SHA}
+  Tag    : v{VERSION}
+  Branch : zhiguofan → origin/zhiguofan
+  Release: https://github.com/imleoo/tokenpanel/releases/tag/v{VERSION}
+  Docker : ghcr.io/imleoo/tokenpanel:{VERSION}
+  Commit : {zhiguofan 当前 SHA}
   
 后续步骤：
-  · 若需部署，在 GitHub Actions 手动触发 docker-push.yml，选择 zhiguofan 分支
   · 若需继续开发，在 feature/maas-refactor 正常提交，下次运行 /release-zhiguofan 即可
   · 若上游有新版本，先运行 /sync-upstream 再开发
+  · GitHub Actions 账单恢复后，可改用 release.yml workflow 替代本地构建
 ```
 
 ---
@@ -149,3 +235,5 @@ git checkout feature/maas-refactor
 | fork 守护检查失败 | 中止，列出失败项 |
 | 单元测试失败 | 中止 |
 | merge 产生冲突 | 中止，提示手动解决 |
+| gh release create 失败 | 中止，提示检查网络或 gh auth status |
+| docker push 鉴权失败 | 提示运行 `gh auth refresh -s write:packages` 后重试 Step 9.5 |

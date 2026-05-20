@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	dataType       = "sub2api-data"
-	legacyDataType = "sub2api-bundle"
+	dataType       = "tokenpanel-data"
+	legacyDataType = "tokenpanel-bundle"
 	dataVersion    = 1
 	dataPageCap    = 1000
 )

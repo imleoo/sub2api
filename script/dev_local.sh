@@ -30,7 +30,7 @@ REDIS_HOST="${REDIS_HOST:-127.0.0.1}"
 REDIS_PORT="${REDIS_PORT:-59116}"
 REDIS_PASSWORD="${REDIS_PASSWORD:-}"
 REDIS_DB="${REDIS_DB:-0}"
-ADMIN_EMAIL="${ADMIN_EMAIL:-admin@sub2api.local}"
+ADMIN_EMAIL="${ADMIN_EMAIL:-admin@tokenpanel.local}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin123}"
 JWT_SECRET="${JWT_SECRET:-}"
 TOTP_ENCRYPTION_KEY="${TOTP_ENCRYPTION_KEY:-}"
@@ -50,7 +50,7 @@ detect_docker_credentials() {
   local postgres_container=""
   local redis_container=""
 
-  for candidate in uds-postgres-stage uds-postgres sub2api-postgres-dev sub2api-postgres; do
+  for candidate in uds-postgres-stage uds-postgres tokenpanel-postgres-dev tokenpanel-postgres; do
     if docker inspect "$candidate" >/dev/null 2>&1; then
       postgres_container="$candidate"
       break
@@ -67,7 +67,7 @@ detect_docker_credentials() {
     [[ -n "$value" ]] && DATABASE_DBNAME="$value"
   fi
 
-  for candidate in uds-redis-stage uds-redis sub2api-redis-dev sub2api-redis; do
+  for candidate in uds-redis-stage uds-redis tokenpanel-redis-dev tokenpanel-redis; do
     if docker inspect "$candidate" >/dev/null 2>&1; then
       redis_container="$candidate"
       break
@@ -337,7 +337,7 @@ start_backend() {
       SERVER_PORT="$BACKEND_PORT" \
       SERVER_MODE=debug \
       RUN_MODE=standard \
-      ADMIN_EMAIL=admin@sub2api.local \
+      ADMIN_EMAIL=admin@tokenpanel.local \
       ADMIN_PASSWORD=admin123 \
       JWT_SECRET="$JWT_SECRET" \
       TOTP_ENCRYPTION_KEY="$TOTP_ENCRYPTION_KEY" \

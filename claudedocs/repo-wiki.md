@@ -1,6 +1,6 @@
-# Sub2API（SubPanel）项目 Repo Wiki
+# TokenPanel（SubPanel）项目 Repo Wiki
 
-> **版本**：fork `1.1.126`（上游 `Wei-Shaw/sub2api` `0.1.126`），分支 `zhiguofan`  
+> **版本**：fork `1.1.126`（上游 `Wei-Shaw/tokenpanel` `0.1.126`），分支 `zhiguofan`  
 > **最后更新**：2026-05-18
 
 本文档是项目的完整知识库，按"从整体到细节、从概念到实现"的顺序组织，建议顺序阅读。
@@ -45,7 +45,7 @@
 
 ## 1. 项目概述
 
-**Sub2API**（本仓库前端面板称 SubPanel）是一个 **AI API 聚合网关平台**，核心职责是：
+**TokenPanel**（本仓库前端面板称 SubPanel）是一个 **AI API 聚合网关平台**，核心职责是：
 
 1. 管理多个上游 AI 订阅账号（OpenAI、Anthropic/Claude、Google Gemini、AWS Bedrock、京东云灵境等）
 2. 为用户生成 API Key，对外提供 OpenAI 兼容 / Anthropic 兼容的统一接口
@@ -58,8 +58,8 @@
 
 **上游 Fork 关系**：
 ```
-Wei-Shaw/sub2api (上游 main)
-    └── bayma888/sub2api-bmai (fork)
+Wei-Shaw/tokenpanel (上游 main)
+    └── bayma888/tokenpanel-bmai (fork)
             └── zhiguofan (本开发分支，含自定义功能)
 ```
 
@@ -173,7 +173,7 @@ SubPanel/
 
 ## 4. zhiguofan 分支差异
 
-本分支相对上游（`Wei-Shaw/sub2api`）的全部自定义功能，按风险等级排列。
+本分支相对上游（`Wei-Shaw/tokenpanel`）的全部自定义功能，按风险等级排列。
 
 ### 4.1 功能清单
 

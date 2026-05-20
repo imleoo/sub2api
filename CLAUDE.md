@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目概述
 
-**sub2api**（fork: bayma888/sub2api-bmai，分支: zhiguofan）是一个 AI API 网关平台，用于订阅配额分发。从上游 AI 订阅（OpenAI、Anthropic/Claude、Gemini、Antigravity 等）生成 API Key，分发给用户，支持计费、负载均衡和请求转发。
+**tokenpanel**（fork: bayma888/tokenpanel-bmai，分支: zhiguofan）是一个 AI API 网关平台，用于订阅配额分发。从上游 AI 订阅（OpenAI、Anthropic/Claude、Gemini、Antigravity 等）生成 API Key，分发给用户，支持计费、负载均衡和请求转发。
 
 **技术栈**：Go 1.26（具体小版本以 `backend/go.mod` 为准）+ Gin + Ent ORM；Vue 3.4+（Vite 5 + TailwindCSS + Pinia）+ PostgreSQL 18 + Redis 8
 
@@ -59,7 +59,7 @@ cd backend
 go run ./cmd/server/
 
 # 构建（含前端嵌入）
-go build -tags embed -o sub2api ./cmd/server
+go build -tags embed -o tokenpanel ./cmd/server
 
 # 单元测试（-tags=unit 会过滤掉 integration/e2e build tag 文件）
 go test -tags=unit ./...
@@ -225,7 +225,7 @@ Vitest 配置要求语句/分支/函数/行均达到 80% 覆盖率（`frontend/v
 
 ## Fork 信息
 
-- 上游仓库：`Wei-Shaw/sub2api`
-- Fork 仓库：`bayma888/sub2api-bmai`
+- 上游仓库：`Wei-Shaw/tokenpanel`
+- Fork 仓库：`bayma888/tokenpanel-bmai`
 - 当前分支：`zhiguofan`
 - 同步上游：`git fetch upstream && git merge upstream/main`

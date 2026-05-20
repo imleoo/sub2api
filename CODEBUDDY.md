@@ -4,14 +4,14 @@ This file provides guidance to CodeBuddy Code when working with code in this rep
 
 ## Project Overview
 
-**sub2api** is an AI API gateway platform for subscription quota distribution. It generates API keys from upstream AI subscriptions (OpenAI, Antigravity, etc.) and distributes them to users with billing, load balancing, and request forwarding.
+**tokenpanel** is an AI API gateway platform for subscription quota distribution. It generates API keys from upstream AI subscriptions (OpenAI, Antigravity, etc.) and distributes them to users with billing, load balancing, and request forwarding.
 
 **Tech Stack**: Go 1.26.1 (Gin + Ent ORM) + Vue 3.4+ (Vite 5 + TailwindCSS + Pinia) + PostgreSQL 15+ + Redis 7+
 
 ## Repository Information
 
-- **Upstream**: `Wei-Shaw/sub2api`
-- **Fork**: `bayma888/sub2api-bmai`
+- **Upstream**: `Wei-Shaw/tokenpanel`
+- **Fork**: `bayma888/tokenpanel-bmai`
 - **Current branch**: `zhiguofan`
 
 ## Common Commands
@@ -25,7 +25,7 @@ cd backend
 go run ./cmd/server/
 
 # Build (with frontend embedded)
-go build -tags embed -o sub2api ./cmd/server
+go build -tags embed -o tokenpanel ./cmd/server
 
 # Unit tests
 go test -tags=unit ./...
@@ -190,7 +190,7 @@ tokenpanel/
 
 ## Branch Policy
 
-- `main` branch tracks upstream `Wei-Shaw/sub2api`
+- `main` branch tracks upstream `Wei-Shaw/tokenpanel`
 - `zhiguofan` branch is the development branch for this fork
 - Sync upstream: `./script/sync_upstream_to_zhiguofan.sh`
 - Push to internal: `./script/push_zhiguofan_to_internal_git.sh`

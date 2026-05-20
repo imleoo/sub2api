@@ -47,9 +47,9 @@ var upgrader = websocket.Upgrader{
 		return isAllowedOpsWSOrigin(r)
 	},
 	// Subprotocol negotiation:
-	// - The frontend passes ["sub2api-admin", "jwt.<token>"].
-	// - We always select "sub2api-admin" so the token is never echoed back in the handshake response.
-	Subprotocols: []string{"sub2api-admin"},
+	// - The frontend passes ["tokenpanel-admin", "jwt.<token>"].
+	// - We always select "tokenpanel-admin" so the token is never echoed back in the handshake response.
+	Subprotocols: []string{"tokenpanel-admin"},
 }
 
 const (

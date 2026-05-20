@@ -39,7 +39,7 @@ jobs:
       - name: Merge upstream changes
         if: steps.check.outputs.behind != '0'
         run: |
-          git merge upstream/main --no-edit -m "chore: sync from upstream Wei-Shaw/sub2api:main"
+          git merge upstream/main --no-edit -m "chore: sync from upstream Wei-Shaw/tokenpanel:main"
 
       - name: Push to origin main
         if: steps.check.outputs.behind != '0'

@@ -422,10 +422,7 @@ const restartCountdown = ref(0)
 // Only show update check for release builds (binary/docker deployment)
 const isReleaseBuild = computed(() => buildType.value === 'release')
 
-const isCustomBuild = computed(() => {
-  const v = currentVersion.value || props.version || ''
-  return v.startsWith('1.')
-})
+const isCustomBuild = computed(() => buildType.value === 'source')
 
 function toggleDropdown() {
   dropdownOpen.value = !dropdownOpen.value

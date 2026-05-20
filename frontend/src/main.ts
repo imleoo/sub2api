@@ -36,7 +36,7 @@ async function bootstrap() {
   applyUITheme(appStore.uiTheme)
 
   // Set document title immediately after config is loaded
-  if (appStore.siteName && appStore.siteName !== 'Sub2API') {
+  if (appStore.siteName && appStore.siteName !== 'TokenPanel') {
     document.title = `${appStore.siteName} - AI API Gateway`
   }
 

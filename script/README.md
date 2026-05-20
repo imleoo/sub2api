@@ -93,8 +93,8 @@ BACKEND_PORT=18082 FRONTEND_PORT=13002 POSTGRES_PORT=15432 REDIS_PORT=16379 ./sc
 
 脚本会优先从当前运行的 Docker 容器里读取 PostgreSQL / Redis 凭据，默认容器名是：
 
-- `sub2api-postgres-dev`
-- `sub2api-redis-dev`
+- `tokenpanel-postgres-dev`
+- `tokenpanel-redis-dev`
 
 如果你的容器名称不同，或者你想手动覆盖账号密码，请编辑 `./.dev/local-debug/dev.env` 里的：
 

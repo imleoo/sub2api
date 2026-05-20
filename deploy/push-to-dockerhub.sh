@@ -41,7 +41,7 @@ if ! docker system info | grep -q "Username: "; then
 fi
 
 # 3. Create or use a buildx builder
-BUILDER_NAME="sub2api-builder"
+BUILDER_NAME="tokenpanel-builder"
 if ! docker buildx inspect "${BUILDER_NAME}" >/dev/null 2>&1; then
     print_info "Creating new buildx builder: ${BUILDER_NAME}"
     docker buildx create --name "${BUILDER_NAME}" --use

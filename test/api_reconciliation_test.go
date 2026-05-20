@@ -106,7 +106,7 @@ func TestReconciliationAPIs(t *testing.T) {
 	
 	// 5. Order Verify
 	verifyBody := map[string]interface{}{
-		"out_trade_no": "SUB2API_20260420_xxxxxxxxxxxxxxxx",
+		"out_trade_no": "TOKENPANEL_20260420_xxxxxxxxxxxxxxxx",
 	}
 	verifyRes := doRequest(t, "POST", "/api/v1/payment/orders/verify", verifyBody)
 	if code, _ := verifyRes["code"].(float64); code != 0 {

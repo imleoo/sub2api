@@ -1,14 +1,14 @@
-# Sub2API Docker Image
+# TokenPanel Docker Image
 
-Sub2API is an AI API Gateway Platform for distributing and managing AI product subscription API quotas.
+TokenPanel is an AI API Gateway Platform for distributing and managing AI product subscription API quotas.
 
 ## Quick Start
 
 ```bash
 docker run -d \
-  --name sub2api \
+  --name tokenpanel \
   -p 8080:8080 \
-  -e DATABASE_URL="postgres://user:pass@host:5432/sub2api" \
+  -e DATABASE_URL="postgres://user:pass@host:5432/tokenpanel" \
   -e REDIS_URL="redis://host:6379" \
   harbor-test.brainwm.com:21143/infra/test_uds_backend:latest
 ```
@@ -21,12 +21,12 @@ If you publish your own image, set `DOCKER_REGISTRY=harbor-test.brainwm.com:2114
 version: '3.8'
 
 services:
-  sub2api:
+  tokenpanel:
     image: ${DOCKER_REGISTRY}/${DOCKER_NAMESPACE}/${DOCKER_IMAGE}:${DOCKER_TAG}
     ports:
       - "8080:8080"
     environment:
-      - DATABASE_URL=postgres://postgres:postgres@db:5432/sub2api?sslmode=disable
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/tokenpanel?sslmode=disable
       - REDIS_URL=redis://redis:6379
     depends_on:
       - db
@@ -37,7 +37,7 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=sub2api
+      - POSTGRES_DB=tokenpanel
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -74,5 +74,5 @@ volumes:
 
 ## Links
 
-- [GitHub Repository](https://github.com/weishaw/sub2api)
-- [Documentation](https://github.com/weishaw/sub2api#readme)
+- [GitHub Repository](https://github.com/weishaw/tokenpanel)
+- [Documentation](https://github.com/weishaw/tokenpanel#readme)
