@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /Users/leoobai/jiwu-project/SubPanel && BRANCH=$(git branch --show-current 2>/dev/null) && STATUS=$(git status --short 2>/dev/null) && if [ -n \"$STATUS\" ]; then printf '\\n── git(%s) 有未提交变更 ──\\n%s\\n' \"$BRANCH\" \"$STATUS\"; fi"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/leoobai/jiwu-project/SubPanel/.claude/hooks/pre-bash-guard.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
