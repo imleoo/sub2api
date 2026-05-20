@@ -2011,6 +2011,7 @@ const loadGenericEndpoints = async (accountId: number) => {
 
 const getModelMappingKey = createStableObjectKeyResolver<ModelMapping>('edit-model-mapping')
 const getOpenAICompactModelMappingKey = createStableObjectKeyResolver<ModelMapping>('edit-openai-compact-model-mapping')
+const getAntigravityModelMappingKey = createStableObjectKeyResolver<ModelMapping>('edit-antigravity-model-mapping')
 const getTempUnschedRuleKey = createStableObjectKeyResolver<TempUnschedRuleForm>('edit-temp-unsched-rule')
 
 const showMixedChannelWarning = ref(false)
@@ -2195,6 +2196,7 @@ const openAICompactStatusKey = computed(() => {
 
 // Computed: current preset mappings based on platform
 const presetMappings = computed(() => getPresetMappingsByPlatform(props.account?.platform || 'anthropic'))
+const antigravityPresetMappings = computed(() => getPresetMappingsByPlatform('antigravity'))
 const tempUnschedPresets = computed(() => [
   {
     label: t('admin.accounts.tempUnschedulable.presets.overloadLabel'),
@@ -2583,6 +2585,10 @@ const removeOpenAICompactModelMapping = (index: number) => {
 
 const removeAntigravityModelMapping = (index: number) => {
   antigravityModelMappings.value.splice(index, 1)
+}
+
+const addAntigravityModelMapping = () => {
+  antigravityModelMappings.value.push({ from: '', to: '' })
 }
 
 const addAntigravityPresetMapping = (from: string, to: string) => {

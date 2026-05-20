@@ -493,7 +493,7 @@
                 <span class="font-medium text-violet-300">{{ formatTokenPricePerMillion(tooltipData.output_cost, tooltipData.output_tokens) }} {{ t('usage.perMillionTokens') }}</span>
               </div>
             </template>
-            <div v-else class="flex items-center justify-between gap-4">
+            <div v-else-if="tooltipData" class="flex items-center justify-between gap-4">
               <span class="text-gray-400">{{ tooltipData.billing_mode === 'image' ? t('usage.imageUnitPrice') : t('usage.unitPrice') }}</span>
               <span class="font-medium text-sky-300">{{ formatUSD(tooltipData.total_cost, 6) }}</span>
             </div>

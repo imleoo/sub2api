@@ -486,6 +486,7 @@ import { ref, computed, onMounted, onBeforeUnmount, onUnmounted, watch } from 'v
 import { useI18n } from 'vue-i18n'
 import { adminAPI } from '@/api/admin'
 import type { Account, AccountUsageInfo, GeminiCredentials, WindowStats } from '@/types'
+import { buildOpenAIUsageRefreshKey } from '@/utils/accountUsageRefresh'
 import { enqueueUsageRequest } from '@/utils/usageLoadQueue'
 import { formatCompactNumber, formatUSD } from '@/utils/format'
 import UsageProgressBar from './UsageProgressBar.vue'
@@ -515,6 +516,7 @@ const unmounted = ref(false)
 onBeforeUnmount(() => { unmounted.value = true })
 
 const loading = ref(false)
+const activeQueryLoading = ref(false)
 const error = ref<string | null>(null)
 const usageInfo = ref<AccountUsageInfo | null>(null)
 const rootRef = ref<HTMLElement | null>(null)
@@ -524,18 +526,24 @@ const isDesktopViewport = ref(
 const hasEnteredViewport = ref(false)
 const pendingAutoLoad = ref(false)
 const pendingAutoLoadSource = ref<'passive' | 'active' | undefined>(undefined)
-const activeQueryLoading = ref(false)
 
 let desktopViewportMediaQuery: MediaQueryList | null = null
 let desktopViewportListener: ((event: MediaQueryListEvent) => void) | null = null
 let visibilityObserver: IntersectionObserver | null = null
 
 const showUsageWindows = computed(() => {
-  return props.account.platform === 'gemini'
+  if (props.account.platform === 'gemini') return true
+  return props.account.type === 'oauth' || props.account.type === 'setup-token'
 })
 
 const shouldFetchUsage = computed(() => {
-  return props.account.platform === 'gemini'
+  if (props.account.platform === 'anthropic') {
+    return props.account.type === 'oauth' || props.account.type === 'setup-token'
+  }
+  if (props.account.platform === 'gemini') return true
+  if (props.account.platform === 'antigravity') return props.account.type === 'oauth'
+  if (props.account.platform === 'openai') return props.account.type === 'oauth'
+  return false
 })
 
 const showGeminiTodayStats = computed(() => {
@@ -553,6 +561,12 @@ const geminiUsageAvailable = computed(() => {
   )
 })
 
+const hasOpenAIUsageFallback = computed(() => {
+  if (props.account.platform !== 'openai' || props.account.type !== 'oauth') return false
+  return !!usageInfo.value?.five_hour || !!usageInfo.value?.seven_day
+})
+
+const openAIUsageRefreshKey = computed(() => buildOpenAIUsageRefreshKey(props.account))
 
 const shouldAutoLoadUsageOnMount = computed(() => {
   return shouldFetchUsage.value
@@ -562,6 +576,147 @@ const shouldLazyLoadOnMobile = computed(() => {
   return shouldFetchUsage.value && !isDesktopViewport.value
 })
 
+// Antigravity quota types
+interface AntigravityUsageResult {
+  utilization: number
+  resetTime: string | null
+}
+
+// ===== Antigravity quota from API (usageInfo.antigravity_quota) =====
+
+const hasAntigravityQuotaFromAPI = computed(() => {
+  return usageInfo.value?.antigravity_quota && Object.keys(usageInfo.value.antigravity_quota).length > 0
+})
+
+const getAntigravityUsageFromAPI = (modelNames: string[]): AntigravityUsageResult | null => {
+  const quota = usageInfo.value?.antigravity_quota
+  if (!quota) return null
+
+  let maxUtilization = 0
+  let earliestReset: string | null = null
+
+  for (const model of modelNames) {
+    const modelQuota = quota[model]
+    if (!modelQuota) continue
+    if (modelQuota.utilization > maxUtilization) maxUtilization = modelQuota.utilization
+    if (modelQuota.reset_time) {
+      if (!earliestReset || modelQuota.reset_time < earliestReset) {
+        earliestReset = modelQuota.reset_time
+      }
+    }
+  }
+
+  if (maxUtilization === 0 && earliestReset === null) {
+    if (!modelNames.some((m) => quota[m])) return null
+  }
+
+  return { utilization: maxUtilization, resetTime: earliestReset }
+}
+
+const antigravity3ProUsageFromAPI = computed(() =>
+  getAntigravityUsageFromAPI(['gemini-3-pro-low', 'gemini-3-pro-high', 'gemini-3-pro-preview'])
+)
+
+const antigravity3FlashUsageFromAPI = computed(() =>
+  getAntigravityUsageFromAPI(['gemini-3-flash'])
+)
+
+const antigravity3ImageUsageFromAPI = computed(() =>
+  getAntigravityUsageFromAPI(['gemini-2.5-flash-image', 'gemini-3.1-flash-image', 'gemini-3-pro-image'])
+)
+
+const antigravityClaudeUsageFromAPI = computed(() =>
+  getAntigravityUsageFromAPI([
+    'claude-sonnet-4-5', 'claude-opus-4-5-thinking',
+    'claude-sonnet-4-6', 'claude-opus-4-6', 'claude-opus-4-6-thinking',
+  ])
+)
+
+const aiCreditsDisplay = computed(() => {
+  const credits = usageInfo.value?.ai_credits
+  if (!credits || credits.length === 0) return null
+  const total = credits.reduce((sum, credit) => sum + (credit.amount ?? 0), 0)
+  if (total <= 0) return null
+  return total.toFixed(0)
+})
+
+// Antigravity 账户类型（从 extra.load_code_assist 提取）
+const antigravityTier = computed(() => {
+  const extra = props.account.extra as Record<string, unknown> | undefined
+  if (!extra) return null
+  const loadCodeAssist = extra.load_code_assist as Record<string, unknown> | undefined
+  if (!loadCodeAssist) return null
+  const paidTier = loadCodeAssist.paidTier as Record<string, unknown> | undefined
+  if (paidTier && typeof paidTier.id === 'string') return paidTier.id
+  const currentTier = loadCodeAssist.currentTier as Record<string, unknown> | undefined
+  if (currentTier && typeof currentTier.id === 'string') return currentTier.id
+  return null
+})
+
+const antigravityTierLabel = computed(() => {
+  switch (antigravityTier.value) {
+    case 'free-tier': return t('admin.accounts.tier.free')
+    case 'g1-pro-tier': return t('admin.accounts.tier.pro')
+    case 'g1-ultra-tier': return t('admin.accounts.tier.ultra')
+    default: return null
+  }
+})
+
+const antigravityTierClass = computed(() => {
+  switch (antigravityTier.value) {
+    case 'free-tier': return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+    case 'g1-pro-tier': return 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300'
+    case 'g1-ultra-tier': return 'bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-300'
+    default: return ''
+  }
+})
+
+const hasIneligibleTiers = computed(() => {
+  const extra = props.account.extra as Record<string, unknown> | undefined
+  if (!extra) return false
+  const loadCodeAssist = extra.load_code_assist as Record<string, unknown> | undefined
+  if (!loadCodeAssist) return false
+  const ineligibleTiers = loadCodeAssist.ineligibleTiers as unknown[] | undefined
+  return Array.isArray(ineligibleTiers) && ineligibleTiers.length > 0
+})
+
+const isForbidden = computed(() => !!usageInfo.value?.is_forbidden)
+const forbiddenType = computed(() => usageInfo.value?.forbidden_type || 'forbidden')
+const validationURL = computed(() => usageInfo.value?.validation_url || '')
+const needsReauth = computed(() => !!usageInfo.value?.needs_reauth)
+
+const usageErrorLabel = computed(() => {
+  const code = usageInfo.value?.error_code
+  if (code === 'rate_limited') return t('admin.accounts.rateLimited')
+  return t('admin.accounts.usageError')
+})
+
+const forbiddenLabel = computed(() => {
+  switch (forbiddenType.value) {
+    case 'validation': return t('admin.accounts.forbiddenValidation')
+    case 'violation': return t('admin.accounts.forbiddenViolation')
+    default: return t('admin.accounts.forbidden')
+  }
+})
+
+const forbiddenBadgeClass = computed(() => {
+  if (forbiddenType.value === 'validation') {
+    return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300'
+  }
+  return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+})
+
+const linkCopied = ref(false)
+const copyValidationURL = async () => {
+  if (!validationURL.value) return
+  try {
+    await navigator.clipboard.writeText(validationURL.value)
+    linkCopied.value = true
+    setTimeout(() => { linkCopied.value = false }, 2000)
+  } catch {
+    // fallback: ignore
+  }
+}
 
 // Gemini 账户类型（从 credentials 中提取）
 const geminiTier = computed(() => {
@@ -576,7 +731,6 @@ const geminiOAuthType = computed(() => {
   return (creds?.oauth_type || '').trim() || null
 })
 
-// Gemini 是否为 Code Assist OAuth
 const isGeminiCodeAssist = computed(() => {
   if (props.account.platform !== 'gemini') return false
   const creds = props.account.credentials as GeminiCredentials | undefined
@@ -585,15 +739,10 @@ const isGeminiCodeAssist = computed(() => {
 
 const geminiChannelShort = computed((): 'ai studio' | 'gcp' | 'google one' | 'client' | null => {
   if (props.account.platform !== 'gemini') return null
-
-  // API Key accounts are AI Studio.
   if (props.account.type === 'apikey') return 'ai studio'
-
   if (geminiOAuthType.value === 'google_one') return 'google one'
   if (isGeminiCodeAssist.value) return 'gcp'
   if (geminiOAuthType.value === 'ai_studio') return 'client'
-
-  // Fallback (unknown legacy data): treat as AI Studio.
   return 'ai studio'
 })
 
@@ -604,36 +753,26 @@ const geminiUserLevel = computed((): string | null => {
   const tierLower = tier.toLowerCase()
   const tierUpper = tier.toUpperCase()
 
-  // Google One: free / pro / ultra
   if (geminiOAuthType.value === 'google_one') {
     if (tierLower === 'google_one_free') return 'free'
     if (tierLower === 'google_ai_pro') return 'pro'
     if (tierLower === 'google_ai_ultra') return 'ultra'
-
-    // Backward compatibility (legacy tier markers)
     if (tierUpper === 'AI_PREMIUM' || tierUpper === 'GOOGLE_ONE_STANDARD') return 'pro'
     if (tierUpper === 'GOOGLE_ONE_UNLIMITED') return 'ultra'
     if (tierUpper === 'FREE' || tierUpper === 'GOOGLE_ONE_BASIC' || tierUpper === 'GOOGLE_ONE_UNKNOWN' || tierUpper === '') return 'free'
-
     return null
   }
 
-  // GCP Code Assist: standard / enterprise
   if (isGeminiCodeAssist.value) {
     if (tierLower === 'gcp_enterprise') return 'enterprise'
     if (tierLower === 'gcp_standard') return 'standard'
-
-    // Backward compatibility
     if (tierUpper.includes('ULTRA') || tierUpper.includes('ENTERPRISE')) return 'enterprise'
     return 'standard'
   }
 
-  // AI Studio (API Key) and Client OAuth: free / paid
   if (props.account.type === 'apikey' || geminiOAuthType.value === 'ai_studio') {
     if (tierLower === 'aistudio_paid') return 'paid'
     if (tierLower === 'aistudio_free') return 'free'
-
-    // Backward compatibility
     if (tierUpper.includes('PAID') || tierUpper.includes('PAYG') || tierUpper.includes('PAY')) return 'paid'
     if (tierUpper.includes('FREE')) return 'free'
     if (props.account.type === 'apikey') return 'free'
@@ -643,38 +782,31 @@ const geminiUserLevel = computed((): string | null => {
   return null
 })
 
-// Gemini 认证类型（按要求：授权方式简称 + 用户等级）
 const geminiAuthTypeLabel = computed(() => {
   if (props.account.platform !== 'gemini') return null
   if (!geminiChannelShort.value) return null
   return geminiUserLevel.value ? `${geminiChannelShort.value} ${geminiUserLevel.value}` : geminiChannelShort.value
 })
 
-// Gemini 账户类型徽章样式（统一样式）
 const geminiTierClass = computed(() => {
-  // Use channel+level to choose a stable color without depending on raw tier_id variants.
   const channel = geminiChannelShort.value
   const level = geminiUserLevel.value
 
   if (channel === 'client' || channel === 'ai studio') {
     return 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300'
   }
-
   if (channel === 'google one') {
     if (level === 'ultra') return 'bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-300'
     if (level === 'pro') return 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300'
     return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
   }
-
   if (channel === 'gcp') {
     if (level === 'enterprise') return 'bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-300'
     return 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300'
   }
-
   return ''
 })
 
-// Gemini 配额政策信息
 const geminiQuotaPolicyChannel = computed(() => {
   if (geminiOAuthType.value === 'google_one') {
     return t('admin.accounts.gemini.quotaPolicy.rows.googleOne.channel')
@@ -697,15 +829,12 @@ const geminiQuotaPolicyLimits = computed(() => {
     }
     return t('admin.accounts.gemini.quotaPolicy.rows.googleOne.limitsFree')
   }
-
   if (isGeminiCodeAssist.value) {
     if (tierLower === 'gcp_enterprise' || geminiUserLevel.value === 'enterprise') {
       return t('admin.accounts.gemini.quotaPolicy.rows.gcp.limitsEnterprise')
     }
     return t('admin.accounts.gemini.quotaPolicy.rows.gcp.limitsStandard')
   }
-
-  // AI Studio (API Key / custom OAuth)
   if (tierLower === 'aistudio_paid' || geminiUserLevel.value === 'paid') {
     return t('admin.accounts.gemini.quotaPolicy.rows.aiStudio.limitsPaid')
   }
@@ -721,7 +850,6 @@ const geminiQuotaPolicyDocsUrl = computed(() => {
 
 const geminiUsesSharedDaily = computed(() => {
   if (props.account.platform !== 'gemini') return false
-  // Per requirement: Google One & GCP are shared RPD pools (no per-model breakdown).
   return (
     !!usageInfo.value?.gemini_shared_daily ||
     !!usageInfo.value?.gemini_shared_minute ||
@@ -767,7 +895,7 @@ const geminiUsageBars = computed(() => {
       resetsAt: pro.resets_at,
       windowStats: pro.window_stats,
       color: 'indigo'
-      })
+    })
   }
 
   const flash = usageInfo.value.gemini_flash_daily
@@ -785,13 +913,13 @@ const geminiUsageBars = computed(() => {
   return bars
 })
 
-
-const isAnthropicOAuthOrSetupToken = computed(() => false)
+const isAnthropicOAuthOrSetupToken = computed(() => {
+  return props.account.platform === 'anthropic' && (props.account.type === 'oauth' || props.account.type === 'setup-token')
+})
 
 const loadUsage = async (options?: { source?: 'passive' | 'active'; bypassCache?: boolean }) => {
   if (!shouldFetchUsage.value) return
 
-  // Check cache
   if (!options?.bypassCache) {
     const cached = _usageCache.get(props.account.id)
     if (cached && Date.now() - cached.ts < USAGE_CACHE_TTL) {
@@ -889,11 +1017,7 @@ interface QuotaBarInfo {
   resetsAt: string | null
 }
 
-const makeQuotaBar = (
-  used: number,
-  limit: number,
-  startKey?: string
-): QuotaBarInfo => {
+const makeQuotaBar = (used: number, limit: number, startKey?: string): QuotaBarInfo => {
   const utilization = limit > 0 ? (used / limit) * 100 : 0
   let resetsAt: string | null = null
   if (startKey) {
@@ -904,11 +1028,9 @@ const makeQuotaBar = (
       : (extra?.quota_weekly_reset_mode as string) || 'rolling'
 
     if (mode === 'fixed') {
-      // Use pre-computed next reset time for fixed mode
       const resetAtKey = isDaily ? 'quota_daily_reset_at' : 'quota_weekly_reset_at'
       resetsAt = (extra?.[resetAtKey] as string) || null
     } else {
-      // Rolling mode: compute from start + period
       const startStr = extra?.[startKey] as string | undefined
       if (startStr) {
         const startDate = new Date(startStr)
@@ -988,6 +1110,11 @@ onMounted(() => {
   requestAutoLoad(source)
 })
 
+watch(openAIUsageRefreshKey, (nextKey, prevKey) => {
+  if (!prevKey || nextKey === prevKey) return
+  if (props.account.platform !== 'openai' || props.account.type !== 'oauth') return
+  requestAutoLoad()
+})
 
 watch(
   () => props.manualRefreshToken,
