@@ -91,6 +91,15 @@
         {{ t('admin.accounts.fillRelatedModels') }}
       </button>
       <button
+        v-if="canSyncUpstream"
+        type="button"
+        @click="syncUpstreamModels"
+        :disabled="isSyncingUpstream"
+        class="rounded-lg border border-emerald-200 px-3 py-1.5 text-sm text-emerald-600 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-900/30"
+      >
+        {{ isSyncingUpstream ? t('admin.accounts.syncUpstreamModelsLoading') : t('admin.accounts.syncUpstreamModels') }}
+      </button>
+      <button
         type="button"
         @click="clearAll"
         class="rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/30"
@@ -125,9 +134,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
+import { accountsAPI } from '@/api/admin/accounts'
 import ModelIcon from '@/components/common/ModelIcon.vue'
 import Icon from '@/components/icons/Icon.vue'
 import { listModelPricings, type DBModelPricing } from '@/api/admin/modelPricings'
@@ -138,6 +148,7 @@ const props = defineProps<{
   modelValue: string[]
   platform?: string
   platforms?: string[]
+  accountId?: number
 }>()
 
 const emit = defineEmits<{
@@ -152,6 +163,7 @@ const customModel = ref('')
 const isComposing = ref(false)
 const searchLoading = ref(false)
 const searchResults = ref<DBModelPricing[]>([])
+const isSyncingUpstream = ref(false)
 
 let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -167,6 +179,29 @@ const getProviderParam = (): string | undefined => {
   // Return the first platform as provider hint (lowercase)
   return rawPlatforms[0]?.toLowerCase()
 }
+
+const normalizedPlatforms = computed(() => {
+  const rawPlatforms =
+    props.platforms && props.platforms.length > 0
+      ? props.platforms
+      : props.platform
+        ? [props.platform]
+        : []
+  return Array.from(
+    new Set(
+      rawPlatforms
+        .map(platform => platform?.trim())
+        .filter((platform): platform is string => Boolean(platform))
+    )
+  )
+})
+
+const upstreamSyncPlatforms = new Set(['anthropic', 'openai', 'gemini', 'antigravity'])
+const canSyncUpstream = computed(() => {
+  if (!props.accountId) return false
+  if (normalizedPlatforms.value.length === 0) return true
+  return normalizedPlatforms.value.some(platform => upstreamSyncPlatforms.has(platform.toLowerCase()))
+})
 
 const fetchModels = async (q: string) => {
   searchLoading.value = true
@@ -258,6 +293,41 @@ const fillRelated = async () => {
     appStore.showError('获取模型列表失败')
   } finally {
     searchLoading.value = false
+  }
+}
+
+const syncUpstreamModels = async () => {
+  if (!props.accountId || isSyncingUpstream.value) return
+
+  isSyncingUpstream.value = true
+  try {
+    const result = await accountsAPI.syncUpstreamModels(props.accountId)
+    const upstreamModels = result.models.map(model => model.trim()).filter(Boolean)
+    if (upstreamModels.length === 0) {
+      appStore.showInfo(t('admin.accounts.syncUpstreamModelsEmpty'))
+      return
+    }
+
+    const newModels = [...props.modelValue]
+    let addedCount = 0
+    for (const model of upstreamModels) {
+      if (!newModels.includes(model)) {
+        newModels.push(model)
+        addedCount += 1
+      }
+    }
+
+    emit('update:modelValue', newModels)
+    if (addedCount > 0) {
+      appStore.showSuccess(t('admin.accounts.syncUpstreamModelsSuccess', { count: addedCount, total: upstreamModels.length }))
+    } else {
+      appStore.showInfo(t('admin.accounts.syncUpstreamModelsNoChanges', { count: upstreamModels.length }))
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : t('admin.accounts.syncUpstreamModelsFailed')
+    appStore.showError(t('admin.accounts.syncUpstreamModelsError', { message }))
+  } finally {
+    isSyncingUpstream.value = false
   }
 }
 

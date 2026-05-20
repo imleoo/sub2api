@@ -263,9 +263,12 @@ export async function clearError(id: number): Promise<Account> {
  * @param id - Account ID
  * @returns Account usage info
  */
-export async function getUsage(id: number, source?: 'passive' | 'active'): Promise<AccountUsageInfo> {
+export async function getUsage(id: number, source?: 'passive' | 'active', force?: boolean): Promise<AccountUsageInfo> {
+  const params: Record<string, string> = {}
+  if (source) params.source = source
+  if (force) params.force = 'true'
   const { data } = await apiClient.get<AccountUsageInfo>(`/admin/accounts/${id}/usage`, {
-    params: source ? { source } : undefined
+    params: Object.keys(params).length > 0 ? params : undefined
   })
   return data
 }
@@ -446,6 +449,48 @@ export async function setSchedulable(id: number, schedulable: boolean): Promise<
  */
 export async function getAvailableModels(id: number): Promise<ClaudeModel[]> {
   const { data } = await apiClient.get<ClaudeModel[]>(`/admin/accounts/${id}/models`)
+  return data
+}
+
+export interface SyncUpstreamModelsResult {
+  models: string[]
+}
+
+/**
+ * Sync live supported models from the account's upstream model-list endpoint
+ * @param id - Account ID
+ * @returns List of model IDs returned by the upstream
+ */
+export async function syncUpstreamModels(id: number): Promise<SyncUpstreamModelsResult> {
+  const { data } = await apiClient.post<SyncUpstreamModelsResult>(`/admin/accounts/${id}/models/sync-upstream`)
+  return data
+}
+
+/**
+ * Generate OAuth authorization URL
+ * @param endpoint - API endpoint path
+ * @param config - Proxy configuration
+ * @returns Auth URL and session ID
+ */
+export async function generateAuthUrl(
+  endpoint: string,
+  config: { proxy_id?: number }
+): Promise<{ auth_url: string; session_id: string }> {
+  const { data } = await apiClient.post<{ auth_url: string; session_id: string }>(endpoint, config)
+  return data
+}
+
+/**
+ * Exchange authorization code for tokens
+ * @param endpoint - API endpoint path
+ * @param exchangeData - Session ID, code, and optional proxy config
+ * @returns Token information
+ */
+export async function exchangeCode(
+  endpoint: string,
+  exchangeData: { session_id: string; code: string; state?: string; proxy_id?: number }
+): Promise<Record<string, unknown>> {
+  const { data } = await apiClient.post<Record<string, unknown>>(endpoint, exchangeData)
   return data
 }
 
@@ -658,6 +703,9 @@ export const accountsAPI = {
   resetTempUnschedulable,
   setSchedulable,
   getAvailableModels,
+  syncUpstreamModels,
+  generateAuthUrl,
+  exchangeCode,
   refreshOpenAIToken,
   batchCreate,
   batchUpdateCredentials,
