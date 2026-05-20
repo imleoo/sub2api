@@ -85,6 +85,20 @@
         </div>
 
         <div class="rounded-xl bg-gray-50 p-4 dark:bg-dark-900">
+          <div class="text-xs font-bold uppercase tracking-wider text-gray-400">{{ t('admin.ops.errorDetail.clientIp') }}</div>
+          <div class="mt-1 break-all font-mono text-sm font-medium text-gray-900 dark:text-white">
+            {{ detail.client_ip || '—' }}
+          </div>
+        </div>
+
+        <div class="rounded-xl bg-gray-50 p-4 dark:bg-dark-900">
+          <div class="text-xs font-bold uppercase tracking-wider text-gray-400">{{ t('admin.ops.errorDetail.apiKey') }}</div>
+          <div class="mt-1 font-mono text-sm font-medium text-gray-900 dark:text-white">
+            {{ detail.api_key_name || (detail.api_key_id != null ? String(detail.api_key_id) : '—') }}
+          </div>
+        </div>
+
+        <div class="rounded-xl bg-gray-50 p-4 dark:bg-dark-900">
           <div class="text-xs font-bold uppercase tracking-wider text-gray-400">{{ t('admin.ops.errorDetail.status') }}</div>
           <div class="mt-1">
             <span :class="['inline-flex items-center rounded-lg px-2 py-1 text-xs font-black ring-1 ring-inset shadow-sm', statusClass]">

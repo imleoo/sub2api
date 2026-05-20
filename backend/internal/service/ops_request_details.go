@@ -38,6 +38,9 @@ type OpsRequestDetail struct {
 	GroupID   *int64 `json:"group_id,omitempty"`
 
 	Stream bool `json:"stream"`
+
+	ClientIP   *string `json:"client_ip,omitempty"`
+	APIKeyName string  `json:"api_key_name,omitempty"`
 }
 
 type OpsRequestDetailFilter struct {

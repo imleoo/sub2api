@@ -102,10 +102,13 @@ WITH combined AS (
     ul.api_key_id AS api_key_id,
     ul.account_id AS account_id,
     ul.group_id AS group_id,
-    ul.stream AS stream
+    ul.stream AS stream,
+    NULL::TEXT AS client_ip,
+    COALESCE(ak.name, '') AS api_key_name
   FROM usage_logs ul
   LEFT JOIN groups g ON g.id = ul.group_id
   LEFT JOIN accounts a ON a.id = ul.account_id
+  LEFT JOIN api_keys ak ON ak.id = ul.api_key_id
   WHERE ul.created_at >= $1 AND ul.created_at < $2
 
   UNION ALL
@@ -126,10 +129,13 @@ WITH combined AS (
     o.api_key_id AS api_key_id,
     o.account_id AS account_id,
     o.group_id AS group_id,
-    o.stream AS stream
+    o.stream AS stream,
+    CASE WHEN o.client_ip IS NULL THEN NULL ELSE o.client_ip::text END AS client_ip,
+    COALESCE(ak.name, '') AS api_key_name
   FROM ops_error_logs o
   LEFT JOIN groups g ON g.id = o.group_id
   LEFT JOIN accounts a ON a.id = o.account_id
+  LEFT JOIN api_keys ak ON ak.id = o.api_key_id
   WHERE o.created_at >= $1 AND o.created_at < $2
     AND COALESCE(o.status_code, 0) >= 400
 )
@@ -175,7 +181,9 @@ SELECT
   api_key_id,
   account_id,
   group_id,
-  stream
+  stream,
+  client_ip,
+  api_key_name
 FROM combined
 %s
 %s
@@ -226,7 +234,9 @@ LIMIT $%d OFFSET $%d
 			accountID sql.NullInt64
 			groupID   sql.NullInt64
 
-			stream bool
+			stream     bool
+			clientIP   sql.NullString
+			apiKeyName sql.NullString
 		)
 
 		if err := rows.Scan(
@@ -246,6 +256,8 @@ LIMIT $%d OFFSET $%d
 			&accountID,
 			&groupID,
 			&stream,
+			&clientIP,
+			&apiKeyName,
 		); err != nil {
 			return nil, 0, err
 		}
@@ -271,6 +283,12 @@ LIMIT $%d OFFSET $%d
 
 			Stream: stream,
 		}
+
+		if clientIP.Valid && clientIP.String != "" {
+			s := clientIP.String
+			item.ClientIP = &s
+		}
+		item.APIKeyName = apiKeyName.String
 
 		if item.Platform == "" {
 			item.Platform = "unknown"

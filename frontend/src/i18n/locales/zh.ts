@@ -4882,7 +4882,9 @@ export default {
         requestType: '类型',
         requestTypeSync: '同步',
         requestTypeStream: '流式',
-        requestTypeWs: 'WS'
+        requestTypeWs: 'WS',
+        clientIp: '来源 IP',
+        apiKey: 'API Key'
       },
       // Error Details Modal
       errorDetails: {
@@ -4987,7 +4989,9 @@ export default {
         suggestRequest: '⚠️ 客户端请求错误，建议：联系客户修正请求参数 / 手动标记已解决',
         suggestAuth: '⚠️ 认证失败，建议：检查 API Key 是否有效 / 联系客户更新凭证',
         suggestPlatform: '🚨 平台错误，建议立即排查修复',
-        suggestGeneric: '查看详情了解更多信息'
+        suggestGeneric: '查看详情了解更多信息',
+        clientIp: '来源 IP',
+        apiKey: 'API Key'
       },
       requestDetails: {
         title: '请求明细',
@@ -5014,6 +5018,8 @@ export default {
           duration: '耗时',
           status: '状态码',
           requestId: '请求ID',
+          clientIp: '来源 IP',
+          apiKey: 'API Key',
           actions: '操作'
         }
       },

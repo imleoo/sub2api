@@ -231,12 +231,14 @@ SELECT
   COALESCE(e.upstream_endpoint, ''),
   COALESCE(e.requested_model, ''),
   COALESCE(e.upstream_model, ''),
-  e.request_type
+  e.request_type,
+  COALESCE(ak.name, '')
 FROM ops_error_logs e
 LEFT JOIN accounts a ON e.account_id = a.id
 LEFT JOIN groups g ON e.group_id = g.id
 LEFT JOIN users u ON e.user_id = u.id
 LEFT JOIN users u2 ON e.resolved_by_user_id = u2.id
+LEFT JOIN api_keys ak ON e.api_key_id = ak.id
 ` + where + `
 ORDER BY e.created_at DESC
 LIMIT $` + itoa(len(args)+1) + ` OFFSET $` + itoa(len(args)+2)
@@ -263,6 +265,7 @@ LIMIT $` + itoa(len(args)+1) + ` OFFSET $` + itoa(len(args)+2)
 		var resolvedBy sql.NullInt64
 		var resolvedByName string
 		var requestType sql.NullInt64
+		var apiKeyName string
 		if err := rows.Scan(
 			&item.ID,
 			&item.CreatedAt,
@@ -296,6 +299,7 @@ LIMIT $` + itoa(len(args)+1) + ` OFFSET $` + itoa(len(args)+2)
 			&item.RequestedModel,
 			&item.UpstreamModel,
 			&requestType,
+			&apiKeyName,
 		); err != nil {
 			return nil, err
 		}
@@ -322,6 +326,7 @@ LIMIT $` + itoa(len(args)+1) + ` OFFSET $` + itoa(len(args)+2)
 			v := apiKeyID.Int64
 			item.APIKeyID = &v
 		}
+		item.APIKeyName = apiKeyName
 		if accountID.Valid {
 			v := accountID.Int64
 			item.AccountID = &v
@@ -402,11 +407,13 @@ SELECT
   e.routing_latency_ms,
   e.upstream_latency_ms,
   e.response_latency_ms,
-  e.time_to_first_token_ms
+  e.time_to_first_token_ms,
+  COALESCE(ak.name, '')
 FROM ops_error_logs e
 LEFT JOIN users u ON e.user_id = u.id
 LEFT JOIN accounts a ON e.account_id = a.id
 LEFT JOIN groups g ON e.group_id = g.id
+LEFT JOIN api_keys ak ON e.api_key_id = ak.id
 WHERE e.id = $1
 LIMIT 1`
 
@@ -426,6 +433,7 @@ LIMIT 1`
 	var responseLatency sql.NullInt64
 	var ttft sql.NullInt64
 	var requestType sql.NullInt64
+	var apiKeyName string
 
 	err := r.db.QueryRowContext(ctx, q, id).Scan(
 		&out.ID,
@@ -471,6 +479,7 @@ LIMIT 1`
 		&upstreamLatency,
 		&responseLatency,
 		&ttft,
+		&apiKeyName,
 	)
 	if err != nil {
 		return nil, err
@@ -501,6 +510,7 @@ LIMIT 1`
 		v := apiKeyID.Int64
 		out.APIKeyID = &v
 	}
+	out.APIKeyName = apiKeyName
 	if accountID.Valid {
 		v := accountID.Int64
 		out.AccountID = &v

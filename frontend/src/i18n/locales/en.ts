@@ -4721,7 +4721,9 @@ export default {
         requestType: 'Type',
         requestTypeSync: 'Sync',
         requestTypeStream: 'Stream',
-        requestTypeWs: 'WS'
+        requestTypeWs: 'WS',
+        clientIp: 'Client IP',
+        apiKey: 'API Key'
       },
       // Error Details Modal
       errorDetails: {
@@ -4826,7 +4828,9 @@ export default {
         suggestRequest: 'Client request error: ask customer to fix request parameters',
         suggestAuth: 'Auth failed: verify API key/credentials',
         suggestPlatform: 'Platform error: prioritize investigation and fix',
-        suggestGeneric: 'See details for more context'
+        suggestGeneric: 'See details for more context',
+        clientIp: 'Client IP',
+        apiKey: 'API Key'
       },
       requestDetails: {
         title: 'Request Details',
@@ -4853,6 +4857,8 @@ export default {
           duration: 'Duration',
           status: 'Status',
           requestId: 'Request ID',
+          clientIp: 'Client IP',
+          apiKey: 'API Key',
           actions: 'Actions'
         }
       },

@@ -211,6 +211,12 @@ const kindBadgeClass = (kind: string) => {
                     {{ t('admin.ops.requestDetails.table.status') }}
                   </th>
                   <th class="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    {{ t('admin.ops.requestDetails.table.clientIp') }}
+                  </th>
+                  <th class="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    {{ t('admin.ops.requestDetails.table.apiKey') }}
+                  </th>
+                  <th class="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                     {{ t('admin.ops.requestDetails.table.requestId') }}
                   </th>
                   <th class="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
@@ -239,6 +245,16 @@ const kindBadgeClass = (kind: string) => {
                   </td>
                   <td class="whitespace-nowrap px-4 py-3 text-xs text-gray-600 dark:text-gray-300">
                     {{ row.status_code ?? '-' }}
+                  </td>
+                  <td class="whitespace-nowrap px-4 py-3 text-xs text-gray-600 dark:text-gray-300">
+                    <span v-if="row.client_ip" class="font-mono">{{ row.client_ip }}</span>
+                    <span v-else class="text-gray-400">-</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span v-if="row.api_key_name || row.api_key_id" class="max-w-[100px] truncate font-mono text-[11px] text-gray-600 dark:text-gray-300" :title="row.api_key_name || String(row.api_key_id)">
+                      {{ row.api_key_name || String(row.api_key_id) }}
+                    </span>
+                    <span v-else class="text-xs text-gray-400">-</span>
                   </td>
                   <td class="px-4 py-3">
                     <div v-if="row.request_id" class="flex items-center gap-2">
