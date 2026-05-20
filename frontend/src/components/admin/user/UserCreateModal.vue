@@ -23,7 +23,7 @@
       </div>
       <div>
         <label class="input-label">{{ t('admin.users.username') }}</label>
-        <input v-model="form.username" type="text" class="input" :placeholder="t('admin.users.enterUsername')" />
+        <input v-model="form.username" type="text" required class="input" :placeholder="t('admin.users.enterUsername')" />
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>

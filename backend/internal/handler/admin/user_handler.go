@@ -37,7 +37,7 @@ func NewUserHandler(adminService service.AdminService, concurrencyService *servi
 type CreateUserRequest struct {
 	Email         string  `json:"email" binding:"required,email"`
 	Password      string  `json:"password" binding:"required,min=6"`
-	Username      string  `json:"username"`
+	Username      string  `json:"username" binding:"required"`
 	Notes         string  `json:"notes"`
 	Balance       float64 `json:"balance"`
 	Concurrency   int     `json:"concurrency"`

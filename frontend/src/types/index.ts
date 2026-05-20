@@ -118,6 +118,7 @@ export interface LoginRequest {
 export interface RegisterRequest {
   email: string
   password: string
+  username: string
   verify_code?: string
   turnstile_token?: string
   promo_code?: string

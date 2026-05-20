@@ -52,6 +52,29 @@
           </div>
         </div>
 
+        <!-- Username Input -->
+        <div>
+          <label for="username" class="input-label">
+            {{ t('auth.usernameLabel') }}
+          </label>
+          <div class="relative">
+            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+              <Icon name="user" size="md" class="text-gray-400 dark:text-dark-500" />
+            </div>
+            <input
+              id="username"
+              v-model="formData.username"
+              type="text"
+              required
+              autocomplete="username"
+              :disabled="registrationActionDisabled"
+              class="input pl-11"
+              :class="{ 'input-error': errors.username }"
+              :placeholder="t('auth.usernamePlaceholder')"
+            />
+          </div>
+        </div>
+
         <!-- Password Input -->
         <div>
           <label for="password" class="input-label">
@@ -394,6 +417,7 @@ let invitationValidateTimeout: ReturnType<typeof setTimeout> | null = null
 const formData = reactive({
   email: '',
   password: '',
+  username: '',
   promo_code: '',
   invitation_code: '',
   aff_code: ''
@@ -402,12 +426,14 @@ const formData = reactive({
 const errors = reactive({
   email: '',
   password: '',
+  username: '',
   turnstile: '',
   invitation_code: ''
 })
 
 const validationToastMessage = computed(() =>
   errors.email ||
+  errors.username ||
   errors.password ||
   (invitationValidation.invalid ? invitationValidation.message : '') ||
   errors.invitation_code ||
@@ -746,6 +772,7 @@ function buildEmailSuffixNotAllowedMessage(): string {
 function validateForm(): boolean {
   // Reset errors
   errors.email = ''
+  errors.username = ''
   errors.password = ''
   errors.turnstile = ''
   errors.invitation_code = ''
@@ -771,6 +798,12 @@ function validateForm(): boolean {
     !isRegistrationEmailSuffixAllowed(formData.email, registrationEmailSuffixWhitelist.value)
   ) {
     errors.email = buildEmailSuffixNotAllowedMessage()
+    isValid = false
+  }
+
+  // Username validation
+  if (!formData.username.trim()) {
+    errors.username = t('auth.usernameRequired')
     isValid = false
   }
 
@@ -865,6 +898,7 @@ async function handleRegister(): Promise<void> {
         JSON.stringify({
           email: formData.email,
           password: formData.password,
+          username: formData.username,
           turnstile_token: turnstileToken.value,
           promo_code: formData.promo_code || undefined,
           invitation_code: formData.invitation_code || undefined,
@@ -881,6 +915,7 @@ async function handleRegister(): Promise<void> {
     await authStore.register({
       email: formData.email,
       password: formData.password,
+      username: formData.username,
       turnstile_token: turnstileEnabled.value ? turnstileToken.value : undefined,
       promo_code: formData.promo_code || undefined,
       invitation_code: formData.invitation_code || undefined,

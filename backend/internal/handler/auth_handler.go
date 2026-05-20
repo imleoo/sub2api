@@ -44,6 +44,7 @@ func NewAuthHandler(cfg *config.Config, authService *service.AuthService, userSe
 type RegisterRequest struct {
 	Email          string `json:"email" binding:"required,email"`
 	Password       string `json:"password" binding:"required,min=6"`
+	Username       string `json:"username" binding:"required"`
 	VerifyCode     string `json:"verify_code"`
 	TurnstileToken string `json:"turnstile_token"`
 	PromoCode      string `json:"promo_code"`      // 注册优惠码
@@ -169,6 +170,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		c.Request.Context(),
 		req.Email,
 		req.Password,
+		req.Username,
 		req.VerifyCode,
 		req.PromoCode,
 		req.InvitationCode,
