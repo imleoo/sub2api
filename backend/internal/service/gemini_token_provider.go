@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -109,10 +110,44 @@ func (p *GeminiTokenProvider) GetAccessToken(ctx context.Context, account *Accou
 	if account == nil {
 		return "", errors.New("account is nil")
 	}
-	if account.Platform != PlatformGemini || account.Type != AccountTypeServiceAccount {
-		return "", errors.New("not a gemini service account")
+	if account.Platform != PlatformGemini {
+		return "", errors.New("not a gemini account")
 	}
-	return p.getServiceAccountAccessToken(ctx, account)
+	switch account.Type {
+	case AccountTypeServiceAccount:
+		return p.getServiceAccountAccessToken(ctx, account)
+	case AccountTypeOAuth:
+		return p.getOAuthAccessToken(ctx, account)
+	default:
+		return "", errors.New("not a gemini service account or oauth account")
+	}
+}
+
+// getOAuthAccessToken returns the access_token for a Gemini OAuth account.
+// It reads the token from credentials directly; when a refreshAPI is configured
+// and the token is near expiry, it triggers a refresh first.
+func (p *GeminiTokenProvider) getOAuthAccessToken(ctx context.Context, account *Account) (string, error) {
+	// Try refreshing if the token is near expiry and refresh is configured.
+	if p.refreshAPI != nil && p.executor != nil {
+		expiresAt := account.GetCredentialAsTime("expires_at")
+		const geminiOAuthRefreshSkew = 3 * time.Minute
+		needsRefresh := expiresAt == nil || time.Until(*expiresAt) <= geminiOAuthRefreshSkew
+		if needsRefresh {
+			result, err := p.refreshAPI.RefreshIfNeeded(ctx, account, p.executor, geminiOAuthRefreshSkew)
+			if err != nil {
+				if p.refreshPolicy.OnRefreshError == ProviderRefreshErrorReturn {
+					return "", err
+				}
+			} else if result.Account != nil {
+				account = result.Account
+			}
+		}
+	}
+	accessToken := strings.TrimSpace(account.GetCredential("access_token"))
+	if accessToken == "" {
+		return "", errors.New("access_token not found in gemini oauth credentials")
+	}
+	return accessToken, nil
 }
 
 func (p *GeminiTokenProvider) getServiceAccountAccessToken(ctx context.Context, account *Account) (string, error) {
