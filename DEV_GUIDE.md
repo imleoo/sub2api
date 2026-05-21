@@ -9,7 +9,7 @@
 | **上游仓库** | Wei-Shaw/tokenpanel |
 | **Fork 仓库** | bayma888/tokenpanel-bmai |
 | **技术栈** | Go 后端 (Ent ORM + Gin) + Vue3 前端 (pnpm) |
-| **数据库** | PostgreSQL 16 + Redis |
+| **数据库** | PostgreSQL 18+ + Redis 8+ |
 | **包管理** | 后端: go modules, 前端: **pnpm**（不是 npm） |
 
 ## 二、本地环境配置
@@ -34,8 +34,8 @@
 ### 开发工具
 
 ```bash
-# golangci-lint v2.7
-go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.7
+# golangci-lint v2.9
+go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.9
 
 # pnpm (前端包管理)
 npm install -g pnpm
@@ -47,13 +47,13 @@ npm install -g pnpm
 
 | Workflow | 触发条件 | 检查内容 |
 |----------|----------|----------|
-| **backend-ci.yml** | push, pull_request | 单元测试 + 集成测试 + golangci-lint v2.7 |
+| **backend-ci.yml** | push, pull_request | 单元测试 + 集成测试 + golangci-lint v2.9 |
 | **security-scan.yml** | push, pull_request, 每周一 | govulncheck + gosec + pnpm audit |
 | **release.yml** | tag `v*` | 构建发布（PR 不触发） |
 
 ### CI 要求
 
-- Go 版本必须是 **1.26.1**（由 `backend/go.mod` 指定，CI 通过 `go-version-file` 自动读取）
+- Go 版本以 `backend/go.mod` 为准，CI 通过 `go-version-file` 自动读取（当前 go 1.26.3，不要在文档或 CI 中硬编码具体小版本）
 - 前端使用 `pnpm install --frozen-lockfile`，必须提交 `pnpm-lock.yaml`
 
 ### 本地测试命令

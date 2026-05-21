@@ -1,7 +1,7 @@
 # TokenPanel（SubPanel）项目 Repo Wiki
 
-> **版本**：fork `1.1.126`（上游 `Wei-Shaw/tokenpanel` `0.1.126`），分支 `zhiguofan`  
-> **最后更新**：2026-05-18
+> **版本**：fork `1.1.129`（上游 `Wei-Shaw/tokenpanel` `0.1.129`），分支 `zhiguofan`  
+> **最后更新**：2026-05-21
 
 本文档是项目的完整知识库，按"从整体到细节、从概念到实现"的顺序组织，建议顺序阅读。
 
@@ -189,6 +189,14 @@ SubPanel/
 | **⑧ 移除 OAuth 账号创建 UI** | 账号创建弹窗只保留 API Key / Setup Token | `CreateAccountModal.vue`、`EditAccountModal.vue` |
 | **⑨ 京东云灵境接入** | Doubao Seedream 生图（同步）+ Seedance 视频（异步 + 后台 Runner） | `service/lingjing_*.go`、`handler/lingjing_handler.go` |
 | **⑩ GitHub Actions 禁用自动触发** | 所有 workflow 改为 `workflow_dispatch:` 手动触发 | `.github/workflows/*.yml` |
+| **⑪ 邀请返佣系统（Affiliates）** | 用户邀请码生成、返佣比例配置、邀请/返利/转账记录管理 | `handler/admin/affiliate_handler.go`、`user.go`（aff 字段） |
+| **⑫ 渠道管理** | 自定义计费渠道，覆盖模型默认价格 | `handler/admin/channel_handler.go`、`ent/schema/`（无独立表，依赖 Group） |
+| **⑬ 渠道监控** | 定时探测账号健康，支持自定义监控模板 | `ent/schema/channel_monitor*.go`（4 张表）、`channel_monitor_handler.go` |
+| **⑭ MAAS Phase 0：上游成本追踪** | 按 provider 快照真实上游单价，写入 `UsageLog.upstream_total_cost` | `ent/schema/provider_pricing.go`、`provider_pricing_handler.go` |
+| **⑮ MAAS Phase 2-3：协议桥接** | Group 声明 `InboundProtocol`，`/v1/responses` 端点上线 | `openai_gateway_handler.go`、`ent/schema/group.go`（protocol 字段） |
+| **⑯ MAAS Phase 4：Generic Endpoint** | 账号支持多 endpoint 轮询，`endpoint.go` 独立 Schema | `ent/schema/endpoint.go`、`/admin/accounts/:id/endpoints` |
+| **⑰ MAAS Phase 5：协议桶调度** | 双桶分歧统计，调度器按 outbound_protocol 分桶 | `scheduler_handler.go`、`/admin/scheduler/dual-bucket-stats` |
+| **⑱ 文档精简与 Release 安装说明增强** | goreleaser footer 增加完整安装/配置/升级指南；README 去除无关内容 | `.goreleaser.yaml`、`README*.md` |
 
 ### 4.2 版本历史
 
@@ -201,20 +209,26 @@ SubPanel/
 | 1.1.125 | 0.1.125 | 同步上游：Airwallex 多币种、ccswitch codex 导入、Vertex token 代理 |
 | 1.1.126 | 0.1.126 | 同步上游：cache_control 开关、Antigravity UA 可配置、unpriced 零成本计费 |
 | 1.1.126+ | 0.1.126 | 京东云灵境接入（Seedream + Seedance） |
+| 1.1.127 | 0.1.127 | 同步上游：邀请返佣系统、渠道管理、渠道监控（4 张表） |
+| 1.1.128 | 0.1.128 | 同步上游：MAAS Phase 0（上游成本追踪）、Phase 2-3（协议桥接、`/v1/responses`） |
+| 1.1.129 | 0.1.129 | 同步上游：MAAS Phase 4（Generic Endpoint）、Phase 5（协议桶调度器）；文档精简 |
 
 ### 4.3 高风险文件（上游同步时必查）
 
 | 风险 | 文件 | 检查要点 |
 |------|------|---------|
 | 🔴 高 | `backend/cmd/server/wire_gen.go` | promptAnalytics、lingjing 初始化链、NewSettingHandler 参数数量 |
-| 🔴 高 | `backend/internal/server/routes/admin.go` | model-discounts、prompt-analytics 路由 |
-| 🔴 高 | `backend/internal/server/routes/gateway.go` | promptAnalytics 中间件、masking 逻辑、lingjing 路由组 |
-| 🔴 高 | `frontend/src/router/index.ts` | `/models`、`/admin/prompt-analytics`、`/admin/model-discounts` |
+| 🔴 高 | `backend/internal/server/routes/admin.go` | model-discounts、prompt-analytics、affiliates、channels、scheduler 路由 |
+| 🔴 高 | `backend/internal/server/routes/gateway.go` | promptAnalytics 中间件、masking 逻辑、lingjing 路由组、isOpenAIInbound 分支 |
+| 🔴 高 | `frontend/src/router/index.ts` | `/models`、`/admin/prompt-analytics`、`/admin/model-discounts`、`/admin/affiliates/*` |
 | 🔴 高 | `backend/internal/service/billing_service.go` | `applyDiscount()` 调用 |
 | 🔴 高 | `.github/workflows/*.yml` | `on:` 必须为 `workflow_dispatch:` |
-| 🟡 中 | `backend/internal/service/scheduler_snapshot_service.go` | 平台列表含 `PlatformLingjing` |
+| 🟡 中 | `backend/internal/service/scheduler_snapshot_service.go` | 平台列表含 `PlatformLingjing`；`ProtocolBucketEnabled` 分支 |
 | 🟡 中 | `frontend/src/views/user/ModelsView.vue` | 白名单过滤、折扣展示 |
-| 🟡 中 | `frontend/src/i18n/locales/zh.ts` & `en.ts` | `models.*`、`admin.promptAnalytics.*` 键 |
+| 🟡 中 | `frontend/src/i18n/locales/zh.ts` & `en.ts` | `models.*`、`admin.promptAnalytics.*`、`admin.affiliates.*` 键 |
+| 🟡 中 | `backend/ent/schema/endpoint.go` | MAAS Generic Endpoint schema，上游同步可能丢失 |
+| 🟢 低 | `README*.md` | 上游同步后需确认无 Sponsor/Demo 节再次混入 |
+| 🟢 低 | `.goreleaser.yaml` | footer 安装说明不能被上游覆盖 |
 
 ---
 
@@ -393,60 +407,87 @@ lingjingPollRunner := service.ProvideLingjingPollRunner(...)
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/user/dashboard` | 用户仪表盘（余额、用量概览） |
-| GET/POST | `/user/api-keys` | 列出 / 创建 API Key |
-| DELETE | `/user/api-keys/{id}` | 删除 API Key |
-| GET | `/user/models` | 白名单内可用模型列表（fork 功能） |
-| GET | `/user/usage` | 使用记录（分页、模型过滤） |
-| GET | `/user/usage/billing` | 计费汇总 |
-| GET/PUT | `/user/subscriptions` | 订阅信息 |
-| POST | `/user/payment/create-order` | 创建充值订单 |
-| GET | `/user/payment/orders` | 充值订单历史 |
-| POST | `/user/redeem-codes/redeem` | 兑换码充值 |
-| GET/PUT | `/user/profile` | 用户资料 |
+| GET | `/user/profile` | 用户资料 |
+| PUT | `/user` | 更新用户资料 |
+| PUT | `/user/password` | 修改密码 |
+| GET | `/user/aff` | 用户邀请返佣信息 |
+| POST | `/user/aff/transfer` | 返佣额度转入余额 |
+| GET/POST/DELETE | `/user/notify-email/*` | 通知邮箱绑定管理 |
+| GET/POST | `/user/totp/*` | TOTP 双因素认证管理 |
+| GET/POST/DELETE | `/keys` | API Key CRUD |
+| GET | `/groups/available` | 用户可用分组列表 |
+| GET | `/groups/rates` | 分组倍率信息 |
+| GET | `/channels/available` | 用户可用渠道（不含管理信息） |
+| GET | `/models` | 白名单内可用模型 + 定价信息（fork 功能） |
+| GET | `/usage` | 使用记录（分页、模型过滤） |
+| GET | `/usage/stats` | 使用统计汇总 |
+| GET | `/usage/dashboard/*` | 用户 Dashboard（统计/趋势/模型分布/Key 用量） |
+| GET | `/announcements` | 公告列表 |
+| POST | `/announcements/:id/read` | 标记公告已读 |
+| POST | `/redeem` | 兑换码兑换 |
+| GET | `/redeem/history` | 兑换历史 |
+| GET | `/subscriptions` | 订阅列表 |
+| GET | `/subscriptions/active` | 当前活跃订阅 |
+| GET | `/subscriptions/progress,summary` | 配额进度/摘要 |
+| GET | `/channel-monitors` | 渠道监控状态（只读） |
 
 #### 管理员路由（需管理员权限）
 
 | 分组 | 代表路径 | 说明 |
 |------|---------|------|
 | 仪表盘 | `GET /admin/dashboard` | 全局统计快照 |
-| 用户管理 | `GET/PUT/DELETE /admin/users` | CRUD + 搜索 + 批量更新 |
+| 用户管理 | `GET/PUT/DELETE /admin/users` | CRUD + 搜索 + 批量更新 + 用户属性 |
 | 用户统计 | `GET /admin/users/:id/usage` | 单用户使用明细（fork 功能） |
-| 账号管理 | `GET/POST/PUT /admin/accounts` | AI 账号 CRUD + 批量导入 |
-| 分组管理 | `GET/POST/PUT /admin/groups` | 分组 CRUD |
-| 渠道管理 | `GET/POST/PUT /admin/channels` | 渠道监控配置 |
-| 代理管理 | `GET/POST/PUT /admin/proxies` | HTTP/SOCKS5 代理 |
-| 卡密管理 | `GET/POST /admin/redeem-codes` | 生成 + 导出兑换码 |
+| 账号管理 | `GET/POST/PUT /admin/accounts` | AI 账号 CRUD + 批量导入 + CRS 同步 + Codex 导入 |
+| 账号 Endpoint | `GET/PUT /admin/accounts/:id/endpoints` | 多 endpoint 管理（MAAS Phase 4） |
+| 分组管理 | `GET/POST/PUT /admin/groups` | 分组 CRUD + 倍率/RPM 覆盖 |
+| 渠道管理 | `GET/POST/PUT /admin/channels` | 自定义计费渠道管理 |
+| 渠道监控 | `GET/POST/PUT /admin/channel-monitors` | 监控配置 + 手动触发 + 历史 |
+| 监控模板 | `GET/POST/PUT /admin/channel-monitor-templates` | 监控请求体模板管理 |
+| 代理管理 | `GET/POST/PUT /admin/proxies` | HTTP/SOCKS5 代理 + 批量 + 质量检测 |
+| 卡密管理 | `GET/POST /admin/redeem-codes` | 生成 + 导出 + 批量删除 |
 | 促销码 | `GET/POST/PUT /admin/promo-codes` | 折扣促销码管理 |
 | 公告 | `GET/POST/PUT /admin/announcements` | 系统公告管理 |
-| 系统设置 | `GET/PUT /admin/settings` | 全局配置（OAuth、邮件、支付等） |
+| 系统设置 | `GET/PUT /admin/settings` | 全局配置（OAuth、邮件、支付、整流器、超时、Beta 策略等） |
 | 模型折扣 | `GET/PUT /admin/settings/model-discounts` | 折扣率配置（fork 功能） |
-| 使用统计 | `GET /admin/usage` | 全局使用分析 + 导出 |
-| 订阅管理 | `GET/POST/PUT /admin/subscriptions/plans` | 订阅套餐管理 |
+| 使用统计 | `GET /admin/usage` | 全局使用分析 + 按 Provider 跨组聚合 |
+| 订阅管理 | `GET/POST/PUT /admin/subscriptions` | 订阅套餐管理 |
 | 支付管理 | `GET/PUT /admin/payment/orders` | 支付订单管理 |
 | 支付提供商 | `GET/POST /admin/payment/providers` | 提供商实例配置 |
-| 数据备份 | `GET/POST /admin/backup` | PostgreSQL/S3 备份 |
-| 数据管理 | `POST /admin/data-management/reset-user-usage` | 重置用户用量 |
-| Ops 监控 | `GET /admin/ops/dashboard` | 运维仪表盘 |
-| Ops 实时 | `WS /admin/ops/ws` | 实时监控 WebSocket |
+| 数据备份 | `GET/POST /admin/backups` | PostgreSQL/S3 备份恢复 |
+| 数据管理 | `GET/PUT /admin/data-management` | 多数据源配置 + S3 profiles + 备份 job |
+| Ops 监控 | `GET /admin/ops/concurrency` | 实时并发、流量、告警、Email 通知、运行时日志配置 |
 | 词云分析 | `GET /admin/prompt-analytics/top-keywords` | 关键词 Top-N（fork 功能） |
-| 联盟管理 | `GET /admin/affiliates/*` | 邀请返佣系统 |
+| 邀请返佣 | `GET /admin/affiliates/invites,rebates,transfers` | 邀请/返利/转账记录；用户返佣配置 |
+| 模型定价 | `GET/POST/PUT /admin/model-pricings` | 客户售价管理（fork 功能） |
+| 上游成本 | `GET/POST/PUT /admin/provider-pricings` | 上游真实成本快照（MAAS Phase 0） |
+| 调度器统计 | `GET /admin/scheduler/dual-bucket-stats` | 协议桶 vs 平台桶分歧率（MAAS Phase 5） |
+| 风控管理 | `GET/PUT /admin/risk-control` | 内容审核配置、违禁哈希清理、用户解封 |
 | TLS 指纹 | `GET/POST /admin/tls-fingerprint-profiles` | 自定义 TLS 指纹 |
 | 错误透传 | `GET/POST /admin/error-passthrough-rules` | 上游错误码透传规则 |
+| 定时测试 | `GET/POST /admin/scheduled-test-plans` | 账号定时健康探测 |
+| 系统管理 | `GET /admin/system/version` | 版本检测 + 更新 + 回滚 + 重启 |
+| 用户属性 | `GET/POST/PUT /admin/user-attributes` | 自定义用户字段定义管理 |
 
 #### 网关路由（用 API Key 认证）
 
-| 方法 | 路径 | 协议 |
+| 方法 | 路径 | 说明 |
 |------|------|------|
+| POST | `/v1/messages` | Anthropic 原生 Messages API（含 OpenAI inbound 分流） |
+| POST | `/v1/messages/count_tokens` | Token 计数（仅 Anthropic inbound） |
 | POST | `/v1/chat/completions` | OpenAI Chat Completions |
-| POST | `/v1/images/generations` | OpenAI 图像生成（含灵境分流） |
+| POST | `/v1/responses` | OpenAI Responses API（MAAS Phase 2-3） |
 | GET | `/v1/models` | 模型列表 |
-| POST | `/anthropic/v1/messages` | Anthropic Messages API |
-| POST | `/gemini/v1beta/*` | Google Gemini API |
-| POST | `/bedrock/*` | AWS Bedrock 兼容 |
-| WS | `/v1/chat/completions/stream` | OpenAI WebSocket 流式 |
-| POST | `/lingjing/v1/video/submit` | 灵境视频提交（fork 功能） |
-| GET | `/lingjing/v1/video/:taskId` | 灵境视频查询（fork 功能） |
+| GET | `/v1/usage` | 用量信息 |
+| POST | `/v1/images/generations` | OpenAI 图像生成 |
+| POST | `/v1beta/models/*` | Google Gemini v1beta API |
+| POST | `/antigravity/v1/messages` | Antigravity 专用端点（强制 antigravity 账号池） |
+| POST | `/antigravity/v1/messages/count_tokens` | Antigravity Token 计数 |
+| GET | `/antigravity/v1/models` | Antigravity 模型列表 |
+| POST | `/antigravity/v1beta/models/*` | Antigravity Gemini 兼容端点 |
+| GET | `/antigravity/models` | Antigravity 快捷模型列表 |
+| POST | `/lingjing/v1/video/submit` | 灵境视频提交（异步，返回 202+taskId） |
+| GET | `/lingjing/v1/video/:taskId` | 灵境视频任务查询 |
 
 #### 支付 Webhook 路由（无需认证）
 

@@ -76,13 +76,83 @@ release:
   footer: |
     ---
 
-    ## 📥 Installation
+    ## 📥 安装指南 / Installation Guide
 
-    **Docker (x86_64 only):**
+    ### 方式一：Docker Compose（推荐，含内置 PostgreSQL + Redis）
+
+    适合全新安装，数据库和缓存由 Compose 自动管理。
+
     ```bash
-    docker pull ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/tokenpanel:{{ .Version }}
+    # 1. 下载部署文件
+    mkdir tokenpanel && cd tokenpanel
+    curl -sSLO https://raw.githubusercontent.com/{{ .Env.GITHUB_REPO_OWNER }}/{{ .Env.GITHUB_REPO_NAME }}/zhiguofan/deploy/docker-compose.yml
+    curl -sSLO https://raw.githubusercontent.com/{{ .Env.GITHUB_REPO_OWNER }}/{{ .Env.GITHUB_REPO_NAME }}/zhiguofan/deploy/.env.example
+
+    # 2. 配置环境变量
+    cp .env.example .env
+    nano .env   # 至少填写必填项（见下方说明）
+
+    # 3. 启动服务（首次运行自动初始化数据库）
+    docker compose up -d
+    docker compose logs -f tokenpanel
     ```
 
-    ## 📚 Documentation
+    ### 方式二：外部数据库（Standalone）
 
-    - [GitHub Repository](https://github.com/{{ .Env.GITHUB_REPO_OWNER }}/{{ .Env.GITHUB_REPO_NAME }})
+    **前提条件（必须提前准备好）：**
+    - PostgreSQL 18+，已创建数据库和用户
+    - Redis 8+，可选设置密码
+
+    ```bash
+    mkdir tokenpanel && cd tokenpanel
+    curl -sSLO https://raw.githubusercontent.com/{{ .Env.GITHUB_REPO_OWNER }}/{{ .Env.GITHUB_REPO_NAME }}/zhiguofan/deploy/docker-compose.standalone.yml
+    curl -sSLO https://raw.githubusercontent.com/{{ .Env.GITHUB_REPO_OWNER }}/{{ .Env.GITHUB_REPO_NAME }}/zhiguofan/deploy/.env.example
+    cp .env.example .env && nano .env
+    docker compose -f docker-compose.standalone.yml up -d
+    ```
+
+    ---
+
+    ## ⚙️ .env 关键配置说明
+
+    ### 必填项
+
+    | 变量 | 说明 |
+    |------|------|
+    | `POSTGRES_PASSWORD` | PostgreSQL 密码（方式一）|
+    | `DATABASE_HOST` / `DATABASE_PASSWORD` | 外部 PG 连接信息（方式二）|
+    | `REDIS_HOST` | 外部 Redis 主机（方式二）|
+
+    ### 强烈建议设置（避免重启后失效）
+
+    ```bash
+    openssl rand -hex 32   # 生成随机密钥
+    ```
+
+    | 变量 | 若留空的后果 |
+    |------|------------|
+    | `JWT_SECRET` | 容器重启后所有用户被强制登出 |
+    | `TOTP_ENCRYPTION_KEY` | 重启后所有 2FA 配置失效 |
+
+    ### 管理员账号
+
+    | 变量 | 默认值 |
+    |------|--------|
+    | `ADMIN_EMAIL` | `admin@tokenpanel.local` |
+    | `ADMIN_PASSWORD` | 留空则自动生成，见启动日志 |
+
+    ---
+
+    ## 🔄 升级
+
+    ```bash
+    docker pull ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/tokenpanel:{{ .Version }}
+    docker compose pull && docker compose up -d
+    # 数据库迁移自动执行，查看日志确认
+    docker compose logs -f tokenpanel
+    ```
+
+    ## 📚 文档
+
+    - [GitHub 仓库](https://github.com/{{ .Env.GITHUB_REPO_OWNER }}/{{ .Env.GITHUB_REPO_NAME }})
+    - [.env 完整配置参考](https://github.com/{{ .Env.GITHUB_REPO_OWNER }}/{{ .Env.GITHUB_REPO_NAME }}/blob/zhiguofan/deploy/.env.example)

@@ -4,11 +4,9 @@
 
 [![Go](https://img.shields.io/badge/Go-1.25.7-00ADD8.svg)](https://golang.org/)
 [![Vue](https://img.shields.io/badge/Vue-3.4+-4FC08D.svg)](https://vuejs.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791.svg)](https://www.postgresql.org/)
-[![Redis](https://img.shields.io/badge/Redis-7+-DC382D.svg)](https://redis.io/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18+-336791.svg)](https://www.postgresql.org/)
+[![Redis](https://img.shields.io/badge/Redis-8+-DC382D.svg)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
-
-<a href="https://trendshift.io/repositories/21823" target="_blank"><img src="https://trendshift.io/api/badge/repositories/21823" alt="Wei-Shaw%2Ftokenpanel | Trendshift" width="250" height="55"/></a>
 
 **AI API Gateway Platform for Subscription Quota Distribution**
 
@@ -16,19 +14,7 @@ English | [中文](README_CN.md) | [日本語](README_JA.md)
 
 </div>
 
-> **TokenPanel officially uses only the domains `tokenpanel.org` and `pincc.ai`. Other websites using the TokenPanel name may be third-party deployments or services and are not affiliated with this project. Please verify and exercise your own judgment.**
-
 ---
-
-## Demo
-
-Try TokenPanel online: **[https://demo.tokenpanel.org/](https://demo.tokenpanel.org/)**
-
-Demo credentials (shared demo environment; **not** created automatically for self-hosted installs):
-
-| Email | Password |
-|-------|----------|
-| admin@tokenpanel.org | admin123 |
 
 ## Overview
 
@@ -56,93 +42,14 @@ For the full list of fork features, high-risk files, and the post-merge verifica
 - **Admin Dashboard** - Web interface for monitoring and management
 - **External System Integration** - Embed external systems (e.g. ticketing) via iframe to extend the admin dashboard
 
-## ❤️ Sponsors
-
-> [Want to appear here?](mailto:support@pincc.ai)
-
-<table>
-<tr>
-<td width="180" align="center" valign="middle"><a href="https://shop.pincc.ai/"><img src="assets/partners/logos/pincc-logo.png" alt="pincc" width="150"></a></td>
-<td valign="middle"><b><a href="https://shop.pincc.ai/">PinCC</a></b> is the official relay service built on TokenPanel, offering stable access to Claude Code, Codex, Gemini and other popular models — ready to use, no deployment or maintenance required.</td>
-</tr>
-
-<tr>
-<td width="180"><a href="https://www.packyapi.com/register?aff=tokenpanel"><img src="assets/partners/logos/packycode.png" alt="PackyCode" width="150"></a></td>
-<td>Thanks to PackyCode for sponsoring this project! PackyCode is a reliable and efficient API relay service provider, offering relay services for Claude Code, Codex, Gemini, and more. PackyCode provides special discounts for our software users: register using <a href="https://www.packyapi.com/register?aff=tokenpanel">this link</a> and enter the "tokenpanel" promo code during first recharge to get 10% off.</td>
-</tr>
-
-<tr>
-<td width="180"><a href="https://ctok.ai"><img src="assets/partners/logos/ctok.png" alt="CTok" width="150"></a></td>
-<td>Thanks to CTok.ai for sponsoring this project! CTok.ai is dedicated to building a one-stop AI programming tool service platform. We offer professional Claude Code packages and technical community services, with support for Google Gemini and OpenAI Codex. Through carefully designed plans and a professional tech community, we provide developers with reliable service guarantees and continuous technical support, making AI-assisted programming a true productivity tool. Click <a href="https://ctok.ai">here</a> to register!</td>
-</tr>
-
-<tr>
-<td width="180"><a href="https://aigocode.com/invite/TOKENPANEL"><img src="assets/partners/logos/aigocode.png" alt="AIGoCode" width="150"></a></td>
-<td>Thanks to AIGoCode for sponsoring this project! AIGoCode is an all-in-one platform that integrates Claude Code, Codex, and the latest Gemini models, providing you with stable, efficient, and highly cost-effective AI coding services. The platform offers flexible subscription plans, zero risk of account suspension, direct access with no VPN required, and lightning-fast responses. AIGoCode has prepared a special benefit for tokenpanel users: if you register via <a href="https://aigocode.com/invite/TOKENPANEL">this link</a>, you'll receive an extra 10% bonus credit on your first top-up!</td>
-</tr>
-
-<tr>
-<td width="180"><a href="https://apikey.fun/register?aff=TOKENPANEL"><img src="assets/partners/logos/apikey-fun.png" alt="APIKEY.FUN" width="150"></a></td>
-<td>Thanks to APIKEY.FUN for sponsoring this project! <a href="https://apikey.fun/register?aff=TOKENPANEL">APIKEY.FUN</a> is one of the core contributors to the tokenpanel open-source project, dedicated to providing open, stable, and cost-effective AI API access. The platform supports API relay services for Claude, OpenAI, Gemini, and other popular models, with pricing starting from as low as 7% of the original rate. Register via the exclusive link: <a href="https://apikey.fun/register?aff=TOKENPANEL">APIKEY</a> to enjoy a permanent 5% discount on all recharges.</td>
-</tr>
-
-<tr>
-<td width="180"><a href="https://code.silkapi.com/register?aff=TOKENPANEL"><img src="assets/partners/logos/silkapi.png" alt="silkapi" width="150"></a></td>
-<td>Thanks to SilkAPI for sponsoring this project! <a href="https://code.silkapi.com/register?aff=TOKENPANEL">SilkAPI</a> is a relay service built on TokenPanel, specializing in providing high-speed and stable Codex API relay.</td>
-</tr>
-
-<tr>
-<td width="180"><a href="https://ylscode.com/"><img src="assets/partners/logos/ylscode.png" alt="ylscode" width="150"></a></td>
-<td>Thanks to YLS Code for sponsoring this project! <a href="https://ylscode.com/">YLS Code</a> is dedicated to building secure enterprise-grade Coding Agent productivity services, offering stable and fast Codex / Claude / Gemini subscription services along with pay-as-you-go API options for flexible choices. Register now for a limited-time 3-day Codex trial bonus!</td>
-</tr>
-
-<tr>
-<td width="180"><a href="https://www.aicodemirror.com/register?invitecode=KMVZQM"><img src="assets/partners/logos/AICodeMirror.jpg" alt="AICodeMirror" width="150"></a></td>
-<td>Thanks to AICodeMirror for sponsoring this project! AICodeMirror provides official high-stability relay services for Claude Code / Codex / Gemini CLI, with enterprise-grade concurrency, fast invoicing, and 24/7 dedicated technical support. Claude Code / Codex / Gemini official channels at 38% / 2% / 9% of original price, with extra discounts on top-ups! AICodeMirror offers special benefits for tokenpanel users: register via <a href="https://www.aicodemirror.com/register?invitecode=KMVZQM">this link</a> to enjoy 20% off your first top-up, and enterprise customers can get up to 25% off!</td>
-</tr>
-
-<tr>
-<td width="180"><a href="https://shop.bmoplus.com/?utm_source=github"><img src="assets/partners/logos/bmoplus.jpg" alt="bmoplus" width="150"></a></td>
-<td>Huge thanks to BmoPlus for sponsoring this project! BmoPlus is a highly reliable AI account provider built strictly for heavy AI users and developers. They offer rock-solid, ready-to-use accounts and official top-up services for ChatGPT Plus / ChatGPT Pro (Full Warranty) / Claude Pro / Super Grok / Gemini Pro. By registering and ordering through <a href="https://shop.bmoplus.com/?utm_source=github">BmoPlus - Premium AI Accounts & Top-ups</a>, users can unlock the mind-blowing rate of 10% of the official GPT subscription price (90% OFF)</td>
-</tr>
-
-<tr>
-<td width="180"><a href="https://bestproxy.com/?keyword=a2e8iuol"><img src="assets/partners/logos/bestproxy.png" alt="bestproxy" width="150"></a></td>
-<td>Thanks to Bestproxy for sponsoring this project! <a href="https://bestproxy.com/?keyword=a2e8iuol">Bestproxy</a> provides high-purity residential IPs with dedicated one-IP-per-account support. By combining real home networks with fingerprint isolation, it enables link environment isolation and reduces the probability of association-based risk control.</td>
-</tr>
-
-<tr>
-<td width="180"><a href="https://pateway.ai/?ch=1tsfr51"><img src="assets/partners/logos/pateway.png" alt="pateway" width="150"></a></td>
-<td>Thanks to PatewayAI for sponsoring this project! PatewayAI is a premium model API relay service provider built for heavy AI developers, focused on direct official connections. Offering the full Claude series and Codex series models, 100% sourced directly from official providers — no dilution, no substitution, open to verification. Billing is fully transparent with token-level invoices that can be audited line by line.
-Enterprise-grade high concurrency is also supported, with a dedicated management platform for enterprise clients. Enterprise customers can sign formal contracts and receive invoices. Visit the official website for more details and contact information.
-Register now via <a href="https://pateway.ai/?ch=1tsfr51">this link</a> to receive $3 in trial credits. User top-ups start as low as 60% off, and referring friends earns both parties rewards — referral bonuses up to $150.</td>
-</tr>
-
-<tr>
-<td width="180"><a href="https://api.pptoken.org/register?promo=TOKENPANEL"><img src="assets/partners/logos/pptoken.png" alt="pptoken" width="150"></a></td>
-<td>Thanks to PPToken.org for sponsoring this project! <a href="https://api.pptoken.org/register?promo=TOKENPANEL">PPToken.org</a> specializes in GPT model API relay services, supporting Codex, Claude Code, OpenAI-compatible clients, and Gemini CLI integration. Top-ups are 1:1 (¥1 = $1 credit); GPT models start at 0.16x rate multiplier, with overall cost at roughly 2.2% of official pricing and first-token latency around 1 second — ideal for developers seeking low-cost, high-speed access to GPT model capabilities. Technical support: 24/7 real human responses (no bots), @tech in the group chat and get a reply within 10 minutes. Sponsor benefit: the first 200 users who register via the <a href="https://api.pptoken.org/register?promo=TOKENPANEL">exclusive registration link</a> and enter promo code `TOKENPANEL` can claim free Codex / Claude Code trial credits — no minimum spend, no card required.
-</td>
-</tr>
-
-</table>
-
-## Ecosystem
-
-Community projects that extend or integrate with TokenPanel:
-
-| Project | Description | Features |
-|---------|-------------|----------|
-| ~~[TokenPanelPay](https://github.com/touwaeriol/tokenpanelpay)~~ | ~~Self-service payment system~~ | **Now Built-in** — Payment is now integrated into TokenPanel, no separate deployment needed. See [Payment Configuration Guide](docs/PAYMENT.md) |
-| [tokenpanel-mobile](https://github.com/ckken/tokenpanel-mobile) | Mobile admin console | Cross-platform app (iOS/Android/Web) for user management, account management, monitoring dashboard, and multi-backend switching; built with Expo + React Native |
-
 ## Tech Stack
 
 | Component | Technology |
 |-----------|------------|
 | Backend | Go 1.25.7, Gin, Ent |
 | Frontend | Vue 3.4+, Vite 5+, TailwindCSS |
-| Database | PostgreSQL 15+ |
-| Cache/Queue | Redis 7+ |
+| Database | PostgreSQL 18+ |
+| Cache/Queue | Redis 8+ |
 
 ---
 
@@ -167,8 +74,8 @@ One-click installation script that downloads pre-built binaries from GitHub Rele
 #### Prerequisites
 
 - Linux server (amd64 or arm64)
-- PostgreSQL 15+ (installed and running)
-- Redis 7+ (installed and running)
+- PostgreSQL 18+ (installed and running)
+- Redis 8+ (installed and running)
 - Root privileges
 
 #### Installation Steps
@@ -206,11 +113,6 @@ The Setup Wizard will guide you through:
 
 You can upgrade directly from the **Admin Dashboard** by clicking the **Check for Updates** button in the top-left corner.
 
-The web interface will:
-- Check for new versions automatically
-- Download and apply updates with one click
-- Support rollback if needed
-
 #### Useful Commands
 
 ```bash
@@ -240,8 +142,6 @@ Deploy with Docker Compose, including PostgreSQL and Redis containers.
 
 #### Quick Start (One-Click Deployment)
 
-Use the automated deployment script for easy setup:
-
 ```bash
 # Create deployment directory
 mkdir -p tokenpanel-deploy && cd tokenpanel-deploy
@@ -264,8 +164,6 @@ docker compose logs -f tokenpanel
 - Displays generated credentials for your reference
 
 #### Manual Deployment
-
-If you prefer manual setup:
 
 ```bash
 # 1. Clone the repository
@@ -301,13 +199,6 @@ SERVER_PORT=8080
 
 **Generate secure secrets:**
 ```bash
-# Generate JWT_SECRET
-openssl rand -hex 32
-
-# Generate TOTP_ENCRYPTION_KEY
-openssl rand -hex 32
-
-# Generate POSTGRES_PASSWORD
 openssl rand -hex 32
 ```
 
@@ -316,61 +207,16 @@ openssl rand -hex 32
 mkdir -p data postgres_data redis_data
 
 # 5. Start all services
-# Option A: Local directory version (recommended - easy migration)
 docker compose -f docker-compose.local.yml up -d
 
-# Option B: Named volumes version (simple setup)
-docker compose up -d
-
-# 6. Check status
-docker compose -f docker-compose.local.yml ps
-
-# 7. View logs
+# 6. View logs
 docker compose -f docker-compose.local.yml logs -f tokenpanel
-```
-
-#### Deployment Versions
-
-| Version | Data Storage | Migration | Best For |
-|---------|-------------|-----------|----------|
-| **docker-compose.local.yml** | Local directories | ✅ Easy (tar entire directory) | Production, frequent backups |
-| **docker-compose.yml** | Named volumes | ⚠️ Requires docker commands | Simple setup |
-
-**Recommendation:** Use `docker-compose.local.yml` (deployed by script) for easier data management.
-
-#### Access
-
-Open `http://YOUR_SERVER_IP:8080` in your browser.
-
-If admin password was auto-generated, find it in logs:
-```bash
-docker compose -f docker-compose.local.yml logs tokenpanel | grep "admin password"
 ```
 
 #### Upgrade
 
 ```bash
-# Pull latest image and recreate container
 docker compose -f docker-compose.local.yml pull
-docker compose -f docker-compose.local.yml up -d
-```
-
-#### Easy Migration (Local Directory Version)
-
-When using `docker-compose.local.yml`, migrate to a new server easily:
-
-```bash
-# On source server
-docker compose -f docker-compose.local.yml down
-cd ..
-tar czf tokenpanel-complete.tar.gz tokenpanel-deploy/
-
-# Transfer to new server
-scp tokenpanel-complete.tar.gz user@new-server:/path/
-
-# On new server
-tar xzf tokenpanel-complete.tar.gz
-cd tokenpanel-deploy/
 docker compose -f docker-compose.local.yml up -d
 ```
 
@@ -382,9 +228,6 @@ docker compose -f docker-compose.local.yml down
 
 # Restart
 docker compose -f docker-compose.local.yml restart
-
-# View all logs
-docker compose -f docker-compose.local.yml logs -f
 
 # Remove all data (caution!)
 docker compose -f docker-compose.local.yml down
@@ -401,8 +244,8 @@ Build and run from source code for development or customization.
 
 - Go 1.21+
 - Node.js 18+
-- PostgreSQL 15+
-- Redis 7+
+- PostgreSQL 18+
+- Redis 8+
 
 #### Build Steps
 
@@ -456,28 +299,16 @@ redis:
 jwt:
   secret: "change-this-to-a-secure-random-string"
   expire_hour: 24
-
-default:
-  user_concurrency: 5
-  user_balance: 0
-  api_key_prefix: "sk-"
-  rate_multiplier: 1.0
 ```
 
-### Sora Status (Temporarily Unavailable)
-
-> ⚠️ Sora-related features are temporarily unavailable due to technical issues in upstream integration and media delivery.
-> Please do not rely on Sora in production at this time.
-> Existing `gateway.sora_*` configuration keys are reserved and may not take effect until these issues are resolved.
-
-Additional security-related options are available in `config.yaml`:
+Additional security-related options in `config.yaml`:
 
 - `cors.allowed_origins` for CORS allowlist
 - `security.url_allowlist` for upstream/pricing/CRS host allowlists
 - `security.url_allowlist.enabled` to disable URL validation (use with caution)
 - `security.url_allowlist.allow_insecure_http` to allow HTTP URLs when validation is disabled
 - `security.url_allowlist.allow_private_hosts` to allow private/local IP addresses
-- `security.response_headers.enabled` to enable configurable response header filtering (disabled uses default allowlist)
+- `security.response_headers.enabled` to enable configurable response header filtering
 - `security.csp` to control Content-Security-Policy headers
 - `billing.circuit_breaker` to fail closed on billing errors
 - `server.trusted_proxies` to enable X-Forwarded-For parsing
@@ -485,43 +316,14 @@ Additional security-related options are available in `config.yaml`:
 
 **⚠️ Security Warning: HTTP URL Configuration**
 
-When `security.url_allowlist.enabled=false`, the system performs minimal URL validation by default, **rejecting HTTP URLs** and only allowing HTTPS. To allow HTTP URLs (e.g., for development or internal testing), you must explicitly set:
+When `security.url_allowlist.enabled=false`, the system rejects HTTP URLs by default and only allows HTTPS. To allow HTTP URLs (e.g., for development or internal testing):
 
 ```yaml
 security:
   url_allowlist:
-    enabled: false                # Disable allowlist checks
-    allow_insecure_http: true     # Allow HTTP URLs (⚠️ INSECURE)
+    enabled: false
+    allow_insecure_http: true     # ⚠️ INSECURE
 ```
-
-**Or via environment variable:**
-
-```bash
-SECURITY_URL_ALLOWLIST_ENABLED=false
-SECURITY_URL_ALLOWLIST_ALLOW_INSECURE_HTTP=true
-```
-
-**Risks of allowing HTTP:**
-- API keys and data transmitted in **plaintext** (vulnerable to interception)
-- Susceptible to **man-in-the-middle (MITM) attacks**
-- **NOT suitable for production** environments
-
-**When to use HTTP:**
-- ✅ Development/testing with local servers (http://localhost)
-- ✅ Internal networks with trusted endpoints
-- ✅ Testing account connectivity before obtaining HTTPS
-- ❌ Production environments (use HTTPS only)
-
-**Example error without this setting:**
-```
-Invalid base URL: invalid url scheme: http
-```
-
-If you disable URL validation or response header filtering, harden your network layer:
-- Enforce an egress allowlist for upstream domains/IPs
-- Block private/loopback/link-local ranges
-- Enforce TLS-only outbound traffic
-- Strip sensitive upstream response headers at the proxy
 
 ```bash
 # 6. Run the application
@@ -632,28 +434,8 @@ tokenpanel/
 
 ---
 
-## Star History
-
-<a href="https://star-history.com/#Wei-Shaw/tokenpanel&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Wei-Shaw/tokenpanel&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Wei-Shaw/tokenpanel&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Wei-Shaw/tokenpanel&type=Date" />
- </picture>
-</a>
-
----
-
 ## License
 
 This project is licensed under the [GNU Lesser General Public License v3.0](LICENSE) (or later).
 
 Copyright (c) 2026 Wesley Liddick
-
----
-
-<div align="center">
-
-**If you find this project useful, please give it a star!**
-
-</div>

@@ -4,11 +4,9 @@
 
 [![Go](https://img.shields.io/badge/Go-1.25.7-00ADD8.svg)](https://golang.org/)
 [![Vue](https://img.shields.io/badge/Vue-3.4+-4FC08D.svg)](https://vuejs.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791.svg)](https://www.postgresql.org/)
-[![Redis](https://img.shields.io/badge/Redis-7+-DC382D.svg)](https://redis.io/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18+-336791.svg)](https://www.postgresql.org/)
+[![Redis](https://img.shields.io/badge/Redis-8+-DC382D.svg)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
-
-<a href="https://trendshift.io/repositories/21823" target="_blank"><img src="https://trendshift.io/api/badge/repositories/21823" alt="Wei-Shaw%2Ftokenpanel | Trendshift" width="250" height="55"/></a>
 
 **サブスクリプションクォータ配分のための AI API ゲートウェイプラットフォーム**
 
@@ -16,19 +14,7 @@
 
 </div>
 
-> **TokenPanel が公式に使用しているドメインは `tokenpanel.org` と `pincc.ai` のみです。TokenPanel の名称を使用している他のウェブサイトは、サードパーティによるデプロイやサービスであり、本プロジェクトとは一切関係がありません。ご利用の際はご自身で確認・判断をお願いします。**
-
 ---
-
-## デモ
-
-TokenPanel をオンラインでお試しください: **[https://demo.tokenpanel.org/](https://demo.tokenpanel.org/)**
-
-デモ用認証情報（共有デモ環境です。セルフホスト環境では**自動作成されません**）:
-
-| メールアドレス | パスワード |
-|-------|----------|
-| admin@tokenpanel.org | admin123 |
 
 ## 概要
 
@@ -46,92 +32,14 @@ TokenPanel は、AI 製品のサブスクリプションから API クォータ�
 - **管理ダッシュボード** - 監視・管理のための Web インターフェース
 - **外部システム連携** - 外部システム（チケット管理など）を iframe 経由で管理ダッシュボードに埋め込み可能
 
-## ❤️ スポンサー
-
-> [こちらに掲載しませんか？](mailto:support@pincc.ai)
-
-<table>
-<tr>
-<td width="180" align="center" valign="middle"><a href="https://shop.pincc.ai/"><img src="assets/partners/logos/pincc-logo.png" alt="pincc" width="150"></a></td>
-<td valign="middle"><b><a href="https://shop.pincc.ai/">PinCC</a></b> は TokenPanel 上に構築された公式リレーサービスで、Claude Code、Codex、Gemini などの人気モデルへの安定したアクセスを提供します。デプロイやメンテナンスは不要で、すぐにご利用いただけます。</td>
-</tr>
-<tr>
-<td width="180"><a href="https://www.packyapi.com/register?aff=tokenpanel"><img src="assets/partners/logos/packycode.png" alt="PackyCode" width="150"></a></td>
-<td>PackyCode のご支援に感謝します！PackyCode は Claude Code、Codex、Gemini などのリレーサービスを提供する信頼性の高い API 中継プラットフォームです。本ソフト利用者向けに特別割引があります：<a href="https://www.packyapi.com/register?aff=tokenpanel">このリンク</a>で登録し、チャージ時に「tokenpanel」クーポンを入力すると 10% オフになります。</td>
-</tr>
-
-<tr>
-<td width="180"><a href="https://ctok.ai"><img src="assets/partners/logos/ctok.png" alt="CTok" width="150"></a></td>
-<td>CTok.ai のご支援に感謝します！CTok.ai はワンストップ AI プログラミングツールサービスプラットフォームの構築に取り組んでいます。Claude Code の専用プランと技術コミュニティサービスを提供し、Google Gemini や OpenAI Codex もサポートしています。丁寧に設計されたプランと専門的な技術コミュニティを通じて、開発者に安定したサービス保証と継続的な技術サポートを提供し、AI アシスト プログラミングを真の生産性向上ツールにします。<a href="https://ctok.ai">こちら</a>から登録！</td>
-</tr>
-
-<tr>
-<td width="180"><a href="https://aigocode.com/invite/TOKENPANEL"><img src="assets/partners/logos/aigocode.png" alt="AIGoCode" width="150"></a></td>
-<td>AIGoCode のご支援に感謝します！AIGoCode は Claude Code、Codex、最新の Gemini モデルを統合したオールインワンプラットフォームで、安定的かつ効率的でコストパフォーマンスに優れた AI コーディングサービスを提供します。柔軟なサブスクリプションプラン、アカウント停止リスクゼロ、VPN 不要の直接アクセス、超高速レスポンスが特長です。AIGoCode は tokenpanel ユーザー向けに特別特典を用意しています：<a href="https://aigocode.com/invite/TOKENPANEL">こちらのリンク</a>から登録すると、初回チャージ時に 10% のボーナスクレジットを追加プレゼント！</td>
-</tr>
-
-<tr>
-<td width="180"><a href="https://apikey.fun/register?aff=TOKENPANEL"><img src="assets/partners/logos/apikey-fun.png" alt="APIKEY.FUN" width="150"></a></td>
-<td>APIKEY.FUN のご支援に感謝します！<a href="https://apikey.fun/register?aff=TOKENPANEL">APIKEY.FUN</a> は tokenpanel オープンソースプロジェクトのコアコントリビューターの一つであり、オープンで安定した、コストパフォーマンスに優れた AI API アクセスサービスの提供に取り組んでいます。プラットフォームは Claude、OpenAI、Gemini など人気モデルの API 中継サービスをサポートし、価格は公式料金のわずか 7% から。専用リンク <a href="https://apikey.fun/register?aff=TOKENPANEL">APIKEY</a> から登録すると、すべてのチャージで永久 5% 割引をご利用いただけます。</td>
-</tr>
-
-<tr>
-<td width="180"><a href="https://code.silkapi.com/register?aff=TOKENPANEL"><img src="assets/partners/logos/silkapi.png" alt="silkapi" width="150"></a></td>
-<td>SilkAPI のご支援に感謝します！<a href="https://code.silkapi.com/register?aff=TOKENPANEL">SilkAPI</a> は TokenPanel をベースに構築された中継サービスで、高速かつ安定した Codex API 中継の提供に特化しています。</td>
-</tr>
-
-<tr>
-<td width="180"><a href="https://ylscode.com/"><img src="assets/partners/logos/ylscode.png" alt="ylscode" width="150"></a></td>
-<td>YLS Code のご支援に感謝します！<a href="https://ylscode.com/">YLS Code</a> は安全なエンタープライズグレードの Coding Agent 生産性サービスの構築に取り組んでおり、安定かつ高速な Codex / Claude / Gemini サブスクリプションサービスと従量課金 API の柔軟なプランを提供しています。期間限定で新規登録者に 3 日間の Codex 試用特典をプレゼント中！</td>
-</tr>
-
-<tr>
-<td width="180"><a href="https://www.aicodemirror.com/register?invitecode=KMVZQM"><img src="assets/partners/logos/AICodeMirror.jpg" alt="AICodeMirror" width="150"></a></td>
-<td>AICodeMirror のご支援に感謝します！AICodeMirror は Claude Code / Codex / Gemini CLI の公式高安定性リレーサービスを提供しており、エンタープライズグレードの同時実行、迅速な請求書発行、24時間年中無休の専属テクニカルサポートを備えています。Claude Code / Codex / Gemini の公式チャネルを定価の 38% / 2% / 9% で利用可能、チャージ時にはさらに追加割引！AICodeMirror は tokenpanel ユーザー向けに特別特典を提供中：<a href="https://www.aicodemirror.com/register?invitecode=KMVZQM">こちらのリンク</a>から登録すると、初回チャージが 20% オフ、法人のお客様は最大 25% オフ！</td>
-</tr>
-
-<tr>
-<td width="180"><a href="https://shop.bmoplus.com/?utm_source=github"><img src="assets/partners/logos/bmoplus.jpg" alt="bmoplus" width="150"></a></td>
-<td>本プロジェクトにご支援いただいた BmoPlus に感謝いたします！BmoPlusは、AIサブスクリプションのヘビーユーザー向けに特化した信頼性の高いAIアカウントサービスプロバイダーであり、安定した ChatGPT Plus / ChatGPT Pro (完全保証) / Claude Pro / Super Grok / Gemini Pro の公式代行チャージおよび即納アカウントを提供しています。こちらの<a href="https://shop.bmoplus.com/?utm_source=github">BmoPlus AIアカウント専門店/代行チャージ</a>経由でご登録・ご注文いただいたユーザー様は、GPTを 公式サイト価格の約1割（90% OFF） という驚異的な価格でご利用いただけます！</td>
-</tr>
-
-<tr>
-<td width="180"><a href="https://bestproxy.com/?keyword=a2e8iuol"><img src="assets/partners/logos/bestproxy.png" alt="bestproxy" width="150"></a></td>
-<td>Bestproxy のご支援に感謝します！<a href="https://bestproxy.com/?keyword=a2e8iuol">Bestproxy</a> は高純度の住宅IPを提供し、1アカウント1IP専有をサポートしています。実際の家庭ネットワークとフィンガープリント分離を組み合わせることで、リンク環境の分離を実現し、関連付けによるリスク管理の確率を低減します。</td>
-</tr>
-
-<tr>
-<td width="180"><a href="https://pateway.ai/?ch=1tsfr51"><img src="assets/partners/logos/pateway.png" alt="pateway" width="150"></a></td>
-<td>PatewayAI のご支援に感謝します！PatewayAI は、ヘビーAI開発者向けに公式直結を重視した高品質モデルAPIリレーサービスプロバイダーです。Claude 全シリーズおよび Codex シリーズモデルを提供し、100%公式ソースから直接供給 — 偽りなし、水増しなし、検証歓迎。課金は完全透明で、トークン単位の請求書を1件ずつ監査可能です。
-エンタープライズ級の高同時接続にも対応し、法人顧客向けに専用管理プラットフォームを提供しています。法人顧客は正式な契約を締結し、請求書の発行が可能です。詳細は公式サイトでお問い合わせください。
-<a href="https://pateway.ai/?ch=1tsfr51">こちらのリンク</a>から登録すると、$3 のトライアルクレジットがもらえます。チャージは最大40%オフ、友達紹介で双方にボーナス付与 — 紹介報酬は最大 $150。</td>
-</tr>
-
-<tr>
-<td width="180"><a href="https://api.pptoken.org/register?promo=TOKENPANEL"><img src="assets/partners/logos/pptoken.png" alt="pptoken" width="150"></a></td>
-<td>PPToken.org のご支援に感謝します！<a href="https://api.pptoken.org/register?promo=TOKENPANEL">PPToken.org</a> は GPT シリーズモデルの API 中継サービスを専門としており、Codex、Claude Code、OpenAI 互換クライアント、Gemini CLI などのツール接続をサポートしています。チャージは 1:1（1元＝1ドル分のクレジット）、GPT モデルは最低 0.16 倍のレート倍率で、総合コストは公式価格の約 2.2% 、最速ファーストトークンは約1秒 — 開発者が低コスト・高速レスポンスで GPT モデル機能にアクセスするのに最適です。テクニカルサポート：24時間365日リアルな人間が対応（ボットではありません）、グループ内で @技術 すれば 10 分以内に返信。スポンサー特典：先着 200 名のユーザーが<a href="https://api.pptoken.org/register?promo=TOKENPANEL">専用登録リンク</a>から登録し、プロモコード `TOKENPANEL` を入力すると、Codex / Claude Code の無料トライアルクレジットを獲得できます — 最低利用額なし、カード登録不要。
-</td>
-</tr>
-
-</table>
-
-## エコシステム
-
-TokenPanel を拡張・統合するコミュニティプロジェクト:
-
-| プロジェクト | 説明 | 機能 |
-|---------|-------------|----------|
-| ~~[TokenPanelPay](https://github.com/touwaeriol/tokenpanelpay)~~ | ~~セルフサービス決済システム~~ | **内蔵済み** — 決済機能は TokenPanel に統合されました。別途デプロイは不要です。[決済設定ガイド](docs/PAYMENT.md)をご参照ください |
-| [tokenpanel-mobile](https://github.com/ckken/tokenpanel-mobile) | モバイル管理コンソール | ユーザー管理、アカウント管理、監視ダッシュボード、マルチバックエンド切り替えが可能なクロスプラットフォームアプリ（iOS/Android/Web）。Expo + React Native で構築 |
-
 ## 技術スタック
 
 | コンポーネント | 技術 |
 |-----------|------------|
 | バックエンド | Go 1.25.7, Gin, Ent |
 | フロントエンド | Vue 3.4+, Vite 5+, TailwindCSS |
-| データベース | PostgreSQL 15+ |
-| キャッシュ/キュー | Redis 7+ |
+| データベース | PostgreSQL 18+ |
+| キャッシュ/キュー | Redis 8+ |
 
 ---
 
@@ -156,8 +64,8 @@ GitHub Releases からビルド済みバイナリをダウンロードするワ�
 #### 前提条件
 
 - Linux サーバー（amd64 または arm64）
-- PostgreSQL 15+（インストール済みかつ稼働中）
-- Redis 7+（インストール済みかつ稼働中）
+- PostgreSQL 18+（インストール済みかつ稼働中）
+- Redis 8+（インストール済みかつ稼働中）
 - root 権限
 
 #### インストール手順
@@ -195,11 +103,6 @@ sudo systemctl enable tokenpanel
 
 **管理ダッシュボード**の左上にある**アップデートを確認**ボタンをクリックすることで、ダッシュボードから直接アップグレードできます。
 
-Web インターフェースでは以下が可能です:
-- 新しいバージョンの自動確認
-- ワンクリックでのアップデートのダウンロードと適用
-- 必要に応じたロールバック
-
 #### よく使うコマンド
 
 ```bash
@@ -229,8 +132,6 @@ PostgreSQL と Redis のコンテナを含む Docker Compose でデプロイし�
 
 #### クイックスタート（ワンクリックデプロイ）
 
-自動デプロイスクリプトを使用して簡単にセットアップできます:
-
 ```bash
 # デプロイ用ディレクトリを作成
 mkdir -p tokenpanel-deploy && cd tokenpanel-deploy
@@ -246,15 +147,12 @@ docker compose logs -f tokenpanel
 ```
 
 **スクリプトの動作内容:**
-- `docker-compose.local.yml`（`docker-compose.yml` として保存）と `.env.example` をダウンロード
+- `docker-compose.local.yml` と `.env.example` をダウンロード
 - セキュアな認証情報（JWT_SECRET、TOTP_ENCRYPTION_KEY、POSTGRES_PASSWORD）を自動生成
 - 自動生成されたシークレットで `.env` ファイルを作成
 - データディレクトリを作成（バックアップ・移行が容易なローカルディレクトリを使用）
-- 生成された認証情報を参照用に表示
 
 #### 手動デプロイ
-
-手動でセットアップする場合:
 
 ```bash
 # 1. リポジトリをクローン
@@ -264,7 +162,7 @@ cd tokenpanel/deploy
 # 2. 環境設定ファイルをコピー
 cp .env.example .env
 
-# 3. 設定を編集（セキュアなパスワードを生成）
+# 3. 設定を編集
 nano .env
 ```
 
@@ -290,76 +188,24 @@ SERVER_PORT=8080
 
 **セキュアなシークレットの生成方法:**
 ```bash
-# JWT_SECRET を生成
-openssl rand -hex 32
-
-# TOTP_ENCRYPTION_KEY を生成
-openssl rand -hex 32
-
-# POSTGRES_PASSWORD を生成
 openssl rand -hex 32
 ```
 
 ```bash
-# 4. データディレクトリを作成（ローカルバージョンの場合）
+# 4. データディレクトリを作成
 mkdir -p data postgres_data redis_data
 
-# 5. すべてのサービスを起動
-# オプション A: ローカルディレクトリバージョン（推奨 - 移行が容易）
+# 5. サービスを起動
 docker compose -f docker-compose.local.yml up -d
 
-# オプション B: 名前付きボリュームバージョン（シンプルなセットアップ）
-docker compose up -d
-
-# 6. ステータスを確認
-docker compose -f docker-compose.local.yml ps
-
-# 7. ログを表示
+# 6. ログを表示
 docker compose -f docker-compose.local.yml logs -f tokenpanel
-```
-
-#### デプロイバージョン
-
-| バージョン | データストレージ | 移行 | 推奨用途 |
-|---------|-------------|-----------|----------|
-| **docker-compose.local.yml** | ローカルディレクトリ | ✅ 容易（ディレクトリ全体を tar） | 本番環境、頻繁なバックアップ |
-| **docker-compose.yml** | 名前付きボリューム | ⚠️ docker コマンドが必要 | シンプルなセットアップ |
-
-**推奨:** データ管理が容易な `docker-compose.local.yml`（スクリプトによるデプロイ）を使用してください。
-
-#### アクセス
-
-ブラウザで `http://YOUR_SERVER_IP:8080` を開いてください。
-
-管理者パスワードが自動生成された場合は、ログで確認できます:
-```bash
-docker compose -f docker-compose.local.yml logs tokenpanel | grep "admin password"
 ```
 
 #### アップグレード
 
 ```bash
-# 最新イメージをプルしてコンテナを再作成
 docker compose -f docker-compose.local.yml pull
-docker compose -f docker-compose.local.yml up -d
-```
-
-#### 簡単な移行（ローカルディレクトリバージョン）
-
-`docker-compose.local.yml` を使用している場合、新しいサーバーへの移行が簡単です:
-
-```bash
-# 移行元サーバーにて
-docker compose -f docker-compose.local.yml down
-cd ..
-tar czf tokenpanel-complete.tar.gz tokenpanel-deploy/
-
-# 新しいサーバーに転送
-scp tokenpanel-complete.tar.gz user@new-server:/path/
-
-# 移行先サーバーにて
-tar xzf tokenpanel-complete.tar.gz
-cd tokenpanel-deploy/
 docker compose -f docker-compose.local.yml up -d
 ```
 
@@ -371,9 +217,6 @@ docker compose -f docker-compose.local.yml down
 
 # 再起動
 docker compose -f docker-compose.local.yml restart
-
-# すべてのログを表示
-docker compose -f docker-compose.local.yml logs -f
 
 # すべてのデータを削除（注意！）
 docker compose -f docker-compose.local.yml down
@@ -390,8 +233,8 @@ rm -rf data/ postgres_data/ redis_data/
 
 - Go 1.21+
 - Node.js 18+
-- PostgreSQL 15+
-- Redis 7+
+- PostgreSQL 18+
+- Redis 8+
 
 #### ビルド手順
 
@@ -445,19 +288,7 @@ redis:
 jwt:
   secret: "change-this-to-a-secure-random-string"
   expire_hour: 24
-
-default:
-  user_concurrency: 5
-  user_balance: 0
-  api_key_prefix: "sk-"
-  rate_multiplier: 1.0
 ```
-
-### Sora ステータス（一時的に利用不可）
-
-> ⚠️ Sora 関連の機能は、上流統合およびメディア配信の技術的問題により一時的に利用できません。
-> 現時点では本番環境で Sora に依存しないでください。
-> 既存の `gateway.sora_*` 設定キーは予約されていますが、これらの問題が解決されるまで有効にならない場合があります。
 
 `config.yaml` では追加のセキュリティ関連オプションも利用できます:
 
@@ -466,7 +297,7 @@ default:
 - `security.url_allowlist.enabled` - URL バリデーションの無効化（注意して使用）
 - `security.url_allowlist.allow_insecure_http` - バリデーション無効時に HTTP URL を許可
 - `security.url_allowlist.allow_private_hosts` - プライベート/ローカル IP アドレスを許可
-- `security.response_headers.enabled` - 設定可能なレスポンスヘッダーフィルタリングを有効化（無効時はデフォルトの許可リストを使用）
+- `security.response_headers.enabled` - 設定可能なレスポンスヘッダーフィルタリングを有効化
 - `security.csp` - Content-Security-Policy ヘッダーの制御
 - `billing.circuit_breaker` - 課金エラー時にフェイルクローズ
 - `server.trusted_proxies` - X-Forwarded-For パースの有効化
@@ -474,43 +305,14 @@ default:
 
 **⚠️ セキュリティ警告: HTTP URL 設定**
 
-`security.url_allowlist.enabled=false` の場合、システムはデフォルトで最小限の URL バリデーションを行い、**HTTP URL を拒否**して HTTPS のみを許可します。HTTP URL を許可するには（開発環境や内部テスト用など）、以下を明示的に設定する必要があります:
+`security.url_allowlist.enabled=false` の場合、システムはデフォルトで HTTP URL を拒否して HTTPS のみを許可します。HTTP URL を許可するには（開発環境や内部テスト用など）、以下を明示的に設定してください:
 
 ```yaml
 security:
   url_allowlist:
-    enabled: false                # 許可リストチェックを無効化
-    allow_insecure_http: true     # HTTP URL を許可（⚠️ セキュリティリスクあり）
+    enabled: false
+    allow_insecure_http: true     # ⚠️ セキュリティリスクあり
 ```
-
-**または環境変数で設定:**
-
-```bash
-SECURITY_URL_ALLOWLIST_ENABLED=false
-SECURITY_URL_ALLOWLIST_ALLOW_INSECURE_HTTP=true
-```
-
-**HTTP を許可するリスク:**
-- API キーとデータが**平文**で送信される（傍受の危険性）
-- **中間者攻撃（MITM）**を受けやすい
-- **本番環境には不適切**
-
-**HTTP を使用すべき場面:**
-- ✅ ローカルサーバーでの開発・テスト（http://localhost）
-- ✅ 信頼できるエンドポイントを持つ内部ネットワーク
-- ✅ HTTPS 取得前のアカウント接続テスト
-- ❌ 本番環境（HTTPS のみを使用）
-
-**この設定なしで表示されるエラー例:**
-```
-Invalid base URL: invalid url scheme: http
-```
-
-URL バリデーションまたはレスポンスヘッダーフィルタリングを無効にする場合は、ネットワーク層を強化してください:
-- 上流ドメイン/IP のエグレス許可リストを適用
-- プライベート/ループバック/リンクローカル範囲をブロック
-- TLS のみのアウトバウンドトラフィックを強制
-- プロキシで機密性の高い上流レスポンスヘッダーを除去
 
 ```bash
 # 6. アプリケーションを実行
@@ -595,7 +397,7 @@ tokenpanel/
 │   │   ├── service/          # ビジネスロジック
 │   │   ├── handler/          # HTTP ハンドラー
 │   │   └── gateway/          # API ゲートウェイコア
-│   └── resources/            # 静的リソース
+│   └── resources/            # 静態リソース
 │
 ├── frontend/                 # Vue 3 フロントエンド
 │   └── src/
@@ -621,28 +423,8 @@ tokenpanel/
 
 ---
 
-## スター履歴
-
-<a href="https://star-history.com/#Wei-Shaw/tokenpanel&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Wei-Shaw/tokenpanel&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Wei-Shaw/tokenpanel&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Wei-Shaw/tokenpanel&type=Date" />
- </picture>
-</a>
-
----
-
 ## ライセンス
 
 本プロジェクトは [GNU Lesser General Public License v3.0](LICENSE)（またはそれ以降のバージョン）の下でライセンスされています。
 
 Copyright (c) 2026 Wesley Liddick
-
----
-
-<div align="center">
-
-**このプロジェクトが役に立ったら、ぜひスターをお願いします！**
-
-</div>

@@ -181,28 +181,126 @@ release:
 
     ---
 
-    ## 📥 Installation
+    ## 📥 安装指南 / Installation Guide
 
-    **Docker:**
+    ### 方式一：Docker Compose（推荐，含内置 PostgreSQL + Redis）
+
+    适合全新安装，数据库和缓存由 Compose 自动管理。
+
     ```bash
+    # 1. 下载部署文件
+    mkdir tokenpanel && cd tokenpanel
+    curl -sSLO https://raw.githubusercontent.com/{{ .Env.GITHUB_REPO_OWNER }}/{{ .Env.GITHUB_REPO_NAME }}/zhiguofan/deploy/docker-compose.yml
+    curl -sSLO https://raw.githubusercontent.com/{{ .Env.GITHUB_REPO_OWNER }}/{{ .Env.GITHUB_REPO_NAME }}/zhiguofan/deploy/.env.example
+
+    # 2. 配置环境变量
+    cp .env.example .env
+    # 编辑 .env，至少填写以下必填项（见下方说明）
+    nano .env
+
+    # 3. 启动服务（首次运行自动初始化数据库）
+    docker compose up -d
+
+    # 4. 查看启动日志
+    docker compose logs -f tokenpanel
+    ```
+
+    ### 方式二：外部数据库（Standalone）
+
+    适合已有 PostgreSQL 和 Redis 的生产环境。
+
+    **前提条件（必须提前准备好）：**
+    - PostgreSQL 18+，已创建数据库和用户
+    - Redis 8+，可选设置密码
+
+    ```bash
+    # 1. 下载部署文件
+    mkdir tokenpanel && cd tokenpanel
+    curl -sSLO https://raw.githubusercontent.com/{{ .Env.GITHUB_REPO_OWNER }}/{{ .Env.GITHUB_REPO_NAME }}/zhiguofan/deploy/docker-compose.standalone.yml
+    curl -sSLO https://raw.githubusercontent.com/{{ .Env.GITHUB_REPO_OWNER }}/{{ .Env.GITHUB_REPO_NAME }}/zhiguofan/deploy/.env.example
+
+    # 2. 配置环境变量
+    cp .env.example .env
+    nano .env   # 填写外部数据库和 Redis 连接信息
+
+    # 3. 启动（指定 standalone 配置文件）
+    docker compose -f docker-compose.standalone.yml up -d
+    ```
+
+    ### 方式三：一键安装脚本（Linux）
+
+    ```bash
+    curl -sSL https://raw.githubusercontent.com/{{ .Env.GITHUB_REPO_OWNER }}/{{ .Env.GITHUB_REPO_NAME }}/zhiguofan/deploy/install.sh | sudo bash
+    ```
+
+    ---
+
+    ## ⚙️ .env 关键配置说明
+
+    `.env` 文件控制所有运行时配置，以下为必填项和重要项：
+
+    ### 必填项
+
+    | 变量 | 说明 | 示例 |
+    |------|------|------|
+    | `POSTGRES_PASSWORD` | PostgreSQL 密码（方式一）| `your_strong_password` |
+    | `DATABASE_HOST` | 外部 PG 主机（方式二）| `192.168.1.10` |
+    | `DATABASE_PASSWORD` | 外部 PG 密码（方式二）| `your_db_password` |
+    | `REDIS_HOST` | 外部 Redis 主机（方式二）| `192.168.1.11` |
+
+    ### 强烈建议设置（避免重启后失效）
+
+    ```bash
+    # 生成随机密钥的命令
+    openssl rand -hex 32
+    ```
+
+    | 变量 | 说明 | 若留空的后果 |
+    |------|------|------------|
+    | `JWT_SECRET` | JWT 签名密钥 | 容器重启后所有用户被强制登出 |
+    | `TOTP_ENCRYPTION_KEY` | 双因素认证加密密钥 | 重启后所有 2FA 配置失效，用户无法登录 |
+
+    ### 管理员账号
+
+    | 变量 | 说明 | 默认值 |
+    |------|------|--------|
+    | `ADMIN_EMAIL` | 管理员邮箱 | `admin@tokenpanel.local` |
+    | `ADMIN_PASSWORD` | 管理员密码（留空则自动生成，见启动日志）| 自动生成 |
+
+    ### 其他常用配置
+
+    | 变量 | 说明 | 默认值 |
+    |------|------|--------|
+    | `SERVER_PORT` | 对外暴露端口 | `8080` |
+    | `TZ` | 时区（影响统计日期边界） | `Asia/Shanghai` |
+    | `RUN_MODE` | 运行模式：`standard`（SaaS）/ `simple`（个人自用） | `standard` |
+
+    ---
+
+    ## 🔄 升级指南
+
+    > 升级前建议备份数据库：`docker exec tokenpanel-postgres pg_dump -U tokenpanel tokenpanel > backup.sql`
+
+    ```bash
+    # 1. 拉取新版镜像
     {{ if ne .Env.DOCKERHUB_REPOSITORY "skip" -}}
-    # Docker Hub
     docker pull {{ .Env.DOCKERHUB_REPOSITORY }}:{{ .Version }}
-
     {{ end -}}
-    # GitHub Container Registry
     docker pull ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/tokenpanel:{{ .Version }}
+
+    # 2. 更新 .env 中的镜像版本（如固定了版本号）
+    # 或直接重启，latest 标签会自动使用最新版
+    docker compose pull
+    docker compose up -d
+
+    # 3. 数据库迁移自动执行，查看日志确认
+    docker compose logs -f tokenpanel
     ```
 
-    **One-line install (Linux):**
-    ```bash
-    curl -sSL https://raw.githubusercontent.com/{{ .Env.GITHUB_REPO_OWNER }}/{{ .Env.GITHUB_REPO_NAME }}/main/deploy/install.sh | sudo bash
-    ```
+    ---
 
-    **Manual download:**
-    Download the appropriate archive for your platform from the assets below.
+    ## 📚 文档
 
-    ## 📚 Documentation
-
-    - [GitHub Repository](https://github.com/{{ .Env.GITHUB_REPO_OWNER }}/{{ .Env.GITHUB_REPO_NAME }})
-    - [Installation Guide](https://github.com/{{ .Env.GITHUB_REPO_OWNER }}/{{ .Env.GITHUB_REPO_NAME }}/blob/main/deploy/README.md)
+    - [GitHub 仓库](https://github.com/{{ .Env.GITHUB_REPO_OWNER }}/{{ .Env.GITHUB_REPO_NAME }})
+    - [部署配置文件目录](https://github.com/{{ .Env.GITHUB_REPO_OWNER }}/{{ .Env.GITHUB_REPO_NAME }}/tree/zhiguofan/deploy)
+    - [.env 完整配置参考](https://github.com/{{ .Env.GITHUB_REPO_OWNER }}/{{ .Env.GITHUB_REPO_NAME }}/blob/zhiguofan/deploy/.env.example)

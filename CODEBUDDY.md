@@ -6,7 +6,7 @@ This file provides guidance to CodeBuddy Code when working with code in this rep
 
 **tokenpanel** is an AI API gateway platform for subscription quota distribution. It generates API keys from upstream AI subscriptions (OpenAI, Antigravity, etc.) and distributes them to users with billing, load balancing, and request forwarding.
 
-**Tech Stack**: Go 1.26.1 (Gin + Ent ORM) + Vue 3.4+ (Vite 5 + TailwindCSS + Pinia) + PostgreSQL 15+ + Redis 7+
+**Tech Stack**: Go 1.26.1 (Gin + Ent ORM) + Vue 3.4+ (Vite 5 + TailwindCSS + Pinia) + PostgreSQL 18+ + Redis 8+
 
 ## Repository Information
 

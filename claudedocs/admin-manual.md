@@ -281,7 +281,7 @@ Generic 平台账号支持为同一账号挂载多个 endpoint，每个 endpoint
 - 多 endpoint 账号在调度器中参与 protocol 桶轮询；failover 时自动切到其他 endpoint
 
 **回滚开关**
-`PROTOCOL_BUCKET_ENABLED=false`（环境变量）可将调度器回退到按平台桶的旧逻辑，不影响账号配置本身。
+`GATEWAY_SCHEDULING_PROTOCOL_BUCKET_ENABLED=false`（环境变量）可将调度器回退到按平台桶的旧逻辑，不影响账号配置本身。
 
 > **注意**：灵境（Lingjing）账号不参与 Generic Endpoint 迁移，两者互相独立。
 

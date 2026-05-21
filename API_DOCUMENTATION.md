@@ -13,12 +13,13 @@
 2. [Claude API（Anthropic 兼容）](#claude-apianthropic-兼容)
 3. [OpenAI Chat Completions](#openai-chat-completions)
 4. [OpenAI 推理模型（o 系列）](#openai-推理模型o-系列)
-5. [图像生成](#图像生成)
-6. [Gemini API 兼容](#gemini-api-兼容)
-7. [通用端点](#通用端点)
-8. [流式响应](#流式响应)
-9. [支持的模型](#支持的模型)
-10. [错误处理](#错误处理)
+5. [OpenAI Responses API](#openai-responses-api)
+6. [图像生成](#图像生成)
+7. [Gemini API 兼容](#gemini-api-兼容)
+8. [通用端点](#通用端点)
+9. [流式响应](#流式响应)
+10. [支持的模型](#支持的模型)
+11. [错误处理](#错误处理)
 
 ---
 
@@ -302,6 +303,28 @@ curl https://openclaw.zhiguo.fan/v1/chat/completions \
 ```
 
 > o 系列模型内部自动进行多步推理，响应时间比普通模型长，请适当增加超时时间。
+
+---
+
+## OpenAI Responses API
+
+OpenAI 新一代 Responses API，适用于 Codex CLI、Claude Code 等代理工具场景。
+
+```
+POST /v1/responses
+```
+
+```bash
+curl https://openclaw.zhiguo.fan/v1/responses \
+  -H "Authorization: Bearer sk-your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4.1",
+    "input": "Hello, world!"
+  }'
+```
+
+> **注意**：Responses API 仅对 OpenAI 平台分组的 API Key 可用（`InboundProtocol` 需为 `openai_chat` 或 `openai_responses`）。如果你的 Key 绑定的是 Anthropic/Claude 分组，请使用 `/v1/messages` 端点。
 
 ---
 
