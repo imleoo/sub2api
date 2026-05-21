@@ -11,10 +11,10 @@ export default {
     getStarted: 'Get Started',
     goToDashboard: 'Go to Dashboard',
     // User-focused value proposition
-    heroSubtitle: 'One Key, All AI Models',
+    heroSubtitle: 'Multi-Key, Multi-Group, Fine-Grained Billing Control',
     heroDescription: 'No need to manage multiple subscriptions. Access Claude, GPT, Gemini and more with a single API key',
     tags: {
-      subscriptionToApi: 'Subscription to API',
+      subscriptionToApi: 'No Throttling, No Downgrade',
       stickySession: 'Session Persistence',
       realtimeBilling: 'Pay As You Go'
     },
