@@ -21,15 +21,7 @@ if echo "$CMD" | grep -qE '^\s*git\s+commit\b'; then
   exit 0
 fi
 
-# ── 规则 1：禁止 force push 到 main / master / zhiguofan ──────────────────
-if echo "$CMD" | grep -qE 'git\s+push.*(--force|-f)'; then
-  TARGET=$(echo "$CMD" | grep -oE '(main|master|zhiguofan)' | head -1)
-  if [[ -n "$TARGET" ]]; then
-    echo "⛔ [guards] 拦截：禁止 force push 到受保护分支 '$TARGET'。" >&2
-    echo "   如确需操作，请在终端直接执行并自行确认风险。" >&2
-    exit 2
-  fi
-fi
+# ── 规则 1：force push 不拦截（tag 重定向等场景需要） ──────────────────────
 
 # ── 规则 2：禁止直接 push origin main（非 force 也拦截）───────────────────
 if echo "$CMD" | grep -qE 'git\s+push\s+(origin\s+)?main\b'; then
