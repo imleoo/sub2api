@@ -111,23 +111,20 @@
                   {{ formatTokens(stats.today_tokens) }}
                 </p>
                 <p class="text-xs">
-                  <span
-                    class="text-green-600 dark:text-green-400"
-                    :title="t('admin.dashboard.actual')"
-                    >{{ formatCost(stats.today_actual_cost) }}</span
-                  >
+                  <span class="text-gray-400 dark:text-gray-500">{{ t('admin.dashboard.actual') }}: </span>
+                  <span class="text-green-600 dark:text-green-400">{{ formatCost(stats.today_actual_cost) }}</span>
                   <span class="text-gray-400 dark:text-gray-500"> / </span>
-                  <span
-                    class="text-orange-500 dark:text-orange-400"
-                    :title="t('admin.dashboard.accountCost')"
-                    >{{ formatCost(stats.today_account_cost) }}</span
-                  >
+                  <span class="text-gray-400 dark:text-gray-500">{{ t('admin.dashboard.accountCost') }}: </span>
+                  <span class="text-orange-500 dark:text-orange-400">{{ formatCost(stats.today_account_cost) }}</span>
                   <span class="text-gray-400 dark:text-gray-500"> / </span>
-                  <span
-                    class="text-gray-400 dark:text-gray-500"
-                    :title="t('admin.dashboard.standard')"
-                    >{{ formatCost(stats.today_cost) }}</span
-                  >
+                  <span class="text-gray-400 dark:text-gray-500">{{ t('admin.dashboard.standard') }}: </span>
+                  <span class="text-gray-400 dark:text-gray-500">{{ formatCost(stats.today_cost) }}</span>
+                </p>
+                <p class="text-xs mt-0.5">
+                  <span class="text-gray-400 dark:text-gray-500">{{ t('admin.dashboard.profit') }}: </span>
+                  <span :class="stats.today_actual_cost - stats.today_account_cost >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'">
+                    {{ formatCost(stats.today_actual_cost - stats.today_account_cost) }}
+                  </span>
                 </p>
               </div>
             </div>
@@ -147,23 +144,20 @@
                   {{ formatTokens(stats.total_tokens) }}
                 </p>
                 <p class="text-xs">
-                  <span
-                    class="text-green-600 dark:text-green-400"
-                    :title="t('admin.dashboard.actual')"
-                    >{{ formatCost(stats.total_actual_cost) }}</span
-                  >
+                  <span class="text-gray-400 dark:text-gray-500">{{ t('admin.dashboard.actual') }}: </span>
+                  <span class="text-green-600 dark:text-green-400">{{ formatCost(stats.total_actual_cost) }}</span>
                   <span class="text-gray-400 dark:text-gray-500"> / </span>
-                  <span
-                    class="text-orange-500 dark:text-orange-400"
-                    :title="t('admin.dashboard.accountCost')"
-                    >{{ formatCost(stats.total_account_cost) }}</span
-                  >
+                  <span class="text-gray-400 dark:text-gray-500">{{ t('admin.dashboard.accountCost') }}: </span>
+                  <span class="text-orange-500 dark:text-orange-400">{{ formatCost(stats.total_account_cost) }}</span>
                   <span class="text-gray-400 dark:text-gray-500"> / </span>
-                  <span
-                    class="text-gray-400 dark:text-gray-500"
-                    :title="t('admin.dashboard.standard')"
-                    >{{ formatCost(stats.total_cost) }}</span
-                  >
+                  <span class="text-gray-400 dark:text-gray-500">{{ t('admin.dashboard.standard') }}: </span>
+                  <span class="text-gray-400 dark:text-gray-500">{{ formatCost(stats.total_cost) }}</span>
+                </p>
+                <p class="text-xs mt-0.5">
+                  <span class="text-gray-400 dark:text-gray-500">{{ t('admin.dashboard.profit') }}: </span>
+                  <span :class="stats.total_actual_cost - stats.total_account_cost >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'">
+                    {{ formatCost(stats.total_actual_cost - stats.total_account_cost) }}
+                  </span>
                 </p>
               </div>
             </div>

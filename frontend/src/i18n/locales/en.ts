@@ -1442,6 +1442,7 @@ export default {
       actual: 'Actual',
       standard: 'Standard',
       accountCost: 'Cost',
+      profit: 'Profit',
       noDataAvailable: 'No data available',
       recentUsage: 'Recent Usage',
       viewModelDistribution: 'Model Distribution',
