@@ -479,14 +479,6 @@
           >
             {{ t('home.docs') }}
           </a>
-          <a
-            :href="githubUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-xs text-gray-400 transition-colors hover:text-gray-600 dark:text-dark-500 dark:hover:text-dark-300"
-          >
-            GitHub
-          </a>
         </div>
       </div>
     </footer>
@@ -524,7 +516,6 @@ const userInitial = computed(() => {
 })
 
 const currentYear = computed(() => new Date().getFullYear())
-const githubUrl = 'https://github.com/Wei-Shaw/sub2api'
 
 // Dark mode
 const isDark = ref(document.documentElement.classList.contains('dark'))
