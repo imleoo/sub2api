@@ -56,11 +56,13 @@ func ProvideTokenRefreshService(
 	privacyClientFactory PrivacyClientFactory,
 	proxyRepo ProxyRepository,
 	refreshAPI *OAuthRefreshAPI,
+	runtimeBlocker AccountRuntimeBlocker,
 ) *TokenRefreshService {
 	svc := NewTokenRefreshService(accountRepo, cacheInvalidator, schedulerCache, cfg, tempUnschedCache)
 	svc.SetPrivacyDeps(privacyClientFactory, proxyRepo)
 	svc.SetRefreshAPI(refreshAPI)
 	svc.SetRefreshPolicy(DefaultBackgroundRefreshPolicy())
+	svc.SetAccountRuntimeBlocker(runtimeBlocker)
 	svc.Start()
 	return svc
 }
@@ -73,24 +75,32 @@ func ProvideClaudeTokenProvider(
 	return NewClaudeTokenProvider(accountRepo, tokenCache)
 }
 
-// ProvideOpenAITokenProvider creates OpenAITokenProvider
+// ProvideOpenAITokenProvider creates OpenAITokenProvider with OAuthRefreshAPI injection
 func ProvideOpenAITokenProvider(
 	accountRepo AccountRepository,
 	tokenCache GeminiTokenCache,
+	openaiOAuthService *OpenAIOAuthService,
 	refreshAPI *OAuthRefreshAPI,
 ) *OpenAITokenProvider {
-	p := NewOpenAITokenProvider(accountRepo, tokenCache)
-	p.SetRefreshAPI(refreshAPI, nil)
+	p := NewOpenAITokenProvider(accountRepo, tokenCache, openaiOAuthService)
+	executor := NewOpenAITokenRefresher(openaiOAuthService, accountRepo)
+	p.SetRefreshAPI(refreshAPI, executor)
 	p.SetRefreshPolicy(OpenAIProviderRefreshPolicy())
 	return p
 }
 
-// ProvideGeminiTokenProvider creates GeminiTokenProvider
+// ProvideGeminiTokenProvider creates GeminiTokenProvider with OAuthRefreshAPI injection
 func ProvideGeminiTokenProvider(
 	accountRepo AccountRepository,
 	tokenCache GeminiTokenCache,
+	geminiOAuthService *GeminiOAuthService,
+	refreshAPI *OAuthRefreshAPI,
 ) *GeminiTokenProvider {
-	return NewGeminiTokenProvider(accountRepo, tokenCache)
+	p := NewGeminiTokenProvider(accountRepo, tokenCache, geminiOAuthService)
+	executor := NewGeminiTokenRefresher(geminiOAuthService)
+	p.SetRefreshAPI(refreshAPI, executor)
+	p.SetRefreshPolicy(GeminiProviderRefreshPolicy())
+	return p
 }
 
 // ProvideAntigravityTokenProvider creates AntigravityTokenProvider
@@ -124,8 +134,9 @@ func ProvideAccountExpiryService(accountRepo AccountRepository) *AccountExpirySe
 }
 
 // ProvideSubscriptionExpiryService creates and starts SubscriptionExpiryService.
-func ProvideSubscriptionExpiryService(userSubRepo UserSubscriptionRepository, notificationEmailService *NotificationEmailService) *SubscriptionExpiryService {
+func ProvideSubscriptionExpiryService(userSubRepo UserSubscriptionRepository, settingRepo SettingRepository, notificationEmailService *NotificationEmailService) *SubscriptionExpiryService {
 	svc := NewSubscriptionExpiryService(userSubRepo, time.Minute)
+	svc.SetSettingRepository(settingRepo)
 	svc.SetNotificationEmailService(notificationEmailService)
 	svc.Start()
 	return svc
@@ -155,6 +166,7 @@ func ProvideConcurrencyService(cache ConcurrencyCache, accountRepo AccountReposi
 		logger.LegacyPrintf("service.concurrency", "Warning: startup cleanup stale process slots failed: %v", err)
 	}
 	if cfg != nil {
+		svc.SetAccountLoadBatchCacheTTL(time.Duration(cfg.Gateway.Scheduling.LoadBatchCacheTTLMS) * time.Millisecond)
 		svc.StartSlotCleanupWorker(accountRepo, cfg.Gateway.Scheduling.SlotCleanupInterval)
 	}
 	return svc
@@ -370,6 +382,9 @@ func ProvideSettingService(settingRepo SettingRepository, groupRepo GroupReposit
 	svc := NewSettingService(settingRepo, cfg)
 	svc.SetDefaultSubscriptionGroupReader(groupRepo)
 	svc.SetProxyRepository(proxyRepo)
+	if err := svc.LoadAPIKeyACLTrustForwardedIPSetting(context.Background()); err != nil {
+		logger.LegacyPrintf("service.setting", "Warning: load api key acl forwarded ip setting failed: %v", err)
+	}
 	antigravity.SetUserAgentVersionResolver(svc.GetAntigravityUserAgentVersion)
 	return svc
 }
@@ -425,6 +440,10 @@ var ProviderSet = wire.NewSet(
 	NewAdminService,
 	NewGatewayService,
 	NewOpenAIGatewayService,
+	wire.Bind(new(AccountRuntimeBlocker), new(*OpenAIGatewayService)),
+	NewOAuthService,
+	NewOpenAIOAuthService,
+	NewGeminiOAuthService,
 	NewGeminiQuotaService,
 	ProvideOAuthRefreshAPI,
 	ProvideGeminiTokenProvider,
