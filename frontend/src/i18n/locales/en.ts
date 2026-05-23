@@ -5399,6 +5399,12 @@ export default {
             clearHint: 'Submitting empty will clear the exclusive rate for selected users.',
           },
         },
+        showOverseasModels: {
+          title: 'Overseas Models Visibility',
+          description: 'Controls whether models from overseas AI providers (e.g. OpenAI, Anthropic, Google Gemini) are shown in the model marketplace and discount management. When disabled, only domestic provider models are displayed.',
+          enabled: 'Show Overseas Models',
+          enabledHint: 'When disabled, the model marketplace and discount page will only show models from domestic providers (e.g. DeepSeek, Zhipu, Qwen, Moonshot).',
+        },
       },
       emailTabDisabledTitle: 'Email Verification Not Enabled',
       emailTabDisabledHint: 'Enable email verification in the Security tab to configure SMTP settings.',

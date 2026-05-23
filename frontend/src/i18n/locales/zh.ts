@@ -5561,6 +5561,12 @@ export default {
             clearHint: '留空提交将清除所选用户的专属比例。',
           },
         },
+        showOverseasModels: {
+          title: '海外模型显示',
+          description: '控制模型广场和折扣管理中是否显示海外 AI 服务商的模型（如 OpenAI、Anthropic、Google Gemini 等）。关闭后仅展示国内服务商模型。',
+          enabled: '显示海外模型',
+          enabledHint: '关闭后，模型广场和折扣页面将只显示国内服务商的模型（如 DeepSeek、智谱、通义、月之暗面等）。',
+        },
       },
       emailTabDisabledTitle: '邮箱验证未启用',
       emailTabDisabledHint: '请在「安全与认证」选项卡中启用邮箱验证后，再配置 SMTP 设置。',

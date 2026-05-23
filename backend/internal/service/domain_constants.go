@@ -408,6 +408,9 @@ const (
 	// 用于避免 Cloudflare 对浏览器型 UA 的质询拦截。
 	SettingKeyOpenAICodexUserAgent = "openai_codex_user_agent"
 
+	// SettingKeyShowOverseasModels 是否在模型广场和折扣页面显示海外模型（默认 true）
+	SettingKeyShowOverseasModels = "show_overseas_models"
+
 	// Balance Low Notification
 	SettingKeyBalanceLowNotifyEnabled     = "balance_low_notify_enabled"      // 全局开关
 	SettingKeyBalanceLowNotifyThreshold   = "balance_low_notify_threshold"    // 默认阈值（USD）

@@ -554,6 +554,9 @@ export interface SystemSettings {
   // Affiliate (邀请返利) feature switch
   affiliate_enabled: boolean;
 
+  // 海外模型显示
+  show_overseas_models: boolean;
+
   // Currency mode
   currency_mode: string;
   cny_rate: number;
@@ -776,6 +779,9 @@ export interface UpdateSettingsRequest {
 
   // Affiliate (邀请返利) feature switch
   affiliate_enabled?: boolean;
+
+  // 海外模型显示
+  show_overseas_models?: boolean;
 
   // Currency mode
   currency_mode?: string;

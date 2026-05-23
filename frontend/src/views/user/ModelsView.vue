@@ -224,6 +224,19 @@ import { getModels, type ModelInfo } from '@/api/models'
 const { t } = useI18n()
 const appStore = useAppStore()
 
+// 已知海外 AI 服务商黑名单（与 ModelDiscountsView 保持同步）
+// 使用黑名单而非白名单，确保用户自定义添加的国内供应商不被误过滤
+const OVERSEAS_PROVIDERS = new Set([
+  'anthropic', 'openai', 'google', 'gemini',
+  'vertex_ai', 'vertex_ai-language-models', 'vertex_ai-vision-models', 'vertex_ai-embedding-models',
+  'bedrock', 'text-completion-openai',
+  'mistral', 'meta', 'cohere', 'xai', 'perplexity',
+])
+
+const showOverseasModels = computed(
+  () => appStore.cachedPublicSettings?.show_overseas_models !== false
+)
+
 // ─── State ────────────────────────────────
 const loading = ref(false)
 const allModels = ref<ModelInfo[]>([])
@@ -234,13 +247,21 @@ const selectedMode = ref<string>('all')
 const copiedModelId = ref<string | null>(null)
 
 // ─── Computed ─────────────────────────────
-const total = computed(() => allModels.value.length)
+// 先应用 showOverseasModels 过滤，作为所有后续过滤的基础
+const baseModels = computed(() => {
+  if (!showOverseasModels.value) {
+    return allModels.value.filter(m => !OVERSEAS_PROVIDERS.has((m.provider || '').toLowerCase()))
+  }
+  return allModels.value
+})
+
+const total = computed(() => baseModels.value.length)
 
 // Provider options derived from data
 const providerOptions = computed(() => {
   const counts = new Map<string, number>()
 
-  for (const m of allModels.value) {
+  for (const m of baseModels.value) {
     const key = m.provider || 'other'
     counts.set(key, (counts.get(key) || 0) + 1)
   }
@@ -252,7 +273,7 @@ const providerOptions = computed(() => {
     .map(([value, count]) => ({ value, label: providerLabel(value), count }))
 
   return [
-    { value: 'all', label: t('models.allProviders'), count: allModels.value.length },
+    { value: 'all', label: t('models.allProviders'), count: baseModels.value.length },
     ...sorted,
   ]
 })
@@ -264,7 +285,7 @@ const modeOptions = computed(() => [
 ])
 
 const filteredModels = computed(() => {
-  let result = allModels.value
+  let result = baseModels.value
 
   if (selectedProvider.value !== 'all') {
     result = result.filter(m => (m.provider || 'other') === selectedProvider.value)

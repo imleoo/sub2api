@@ -687,6 +687,7 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeyCurrencyMode,
 		SettingKeyCNYRate,
 		SettingKeyRiskControlEnabled,
+		SettingKeyShowOverseasModels,
 	}
 
 	settings, err := s.settingRepo.GetMultiple(ctx, keys)
@@ -807,6 +808,7 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		CurrencyMode:       strings.TrimSpace(settings[SettingKeyCurrencyMode]),
 		CNYRate:            cnyRate,
 		RiskControlEnabled: settings[SettingKeyRiskControlEnabled] == "true",
+		ShowOverseasModels: settings[SettingKeyShowOverseasModels] != "false",
 	}, nil
 }
 
@@ -1067,6 +1069,7 @@ type PublicSettingsInjectionPayload struct {
 	CNYRate      float64 `json:"cny_rate"`
 
 	RiskControlEnabled bool `json:"risk_control_enabled"`
+	ShowOverseasModels bool `json:"show_overseas_models"`
 }
 
 // GetPublicSettingsForInjection returns public settings in a format suitable for HTML injection.
@@ -1132,6 +1135,7 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		CurrencyMode:                         settings.CurrencyMode,
 		CNYRate:                              settings.CNYRate,
 		RiskControlEnabled:                   settings.RiskControlEnabled,
+		ShowOverseasModels:                   settings.ShowOverseasModels,
 	}, nil
 }
 
@@ -1797,6 +1801,7 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	updates[SettingPaymentVisibleMethodAlipayEnabled] = strconv.FormatBool(settings.PaymentVisibleMethodAlipayEnabled)
 	updates[SettingPaymentVisibleMethodWxpayEnabled] = strconv.FormatBool(settings.PaymentVisibleMethodWxpayEnabled)
 	updates[openAIAdvancedSchedulerSettingKey] = strconv.FormatBool(settings.OpenAIAdvancedSchedulerEnabled)
+	updates[SettingKeyShowOverseasModels] = strconv.FormatBool(settings.ShowOverseasModels)
 
 	// Balance low notification
 	updates[SettingKeyBalanceLowNotifyEnabled] = strconv.FormatBool(settings.BalanceLowNotifyEnabled)
@@ -2629,6 +2634,7 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingPaymentVisibleMethodAlipayEnabled:     "false",
 		SettingPaymentVisibleMethodWxpayEnabled:      "false",
 		openAIAdvancedSchedulerSettingKey:            "false",
+		SettingKeyShowOverseasModels:                 "true",
 	}
 
 	missing := make(map[string]string, len(defaults))
@@ -3160,6 +3166,8 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	result.PaymentVisibleMethodAlipayEnabled = settings[SettingPaymentVisibleMethodAlipayEnabled] == "true"
 	result.PaymentVisibleMethodWxpayEnabled = settings[SettingPaymentVisibleMethodWxpayEnabled] == "true"
 	result.OpenAIAdvancedSchedulerEnabled = settings[openAIAdvancedSchedulerSettingKey] == "true"
+	// show_overseas_models 默认 true（空值视为未设置，等同于 true）
+	result.ShowOverseasModels = settings[SettingKeyShowOverseasModels] != "false"
 
 	// Balance low notification
 	result.BalanceLowNotifyEnabled = settings[SettingKeyBalanceLowNotifyEnabled] == "true"

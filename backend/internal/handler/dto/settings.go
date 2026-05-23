@@ -196,6 +196,9 @@ type SystemSettings struct {
 	// OpenAI account scheduling
 	OpenAIAdvancedSchedulerEnabled bool `json:"openai_advanced_scheduler_enabled"`
 
+	// 模型可见性
+	ShowOverseasModels bool `json:"show_overseas_models"`
+
 	// Payment configuration
 	PaymentEnabled                   bool     `json:"payment_enabled"`
 	PaymentMinAmount                 float64  `json:"payment_min_amount"`
@@ -317,6 +320,8 @@ type PublicSettings struct {
 	CNYRate      float64 `json:"cny_rate"`
 
 	RiskControlEnabled bool `json:"risk_control_enabled"`
+
+	ShowOverseasModels bool `json:"show_overseas_models"`
 }
 
 type LoginAgreementDocument struct {

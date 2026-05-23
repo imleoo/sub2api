@@ -5536,6 +5536,31 @@
           </div>
         </div>
 
+        <!-- Overseas Models Visibility feature card -->
+        <div class="card">
+          <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ t('admin.settings.features.showOverseasModels.title') }}
+            </h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {{ t('admin.settings.features.showOverseasModels.description') }}
+            </p>
+          </div>
+          <div class="space-y-5 p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {{ t('admin.settings.features.showOverseasModels.enabled') }}
+                </label>
+                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                  {{ t('admin.settings.features.showOverseasModels.enabledHint') }}
+                </p>
+              </div>
+              <Toggle v-model="form.show_overseas_models" />
+            </div>
+          </div>
+        </div>
+
           <!-- Currency Settings -->
           <div class="card">
             <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
@@ -7004,6 +7029,8 @@ const form = reactive<SettingsForm>({
   available_channels_enabled: false,
   // Affiliate (邀请返利) feature switch
   affiliate_enabled: false,
+  // 海外模型显示
+  show_overseas_models: true,
   // Currency mode
   currency_mode: '',
   cny_rate: 7.2,
@@ -8144,6 +8171,8 @@ async function saveSettings() {
       available_channels_enabled: form.available_channels_enabled,
       // Affiliate (邀请返利) feature switch
       affiliate_enabled: form.affiliate_enabled,
+      // 海外模型显示
+      show_overseas_models: form.show_overseas_models,
       // Currency mode
       currency_mode: form.currency_mode,
       cny_rate: form.cny_rate,

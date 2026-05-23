@@ -199,6 +199,9 @@ type SystemSettings struct {
 	// Web Search Emulation
 	WebSearchEmulationEnabled bool // 是否启用 web search 模拟
 
+	// 模型可见性
+	ShowOverseasModels bool // 是否显示海外模型（默认 true）
+
 	// Payment visible method routing
 	PaymentVisibleMethodAlipaySource  string
 	PaymentVisibleMethodWxpaySource   string
@@ -295,6 +298,9 @@ type PublicSettings struct {
 
 	// 风控中心功能开关
 	RiskControlEnabled bool `json:"risk_control_enabled"`
+
+	// 模型可见性
+	ShowOverseasModels bool `json:"show_overseas_models"`
 }
 
 type LoginAgreementDocument struct {

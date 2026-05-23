@@ -79,6 +79,19 @@ import { formatUSD } from '@/utils/format'
 const { t } = useI18n()
 const appStore = useAppStore()
 
+// 已知海外 AI 服务商黑名单（与 ModelsView 保持同步）
+// 使用黑名单而非白名单，确保用户自定义添加的国内供应商不被误过滤
+const OVERSEAS_PROVIDERS = new Set([
+  'anthropic', 'openai', 'google', 'gemini',
+  'vertex_ai', 'vertex_ai-language-models', 'vertex_ai-vision-models', 'vertex_ai-embedding-models',
+  'bedrock', 'text-completion-openai',
+  'mistral', 'meta', 'cohere', 'xai', 'perplexity',
+])
+
+const showOverseasModels = computed(
+  () => appStore.cachedPublicSettings?.show_overseas_models !== false
+)
+
 const loading = ref(true)
 const saving = ref(false)
 const search = ref('')
@@ -86,8 +99,14 @@ const models = ref<ModelInfo[]>([])
 const discounts = ref<Record<string, number>>({})
 
 const filtered = computed(() => {
+  let result = models.value
+
+  if (!showOverseasModels.value) {
+    result = result.filter(m => !OVERSEAS_PROVIDERS.has((m.provider || '').toLowerCase()))
+  }
+
   const q = search.value.toLowerCase()
-  return q ? models.value.filter(m => m.id.toLowerCase().includes(q) || m.provider.toLowerCase().includes(q)) : models.value
+  return q ? result.filter(m => m.id.toLowerCase().includes(q) || m.provider.toLowerCase().includes(q)) : result
 })
 
 function formatPrice(v: number) {

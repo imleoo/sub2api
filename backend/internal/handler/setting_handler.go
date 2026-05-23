@@ -102,6 +102,7 @@ func (h *SettingHandler) GetPublicSettings(c *gin.Context) {
 		CNYRate:      settings.CNYRate,
 
 		RiskControlEnabled: settings.RiskControlEnabled,
+		ShowOverseasModels: settings.ShowOverseasModels,
 	})
 }
 
