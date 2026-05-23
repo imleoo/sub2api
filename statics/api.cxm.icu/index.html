@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title id="pageTitle">CXM - AI 模型 API 统一接入平台</title>
-  <meta name="description" content="一个 API Key 接入 Claude、GPT、Gemini 等主流模型，兼容 OpenAI SDK，按量计费，稳定可靠。">
+  <title id="pageTitle">CXM - 企业多模型 API 聚合系统</title>
+  <meta name="description" content="企业内部多模型 API 聚合管理平台，统一接入 Claude、GPT、Gemini 等主流模型，集中管理配额、权限与成本核算，支持私有化部署。">
   <style>
     *, *:before, *:after { box-sizing: border-box }
     html { scroll-behavior: smooth }
@@ -71,7 +71,7 @@
     .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; flex-shrink: 0 }
     .hero h1 { font-size: clamp(2.6rem, 6vw, 4.6rem); font-weight: 800; letter-spacing: -.05em; line-height: 1.1; margin: 0 0 20px; color: var(--text) }
     .hero h1 .hl { color: var(--accent) }
-    .hero p { font-size: 18px; color: var(--muted); margin: 0 auto 40px; max-width: 520px; line-height: 1.75 }
+    .hero p { font-size: 18px; color: var(--muted); margin: 0 auto 40px; max-width: 560px; line-height: 1.75 }
     .hero-actions { display: flex; align-items: center; gap: 12px; justify-content: center; flex-wrap: wrap }
     .btn-hero { padding: 12px 26px; font-size: 15px; border-radius: 10px; font-weight: 700; border: 0; cursor: pointer; display: inline-block; transition: background .15s, transform .15s }
     .btn-hero:hover { transform: translateY(-2px) }
@@ -104,7 +104,7 @@
     .feature-link { display: inline-flex; align-items: center; gap: 4px; margin-top: 14px; font-size: 13px; font-weight: 600; color: var(--accent) }
     .feature-link:hover { text-decoration: underline }
 
-    /* ── Models ── */
+    /* ── Models / Integrations ── */
     .models-section { padding: 88px 0; background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border) }
     .section-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 32px; flex-wrap: wrap; gap: 12px }
     .view-all { font-size: 14px; font-weight: 600; color: var(--accent) }
@@ -118,9 +118,9 @@
     .model-provider { font-size: 12px; color: var(--muted); margin-top: 1px }
     .model-badge { display: inline-block; padding: 1px 7px; border-radius: 100px; font-size: 11px; font-weight: 600; background: #dbeafe; color: #2563eb; margin-left: 5px; vertical-align: middle }
     .model-badge.hot { background: #fef9c3; color: #a16207 }
-    .model-pricing { display: flex; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--border) }
-    .price-item { font-size: 12px; color: var(--muted) }
-    .price-item strong { display: block; font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 1px }
+    .model-meta { display: flex; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 6px }
+    .meta-item { font-size: 12px; color: var(--muted) }
+    .meta-item strong { display: block; font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 1px }
 
     /* ── Steps ── */
     .steps-section { padding: 88px 0 }
@@ -131,6 +131,7 @@
     .step-code { margin-top: 20px; background: #18181b; border-radius: 10px; padding: 14px 18px; font-size: 12.5px; font-family: "SF Mono","Fira Code",monospace; color: #a1a1aa; line-height: 1.7; overflow-x: auto }
     .step-code .c { color: #818cf8 }
     .step-code .s { color: #34d399 }
+    .step-code .k { color: #f0a500 }
 
     /* ── CTA ── */
     .cta-section { padding: 88px 0; text-align: center; background: var(--text); color: #fff }
@@ -177,17 +178,17 @@
       <span>CXM</span>
     </a>
     <div class="nav-links">
-      <a class="nav-link" href="#models"><span class="zh">模型广场</span><span class="en">Models</span></a>
-      <a class="nav-link" href="#features"><span class="zh">文档</span><span class="en">Docs</span></a>
-      <a class="nav-link" href="#pricing"><span class="zh">定价</span><span class="en">Pricing</span></a>
-      <a class="nav-link" href="#features"><span class="zh">服务保障</span><span class="en">Enterprise</span></a>
+      <a class="nav-link" href="#integrations"><span class="zh">模型接入</span><span class="en">Integrations</span></a>
+      <a class="nav-link" href="#features"><span class="zh">系统功能</span><span class="en">Features</span></a>
+      <a class="nav-link" href="#deploy"><span class="zh">部署流程</span><span class="en">Deployment</span></a>
+      <a class="nav-link" href="#features"><span class="zh">安全合规</span><span class="en">Security</span></a>
     </div>
     <div class="nav-actions">
       <button class="lang-btn" id="langToggle" title="切换语言 / Switch Language">
         <span>🌐</span><span class="zh">EN</span><span class="en">中</span>
       </button>
-      <a class="btn btn-ghost" href="/login"><span class="zh">登录</span><span class="en">Login</span></a>
-      <a class="btn btn-primary" href="/register"><span class="zh">注册</span><span class="en">Sign Up</span></a>
+      <a class="btn btn-ghost" href="/login"><span class="zh">登录系统</span><span class="en">Login</span></a>
+      <a class="btn btn-primary" href="/admin"><span class="zh">管理后台</span><span class="en">Admin</span></a>
     </div>
     <button class="btn mobile-menu" aria-label="Menu"><span class="zh">菜单</span><span class="en">Menu</span></button>
   </nav>
@@ -197,25 +198,25 @@
     <div class="wrap">
       <div class="hero-badge">
         <span class="badge-dot"></span>
-        <span class="zh">兼容 OpenAI SDK · 注册即送 ¥20 体验额度</span>
-        <span class="en">OpenAI SDK Compatible · ¥20 Free Credits on Sign Up</span>
+        <span class="zh">支持私有化部署 · 兼容 OpenAI API 格式 · 企业级权限管控</span>
+        <span class="en">Private Deployment · OpenAI API Compatible · Enterprise ACL</span>
       </div>
       <h1>
-        <span class="zh">AI 模型 API<br><span class="hl">统一接入</span>平台</span>
-        <span class="en">The Unified API<br>for <span class="hl">AI Models</span></span>
+        <span class="zh">企业<span class="hl">多模型 API</span><br>聚合管理系统</span>
+        <span class="en">Enterprise<br><span class="hl">Multi-Model API</span> Hub</span>
       </h1>
       <p>
-        <span class="zh">一个 API Key，接入 Claude、GPT、Gemini 等主流模型。人民币充值，按量计费，无需订阅，稳定可靠。</span>
-        <span class="en">One API key for Claude, GPT, Gemini and more. Pay per use in RMB, no subscriptions, enterprise-grade reliability.</span>
+        <span class="zh">统一接入 Claude、GPT、Gemini、DeepSeek 等主流大模型，集中管理内部配额分发、权限管控与成本核算，支持私有化部署，数据不出企业。</span>
+        <span class="en">Unified access to Claude, GPT, Gemini, DeepSeek and more — centralized quota distribution, permission management, and cost attribution for enterprise teams, with private deployment support.</span>
       </p>
       <div class="hero-actions">
-        <a class="btn-hero btn-hero-primary" href="/register">
-          <span class="zh">免费获取 API Key</span>
-          <span class="en">Get API Key Free</span>
+        <a class="btn-hero btn-hero-primary" href="/login">
+          <span class="zh">进入管理后台</span>
+          <span class="en">Open Admin Console</span>
         </a>
-        <a class="btn-hero btn-hero-outline" href="#models">
-          <span class="zh">浏览模型 →</span>
-          <span class="en">Explore Models →</span>
+        <a class="btn-hero btn-hero-outline" href="#deploy">
+          <span class="zh">了解部署方式 →</span>
+          <span class="en">View Deployment →</span>
         </a>
       </div>
     </div>
@@ -226,20 +227,20 @@
     <div class="wrap">
       <div class="stats-inner">
         <div class="stat">
-          <div class="stat-num">50T+</div>
-          <div class="stat-label"><span class="zh">月处理 Token</span><span class="en">Monthly Tokens</span></div>
-        </div>
-        <div class="stat">
-          <div class="stat-num">120K+</div>
-          <div class="stat-label"><span class="zh">注册用户</span><span class="en">Registered Users</span></div>
+          <div class="stat-num">50+</div>
+          <div class="stat-label"><span class="zh">支持模型</span><span class="en">Supported Models</span></div>
         </div>
         <div class="stat">
           <div class="stat-num">10+</div>
-          <div class="stat-label"><span class="zh">接入供应商</span><span class="en">Providers</span></div>
+          <div class="stat-label"><span class="zh">接入供应商</span><span class="en">AI Providers</span></div>
         </div>
         <div class="stat">
-          <div class="stat-num accent">50+</div>
-          <div class="stat-label"><span class="zh">可用模型</span><span class="en">Models</span></div>
+          <div class="stat-num accent">99.9%</div>
+          <div class="stat-label"><span class="zh">服务可用率</span><span class="en">Uptime SLA</span></div>
+        </div>
+        <div class="stat">
+          <div class="stat-num">∞</div>
+          <div class="stat-label"><span class="zh">子账号 / 部门</span><span class="en">Sub-accounts</span></div>
         </div>
       </div>
     </div>
@@ -248,50 +249,50 @@
   <!-- Features -->
   <section class="section" id="features">
     <div class="wrap">
-      <div class="section-tag"><span class="zh">平台特性</span><span class="en">Why CXM</span></div>
-      <h2><span class="zh">为什么选择 CXM</span><span class="en">Built for Developers</span></h2>
+      <div class="section-tag"><span class="zh">系统功能</span><span class="en">System Features</span></div>
+      <h2><span class="zh">企业级多模型管理能力</span><span class="en">Enterprise Model Management</span></h2>
       <p class="sub">
-        <span class="zh">无需管理多个账号，一个 Key 搞定所有主流模型，专注于你的产品。</span>
-        <span class="en">Stop juggling multiple accounts. One key for all major models — focus on building.</span>
+        <span class="zh">从接入配置到配额分发、从用量监控到成本归因，覆盖企业内部 AI 接入全流程。</span>
+        <span class="en">From provider configuration to quota distribution, usage monitoring, and cost attribution — full lifecycle management for enterprise AI access.</span>
       </p>
       <div class="features-grid">
         <div class="feature-card">
           <span class="feature-icon">🔗</span>
-          <h3><span class="zh">任意模型，统一接口</span><span class="en">Any Model, One API</span></h3>
-          <p><span class="zh">通过统一接口接入 Claude、GPT、Gemini、Mistral、DeepSeek 等模型，完全兼容 OpenAI SDK，迁移成本几乎为零。</span><span class="en">Access Claude, GPT, Gemini, Mistral, DeepSeek and more through a single endpoint. Fully OpenAI SDK compatible.</span></p>
-          <a class="feature-link" href="/docs"><span class="zh">查看文档 →</span><span class="en">Browse docs →</span></a>
+          <h3><span class="zh">统一接入层</span><span class="en">Unified API Gateway</span></h3>
+          <p><span class="zh">一个统一端点接入所有主流模型，完全兼容 OpenAI API 格式，业务团队无需修改代码即可切换模型或供应商，降低集成成本。</span><span class="en">A single endpoint for all major models, fully OpenAI API compatible. Business teams can switch models or providers without code changes — minimizing integration overhead.</span></p>
+          <a class="feature-link" href="/docs"><span class="zh">查看 API 文档 →</span><span class="en">Browse API Docs →</span></a>
         </div>
         <div class="feature-card">
-          <span class="feature-icon">⚡</span>
-          <h3><span class="zh">高可用 · 自动故障切换</span><span class="en">High Availability</span></h3>
-          <p><span class="zh">分布式转发节点，自动故障切换。当某个上游出现问题时，请求自动路由到备用渠道，保障业务连续性。</span><span class="en">Distributed relay nodes with automatic failover. When one upstream fails, traffic routes to backup channels seamlessly.</span></p>
-          <a class="feature-link" href="/docs"><span class="zh">了解更多 →</span><span class="en">Learn more →</span></a>
+          <span class="feature-icon">🔑</span>
+          <h3><span class="zh">权限与配额管控</span><span class="en">Access &amp; Quota Control</span></h3>
+          <p><span class="zh">按部门、项目或用户创建子 API Key，精细设置可用模型白名单、Token 用量上限与速率限制，防止超额消费与越权调用。</span><span class="en">Create sub-API keys per department, project, or user. Set model whitelists, token quotas, and rate limits — preventing overuse and unauthorized access.</span></p>
+          <a class="feature-link" href="/docs/access"><span class="zh">了解权限管理 →</span><span class="en">Learn access control →</span></a>
         </div>
         <div class="feature-card">
-          <span class="feature-icon">💰</span>
-          <h3><span class="zh">按量付费 · 人民币充值</span><span class="en">Pay As You Go</span></h3>
-          <p><span class="zh">无月费、无订阅，按实际 Token 消耗扣费。支持支付宝、微信支付，告别跨境支付麻烦，费率透明可查。</span><span class="en">No monthly fees. Pay only for what you use. Top up via Alipay or WeChat Pay. Transparent per-token pricing.</span></p>
-          <a class="feature-link" href="#pricing"><span class="zh">查看定价 →</span><span class="en">View pricing →</span></a>
+          <span class="feature-icon">📊</span>
+          <h3><span class="zh">用量分析与成本归因</span><span class="en">Usage Analytics &amp; Cost Attribution</span></h3>
+          <p><span class="zh">实时追踪各团队、各模型的调用量与 Token 消耗，自动生成成本报告，支持按部门核算分摊，为 IT 决策提供数据依据。</span><span class="en">Real-time tracking of calls and token consumption per team and model. Automated cost reports with department-level attribution for informed IT decisions.</span></p>
+          <a class="feature-link" href="/analytics"><span class="zh">查看分析面板 →</span><span class="en">View analytics →</span></a>
         </div>
         <div class="feature-card">
-          <span class="feature-icon">🛡️</span>
-          <h3><span class="zh">安全与数据保护</span><span class="en">Security & Privacy</span></h3>
-          <p><span class="zh">细粒度 API Key 权限控制，支持按模型、按预算限额。您的请求数据不会用于任何模型训练，合规放心使用。</span><span class="en">Fine-grained API key permissions and per-model budgets. Your data is never used for model training.</span></p>
-          <a class="feature-link" href="/docs/privacy"><span class="zh">隐私策略 →</span><span class="en">View privacy docs →</span></a>
+          <span class="feature-icon">🏢</span>
+          <h3><span class="zh">私有化部署 · 数据合规</span><span class="en">Private Deployment &amp; Compliance</span></h3>
+          <p><span class="zh">支持本地服务器、私有云或混合云部署。企业数据全程在内网流转，不经过任何第三方中转，满足数据安全与合规审计要求。</span><span class="en">On-premise, private cloud, or hybrid deployment. All traffic stays within your network — no third-party relay, meeting data security and audit compliance requirements.</span></p>
+          <a class="feature-link" href="/docs/deploy"><span class="zh">部署指南 →</span><span class="en">Deployment guide →</span></a>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Models -->
-  <section class="models-section" id="models">
+  <!-- Integrations -->
+  <section class="models-section" id="integrations">
     <div class="wrap">
       <div class="section-header">
         <div>
-          <div class="section-tag"><span class="zh">模型广场</span><span class="en">Featured Models</span></div>
-          <h2 style="margin:0;font-size:clamp(1.6rem,3vw,2.3rem);font-weight:800;letter-spacing:-.035em"><span class="zh">热门模型</span><span class="en">Featured Models</span></h2>
+          <div class="section-tag"><span class="zh">模型接入</span><span class="en">Supported Integrations</span></div>
+          <h2 style="margin:0;font-size:clamp(1.6rem,3vw,2.3rem);font-weight:800;letter-spacing:-.035em"><span class="zh">已接入主流大模型</span><span class="en">Major Models Integrated</span></h2>
         </div>
-        <a class="view-all" href="/models"><span class="zh">查看全部 →</span><span class="en">View all →</span></a>
+        <a class="view-all" href="/models"><span class="zh">查看全部模型 →</span><span class="en">View all models →</span></a>
       </div>
       <div class="models-grid">
         <div class="model-card">
@@ -299,41 +300,41 @@
             <div class="model-icon">🤖</div>
             <div>
               <div class="model-name">Claude Opus 4.7 <span class="model-badge">New</span></div>
-              <div class="model-provider">by Anthropic</div>
+              <div class="model-provider">Anthropic</div>
             </div>
           </div>
-          <div class="model-pricing">
-            <div class="price-item"><strong>¥0.108/K</strong><span class="zh">输入</span><span class="en">Input</span></div>
-            <div class="price-item"><strong>¥0.54/K</strong><span class="zh">输出</span><span class="en">Output</span></div>
-            <div class="price-item"><strong>200K</strong>Context</div>
+          <div class="model-meta">
+            <div class="meta-item"><strong>1M</strong><span class="zh">上下文</span><span class="en">Context</span></div>
+            <div class="meta-item"><strong><span class="zh">旗舰</span><span class="en">Flagship</span></strong><span class="zh">推理 / 编程</span><span class="en">Reasoning / Code</span></div>
+            <div class="meta-item"><strong>✓</strong><span class="zh">工具调用</span><span class="en">Tool Use</span></div>
           </div>
         </div>
         <div class="model-card">
           <div class="model-head">
             <div class="model-icon">✨</div>
             <div>
-              <div class="model-name">GPT-5.5 <span class="model-badge">New</span></div>
-              <div class="model-provider">by OpenAI</div>
+              <div class="model-name">GPT-5.4 <span class="model-badge">New</span></div>
+              <div class="model-provider">OpenAI</div>
             </div>
           </div>
-          <div class="model-pricing">
-            <div class="price-item"><strong>¥0.072/K</strong><span class="zh">输入</span><span class="en">Input</span></div>
-            <div class="price-item"><strong>¥0.216/K</strong><span class="zh">输出</span><span class="en">Output</span></div>
-            <div class="price-item"><strong>128K</strong>Context</div>
+          <div class="model-meta">
+            <div class="meta-item"><strong>272K</strong><span class="zh">上下文</span><span class="en">Context</span></div>
+            <div class="meta-item"><strong><span class="zh">旗舰</span><span class="en">Flagship</span></strong><span class="zh">多模态</span><span class="en">Multimodal</span></div>
+            <div class="meta-item"><strong>✓</strong><span class="zh">函数调用</span><span class="en">Function Call</span></div>
           </div>
         </div>
         <div class="model-card">
           <div class="model-head">
             <div class="model-icon">💎</div>
             <div>
-              <div class="model-name">Gemini 2.5 Pro</div>
-              <div class="model-provider">by Google</div>
+              <div class="model-name">Gemini 3.1 Pro <span class="model-badge">New</span></div>
+              <div class="model-provider">Google</div>
             </div>
           </div>
-          <div class="model-pricing">
-            <div class="price-item"><strong>¥0.054/K</strong><span class="zh">输入</span><span class="en">Input</span></div>
-            <div class="price-item"><strong>¥0.216/K</strong><span class="zh">输出</span><span class="en">Output</span></div>
-            <div class="price-item"><strong>1M</strong>Context</div>
+          <div class="model-meta">
+            <div class="meta-item"><strong>2M</strong><span class="zh">上下文</span><span class="en">Context</span></div>
+            <div class="meta-item"><strong><span class="zh">旗舰</span><span class="en">Flagship</span></strong><span class="zh">长文档</span><span class="en">Long Doc</span></div>
+            <div class="meta-item"><strong>✓</strong><span class="zh">原生多模态</span><span class="en">Native MM</span></div>
           </div>
         </div>
         <div class="model-card">
@@ -341,13 +342,13 @@
             <div class="model-icon">⚡</div>
             <div>
               <div class="model-name">Claude Sonnet 4.6</div>
-              <div class="model-provider">by Anthropic</div>
+              <div class="model-provider">Anthropic</div>
             </div>
           </div>
-          <div class="model-pricing">
-            <div class="price-item"><strong>¥0.022/K</strong><span class="zh">输入</span><span class="en">Input</span></div>
-            <div class="price-item"><strong>¥0.108/K</strong><span class="zh">输出</span><span class="en">Output</span></div>
-            <div class="price-item"><strong>200K</strong>Context</div>
+          <div class="model-meta">
+            <div class="meta-item"><strong>1M</strong><span class="zh">上下文</span><span class="en">Context</span></div>
+            <div class="meta-item"><strong><span class="zh">均衡</span><span class="en">Balanced</span></strong><span class="zh">性价比优</span><span class="en">Best Value</span></div>
+            <div class="meta-item"><strong>✓</strong><span class="zh">工具调用</span><span class="en">Tool Use</span></div>
           </div>
         </div>
         <div class="model-card">
@@ -355,13 +356,13 @@
             <div class="model-icon">🚀</div>
             <div>
               <div class="model-name">DeepSeek V3 <span class="model-badge hot">热门</span></div>
-              <div class="model-provider">by DeepSeek</div>
+              <div class="model-provider">DeepSeek</div>
             </div>
           </div>
-          <div class="model-pricing">
-            <div class="price-item"><strong>¥0.004/K</strong><span class="zh">输入</span><span class="en">Input</span></div>
-            <div class="price-item"><strong>¥0.016/K</strong><span class="zh">输出</span><span class="en">Output</span></div>
-            <div class="price-item"><strong>64K</strong>Context</div>
+          <div class="model-meta">
+            <div class="meta-item"><strong>64K</strong><span class="zh">上下文</span><span class="en">Context</span></div>
+            <div class="meta-item"><strong><span class="zh">高效</span><span class="en">Efficient</span></strong><span class="zh">极低成本</span><span class="en">Low Cost</span></div>
+            <div class="meta-item"><strong>✓</strong><span class="zh">代码生成</span><span class="en">Code Gen</span></div>
           </div>
         </div>
         <div class="model-card">
@@ -369,48 +370,61 @@
             <div class="model-icon">🌟</div>
             <div>
               <div class="model-name">Qwen3-235B <span class="model-badge">New</span></div>
-              <div class="model-provider">by Alibaba</div>
+              <div class="model-provider">Alibaba</div>
             </div>
           </div>
-          <div class="model-pricing">
-            <div class="price-item"><strong>¥0.007/K</strong><span class="zh">输入</span><span class="en">Input</span></div>
-            <div class="price-item"><strong>¥0.022/K</strong><span class="zh">输出</span><span class="en">Output</span></div>
-            <div class="price-item"><strong>131K</strong>Context</div>
+          <div class="model-meta">
+            <div class="meta-item"><strong>131K</strong><span class="zh">上下文</span><span class="en">Context</span></div>
+            <div class="meta-item"><strong><span class="zh">国产</span><span class="en">Domestic</span></strong><span class="zh">中文优化</span><span class="en">CN Optimized</span></div>
+            <div class="meta-item"><strong>✓</strong><span class="zh">思维链</span><span class="en">Chain-of-Thought</span></div>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Steps -->
-  <section class="steps-section" id="start">
+  <!-- Deployment Steps -->
+  <section class="steps-section" id="deploy">
     <div class="wrap">
-      <div class="section-tag"><span class="zh">快速上手</span><span class="en">Get Started</span></div>
-      <h2 style="font-size:clamp(1.6rem,3vw,2.3rem);font-weight:800;letter-spacing:-.035em;margin:0 0 8px"><span class="zh">三步开始使用</span><span class="en">Up and Running in Minutes</span></h2>
-      <p style="font-size:16px;color:var(--muted);margin:0;max-width:480px;line-height:1.75">
-        <span class="zh">无需复杂配置，替换一行 base_url 即可迁移现有项目。</span>
-        <span class="en">No complex setup. Swap one line of base_url and you're done.</span>
+      <div class="section-tag"><span class="zh">部署流程</span><span class="en">Deployment</span></div>
+      <h2 style="font-size:clamp(1.6rem,3vw,2.3rem);font-weight:800;letter-spacing:-.035em;margin:0 0 8px"><span class="zh">三步完成企业内部部署</span><span class="en">Three Steps to Go Live</span></h2>
+      <p style="font-size:16px;color:var(--muted);margin:0;max-width:520px;line-height:1.75">
+        <span class="zh">支持 Docker / Kubernetes 一键部署，也可直接编译二进制运行，无外部依赖，接管企业 AI 接入全流程。</span>
+        <span class="en">Docker / Kubernetes one-click deployment or compile-to-binary with no external dependencies — take over the full enterprise AI access workflow.</span>
       </p>
       <div class="steps-grid">
         <div class="step">
           <div class="step-num">1</div>
-          <h3><span class="zh">注册账号</span><span class="en">Sign Up</span></h3>
-          <p><span class="zh">邮箱快速注册，即送 ¥20 体验额度，无需绑定信用卡，支持 Google / GitHub 登录。</span><span class="en">Register with email or OAuth. Get ¥20 free credits instantly — no credit card required.</span></p>
+          <h3><span class="zh">私有化安装</span><span class="en">Private Installation</span></h3>
+          <p><span class="zh">通过 Docker Compose 或 Kubernetes Helm Chart 在企业内网一键部署，自动初始化 PostgreSQL 与 Redis，5 分钟内完成启动。</span><span class="en">Deploy to your intranet via Docker Compose or Kubernetes Helm Chart. Auto-initializes PostgreSQL and Redis — live in under 5 minutes.</span></p>
+          <div class="step-code">
+            <span class="c"># Docker Compose 一键启动</span><br>
+            docker compose up <span class="k">-d</span><br>
+            <span class="c"># 访问安装向导</span><br>
+            open http://localhost:<span class="s">3000</span>/setup
+          </div>
         </div>
         <div class="step">
           <div class="step-num">2</div>
-          <h3><span class="zh">充值额度</span><span class="en">Add Credits</span></h3>
-          <p><span class="zh">支持支付宝、微信支付，人民币充值，按需充值，余额永不过期，费率透明公开。</span><span class="en">Top up via Alipay or WeChat Pay in RMB. Credits never expire. Transparent pricing for every model.</span></p>
+          <h3><span class="zh">配置供应商 API</span><span class="en">Configure Providers</span></h3>
+          <p><span class="zh">在管理后台录入各供应商 API Key（Anthropic / OpenAI / Google 等），系统自动进行负载均衡和故障切换，实现多渠道高可用接入。</span><span class="en">Enter provider API keys (Anthropic / OpenAI / Google, etc.) in the admin console. The system auto-handles load balancing and failover across channels.</span></p>
+          <div class="step-code">
+            <span class="c"># 支持的供应商（示例）</span><br>
+            <span class="k">providers</span>:<br>
+            &nbsp;&nbsp;- anthropic: <span class="s">sk-ant-...</span><br>
+            &nbsp;&nbsp;- openai: &nbsp;&nbsp;<span class="s">sk-...</span><br>
+            &nbsp;&nbsp;- google: &nbsp;&nbsp;<span class="s">AIza...</span>
+          </div>
         </div>
         <div class="step">
           <div class="step-num">3</div>
-          <h3><span class="zh">获取 API Key，开始调用</span><span class="en">Get Your API Key</span></h3>
-          <p><span class="zh">创建 API Key，将 base_url 替换为 CXM 地址即可。完全兼容 OpenAI SDK，5 分钟完成迁移。</span><span class="en">Create an API key and replace the base_url. Fully OpenAI SDK compatible — migrate in 5 minutes.</span></p>
+          <h3><span class="zh">分发内部 API Key</span><span class="en">Issue Internal Keys</span></h3>
+          <p><span class="zh">为各部门或项目组创建子 API Key，配置模型白名单与配额上限，分发后即可直接调用，兼容 OpenAI SDK，无需改动业务代码。</span><span class="en">Create sub-keys per department or project team. Configure model whitelists and quota caps — fully OpenAI SDK compatible, no business code changes required.</span></p>
           <div class="step-code">
             <span class="c">from</span> openai <span class="c">import</span> OpenAI<br>
             client = OpenAI(<br>
             &nbsp;&nbsp;base_url=<span class="s">"https://api.cxm.icu/v1"</span>,<br>
-            &nbsp;&nbsp;api_key=<span class="s">"sk-..."</span><br>
+            &nbsp;&nbsp;api_key=<span class="s">"sk-内部分发 Key"</span><br>
             )
           </div>
         </div>
@@ -421,9 +435,9 @@
   <!-- CTA -->
   <section class="cta-section">
     <div class="wrap">
-      <h2><span class="zh">立即注册，即送 ¥20 体验额度</span><span class="en">Start Free — Get ¥20 in Credits</span></h2>
-      <p><span class="zh">注册即送，5 分钟内完成首次调用，无需绑卡，无需订阅。</span><span class="en">Sign up in seconds. First API call in under 5 minutes. No credit card, no subscription.</span></p>
-      <a href="/register" class="btn-white"><span class="zh">免费注册</span><span class="en">Sign Up Free</span></a>
+      <h2><span class="zh">为企业 AI 接入建立统一管控</span><span class="en">Unified Control for Enterprise AI Access</span></h2>
+      <p><span class="zh">支持私有化部署，数据完全在内网，满足合规要求，快速上线企业 AI 能力中台。</span><span class="en">Private deployment with data fully on-premise, compliance-ready, fast launch of enterprise AI capability platform.</span></p>
+      <a href="/login" class="btn-white"><span class="zh">进入管理后台</span><span class="en">Open Admin Console</span></a>
     </div>
   </section>
 
@@ -435,9 +449,9 @@
         <span>CXM</span>
       </a>
       <div class="footer-links">
-        <a href="#models"><span class="zh">模型广场</span><span class="en">Models</span></a>
-        <a href="#pricing"><span class="zh">定价</span><span class="en">Pricing</span></a>
-        <a href="#"><span class="zh">服务条款</span><span class="en">Terms</span></a>
+        <a href="#integrations"><span class="zh">模型接入</span><span class="en">Integrations</span></a>
+        <a href="#features"><span class="zh">系统功能</span><span class="en">Features</span></a>
+        <a href="#deploy"><span class="zh">部署文档</span><span class="en">Deployment</span></a>
         <a href="#"><span class="zh">隐私政策</span><span class="en">Privacy</span></a>
         <a href="#"><span class="zh">联系我们</span><span class="en">Contact</span></a>
       </div>
@@ -472,8 +486,8 @@
       document.documentElement.lang = lang;
       const titleEl = document.getElementById('pageTitle');
       if (titleEl) titleEl.textContent = lang === 'en'
-        ? 'CXM - Unified API for AI Models'
-        : 'CXM - AI 模型 API 统一接入平台';
+        ? 'CXM - Enterprise Multi-Model API Hub'
+        : 'CXM - 企业多模型 API 聚合系统';
       setCookie('cxm_lang', lang, { expires: 365, domain: '.cxm.icu', path: '/', sameSite: 'Lax' });
     }
     if (langBtn) {
