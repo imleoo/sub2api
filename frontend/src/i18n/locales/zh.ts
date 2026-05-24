@@ -91,7 +91,7 @@ export default {
     },
     providers: {
       title: '接入主流 AI 模型',
-      description: '覆盖国内外顶尖语言与多模态大模型，统一 API 一键调用',
+      description: '覆盖国内顶尖语言与多模态大模型，统一 API 一键调用',
       supported: '已支持',
       soon: '即将推出',
       llmLabel: '大语言模型',

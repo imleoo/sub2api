@@ -91,7 +91,7 @@ export default {
     },
     providers: {
       title: 'Access Leading AI Models',
-      description: 'Unified API for top language & multimodal models from China and worldwide',
+      description: 'Unified API for top language & multimodal models from China',
       supported: 'Supported',
       soon: 'Coming Soon',
       llmLabel: 'Language Models',

@@ -77,23 +77,32 @@ type OpenAITokenCache = GeminiTokenCache
 
 // OpenAITokenProvider manages access_token for OpenAI OAuth accounts.
 type OpenAITokenProvider struct {
-	accountRepo   AccountRepository
-	tokenCache    OpenAITokenCache
-	metrics       *openAITokenRuntimeMetricsStore
-	refreshAPI    *OAuthRefreshAPI
-	executor      OAuthRefreshExecutor
-	refreshPolicy ProviderRefreshPolicy
+	accountRepo      AccountRepository
+	tokenCache       OpenAITokenCache
+	openaiOAuthSvc   *OpenAIOAuthService
+	metrics          *openAITokenRuntimeMetricsStore
+	refreshAPI       *OAuthRefreshAPI
+	executor         OAuthRefreshExecutor
+	refreshPolicy    ProviderRefreshPolicy
+	runtimeBlocker   AccountRuntimeBlocker
+}
+
+// SetAccountRuntimeBlocker injects the runtime blocker for account scheduling.
+func (p *OpenAITokenProvider) SetAccountRuntimeBlocker(blocker AccountRuntimeBlocker) {
+	p.runtimeBlocker = blocker
 }
 
 func NewOpenAITokenProvider(
 	accountRepo AccountRepository,
 	tokenCache OpenAITokenCache,
+	openaiOAuthService *OpenAIOAuthService,
 ) *OpenAITokenProvider {
 	return &OpenAITokenProvider{
-		accountRepo:   accountRepo,
-		tokenCache:    tokenCache,
-		metrics:       &openAITokenRuntimeMetricsStore{},
-		refreshPolicy: OpenAIProviderRefreshPolicy(),
+		accountRepo:    accountRepo,
+		tokenCache:     tokenCache,
+		openaiOAuthSvc: openaiOAuthService,
+		metrics:        &openAITokenRuntimeMetricsStore{},
+		refreshPolicy:  OpenAIProviderRefreshPolicy(),
 	}
 }
 
