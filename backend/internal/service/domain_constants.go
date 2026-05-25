@@ -436,3 +436,14 @@ const (
 
 // AdminAPIKeyPrefix is the prefix for admin API keys (distinct from user "sk-" keys).
 const AdminAPIKeyPrefix = "admin-"
+
+// OverseasModelProviders 是判定为「海外」的 litellm_provider 取值（小写，与定价表 provider 字段一致）。
+// 当 show_overseas_models=false 时用于过滤掉这些 provider 的模型。
+// 采用黑名单而非白名单，避免误过滤自定义/国内 provider（如 deepseek、volcengine）。
+// 必须与前端 frontend/src/views/user/ModelsView.vue 的 OVERSEAS_PROVIDERS 保持同步。
+var OverseasModelProviders = []string{
+	"anthropic", "openai", "google", "gemini",
+	"vertex_ai", "vertex_ai-language-models", "vertex_ai-vision-models", "vertex_ai-embedding-models",
+	"bedrock", "text-completion-openai",
+	"mistral", "meta", "cohere", "xai", "perplexity",
+}

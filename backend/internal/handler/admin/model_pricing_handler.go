@@ -14,11 +14,12 @@ import (
 type ModelPricingHandler struct {
 	repo           service.ModelPricingRepository
 	pricingService *service.PricingService
+	settingService *service.SettingService
 }
 
 // NewModelPricingHandler creates a new ModelPricingHandler.
-func NewModelPricingHandler(repo service.ModelPricingRepository, ps *service.PricingService) *ModelPricingHandler {
-	return &ModelPricingHandler{repo: repo, pricingService: ps}
+func NewModelPricingHandler(repo service.ModelPricingRepository, ps *service.PricingService, ss *service.SettingService) *ModelPricingHandler {
+	return &ModelPricingHandler{repo: repo, pricingService: ps, settingService: ss}
 }
 
 // listModelPricingResponse is the JSON shape returned per record.
@@ -151,6 +152,13 @@ func (h *ModelPricingHandler) List(c *gin.Context) {
 		IsEnabled: isEnabled,
 		Page:      page,
 		PageSize:  pageSize,
+	}
+
+	// show_overseas_models=false 时隐藏海外 provider 的模型，与模型广场保持一致。
+	if h.settingService != nil {
+		if ps, err := h.settingService.GetPublicSettings(c.Request.Context()); err == nil && ps != nil && !ps.ShowOverseasModels {
+			filter.ExcludeProviders = service.OverseasModelProviders
+		}
 	}
 
 	items, total, err := h.repo.List(c.Request.Context(), filter)

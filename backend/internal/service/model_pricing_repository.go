@@ -32,12 +32,13 @@ type DBModelPricing struct {
 
 // ModelPricingListFilter 列表查询过滤条件
 type ModelPricingListFilter struct {
-	Query     string // 搜索关键词（model_id/display_name 模糊匹配）
-	Provider  string // 按提供商过滤
-	IsCustom  *bool  // 按来源过滤，nil=全部
-	IsEnabled *bool  // 按启用状态过滤，nil=全部
-	Page      int    // 从 1 开始
-	PageSize  int    // 默认 20，最大 200
+	Query            string   // 搜索关键词（model_id/display_name 模糊匹配）
+	Provider         string   // 按提供商过滤
+	ExcludeProviders []string // 排除这些 provider（用于隐藏海外模型），空=不排除
+	IsCustom         *bool    // 按来源过滤，nil=全部
+	IsEnabled        *bool    // 按启用状态过滤，nil=全部
+	Page             int      // 从 1 开始
+	PageSize         int      // 默认 20，最大 200
 }
 
 // ModelPricingRepository 接口

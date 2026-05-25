@@ -182,6 +182,9 @@ func (r *modelPricingRepository) List(ctx context.Context, filter service.ModelP
 	if filter.Provider != "" {
 		q = q.Where(modelpricing.ProviderEQ(filter.Provider))
 	}
+	if len(filter.ExcludeProviders) > 0 {
+		q = q.Where(modelpricing.ProviderNotIn(filter.ExcludeProviders...))
+	}
 	if filter.IsCustom != nil {
 		q = q.Where(modelpricing.IsCustomEQ(*filter.IsCustom))
 	}
