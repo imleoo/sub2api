@@ -2985,7 +2985,8 @@ const handleSubmit = async () => {
     updatePayload.auto_pause_on_expired = autoPauseOnExpired.value
 
     // For apikey type, handle credentials update
-    if (props.account.type === 'apikey') {
+    // generic 平台的凭证存储在 endpoints（单独保存），credentials 保持为空，不走 api_key 校验
+    if (props.account.type === 'apikey' && props.account.platform !== 'generic') {
       const currentCredentials = (props.account.credentials as Record<string, unknown>) || {}
       const newBaseUrl = editBaseUrl.value.trim() || defaultBaseUrl.value
       const shouldApplyModelMapping = !(props.account.platform === 'openai' && openaiPassthroughEnabled.value)
