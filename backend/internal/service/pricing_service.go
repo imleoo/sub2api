@@ -1247,23 +1247,6 @@ func (s *PricingService) loadDiscounts() {
 	_ = json.Unmarshal(data, &s.discounts)
 }
 
-// SaveDiscounts 保存折扣到 DB 并热更新内存
-func (s *PricingService) SaveDiscounts(ctx context.Context, discounts map[string]float64) error {
-	data, err := json.Marshal(discounts)
-	if err != nil {
-		return err
-	}
-	if s.settingRepo != nil {
-		if err := s.settingRepo.Set(ctx, "model_discounts", string(data)); err != nil {
-			return err
-		}
-	}
-	s.mu.Lock()
-	s.discounts = discounts
-	s.mu.Unlock()
-	return nil
-}
-
 // GetDiscount 返回模型折扣率，无折扣返回 1.0
 func (s *PricingService) GetDiscount(model string) float64 {
 	s.mu.RLock()

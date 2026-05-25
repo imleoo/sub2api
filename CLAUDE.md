@@ -188,7 +188,7 @@ Vitest 配置要求语句/分支/函数/行均达到 80% 覆盖率（`frontend/v
 - **前端必须使用 pnpm**（禁止 npm）。每次修改依赖都要提交 `pnpm-lock.yaml`
 - **Go 版本以 `backend/go.mod` 为准**（当前 `go 1.26.3`），CI 通过 `go-version-file` 自动读取，不要在文档/CI 中硬编码具体小版本
 - **Ent schema 变更**：修改 `ent/schema/*.go` 后必须运行 `go generate ./ent`，并提交生成的代码
-- **Wire DI 变更**：修改 Wire providers 后运行 `go generate ./cmd/server`
+- **Wire DI 变更**：修改 Wire providers 后运行 `go generate ./cmd/server`。若该命令因无法联网拉取 `google/wire` 工具依赖而失败，可手动同步 `cmd/server/wire_gen.go`（例如给某个 `NewXxxHandler(...)` 补实参），其它 fork 注入链（lingjing、provider-pricing、model-pricing）均同此惯例
 - **接口变更**：给 Go interface 新增方法后，**所有**实现该接口的 test stub 都必须补全。查找方式：`grep -r "type.*Stub.*struct\|type.*Mock.*struct" internal/`
 - **golangci-lint v2.9**：CI 自动运行 lint，推送前确保代码通过检查
 - **GitHub Workflows 触发器**：zhiguofan 分支所有 `.github/workflows/*.yml` 的 `on:` 必须仅保留 `workflow_dispatch:`（详见"已知陷阱"中的踩坑场景）

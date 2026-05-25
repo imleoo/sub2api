@@ -1,6 +1,9 @@
 package admin
 
 import (
+	"errors"
+	"log/slog"
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -12,14 +15,15 @@ import (
 
 // ModelPricingHandler handles admin model pricing management.
 type ModelPricingHandler struct {
-	repo           service.ModelPricingRepository
-	pricingService *service.PricingService
-	settingService *service.SettingService
+	repo               service.ModelPricingRepository
+	pricingService     *service.PricingService
+	settingService     *service.SettingService
+	accountTestService *service.AccountTestService
 }
 
 // NewModelPricingHandler creates a new ModelPricingHandler.
-func NewModelPricingHandler(repo service.ModelPricingRepository, ps *service.PricingService, ss *service.SettingService) *ModelPricingHandler {
-	return &ModelPricingHandler{repo: repo, pricingService: ps, settingService: ss}
+func NewModelPricingHandler(repo service.ModelPricingRepository, ps *service.PricingService, ss *service.SettingService, ats *service.AccountTestService) *ModelPricingHandler {
+	return &ModelPricingHandler{repo: repo, pricingService: ps, settingService: ss, accountTestService: ats}
 }
 
 // listModelPricingResponse is the JSON shape returned per record.
@@ -343,4 +347,89 @@ func (h *ModelPricingHandler) TriggerSync(c *gin.Context) {
 	}
 
 	response.Success(c, gin.H{"message": "sync triggered"})
+}
+
+type syncFromUpstreamRequest struct {
+	BaseURL    string `json:"base_url" binding:"required"`
+	APIKey     string `json:"api_key" binding:"required"`
+	AuthHeader string `json:"auth_header"`
+	AuthScheme string `json:"auth_scheme"`
+	Provider   string `json:"provider"`
+	Mode       string `json:"mode"`
+}
+
+// SyncFromUpstream fetches the model list from a base URL + API key (newapi/OpenAI compatible)
+// and inserts new models into the pricing table (existing records are preserved).
+// POST /api/v1/admin/model-pricings/sync-from-upstream
+func (h *ModelPricingHandler) SyncFromUpstream(c *gin.Context) {
+	if h.repo == nil {
+		response.BadRequest(c, "model pricing repository not available")
+		return
+	}
+	if h.accountTestService == nil {
+		response.InternalError(c, "account test service is not configured")
+		return
+	}
+
+	var req syncFromUpstreamRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "invalid request: "+err.Error())
+		return
+	}
+
+	models, err := h.accountTestService.FetchModelsByConfig(
+		c.Request.Context(),
+		strings.TrimSpace(req.BaseURL),
+		strings.TrimSpace(req.APIKey),
+		req.AuthHeader,
+		req.AuthScheme,
+		"",
+	)
+	if err != nil {
+		var syncErr *service.UpstreamModelSyncError
+		if errors.As(err, &syncErr) {
+			switch syncErr.Kind {
+			case service.UpstreamModelSyncErrorConfiguration, service.UpstreamModelSyncErrorUnsupported:
+				response.BadRequest(c, syncErr.SafeMessage())
+			default:
+				slog.Warn("model_pricing_sync_from_upstream_failed", "kind", syncErr.Kind)
+				response.Error(c, http.StatusBadGateway, syncErr.SafeMessage())
+			}
+			return
+		}
+		slog.Warn("model_pricing_sync_from_upstream_failed")
+		response.Error(c, http.StatusBadGateway, "Failed to sync models from upstream")
+		return
+	}
+
+	mode := strings.TrimSpace(req.Mode)
+	if mode == "" {
+		mode = "chat"
+	}
+	provider := strings.TrimSpace(req.Provider)
+
+	seeds := make([]*service.DBModelPricing, 0, len(models))
+	for _, modelID := range models {
+		modelID = strings.TrimSpace(modelID)
+		if modelID == "" {
+			continue
+		}
+		seeds = append(seeds, &service.DBModelPricing{
+			ModelID:   modelID,
+			Provider:  provider,
+			Mode:      mode,
+			IsCustom:  true,
+			IsEnabled: true,
+		})
+	}
+
+	if err := h.repo.SeedIfNotExists(c.Request.Context(), seeds); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	response.Success(c, gin.H{
+		"models":  models,
+		"fetched": len(models),
+	})
 }

@@ -165,6 +165,120 @@ func TestBuildAnthropicUpstreamModelsRequestRejectsBedrock(t *testing.T) {
 	require.Equal(t, UpstreamModelSyncErrorUnsupported, syncErr.Kind)
 }
 
+func TestFetchModelsByConfigParsesNewAPIVariants(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		body string
+		want []string
+	}{
+		{
+			name: "openai data array with owned_by (newapi/maas)",
+			body: `{"data":[{"id":"qwen3.7-max","object":"model","owned_by":"organization"},{"id":"glm-4.6","object":"model"}]}`,
+			want: []string{"glm-4.6", "qwen3.7-max"},
+		},
+		{
+			name: "models array",
+			body: `{"models":[{"id":"deepseek-v4-pro"},{"name":"kimi-k2.6"}]}`,
+			want: []string{"deepseek-v4-pro", "kimi-k2.6"},
+		},
+		{
+			name: "bare array",
+			body: `[{"id":"minimax-m2.5"},{"id":"mog-5"}]`,
+			want: []string{"minimax-m2.5", "mog-5"},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			upstream := &httpUpstreamRecorder{resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     http.Header{"Content-Type": []string{"application/json"}},
+				Body:       io.NopCloser(strings.NewReader(tc.body)),
+			}}
+			svc := &AccountTestService{httpUpstream: upstream, cfg: upstreamModelSyncTestConfig()}
+
+			models, err := svc.FetchModelsByConfig(
+				context.Background(),
+				"https://maas-openapi.wanjiedata.com/api",
+				"wanjie-key",
+				"",
+				"",
+				"",
+			)
+			require.NoError(t, err)
+			require.Equal(t, tc.want, models)
+			// base_url 末尾为 /api，应拼成 /api/v1/models
+			require.Equal(t, "https://maas-openapi.wanjiedata.com/api/v1/models", upstream.lastReq.URL.String())
+			// authHeader/authScheme 空时回退为 Authorization: Bearer <key>
+			require.Equal(t, "Bearer wanjie-key", upstream.lastReq.Header.Get("Authorization"))
+		})
+	}
+}
+
+func TestFetchModelsByConfigCustomAuthHeaderNoScheme(t *testing.T) {
+	t.Parallel()
+
+	upstream := &httpUpstreamRecorder{resp: &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       io.NopCloser(strings.NewReader(`{"data":[{"id":"m1"}]}`)),
+	}}
+	svc := &AccountTestService{httpUpstream: upstream, cfg: upstreamModelSyncTestConfig()}
+
+	models, err := svc.FetchModelsByConfig(
+		context.Background(),
+		"https://relay.example.com/v1",
+		"raw-key",
+		"x-api-key",
+		"",
+		"",
+	)
+	require.NoError(t, err)
+	require.Equal(t, []string{"m1"}, models)
+	require.Equal(t, "https://relay.example.com/v1/models", upstream.lastReq.URL.String())
+	require.Equal(t, "raw-key", upstream.lastReq.Header.Get("x-api-key"))
+	require.Empty(t, upstream.lastReq.Header.Get("Authorization"))
+}
+
+func TestFetchModelsByConfigRequiresBaseURLAndKey(t *testing.T) {
+	t.Parallel()
+
+	svc := &AccountTestService{httpUpstream: &httpUpstreamRecorder{}, cfg: upstreamModelSyncTestConfig()}
+
+	_, err := svc.FetchModelsByConfig(context.Background(), "", "key", "", "", "")
+	require.Error(t, err)
+	var syncErr *UpstreamModelSyncError
+	require.True(t, errors.As(err, &syncErr))
+	require.Equal(t, UpstreamModelSyncErrorConfiguration, syncErr.Kind)
+
+	_, err = svc.FetchModelsByConfig(context.Background(), "https://relay.example.com", "", "", "", "")
+	require.Error(t, err)
+	require.True(t, errors.As(err, &syncErr))
+	require.Equal(t, UpstreamModelSyncErrorConfiguration, syncErr.Kind)
+}
+
+func TestFetchModelsByConfigDoesNotExposeUpstreamBody(t *testing.T) {
+	t.Parallel()
+
+	upstream := &httpUpstreamRecorder{resp: &http.Response{
+		StatusCode: http.StatusUnauthorized,
+		Body:       io.NopCloser(strings.NewReader(`{"error":"SECRET_TOKEN leaked"}`)),
+	}}
+	svc := &AccountTestService{httpUpstream: upstream, cfg: upstreamModelSyncTestConfig()}
+
+	_, err := svc.FetchModelsByConfig(context.Background(), "https://relay.example.com", "key", "", "", "")
+	require.Error(t, err)
+	require.NotContains(t, err.Error(), "SECRET_TOKEN")
+
+	var syncErr *UpstreamModelSyncError
+	require.True(t, errors.As(err, &syncErr))
+	require.Equal(t, UpstreamModelSyncErrorUpstream, syncErr.Kind)
+	require.Contains(t, syncErr.SafeMessage(), "HTTP 401")
+}
+
 func TestFetchUpstreamSupportedModelsParsesOpenAIResponse(t *testing.T) {
 	t.Parallel()
 

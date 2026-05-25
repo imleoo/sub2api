@@ -127,6 +127,7 @@ func registerModelPricingRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		mp.PUT("/:id", h.Admin.ModelPricing.Update)
 		mp.DELETE("/:id", h.Admin.ModelPricing.Delete)
 		mp.POST("/sync", h.Admin.ModelPricing.TriggerSync)
+		mp.POST("/sync-from-upstream", h.Admin.ModelPricing.SyncFromUpstream)
 	}
 }
 
@@ -446,9 +447,6 @@ func registerSettingsRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		adminSettings.PUT("/web-search-emulation", h.Admin.Setting.UpdateWebSearchEmulationConfig)
 		adminSettings.POST("/web-search-emulation/test", h.Admin.Setting.TestWebSearchEmulation)
 		adminSettings.POST("/web-search-emulation/reset-usage", h.Admin.Setting.ResetWebSearchUsage)
-		// 模型折扣配置
-		adminSettings.GET("/model-discounts", h.Admin.Setting.GetModelDiscounts)
-		adminSettings.PUT("/model-discounts", h.Admin.Setting.UpdateModelDiscounts)
 	}
 }
 

@@ -127,6 +127,82 @@ func (s *AccountTestService) FetchUpstreamSupportedModels(ctx context.Context, a
 	return models, nil
 }
 
+// FetchModelsByConfig fetches the model list directly from a base URL + API key,
+// without requiring a saved account. Used by the "sync models into pricing" feature
+// for generic / newapi-compatible upstreams.
+//
+// authHeader 空时回退为 "Authorization"；authScheme 非空时鉴权值为 "<scheme> <key>"，
+// 为空时直接使用 <key>（适配 x-api-key 等无 scheme 的网关）。
+func (s *AccountTestService) FetchModelsByConfig(ctx context.Context, baseURL, apiKey, authHeader, authScheme, proxyURL string) ([]string, error) {
+	if s == nil {
+		return nil, newUpstreamModelSyncConfigError("Account test service is not configured", nil)
+	}
+	if s.httpUpstream == nil {
+		return nil, newUpstreamModelSyncConfigError("Upstream HTTP client is not configured", nil)
+	}
+	if strings.TrimSpace(baseURL) == "" {
+		return nil, newUpstreamModelSyncConfigError("Base URL is required", nil)
+	}
+	if strings.TrimSpace(apiKey) == "" {
+		return nil, newUpstreamModelSyncConfigError("API key is required", nil)
+	}
+
+	normalizedBaseURL, err := s.validateUpstreamBaseURL(baseURL)
+	if err != nil {
+		return nil, newUpstreamModelSyncConfigError("Invalid base URL", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, buildOpenAIModelsURL(normalizedBaseURL), nil)
+	if err != nil {
+		return nil, newUpstreamModelSyncConfigError("Invalid model list URL", err)
+	}
+
+	headerName := strings.TrimSpace(authHeader)
+	scheme := strings.TrimSpace(authScheme)
+	if headerName == "" {
+		headerName = "Authorization"
+		if scheme == "" {
+			scheme = "Bearer"
+		}
+	}
+	authValue := strings.TrimSpace(apiKey)
+	if scheme != "" {
+		authValue = scheme + " " + authValue
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set(headerName, authValue)
+
+	resp, err := s.doUpstreamModelsRequest(req, proxyURL, &Account{Concurrency: 1})
+	if err != nil {
+		return nil, newUpstreamModelSyncUpstreamError("Failed to request upstream model list", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, upstreamModelsBodyLimit+1))
+	if err != nil {
+		return nil, newUpstreamModelSyncUpstreamError("Failed to read upstream model list", err)
+	}
+	if int64(len(body)) > upstreamModelsBodyLimit {
+		return nil, newUpstreamModelSyncUpstreamError("Upstream model list response is too large", fmt.Errorf("response exceeds %d bytes", upstreamModelsBodyLimit))
+	}
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return nil, newUpstreamModelSyncUpstreamError(
+			fmt.Sprintf("Upstream model list request failed with HTTP %d", resp.StatusCode),
+			fmt.Errorf("upstream model list returned HTTP %d", resp.StatusCode),
+		)
+	}
+
+	models, err := extractUpstreamModelIDs(body)
+	if err != nil {
+		return nil, newUpstreamModelSyncUpstreamError("Upstream model list response was not valid JSON", err)
+	}
+	if len(models) == 0 {
+		return nil, newUpstreamModelSyncUpstreamError("Upstream returned no supported models", nil)
+	}
+
+	return models, nil
+}
+
 func (s *AccountTestService) buildUpstreamModelsRequest(ctx context.Context, account *Account) (*http.Request, error) {
 	switch {
 	case account.Platform == PlatformAntigravity:
@@ -405,8 +481,9 @@ func buildGeminiModelsURL(base string) string {
 }
 
 type upstreamModelEntry struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	OwnedBy string `json:"owned_by"`
 }
 
 func extractUpstreamModelIDs(body []byte) ([]string, error) {

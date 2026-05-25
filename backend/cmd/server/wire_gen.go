@@ -244,7 +244,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	contentModerationHandler := admin.NewContentModerationHandler(contentModerationService)
 	paymentHandler := admin.NewPaymentHandler(paymentService, paymentConfigService)
 	affiliateHandler := admin.NewAffiliateHandler(affiliateService, adminService)
-	modelPricingHandler := admin.NewModelPricingHandler(modelPricingRepository, pricingService, settingService)
+	modelPricingHandler := admin.NewModelPricingHandler(modelPricingRepository, pricingService, settingService, accountTestService)
 	providerPricingHandler := admin.NewProviderPricingHandler(providerPricingRepository)
 	dualBucketStatsHandler := admin.NewDualBucketStatsHandler(schedulerSnapshotService)
 	adminHandlers := handler.ProvideAdminHandlers(dashboardHandler, adminUserHandler, groupHandler, accountHandler, adminAnnouncementHandler, dataManagementHandler, backupHandler, proxyHandler, adminRedeemHandler, promoHandler, settingHandler, opsHandler, systemHandler, adminSubscriptionHandler, adminUsageHandler, userAttributeHandler, errorPassthroughHandler, tlsFingerprintProfileHandler, adminAPIKeyHandler, scheduledTestHandler, channelHandler, channelMonitorHandler, channelMonitorRequestTemplateHandler, contentModerationHandler, paymentHandler, affiliateHandler, modelPricingHandler, providerPricingHandler, dualBucketStatsHandler)

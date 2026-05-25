@@ -72,6 +72,7 @@
         <label class="input-label">{{ t('admin.accounts.platform') }}</label>
         <div class="mt-2 flex rounded-lg bg-gray-100 p-1 dark:bg-dark-700" data-tour="account-form-platform">
           <button
+            v-if="showOverseasModels"
             type="button"
             @click="form.platform = 'anthropic'"
             :class="[
@@ -85,6 +86,7 @@
             Anthropic
           </button>
           <button
+            v-if="showOverseasModels"
             type="button"
             @click="form.platform = 'openai'"
             :class="[
@@ -110,6 +112,7 @@
             OpenAI
           </button>
           <button
+            v-if="showOverseasModels"
             type="button"
             @click="form.platform = 'gemini'"
             :class="[
@@ -829,6 +832,28 @@
                 />
                 <p class="input-hint">{{ t('admin.accounts.generic.priorityHint') }}</p>
               </div>
+            </div>
+            <!-- Sync models: API Key (transient, used only for sync) + button -->
+            <div class="rounded-lg border border-dashed border-purple-200 p-3 dark:border-purple-900/40">
+              <label class="input-label">{{ t('admin.accounts.generic.syncModelsApiKey') }}</label>
+              <div class="mt-1 flex items-center gap-2">
+                <input
+                  v-model="ep.api_key"
+                  type="password"
+                  autocomplete="off"
+                  class="input flex-1 font-mono"
+                  :placeholder="t('admin.accounts.generic.syncModelsApiKeyPlaceholder')"
+                />
+                <button
+                  type="button"
+                  :disabled="syncingEndpointIdx === idx"
+                  @click="syncGenericEndpointModels(idx)"
+                  class="shrink-0 rounded-md bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {{ syncingEndpointIdx === idx ? t('admin.accounts.generic.syncModelsLoading') : t('admin.accounts.generic.syncModels') }}
+                </button>
+              </div>
+              <p class="input-hint">{{ t('admin.accounts.generic.syncModelsHint') }}</p>
             </div>
             <!-- Stable ID (advanced, collapsed by default) -->
             <div>
@@ -3137,6 +3162,7 @@ import {
 } from '@/composables/useModelWhitelist'
 import { useAuthStore } from '@/stores/auth'
 import { adminAPI } from '@/api/admin'
+import { syncModelPricingsFromUpstream } from '@/api/admin/modelPricings'
 import { useQuotaNotifyState } from '@/composables/useQuotaNotifyState'
 import {
   useAccountOAuth,
@@ -3221,6 +3247,12 @@ const emit = defineEmits<{
 }>()
 
 const appStore = useAppStore()
+
+// 海外模型配置关闭时需要隐藏的平台 tab（Claude / GPT / Gemini）
+const OVERSEAS_ACCOUNT_PLATFORMS = new Set<AccountPlatform>(['anthropic', 'openai', 'gemini'])
+const showOverseasModels = computed(
+  () => appStore.cachedPublicSettings?.show_overseas_models !== false
+)
 
 // OAuth composables
 const oauth = useAccountOAuth() // For Anthropic OAuth
@@ -3351,12 +3383,50 @@ const addGenericEndpoint = () => {
     auth_header: 'Authorization',
     auth_scheme: 'Bearer',
     models_source: 'remote',
-    priority: (genericEndpoints.value.length + 1) * 100
+    priority: (genericEndpoints.value.length + 1) * 100,
+    api_key: ''
   })
 }
 
 const removeGenericEndpoint = (idx: number) => {
   genericEndpoints.value.splice(idx, 1)
+}
+
+// 正在同步模型的端点索引（用于按钮 loading 态）
+const syncingEndpointIdx = ref<number | null>(null)
+
+// 从端点的 Base URL + API Key 拉取模型，写入模型定价表，并预填账号白名单。
+const syncGenericEndpointModels = async (idx: number) => {
+  const ep = genericEndpoints.value[idx]
+  if (!ep) return
+  if (!ep.base_url?.trim()) {
+    appStore.showError(t('admin.accounts.generic.syncModelsNeedBaseUrl'))
+    return
+  }
+  if (!ep.api_key?.trim()) {
+    appStore.showError(t('admin.accounts.generic.syncModelsNeedApiKey'))
+    return
+  }
+  syncingEndpointIdx.value = idx
+  try {
+    const { data } = await syncModelPricingsFromUpstream({
+      base_url: ep.base_url.trim(),
+      api_key: ep.api_key.trim(),
+      auth_header: ep.auth_header?.trim() || undefined,
+      auth_scheme: ep.auth_scheme?.trim() || undefined,
+      provider: form.platform
+    })
+    const models = data.models || []
+    allowedModels.value = Array.from(new Set([...allowedModels.value, ...models]))
+    appStore.showSuccess(t('admin.accounts.generic.syncModelsSuccess', { count: data.fetched ?? models.length }))
+  } catch (err) {
+    const error = err as { response?: { data?: { message?: string; detail?: string } } }
+    appStore.showError(
+      error.response?.data?.message || error.response?.data?.detail || t('admin.accounts.generic.syncModelsFailed')
+    )
+  } finally {
+    syncingEndpointIdx.value = null
+  }
 }
 
 const getModelMappingKey = createStableObjectKeyResolver<ModelMapping>('create-model-mapping')
@@ -3560,6 +3630,10 @@ watch(
   () => props.show,
   (newVal) => {
     if (newVal) {
+      // 海外模型配置关闭时，海外平台 tab 已隐藏，避免默认停留在被隐藏的 tab
+      if (!showOverseasModels.value && OVERSEAS_ACCOUNT_PLATFORMS.has(form.platform)) {
+        form.platform = 'lingjing'
+      }
       // Load TLS fingerprint profiles
       adminAPI.tlsFingerprintProfiles.list()
         .then(profiles => { tlsFingerprintProfiles.value = profiles.map(p => ({ id: p.id, name: p.name })) })
@@ -4006,7 +4080,7 @@ const resetForm = () => {
   step.value = 1
   form.name = ''
   form.notes = ''
-  form.platform = 'anthropic'
+  form.platform = showOverseasModels.value ? 'anthropic' : 'lingjing'
   form.type = 'apikey'
   form.credentials = {}
   form.proxy_id = null
@@ -4520,7 +4594,15 @@ const createAccountAndFinish = async (
     expires_at: form.expires_at,
     auto_pause_on_expired: autoPauseOnExpired.value,
     ...(platform === 'generic' && genericEndpoints.value.length > 0
-      ? { endpoints: genericEndpoints.value.filter(ep => ep.base_url && ep.outbound_protocol) }
+      ? {
+          endpoints: genericEndpoints.value
+            .filter(ep => ep.base_url && ep.outbound_protocol)
+            .map(ep => {
+              const clone = { ...ep }
+              delete clone.api_key
+              return clone
+            })
+        }
       : {})
   })
 }

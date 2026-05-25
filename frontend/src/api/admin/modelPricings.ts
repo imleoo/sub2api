@@ -73,3 +73,20 @@ export const deleteModelPricing = (id: number) =>
 
 export const triggerModelPricingSync = () =>
   apiClient.post('/admin/model-pricings/sync')
+
+export interface SyncFromUpstreamRequest {
+  base_url: string
+  api_key: string
+  auth_header?: string
+  auth_scheme?: string
+  provider?: string
+  mode?: string
+}
+
+export interface SyncFromUpstreamResponse {
+  models: string[]
+  fetched: number
+}
+
+export const syncModelPricingsFromUpstream = (data: SyncFromUpstreamRequest) =>
+  apiClient.post<SyncFromUpstreamResponse>('/admin/model-pricings/sync-from-upstream', data)
