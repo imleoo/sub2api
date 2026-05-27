@@ -158,10 +158,10 @@ func (h *ModelPricingHandler) List(c *gin.Context) {
 		PageSize:  pageSize,
 	}
 
-	// show_overseas_models=false 时隐藏海外 provider 的模型，与模型广场保持一致。
+	// show_overseas_models=false 时按 model_id 前缀隐藏海外模型，与模型广场保持一致。
 	if h.settingService != nil {
 		if ps, err := h.settingService.GetPublicSettings(c.Request.Context()); err == nil && ps != nil && !ps.ShowOverseasModels {
-			filter.ExcludeProviders = service.OverseasModelProviders
+			filter.ExcludeOverseasModels = true
 		}
 	}
 
@@ -225,6 +225,9 @@ func (h *ModelPricingHandler) Create(c *gin.Context) {
 	if err := h.repo.Create(c.Request.Context(), m); err != nil {
 		response.ErrorFrom(c, err)
 		return
+	}
+	if h.pricingService != nil {
+		h.pricingService.ReloadFromDB(c.Request.Context())
 	}
 
 	response.Success(c, dbModelPricingToResponse(m))
@@ -306,6 +309,9 @@ func (h *ModelPricingHandler) Update(c *gin.Context) {
 	if err := h.repo.Update(c.Request.Context(), existing); err != nil {
 		response.ErrorFrom(c, err)
 		return
+	}
+	if h.pricingService != nil {
+		h.pricingService.ReloadFromDB(c.Request.Context())
 	}
 
 	response.Success(c, dbModelPricingToResponse(existing))
@@ -426,6 +432,10 @@ func (h *ModelPricingHandler) SyncFromUpstream(c *gin.Context) {
 	if err := h.repo.SeedIfNotExists(c.Request.Context(), seeds); err != nil {
 		response.ErrorFrom(c, err)
 		return
+	}
+	// 写完立即刷新 pricingService 内存映射，让新模型在「模型广场」立即可见。
+	if h.pricingService != nil {
+		h.pricingService.ReloadFromDB(c.Request.Context())
 	}
 
 	response.Success(c, gin.H{

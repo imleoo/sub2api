@@ -28,6 +28,18 @@
 
       <!-- Generic Channel: Endpoint List Editor -->
       <div v-if="account.platform === 'generic'" class="space-y-4">
+        <!-- Account-level API Key: shared by all endpoints -->
+        <div>
+          <label class="input-label">{{ t('admin.accounts.apiKeyRequired') }}</label>
+          <input
+            v-model="editGenericApiKey"
+            type="password"
+            autocomplete="off"
+            class="input mt-1 font-mono"
+            :placeholder="t('admin.accounts.generic.apiKeyEditPlaceholder')"
+          />
+          <p class="input-hint">{{ t('admin.accounts.generic.apiKeyHint') }}</p>
+        </div>
         <div class="flex items-center justify-between">
           <label class="input-label mb-0">{{ t('admin.accounts.generic.endpoints') }}</label>
           <button
@@ -91,6 +103,27 @@
                 <label class="input-label">{{ t('admin.accounts.generic.priority') }}</label>
                 <input v-model.number="ep.priority" type="number" min="1" max="9999" class="input mt-1" />
               </div>
+            </div>
+            <div>
+              <div class="flex items-center justify-between">
+                <label class="input-label mb-0">{{ t('admin.accounts.generic.supportedModels') }}</label>
+                <button
+                  type="button"
+                  :disabled="genericFetchingIdx === idx || !ep.base_url?.trim()"
+                  @click="fetchGenericEndpointModels(idx)"
+                  class="rounded-md bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 hover:bg-purple-100 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-purple-900/20 dark:text-purple-400 dark:hover:bg-purple-900/30"
+                >
+                  {{ genericFetchingIdx === idx ? t('admin.accounts.generic.fetchModelsLoading') : t('admin.accounts.generic.fetchModels') }}
+                </button>
+              </div>
+              <textarea
+                :value="(ep.supported_models || []).join(', ')"
+                @input="ep.supported_models = parseGenericSupportedModels(($event.target as HTMLTextAreaElement).value)"
+                rows="2"
+                class="input mt-1 font-mono"
+                :placeholder="t('admin.accounts.generic.supportedModelsPlaceholder')"
+              />
+              <p class="input-hint">{{ t('admin.accounts.generic.supportedModelsHint') }}</p>
             </div>
             <div>
               <label class="input-label">{{ t('admin.accounts.generic.stableId') }}</label>
@@ -1977,6 +2010,8 @@ const tempUnschedEnabled = ref(false)
 const tempUnschedRules = ref<TempUnschedRuleForm[]>([])
 const genericEndpoints = ref<AccountEndpointInput[]>([])
 const genericEndpointsLoading = ref(false)
+// generic 账号级 API Key：留空表示不修改（沿用已存密钥）
+const editGenericApiKey = ref('')
 
 const addGenericEndpoint = () => {
   genericEndpoints.value.push({
@@ -2004,12 +2039,59 @@ const loadGenericEndpoints = async (accountId: number) => {
       auth_header: ep.auth_header,
       auth_scheme: ep.auth_scheme,
       models_source: ep.models_source as AccountEndpointInput['models_source'],
-      priority: ep.priority
+      priority: ep.priority,
+      supported_models: ep.supported_models ?? []
     }))
   } catch {
     genericEndpoints.value = []
   } finally {
     genericEndpointsLoading.value = false
+  }
+}
+
+// parseGenericSupportedModels 把逗号/换行/空格分隔的字符串拆成去重后的模型 ID 数组。
+const parseGenericSupportedModels = (raw: string): string[] => {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const piece of raw.split(/[,\n]/)) {
+    const m = piece.trim()
+    if (!m || seen.has(m)) continue
+    seen.add(m)
+    out.push(m)
+  }
+  return out
+}
+
+const genericFetchingIdx = ref<number | null>(null)
+
+// 编辑场景：editGenericApiKey 留空时，传 account_id 让后端用已存 key。
+const fetchGenericEndpointModels = async (idx: number) => {
+  if (!props.account) return
+  const ep = genericEndpoints.value[idx]
+  if (!ep) return
+  if (!ep.base_url?.trim()) {
+    appStore.showError(t('admin.accounts.generic.fetchModelsNeedBaseUrl'))
+    return
+  }
+  genericFetchingIdx.value = idx
+  try {
+    const overrideKey = editGenericApiKey.value.trim()
+    const res = await adminAPI.accounts.fetchEndpointModels({
+      base_url: ep.base_url.trim(),
+      ...(overrideKey ? { api_key: overrideKey } : { account_id: props.account.id })
+    })
+    const merged = parseGenericSupportedModels(
+      [...(ep.supported_models || []), ...res.models].join(',')
+    )
+    ep.supported_models = merged
+    appStore.showSuccess(t('admin.accounts.generic.fetchModelsSuccess', { count: res.fetched }))
+  } catch (err) {
+    const error = err as { response?: { data?: { message?: string; detail?: string } } }
+    appStore.showError(
+      error.response?.data?.message || error.response?.data?.detail || t('admin.accounts.generic.fetchModelsFailed')
+    )
+  } finally {
+    genericFetchingIdx.value = null
   }
 }
 
@@ -2551,6 +2633,7 @@ watch(
     if (!wasShow || newAccount !== previousAccount) {
       syncFormFromAccount(newAccount)
       loadTLSProfiles()
+      editGenericApiKey.value = ''
       if (newAccount.platform === 'generic') {
         loadGenericEndpoints(newAccount.id)
       } else {
@@ -3153,6 +3236,14 @@ const handleSubmit = async () => {
         return
       }
 
+      updatePayload.credentials = newCredentials
+    } else if (props.account.platform === 'generic') {
+      // generic：账号级 api_key 存 credentials，端点单独保存；留空则沿用已存密钥
+      const currentCredentials = (props.account.credentials as Record<string, unknown>) || {}
+      const newCredentials: Record<string, unknown> = { ...currentCredentials }
+      if (editGenericApiKey.value.trim()) {
+        newCredentials.api_key = editGenericApiKey.value.trim()
+      }
       updatePayload.credentials = newCredentials
     } else {
       // For oauth/setup-token types, only update intercept_warmup_requests if changed

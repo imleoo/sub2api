@@ -687,8 +687,7 @@ export interface AccountEndpointInput {
   auth_scheme?: string
   models_source?: ModelsSource
   priority?: number
-  // 仅前端使用：用于"同步最新模型"按钮发起请求，提交账号时会被剔除（后端不持久化）
-  api_key?: string
+  supported_models?: string[] // 功能 25：该端点支持的模型 ID 列表
 }
 
 export interface AccountEndpoint extends AccountEndpointInput {

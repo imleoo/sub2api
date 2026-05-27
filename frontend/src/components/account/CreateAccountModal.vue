@@ -742,6 +742,19 @@
 
       <!-- Generic Channel Endpoint List -->
       <div v-if="form.platform === 'generic'" class="space-y-4">
+        <!-- Account-level API Key: shared by all endpoints -->
+        <div>
+          <label class="input-label">{{ t('admin.accounts.apiKeyRequired') }}</label>
+          <input
+            v-model="genericApiKey"
+            type="password"
+            autocomplete="off"
+            required
+            class="input mt-1 font-mono"
+            :placeholder="t('admin.accounts.generic.apiKeyPlaceholder')"
+          />
+          <p class="input-hint">{{ t('admin.accounts.generic.apiKeyHint') }}</p>
+        </div>
         <div class="flex items-center justify-between">
           <label class="input-label mb-0">{{ t('admin.accounts.generic.endpoints') }}</label>
           <button
@@ -833,27 +846,27 @@
                 <p class="input-hint">{{ t('admin.accounts.generic.priorityHint') }}</p>
               </div>
             </div>
-            <!-- Sync models: API Key (transient, used only for sync) + button -->
-            <div class="rounded-lg border border-dashed border-purple-200 p-3 dark:border-purple-900/40">
-              <label class="input-label">{{ t('admin.accounts.generic.syncModelsApiKey') }}</label>
-              <div class="mt-1 flex items-center gap-2">
-                <input
-                  v-model="ep.api_key"
-                  type="password"
-                  autocomplete="off"
-                  class="input flex-1 font-mono"
-                  :placeholder="t('admin.accounts.generic.syncModelsApiKeyPlaceholder')"
-                />
+            <!-- Supported Models (该端点支持转发的模型 ID 列表，逗号或换行分隔) -->
+            <div>
+              <div class="flex items-center justify-between">
+                <label class="input-label mb-0">{{ t('admin.accounts.generic.supportedModels') }}</label>
                 <button
                   type="button"
-                  :disabled="syncingEndpointIdx === idx"
-                  @click="syncGenericEndpointModels(idx)"
-                  class="shrink-0 rounded-md bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  :disabled="genericFetchingIdx === idx || !ep.base_url?.trim() || !genericApiKey.trim()"
+                  @click="fetchGenericEndpointModels(idx)"
+                  class="rounded-md bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 hover:bg-purple-100 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-purple-900/20 dark:text-purple-400 dark:hover:bg-purple-900/30"
                 >
-                  {{ syncingEndpointIdx === idx ? t('admin.accounts.generic.syncModelsLoading') : t('admin.accounts.generic.syncModels') }}
+                  {{ genericFetchingIdx === idx ? t('admin.accounts.generic.fetchModelsLoading') : t('admin.accounts.generic.fetchModels') }}
                 </button>
               </div>
-              <p class="input-hint">{{ t('admin.accounts.generic.syncModelsHint') }}</p>
+              <textarea
+                :value="(ep.supported_models || []).join(', ')"
+                @input="ep.supported_models = parseGenericSupportedModels(($event.target as HTMLTextAreaElement).value)"
+                rows="2"
+                class="input mt-1 font-mono"
+                :placeholder="t('admin.accounts.generic.supportedModelsPlaceholder')"
+              />
+              <p class="input-hint">{{ t('admin.accounts.generic.supportedModelsHint') }}</p>
             </div>
             <!-- Stable ID (advanced, collapsed by default) -->
             <div>
@@ -1078,8 +1091,8 @@
       </div>
 
 
-      <!-- API Key input (only for apikey type) -->
-      <div v-if="form.type === 'apikey'" class="space-y-4">
+      <!-- API Key input (only for apikey type; generic 用自己的密钥+端点表单) -->
+      <div v-if="form.type === 'apikey' && form.platform !== 'generic'" class="space-y-4">
         <!-- Phase 1 P1-3: OpenAI APIKey Provider 预设（DeepSeek/豆包/硅基流动等 OpenAI-compatible 渠道）-->
         <div v-if="form.platform === 'openai'">
           <label class="input-label">{{ t('admin.accounts.providers.label') }}</label>
@@ -3162,7 +3175,6 @@ import {
 } from '@/composables/useModelWhitelist'
 import { useAuthStore } from '@/stores/auth'
 import { adminAPI } from '@/api/admin'
-import { syncModelPricingsFromUpstream } from '@/api/admin/modelPricings'
 import { useQuotaNotifyState } from '@/composables/useQuotaNotifyState'
 import {
   useAccountOAuth,
@@ -3376,6 +3388,9 @@ const tempUnschedEnabled = ref(false)
 const tempUnschedRules = ref<TempUnschedRuleForm[]>([])
 const genericEndpoints = ref<AccountEndpointInput[]>([])
 
+// generic 账号级 API Key（一个 key 共享给所有 endpoint）
+const genericApiKey = ref('')
+
 const addGenericEndpoint = () => {
   genericEndpoints.value.push({
     outbound_protocol: 'openai_chat',
@@ -3384,49 +3399,61 @@ const addGenericEndpoint = () => {
     auth_scheme: 'Bearer',
     models_source: 'remote',
     priority: (genericEndpoints.value.length + 1) * 100,
-    api_key: ''
+    supported_models: []
   })
+}
+
+// parseGenericSupportedModels 把逗号/换行/空格分隔的字符串拆成去重后的模型 ID 数组。
+const parseGenericSupportedModels = (raw: string): string[] => {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const piece of raw.split(/[,\n]/)) {
+    const m = piece.trim()
+    if (!m || seen.has(m)) continue
+    seen.add(m)
+    out.push(m)
+  }
+  return out
+}
+
+// 当前正在拉取模型的端点 index，控制按钮 loading 态。
+const genericFetchingIdx = ref<number | null>(null)
+
+// 从上游 {base_url}/v1/models 拉取模型 ID 并合并到 ep.supported_models（去重）。
+const fetchGenericEndpointModels = async (idx: number) => {
+  const ep = genericEndpoints.value[idx]
+  if (!ep) return
+  if (!ep.base_url?.trim()) {
+    appStore.showError(t('admin.accounts.generic.fetchModelsNeedBaseUrl'))
+    return
+  }
+  if (!genericApiKey.value.trim()) {
+    appStore.showError(t('admin.accounts.generic.fetchModelsNeedApiKey'))
+    return
+  }
+  genericFetchingIdx.value = idx
+  try {
+    const res = await adminAPI.accounts.fetchEndpointModels({
+      base_url: ep.base_url.trim(),
+      api_key: genericApiKey.value.trim()
+    })
+    const merged = parseGenericSupportedModels(
+      [...(ep.supported_models || []), ...res.models].join(',')
+    )
+    ep.supported_models = merged
+    appStore.showSuccess(t('admin.accounts.generic.fetchModelsSuccess', { count: res.fetched }))
+  } catch (err) {
+    const error = err as { response?: { data?: { message?: string; detail?: string } } }
+    appStore.showError(
+      error.response?.data?.message || error.response?.data?.detail || t('admin.accounts.generic.fetchModelsFailed')
+    )
+  } finally {
+    genericFetchingIdx.value = null
+  }
 }
 
 const removeGenericEndpoint = (idx: number) => {
   genericEndpoints.value.splice(idx, 1)
-}
-
-// 正在同步模型的端点索引（用于按钮 loading 态）
-const syncingEndpointIdx = ref<number | null>(null)
-
-// 从端点的 Base URL + API Key 拉取模型，写入模型定价表，并预填账号白名单。
-const syncGenericEndpointModels = async (idx: number) => {
-  const ep = genericEndpoints.value[idx]
-  if (!ep) return
-  if (!ep.base_url?.trim()) {
-    appStore.showError(t('admin.accounts.generic.syncModelsNeedBaseUrl'))
-    return
-  }
-  if (!ep.api_key?.trim()) {
-    appStore.showError(t('admin.accounts.generic.syncModelsNeedApiKey'))
-    return
-  }
-  syncingEndpointIdx.value = idx
-  try {
-    const { data } = await syncModelPricingsFromUpstream({
-      base_url: ep.base_url.trim(),
-      api_key: ep.api_key.trim(),
-      auth_header: ep.auth_header?.trim() || undefined,
-      auth_scheme: ep.auth_scheme?.trim() || undefined,
-      provider: form.platform
-    })
-    const models = data.models || []
-    allowedModels.value = Array.from(new Set([...allowedModels.value, ...models]))
-    appStore.showSuccess(t('admin.accounts.generic.syncModelsSuccess', { count: data.fetched ?? models.length }))
-  } catch (err) {
-    const error = err as { response?: { data?: { message?: string; detail?: string } } }
-    appStore.showError(
-      error.response?.data?.message || error.response?.data?.detail || t('admin.accounts.generic.syncModelsFailed')
-    )
-  } finally {
-    syncingEndpointIdx.value = null
-  }
 }
 
 const getModelMappingKey = createStableObjectKeyResolver<ModelMapping>('create-model-mapping')
@@ -4155,6 +4182,7 @@ const resetForm = () => {
   tempUnschedEnabled.value = false
   tempUnschedRules.value = []
   genericEndpoints.value = []
+  genericApiKey.value = ''
   geminiOAuthType.value = 'code_assist'
   geminiTierGoogleOne.value = 'google_one_free'
   geminiTierGcp.value = 'gcp_standard'
@@ -4445,10 +4473,14 @@ const handleSubmit = async () => {
     return
   }
 
-  // Generic Channel: create directly with endpoint list
+  // Generic Channel: create directly with endpoint list (一个账号级 key 共享给所有 endpoint)
   if (form.platform === 'generic') {
     if (!form.name.trim()) {
       appStore.showError(t('admin.accounts.pleaseEnterAccountName'))
+      return
+    }
+    if (!genericApiKey.value.trim()) {
+      appStore.showError(t('admin.accounts.pleaseEnterApiKey'))
       return
     }
     if (genericEndpoints.value.length === 0) {
@@ -4460,7 +4492,7 @@ const handleSubmit = async () => {
       appStore.showError(t('admin.accounts.generic.noEndpoints'))
       return
     }
-    await createAccountAndFinish('generic', 'apikey' as AccountType, {})
+    await createAccountAndFinish('generic', 'apikey' as AccountType, { api_key: genericApiKey.value.trim() })
     return
   }
 
@@ -4595,13 +4627,7 @@ const createAccountAndFinish = async (
     auto_pause_on_expired: autoPauseOnExpired.value,
     ...(platform === 'generic' && genericEndpoints.value.length > 0
       ? {
-          endpoints: genericEndpoints.value
-            .filter(ep => ep.base_url && ep.outbound_protocol)
-            .map(ep => {
-              const clone = { ...ep }
-              delete clone.api_key
-              return clone
-            })
+          endpoints: genericEndpoints.value.filter(ep => ep.base_url && ep.outbound_protocol)
         }
       : {})
   })

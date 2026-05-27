@@ -168,6 +168,10 @@ type UsageLog struct {
 	AsyncTaskID     *string
 	CostFinalizedAt *time.Time
 
+	// EndpointID 命中端点的 stable_id 快照（功能 25：generic 渠道 endpoint 归因）。
+	// 仅 generic 转发路径会写入；非 generic / 单端点账号保持 nil。
+	EndpointID *string
+
 	BillingType  int8
 	RequestType  RequestType
 	Stream       bool

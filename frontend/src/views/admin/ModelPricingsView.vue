@@ -49,6 +49,14 @@
               <Icon name="refresh" size="md" :class="syncing ? 'animate-spin' : ''" />
               <span class="ml-1 hidden sm:inline">{{ syncing ? '同步中...' : '手动同步' }}</span>
             </button>
+            <button
+              class="btn btn-secondary"
+              :title="'从上游渠道 /v1/models 拉取模型并入库'"
+              @click="openImportModal"
+            >
+              <Icon name="download" size="md" />
+              <span class="ml-1 hidden sm:inline">从上游导入</span>
+            </button>
             <button class="btn btn-primary" @click="openCreateModal">
               <Icon name="plus" size="md" class="mr-1" />
               添加自定义模型
@@ -526,6 +534,46 @@
       @confirm="confirmDelete"
       @cancel="showDeleteModal = false"
     />
+
+    <!-- Import from upstream -->
+    <BaseDialog :show="showImportModal" title="从上游导入模型" width="wide" @close="closeImportModal">
+      <form id="import-pricing-form" class="space-y-4" @submit.prevent="handleImport">
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          使用 Base URL + API Key 请求上游 <code>/v1/models</code>（兼容 newapi / OpenAI 变体），把模型写入定价表（已存在的不覆盖），随后可在此页设置折扣。
+        </p>
+        <div>
+          <label class="input-label">Base URL</label>
+          <input v-model="importForm.base_url" type="url" required class="input mt-1 font-mono" placeholder="https://maas-openapi.wanjiedata.com/api" />
+        </div>
+        <div>
+          <label class="input-label">API Key</label>
+          <input v-model="importForm.api_key" type="password" autocomplete="off" required class="input mt-1 font-mono" placeholder="上游渠道 API Key" />
+        </div>
+        <div>
+          <label class="input-label">Provider（归属标识）</label>
+          <input v-model="importForm.provider" type="text" required class="input mt-1 font-mono" placeholder="如 wanjie（区分不同上游，避免混桶）" />
+          <p class="input-hint">用于按渠道归类与过滤，建议用渠道 slug，不要留空。</p>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="input-label">Auth Header（可选）</label>
+            <input v-model="importForm.auth_header" type="text" class="input mt-1 font-mono" placeholder="Authorization" />
+          </div>
+          <div>
+            <label class="input-label">Auth Scheme（可选）</label>
+            <input v-model="importForm.auth_scheme" type="text" class="input mt-1 font-mono" placeholder="Bearer" />
+          </div>
+        </div>
+      </form>
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <button type="button" class="btn btn-secondary" @click="closeImportModal">取消</button>
+          <button type="submit" form="import-pricing-form" :disabled="importing" class="btn btn-primary">
+            {{ importing ? '导入中...' : '导入' }}
+          </button>
+        </div>
+      </template>
+    </BaseDialog>
   </AppLayout>
 </template>
 
@@ -545,6 +593,7 @@ import {
   updateModelPricing,
   deleteModelPricing,
   triggerModelPricingSync,
+  syncModelPricingsFromUpstream,
   type DBModelPricing,
   type CreateModelPricingRequest,
 } from '@/api/admin/modelPricings'
@@ -747,6 +796,56 @@ const handleSync = async () => {
     appStore.showError('同步失败')
   } finally {
     syncing.value = false
+  }
+}
+
+// ==================== Import from upstream ====================
+
+const showImportModal = ref(false)
+const importing = ref(false)
+const importForm = reactive({
+  base_url: '',
+  api_key: '',
+  provider: '',
+  auth_header: '',
+  auth_scheme: '',
+})
+
+const openImportModal = () => {
+  importForm.base_url = ''
+  importForm.api_key = ''
+  importForm.provider = ''
+  importForm.auth_header = ''
+  importForm.auth_scheme = ''
+  showImportModal.value = true
+}
+
+const closeImportModal = () => {
+  showImportModal.value = false
+}
+
+const handleImport = async () => {
+  if (!importForm.base_url.trim() || !importForm.api_key.trim() || !importForm.provider.trim()) {
+    appStore.showError('请填写 Base URL、API Key 和 Provider')
+    return
+  }
+  importing.value = true
+  try {
+    const { data } = await syncModelPricingsFromUpstream({
+      base_url: importForm.base_url.trim(),
+      api_key: importForm.api_key.trim(),
+      provider: importForm.provider.trim(),
+      auth_header: importForm.auth_header.trim() || undefined,
+      auth_scheme: importForm.auth_scheme.trim() || undefined,
+    })
+    appStore.showSuccess(`已拉取 ${data.fetched ?? (data.models?.length ?? 0)} 个模型并写入定价表`)
+    closeImportModal()
+    await load()
+  } catch (err) {
+    const error = err as { response?: { data?: { message?: string; detail?: string } } }
+    appStore.showError(error.response?.data?.message || error.response?.data?.detail || '导入失败')
+  } finally {
+    importing.value = false
   }
 }
 

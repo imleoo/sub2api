@@ -34,7 +34,8 @@ type DBModelPricing struct {
 type ModelPricingListFilter struct {
 	Query            string   // 搜索关键词（model_id/display_name 模糊匹配）
 	Provider         string   // 按提供商过滤
-	ExcludeProviders []string // 排除这些 provider（用于隐藏海外模型），空=不排除
+	ExcludeProviders        []string // 排除这些 provider，空=不排除（保留兼容；新过滤建议用 ExcludeOverseasModels）
+	ExcludeOverseasModels   bool     // 按 model_id 前缀排除海外模型（与 OverseasModelIDPrefixes 同步）
 	IsCustom         *bool    // 按来源过滤，nil=全部
 	IsEnabled        *bool    // 按启用状态过滤，nil=全部
 	Page             int      // 从 1 开始

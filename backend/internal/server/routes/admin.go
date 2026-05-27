@@ -335,6 +335,10 @@ func registerAccountRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		accounts.GET("/:id/models", h.Admin.Account.GetAvailableModels)
 		accounts.GET("/:id/endpoints", h.Admin.Account.GetAccountEndpoints)
 		accounts.PUT("/:id/endpoints", h.Admin.Account.UpdateAccountEndpoints)
+		// 功能 25：拉取 endpoint 支持的模型列表（base_url+/v1/models）。
+		// body: {base_url, auth_header?, auth_scheme?, api_key?, account_id?}
+		// api_key 空时按 account_id 读已存账号 key（编辑场景），避免要求重输密钥。
+		accounts.POST("/endpoints/fetch-models", h.Admin.Account.FetchEndpointModels)
 		accounts.POST("/:id/models/sync-upstream", h.Admin.Account.SyncUpstreamModels)
 		accounts.POST("/batch", h.Admin.Account.BatchCreate)
 		accounts.GET("/data", h.Admin.Account.ExportData)

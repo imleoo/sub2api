@@ -1,6 +1,11 @@
 package service
 
-import "github.com/Wei-Shaw/sub2api/internal/domain"
+import (
+	"regexp"
+	"strings"
+
+	"github.com/Wei-Shaw/sub2api/internal/domain"
+)
 
 // Status constants
 const (
@@ -437,13 +442,41 @@ const (
 // AdminAPIKeyPrefix is the prefix for admin API keys (distinct from user "sk-" keys).
 const AdminAPIKeyPrefix = "admin-"
 
-// OverseasModelProviders 是判定为「海外」的 litellm_provider 取值（小写，与定价表 provider 字段一致）。
-// 当 show_overseas_models=false 时用于过滤掉这些 provider 的模型。
-// 采用黑名单而非白名单，避免误过滤自定义/国内 provider（如 deepseek、volcengine）。
-// 必须与前端 frontend/src/views/user/ModelsView.vue 的 OVERSEAS_PROVIDERS 保持同步。
-var OverseasModelProviders = []string{
-	"anthropic", "openai", "google", "gemini",
-	"vertex_ai", "vertex_ai-language-models", "vertex_ai-vision-models", "vertex_ai-embedding-models",
-	"bedrock", "text-completion-openai",
-	"mistral", "meta", "cohere", "xai", "perplexity",
+// OverseasModelIDPrefixes 是判定为「海外」的 model_id 前缀列表（小写匹配）。
+// 当 show_overseas_models=false 时过滤掉这些前缀开头的模型——按 model_id 而非 provider 判定，
+// 这样经第三方中转（如 newapi/万界）使用 claude/gpt/gemini 等海外模型时仍能正确分类。
+// 必须与前端 frontend/src/views/user/ModelsView.vue 的同名常量保持同步。
+var OverseasModelIDPrefixes = []string{
+	"claude-", "claude.", "anthropic.",
+	"gpt-", "gpt.", "chatgpt-", "chatgpt.",
+	"gemini-", "gemini.",
+	"dall-e", "whisper-", "tts-",
+	"text-davinci", "text-embedding-ada", "davinci-", "curie-", "babbage-",
+	"mistral-", "mistral.", "mixtral-", "ministral-", "codestral-",
+	"llama-", "llama2", "llama3", "llama4", "meta-llama",
+	"command-r", "command-light", "command.",
+	"grok-", "grok.",
+	"nova-", "amazon.nova", "titan-",
+	"palm-", "palm2-", "bison",
+}
+
+// overseasReasoningModelRE 匹配 o 系列推理模型（o1 / o1-mini / o3 / o3-mini / o4-mini ...）。
+// 单独用正则避免 `o1`/`o3` 等短前缀误伤其它命名空间。
+var overseasReasoningModelRE = regexp.MustCompile(`^o[1-5](-|\.|$)`)
+
+// IsOverseasModelID 判断模型 ID 是否属于海外模型（按 ID 前缀，大小写不敏感）。
+func IsOverseasModelID(modelID string) bool {
+	id := strings.ToLower(strings.TrimSpace(modelID))
+	if id == "" {
+		return false
+	}
+	if overseasReasoningModelRE.MatchString(id) {
+		return true
+	}
+	for _, p := range OverseasModelIDPrefixes {
+		if strings.HasPrefix(id, p) {
+			return true
+		}
+	}
+	return false
 }

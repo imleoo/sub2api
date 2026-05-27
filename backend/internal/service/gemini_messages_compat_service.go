@@ -54,6 +54,13 @@ type GeminiMessagesCompatService struct {
 	antigravityGatewayService *AntigravityGatewayService
 	cfg                       *config.Config
 	responseHeaderFilter      *responseheaders.CompiledHeaderFilter
+
+	endpointRepo EndpointRepository // 功能 25：generic 渠道按 endpoint 解析转发目标
+}
+
+// SetEndpointRepository 注入 endpoint 仓库（Wire 完成后调用，用于 generic 渠道转发）。
+func (s *GeminiMessagesCompatService) SetEndpointRepository(repo EndpointRepository) {
+	s.endpointRepo = repo
 }
 
 func NewGeminiMessagesCompatService(
@@ -431,6 +438,20 @@ func (s *GeminiMessagesCompatService) hydrateSelectedAccount(ctx context.Context
 }
 
 func (s *GeminiMessagesCompatService) listSchedulableAccountsOnce(ctx context.Context, groupID *int64, platform string, hasForcePlatform bool) ([]Account, error) {
+	accounts, err := s.listSchedulableAccountsOnceBase(ctx, groupID, platform, hasForcePlatform)
+	if err != nil {
+		return accounts, err
+	}
+	// 功能 25：platform=gemini 时并入具备 gemini 协议端点的 generic 账号（flag 守卫）。
+	if platform == PlatformGemini {
+		if generic := s.listGenericGeminiAccounts(ctx, groupID); len(generic) > 0 {
+			accounts = append(accounts, generic...)
+		}
+	}
+	return accounts, nil
+}
+
+func (s *GeminiMessagesCompatService) listSchedulableAccountsOnceBase(ctx context.Context, groupID *int64, platform string, hasForcePlatform bool) ([]Account, error) {
 	if s.schedulerSnapshot != nil {
 		accounts, _, err := s.schedulerSnapshot.ListSchedulableAccounts(ctx, groupID, platform, hasForcePlatform)
 		return accounts, err
@@ -449,6 +470,32 @@ func (s *GeminiMessagesCompatService) listSchedulableAccountsOnce(ctx context.Co
 		return s.accountRepo.ListSchedulableByPlatforms(ctx, queryPlatforms)
 	}
 	return s.accountRepo.ListSchedulableUngroupedByPlatforms(ctx, queryPlatforms)
+}
+
+// listGenericGeminiAccounts 返回组内具备 gemini 协议端点的 generic 账号（flag 守卫）。
+func (s *GeminiMessagesCompatService) listGenericGeminiAccounts(ctx context.Context, groupID *int64) []Account {
+	if s.cfg == nil || !s.cfg.Gateway.Scheduling.GenericRuntimeEnabled || s.endpointRepo == nil || s.accountRepo == nil {
+		return nil
+	}
+	var generic []Account
+	var err error
+	if s.cfg.RunMode == config.RunModeSimple {
+		generic, err = s.accountRepo.ListSchedulableByPlatform(ctx, PlatformGeneric)
+	} else if groupID != nil {
+		generic, err = s.accountRepo.ListSchedulableByGroupIDAndPlatform(ctx, *groupID, PlatformGeneric)
+	} else {
+		generic, err = s.accountRepo.ListSchedulableUngroupedByPlatform(ctx, PlatformGeneric)
+	}
+	if err != nil || len(generic) == 0 {
+		return nil
+	}
+	out := make([]Account, 0, len(generic))
+	for i := range generic {
+		if resolveGenericEndpointVia(ctx, s.endpointRepo, &generic[i], genericGeminiProtocols) != nil {
+			out = append(out, generic[i])
+		}
+	}
+	return out
 }
 
 func (s *GeminiMessagesCompatService) validateUpstreamBaseURL(raw string) (string, error) {
@@ -1153,7 +1200,16 @@ func (s *GeminiMessagesCompatService) ForwardNative(ctx context.Context, c *gin.
 				return nil, "", errors.New("gemini api_key not configured")
 			}
 
+			// 功能 25：generic 用端点 base_url（账号 key 已通过 GetCredential 取到）。
 			baseURL := account.GetGeminiBaseURL(geminicli.AIStudioBaseURL)
+			// 功能 25：generic 账号解析端点一次，复用 base_url + auth_header/scheme（万界等中转用 Bearer，非 x-goog-api-key）。
+			var genericEP *DBEndpoint
+			if account.IsGeneric() {
+				genericEP = resolveGenericEndpointVia(ctx, s.endpointRepo, account, genericGeminiProtocols)
+				if genericEP != nil {
+					baseURL = genericEP.BaseURL
+				}
+			}
 			normalizedBaseURL, err := s.validateUpstreamBaseURL(baseURL)
 			if err != nil {
 				return nil, "", err
@@ -1169,7 +1225,20 @@ func (s *GeminiMessagesCompatService) ForwardNative(ctx context.Context, c *gin.
 				return nil, "", err
 			}
 			upstreamReq.Header.Set("Content-Type", "application/json")
-			upstreamReq.Header.Set("x-goog-api-key", apiKey)
+			if genericEP != nil {
+				hdr := strings.TrimSpace(genericEP.AuthHeader)
+				if hdr == "" {
+					hdr = "Authorization"
+				}
+				scheme := strings.TrimSpace(genericEP.AuthScheme)
+				authValue := apiKey
+				if scheme != "" {
+					authValue = scheme + " " + apiKey
+				}
+				upstreamReq.Header.Set(hdr, authValue)
+			} else {
+				upstreamReq.Header.Set("x-goog-api-key", apiKey)
+			}
 			return upstreamReq, "x-request-id", nil
 		}
 		requestIDHeader = "x-request-id"
@@ -2610,6 +2679,14 @@ func (s *GeminiMessagesCompatService) ForwardAIStudioGET(ctx context.Context, ac
 	}
 
 	baseURL := account.GetGeminiBaseURL(geminicli.AIStudioBaseURL)
+	// 功能 25：generic 账号一次解析端点，复用 base_url + auth_header/scheme。
+	var genericEP *DBEndpoint
+	if account.IsGeneric() {
+		genericEP = resolveGenericEndpointVia(ctx, s.endpointRepo, account, genericGeminiProtocols)
+		if genericEP != nil {
+			baseURL = genericEP.BaseURL
+		}
+	}
 	normalizedBaseURL, err := s.validateUpstreamBaseURL(baseURL)
 	if err != nil {
 		return nil, err
@@ -2632,7 +2709,20 @@ func (s *GeminiMessagesCompatService) ForwardAIStudioGET(ctx context.Context, ac
 		if apiKey == "" {
 			return nil, errors.New("gemini api_key not configured")
 		}
-		req.Header.Set("x-goog-api-key", apiKey)
+		if genericEP != nil {
+			hdr := strings.TrimSpace(genericEP.AuthHeader)
+			if hdr == "" {
+				hdr = "Authorization"
+			}
+			scheme := strings.TrimSpace(genericEP.AuthScheme)
+			authValue := apiKey
+			if scheme != "" {
+				authValue = scheme + " " + apiKey
+			}
+			req.Header.Set(hdr, authValue)
+		} else {
+			req.Header.Set("x-goog-api-key", apiKey)
+		}
 	case AccountTypeOAuth:
 		if s.tokenProvider == nil {
 			return nil, errors.New("gemini token provider not configured")

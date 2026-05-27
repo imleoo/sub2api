@@ -50,6 +50,9 @@ func (r *endpointRepository) Create(ctx context.Context, m *service.DBEndpoint) 
 	if len(m.Capabilities) > 0 {
 		builder.SetCapabilities(m.Capabilities)
 	}
+	if len(m.SupportedModels) > 0 {
+		builder.SetSupportedModels(m.SupportedModels)
+	}
 
 	created, err := builder.Save(ctx)
 	if err != nil {
@@ -85,6 +88,11 @@ func (r *endpointRepository) Update(ctx context.Context, m *service.DBEndpoint) 
 		builder.SetCapabilities(m.Capabilities)
 	} else {
 		builder.ClearCapabilities()
+	}
+	if len(m.SupportedModels) > 0 {
+		builder.SetSupportedModels(m.SupportedModels)
+	} else {
+		builder.ClearSupportedModels()
 	}
 
 	updated, err := builder.Save(ctx)
@@ -167,6 +175,7 @@ func endpointEntityToService(m *dbent.Endpoint) *service.DBEndpoint {
 		Priority:         m.Priority,
 		Health:           m.Health,
 		Capabilities:     m.Capabilities,
+		SupportedModels:  m.SupportedModels,
 		CreatedAt:        m.CreatedAt,
 		UpdatedAt:        m.UpdatedAt,
 	}

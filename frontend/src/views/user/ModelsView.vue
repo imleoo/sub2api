@@ -224,14 +224,30 @@ import { getModels, type ModelInfo } from '@/api/models'
 const { t } = useI18n()
 const appStore = useAppStore()
 
-// 已知海外 AI 服务商黑名单（与后端 service.OverseasModelProviders 保持同步）
-// 使用黑名单而非白名单，确保用户自定义添加的国内供应商不被误过滤
-const OVERSEAS_PROVIDERS = new Set([
-  'anthropic', 'openai', 'google', 'gemini',
-  'vertex_ai', 'vertex_ai-language-models', 'vertex_ai-vision-models', 'vertex_ai-embedding-models',
-  'bedrock', 'text-completion-openai',
-  'mistral', 'meta', 'cohere', 'xai', 'perplexity',
-])
+// 海外模型 ID 前缀黑名单（按 model_id 而非 provider 判定，便于经第三方中转使用海外模型时仍能正确分类）。
+// 必须与后端 service.OverseasModelIDPrefixes 保持同步。
+const OVERSEAS_MODEL_ID_PREFIXES = [
+  'claude-', 'claude.', 'anthropic.',
+  'gpt-', 'gpt.', 'chatgpt-', 'chatgpt.',
+  'gemini-', 'gemini.',
+  'dall-e', 'whisper-', 'tts-',
+  'text-davinci', 'text-embedding-ada', 'davinci-', 'curie-', 'babbage-',
+  'mistral-', 'mistral.', 'mixtral-', 'ministral-', 'codestral-',
+  'llama-', 'llama2', 'llama3', 'llama4', 'meta-llama',
+  'command-r', 'command-light', 'command.',
+  'grok-', 'grok.',
+  'nova-', 'amazon.nova', 'titan-',
+  'palm-', 'palm2-', 'bison',
+]
+
+const OVERSEAS_REASONING_MODEL_RE = /^o[1-5](-|\.|$)/
+
+const isOverseasModelID = (id: string | undefined): boolean => {
+  const lower = (id || '').toLowerCase().trim()
+  if (!lower) return false
+  if (OVERSEAS_REASONING_MODEL_RE.test(lower)) return true
+  return OVERSEAS_MODEL_ID_PREFIXES.some(p => lower.startsWith(p))
+}
 
 const showOverseasModels = computed(
   () => appStore.cachedPublicSettings?.show_overseas_models !== false
@@ -250,7 +266,7 @@ const copiedModelId = ref<string | null>(null)
 // 先应用 showOverseasModels 过滤，作为所有后续过滤的基础
 const baseModels = computed(() => {
   if (!showOverseasModels.value) {
-    return allModels.value.filter(m => !OVERSEAS_PROVIDERS.has((m.provider || '').toLowerCase()))
+    return allModels.value.filter(m => !isOverseasModelID(m.id))
   }
   return allModels.value
 })

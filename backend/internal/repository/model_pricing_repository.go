@@ -185,6 +185,18 @@ func (r *modelPricingRepository) List(ctx context.Context, filter service.ModelP
 	if len(filter.ExcludeProviders) > 0 {
 		q = q.Where(modelpricing.ProviderNotIn(filter.ExcludeProviders...))
 	}
+	if filter.ExcludeOverseasModels {
+		// 按海外 model_id 前缀链式排除（每个前缀 NOT LIKE 'prefix%'，AND 在一起）。
+		// 注意：ent 默认大小写敏感，model_id 实践上均为小写——若上游返回大小写混合需先归一化。
+		for _, prefix := range service.OverseasModelIDPrefixes {
+			q = q.Where(modelpricing.Not(modelpricing.ModelIDHasPrefix(prefix)))
+		}
+		// o 系列推理模型：单独按正则排除（避免 `o1` 误伤 `omni-*` 等命名空间）。
+		q = q.Where(modelpricing.Not(modelpricing.ModelIDHasPrefix("o1-")))
+		q = q.Where(modelpricing.Not(modelpricing.ModelIDHasPrefix("o3-")))
+		q = q.Where(modelpricing.Not(modelpricing.ModelIDHasPrefix("o4-")))
+		q = q.Where(modelpricing.Not(modelpricing.ModelIDHasPrefix("o5-")))
+	}
 	if filter.IsCustom != nil {
 		q = q.Where(modelpricing.IsCustomEQ(*filter.IsCustom))
 	}

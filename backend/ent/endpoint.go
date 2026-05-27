@@ -39,6 +39,8 @@ type Endpoint struct {
 	Health string `json:"health,omitempty"`
 	// Capabilities holds the value of the "capabilities" field.
 	Capabilities []string `json:"capabilities,omitempty"`
+	// SupportedModels holds the value of the "supported_models" field.
+	SupportedModels []string `json:"supported_models,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -74,7 +76,7 @@ func (*Endpoint) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case endpoint.FieldCapabilities:
+		case endpoint.FieldCapabilities, endpoint.FieldSupportedModels:
 			values[i] = new([]byte)
 		case endpoint.FieldID, endpoint.FieldAccountID, endpoint.FieldPriority:
 			values[i] = new(sql.NullInt64)
@@ -165,6 +167,14 @@ func (_m *Endpoint) assignValues(columns []string, values []any) error {
 					return fmt.Errorf("unmarshal field capabilities: %w", err)
 				}
 			}
+		case endpoint.FieldSupportedModels:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field supported_models", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.SupportedModels); err != nil {
+					return fmt.Errorf("unmarshal field supported_models: %w", err)
+				}
+			}
 		case endpoint.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
@@ -247,6 +257,9 @@ func (_m *Endpoint) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("capabilities=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Capabilities))
+	builder.WriteString(", ")
+	builder.WriteString("supported_models=")
+	builder.WriteString(fmt.Sprintf("%v", _m.SupportedModels))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))

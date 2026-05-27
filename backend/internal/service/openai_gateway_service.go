@@ -382,11 +382,18 @@ type OpenAIGatewayService struct {
 	openaiCompatAnthropicDigestSessions sync.Map
 
 	lingjingSvc *LingjingGatewayService
+
+	endpointRepo EndpointRepository // 功能 25：generic 渠道按 endpoint 解析转发目标
 }
 
 // SetLingjingService 注入灵境网关服务（Wire 完成后调用）。
 func (s *OpenAIGatewayService) SetLingjingService(svc *LingjingGatewayService) {
 	s.lingjingSvc = svc
+}
+
+// SetEndpointRepository 注入 endpoint 仓库（Wire 完成后调用，用于 generic 渠道转发）。
+func (s *OpenAIGatewayService) SetEndpointRepository(repo EndpointRepository) {
+	s.endpointRepo = repo
 }
 
 // NewOpenAIGatewayService creates a new OpenAIGatewayService
@@ -1335,7 +1342,15 @@ func openAICompactSupportTier(account *Account) int {
 // isOpenAIAccountEligibleForRequest centralises the schedulable / OpenAI / model /
 // compact-support checks used during account selection.
 func isOpenAIAccountEligibleForRequest(account *Account, requestedModel string, requireCompact bool) bool {
-	if account == nil || !account.IsSchedulable() || !account.IsOpenAI() {
+	if account == nil || !account.IsSchedulable() {
+		return false
+	}
+	// 功能 25：generic 直通——支持全部模型，不参与 compact 专属路径。
+	// 端点存在性在 listSchedulableAccounts 阶段已过滤，转发时再解析。
+	if account.IsGeneric() {
+		return !requireCompact
+	}
+	if !account.IsOpenAI() {
 		return false
 	}
 	if requestedModel != "" && !account.IsModelSupported(requestedModel) {
@@ -1906,23 +1921,59 @@ func (s *OpenAIGatewayService) selectAccountWithLoadAwareness(ctx context.Contex
 }
 
 func (s *OpenAIGatewayService) listSchedulableAccounts(ctx context.Context, groupID *int64) ([]Account, error) {
-	if s.schedulerSnapshot != nil {
-		accounts, _, err := s.schedulerSnapshot.ListSchedulableAccounts(ctx, groupID, PlatformOpenAI, false)
-		return accounts, err
-	}
 	var accounts []Account
+	if s.schedulerSnapshot != nil {
+		snap, _, err := s.schedulerSnapshot.ListSchedulableAccounts(ctx, groupID, PlatformOpenAI, false)
+		if err != nil {
+			return nil, err
+		}
+		accounts = snap
+	} else {
+		var err error
+		if s.cfg != nil && s.cfg.RunMode == config.RunModeSimple {
+			accounts, err = s.accountRepo.ListSchedulableByPlatform(ctx, PlatformOpenAI)
+		} else if groupID != nil {
+			accounts, err = s.accountRepo.ListSchedulableByGroupIDAndPlatform(ctx, *groupID, PlatformOpenAI)
+		} else {
+			accounts, err = s.accountRepo.ListSchedulableUngroupedByPlatform(ctx, PlatformOpenAI)
+		}
+		if err != nil {
+			return nil, fmt.Errorf("query accounts failed: %w", err)
+		}
+	}
+	// 功能 25：并入 generic 渠道账号（具备 openai 协议端点者），复用既有打分/调度。
+	accounts = append(accounts, s.listGenericOpenAIAccounts(ctx, groupID)...)
+	return accounts, nil
+}
+
+// listGenericOpenAIAccounts 返回组内（或全局）具备 openai 协议健康端点的 generic 账号。
+// endpointRepo 未注入时返回空。N+1 查询可接受（generic 账号数量通常很少）。
+func (s *OpenAIGatewayService) listGenericOpenAIAccounts(ctx context.Context, groupID *int64) []Account {
+	if s.cfg == nil || !s.cfg.Gateway.Scheduling.GenericRuntimeEnabled {
+		return nil
+	}
+	if s.endpointRepo == nil || s.accountRepo == nil {
+		return nil
+	}
+	var generic []Account
 	var err error
 	if s.cfg != nil && s.cfg.RunMode == config.RunModeSimple {
-		accounts, err = s.accountRepo.ListSchedulableByPlatform(ctx, PlatformOpenAI)
+		generic, err = s.accountRepo.ListSchedulableByPlatform(ctx, PlatformGeneric)
 	} else if groupID != nil {
-		accounts, err = s.accountRepo.ListSchedulableByGroupIDAndPlatform(ctx, *groupID, PlatformOpenAI)
+		generic, err = s.accountRepo.ListSchedulableByGroupIDAndPlatform(ctx, *groupID, PlatformGeneric)
 	} else {
-		accounts, err = s.accountRepo.ListSchedulableUngroupedByPlatform(ctx, PlatformOpenAI)
+		generic, err = s.accountRepo.ListSchedulableUngroupedByPlatform(ctx, PlatformGeneric)
 	}
-	if err != nil {
-		return nil, fmt.Errorf("query accounts failed: %w", err)
+	if err != nil || len(generic) == 0 {
+		return nil
 	}
-	return accounts, nil
+	out := make([]Account, 0, len(generic))
+	for i := range generic {
+		if s.genericAccountHasOpenAIEndpoint(ctx, &generic[i]) {
+			out = append(out, generic[i])
+		}
+	}
+	return out
 }
 
 func (s *OpenAIGatewayService) tryAcquireAccountSlot(ctx context.Context, accountID int64, maxConcurrency int) (*AcquireResult, error) {
@@ -2063,6 +2114,14 @@ func (s *OpenAIGatewayService) GetAccessToken(ctx context.Context, account *Acco
 		}
 		return accessToken, "oauth", nil
 	case AccountTypeAPIKey:
+		// 功能 25：generic 渠道用账号级 key（端点共用），直通 openai 协议。
+		if account.IsGeneric() {
+			apiKey := account.GetGenericAPIKey()
+			if apiKey == "" {
+				return "", "", errors.New("api_key not found in generic credentials")
+			}
+			return apiKey, "apikey", nil
+		}
 		apiKey := account.GetOpenAIApiKey()
 		if apiKey == "" {
 			return "", "", errors.New("api_key not found in credentials")
@@ -3241,6 +3300,9 @@ func (s *OpenAIGatewayService) buildUpstreamRequestOpenAIPassthrough(
 		targetURL = chatgptCodexURL
 	case AccountTypeAPIKey:
 		baseURL := account.GetOpenAIBaseURL()
+		if account.IsGeneric() {
+			baseURL = s.genericOpenAIBaseURL(ctx, account) // 功能 25：generic 用端点 base_url
+		}
 		if baseURL != "" {
 			validatedURL, err := s.validateUpstreamBaseURL(baseURL)
 			if err != nil {
@@ -3959,6 +4021,9 @@ func (s *OpenAIGatewayService) buildUpstreamRequest(ctx context.Context, c *gin.
 	case AccountTypeAPIKey:
 		// API Key accounts use Platform API or custom base URL
 		baseURL := account.GetOpenAIBaseURL()
+		if account.IsGeneric() {
+			baseURL = s.genericOpenAIBaseURL(ctx, account) // 功能 25：generic 用端点 base_url
+		}
 		if baseURL == "" {
 			targetURL = openaiPlatformAPIURL
 		} else {
@@ -5581,6 +5646,13 @@ func (s *OpenAIGatewayService) RecordUsage(ctx context.Context, input *OpenAIRec
 		ImageOutputSize:     optionalTrimmedStringPtr(result.ImageOutputSize),
 		ImageSizeSource:     optionalTrimmedStringPtr(result.ImageSizeSource),
 		ImageSizeBreakdown:  result.ImageSizeBreakdown,
+	}
+	// 功能 25：generic 账号端点归因 — 再解析一次取 stable_id 写入快照（避免修改调用方签名）。
+	if account.IsGeneric() {
+		if ep := s.resolveGenericEndpoint(ctx, account, genericOpenAIChatProtocols); ep != nil {
+			stableID := ep.StableID
+			usageLog.EndpointID = &stableID
+		}
 	}
 	if cost != nil {
 		usageLog.InputCost = cost.InputCost

@@ -70,6 +70,13 @@ type AccountTestService struct {
 	httpUpstream              HTTPUpstream
 	cfg                       *config.Config
 	tlsFPProfileService       *TLSFingerprintProfileService
+
+	endpointRepo EndpointRepository // 功能 25：generic 账号测试逐端点探测
+}
+
+// SetEndpointRepository 注入 endpoint 仓库（Wire 完成后调用）。
+func (s *AccountTestService) SetEndpointRepository(repo EndpointRepository) {
+	s.endpointRepo = repo
 }
 
 // NewAccountTestService creates a new AccountTestService
@@ -192,7 +199,301 @@ func (s *AccountTestService) TestAccountConnection(c *gin.Context, accountID int
 		return s.routeAntigravityTest(c, account, modelID, prompt)
 	}
 
+	if account.IsGeneric() {
+		return s.testGenericAccountConnection(c, account, modelID, prompt)
+	}
+
 	return s.testClaudeAccountConnection(c, account, modelID)
+}
+
+// testGenericAccountConnection 测试通用渠道账号：找到 endpoint，按协议复用既有测试函数（openai 路径）
+// 或定制（anthropic/gemini，因既有函数硬编码 x-api-key / x-goog-api-key）。
+func (s *AccountTestService) testGenericAccountConnection(c *gin.Context, account *Account, modelID, prompt string) error {
+	ctx := c.Request.Context()
+
+	if s.endpointRepo == nil {
+		return s.sendErrorAndEnd(c, "Endpoint repository is not configured")
+	}
+	endpoints, err := s.endpointRepo.ListByAccountID(ctx, account.ID)
+	if err != nil {
+		return s.sendErrorAndEnd(c, "Failed to load endpoints: "+err.Error())
+	}
+	if len(endpoints) == 0 {
+		return s.sendErrorAndEnd(c, "No endpoints configured for this generic account")
+	}
+	if strings.TrimSpace(account.GetCredential("api_key")) == "" {
+		return s.sendErrorAndEnd(c, "Account api_key is empty")
+	}
+	testModel := strings.TrimSpace(modelID)
+	if testModel == "" {
+		return s.sendErrorAndEnd(c, "No model selected")
+	}
+	ep := findGenericEndpointForModel(endpoints, testModel)
+	if ep == nil {
+		return s.sendErrorAndEnd(c, fmt.Sprintf("No endpoint configured to support model %q; check supported_models 或端点 health", testModel))
+	}
+
+	// openai 协议族：克隆账号为 openai apikey + endpoint base_url，复用 testOpenAIAccountConnection
+	// （会路由到 testOpenAIChatCompletionsConnection，完整保留 SSE / model_mapping / 错误处理）。
+	if ep.OutboundProtocol == "openai_chat" || ep.OutboundProtocol == "openai_responses" {
+		clone := cloneAccountForGenericEndpoint(account, ep, PlatformOpenAI)
+		return s.testOpenAIAccountConnection(c, clone, testModel, prompt, AccountTestModeDefault)
+	}
+
+	// anthropic / gemini：既有 testClaude/testGemini 硬编码 x-api-key / x-goog-api-key，无法接 Bearer 中转。
+	// 这里走定制路径，按 endpoint.auth_header/scheme 发请求。
+	apiKey := account.GetCredential("api_key")
+	testPrompt := strings.TrimSpace(prompt)
+	if testPrompt == "" {
+		testPrompt = "hi"
+	}
+	s.sendEvent(c, TestEvent{Type: "test_start", Model: testModel})
+	s.sendEvent(c, TestEvent{Type: "status", Text: fmt.Sprintf("使用端点 %s（%s）", ep.OutboundProtocol, ep.BaseURL)})
+
+	req, parseFunc, err := s.buildGenericTestRequest(ctx, ep, apiKey, testModel, testPrompt)
+	if err != nil {
+		return s.sendErrorAndEnd(c, "Build request failed: "+err.Error())
+	}
+	proxyURL := ""
+	if account.ProxyID != nil && account.Proxy != nil {
+		proxyURL = account.Proxy.URL()
+	}
+	resp, err := s.httpUpstream.DoWithTLS(req, proxyURL, account.ID, account.Concurrency, nil)
+	if err != nil {
+		return s.sendErrorAndEnd(c, "Request failed: "+err.Error())
+	}
+	defer func() { _ = resp.Body.Close() }()
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 64<<10))
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return s.sendErrorAndEnd(c, fmt.Sprintf("Upstream HTTP %d: %s", resp.StatusCode, string(body)))
+	}
+	text := parseFunc(body)
+	if text == "" {
+		text = "(响应为空)"
+	}
+	s.sendEvent(c, TestEvent{Type: "content", Text: text})
+	s.sendEvent(c, TestEvent{Type: "test_complete", Success: true})
+	return nil
+}
+
+// cloneAccountForGenericEndpoint 克隆 generic 账号，让它"看起来像"目标 platform 的 apikey 账号：
+// platform 改写、credentials.base_url 注入端点 base_url（既有 GetXxxBaseURL 会读这个）。
+// 同时按 endpoint.outbound_protocol 在 Extra 注入"强制路由模式"（避免既有 OpenAI 测试因 Extra 缺
+// 探测标记而默认走 Responses API，对 newapi/maas 类只支持 chat/completions 的中转上游会 404）。
+// 用于复用既有 testOpenAIAccountConnection 等单平台测试函数。
+func cloneAccountForGenericEndpoint(orig *Account, ep *DBEndpoint, platform string) *Account {
+	clone := *orig
+	clone.Platform = platform
+	creds := make(map[string]any, len(orig.Credentials)+1)
+	for k, v := range orig.Credentials {
+		creds[k] = v
+	}
+	creds["base_url"] = ep.BaseURL
+	clone.Credentials = creds
+
+	extra := make(map[string]any, len(orig.Extra)+1)
+	for k, v := range orig.Extra {
+		extra[k] = v
+	}
+	switch ep.OutboundProtocol {
+	case "openai_chat":
+		extra[openai_compat.ExtraKeyResponsesMode] = string(openai_compat.ResponsesSupportModeForceChatCompletions)
+	case "openai_responses":
+		extra[openai_compat.ExtraKeyResponsesMode] = string(openai_compat.ResponsesSupportModeForceResponses)
+	}
+	clone.Extra = extra
+	return &clone
+}
+
+// findGenericEndpointForModel 找匹配 model 的健康端点；都未配置 supported_models 时回退首个 healthy。
+func findGenericEndpointForModel(eps []*DBEndpoint, model string) *DBEndpoint {
+	var fallback *DBEndpoint
+	for _, ep := range eps {
+		if ep.Health != EndpointHealthHealthy {
+			continue
+		}
+		for _, m := range ep.SupportedModels {
+			if strings.TrimSpace(m) == model {
+				return ep
+			}
+		}
+		if fallback == nil && len(ep.SupportedModels) == 0 {
+			fallback = ep
+		}
+	}
+	return fallback
+}
+
+// buildGenericTestRequest 按 endpoint.outbound_protocol 构造测试请求 + 响应解析函数。
+func (s *AccountTestService) buildGenericTestRequest(ctx context.Context, ep *DBEndpoint, apiKey, model, prompt string) (*http.Request, func([]byte) string, error) {
+	base := strings.TrimRight(ep.BaseURL, "/")
+
+	type oaMsg struct {
+		Role    string `json:"role"`
+		Content string `json:"content"`
+	}
+	type oaChatReq struct {
+		Model     string  `json:"model"`
+		Messages  []oaMsg `json:"messages"`
+		MaxTokens int     `json:"max_tokens,omitempty"`
+		Stream    bool    `json:"stream"`
+	}
+	type oaRespReq struct {
+		Model string `json:"model"`
+		Input string `json:"input"`
+	}
+	type antMsg struct {
+		Role    string `json:"role"`
+		Content string `json:"content"`
+	}
+	type antReq struct {
+		Model     string   `json:"model"`
+		MaxTokens int      `json:"max_tokens"`
+		Messages  []antMsg `json:"messages"`
+	}
+	type gemPart struct {
+		Text string `json:"text"`
+	}
+	type gemContent struct {
+		Role  string    `json:"role"`
+		Parts []gemPart `json:"parts"`
+	}
+	type gemReq struct {
+		Contents []gemContent `json:"contents"`
+	}
+
+	var (
+		url        string
+		bodyBytes  []byte
+		parseFunc  func([]byte) string
+		extraHdrs  map[string]string
+		marshalErr error
+	)
+
+	switch ep.OutboundProtocol {
+	case "openai_chat":
+		url = base + "/v1/chat/completions"
+		bodyBytes, marshalErr = json.Marshal(oaChatReq{
+			Model:     model,
+			Messages:  []oaMsg{{Role: "user", Content: prompt}},
+			MaxTokens: 32,
+		})
+		parseFunc = parseGenericOpenAIChatResponse
+	case "openai_responses":
+		url = base + "/v1/responses"
+		bodyBytes, marshalErr = json.Marshal(oaRespReq{Model: model, Input: prompt})
+		parseFunc = parseGenericOpenAIResponsesResponse
+	case "anthropic_messages":
+		url = base + "/v1/messages"
+		bodyBytes, marshalErr = json.Marshal(antReq{
+			Model:     model,
+			MaxTokens: 32,
+			Messages:  []antMsg{{Role: "user", Content: prompt}},
+		})
+		extraHdrs = map[string]string{"anthropic-version": "2023-06-01"}
+		parseFunc = parseGenericAnthropicResponse
+	case "gemini_v1beta":
+		url = fmt.Sprintf("%s/v1beta/models/%s:generateContent", base, model)
+		bodyBytes, marshalErr = json.Marshal(gemReq{
+			Contents: []gemContent{{Role: "user", Parts: []gemPart{{Text: prompt}}}},
+		})
+		parseFunc = parseGenericGeminiResponse
+	default:
+		return nil, nil, fmt.Errorf("unsupported outbound_protocol: %s", ep.OutboundProtocol)
+	}
+	if marshalErr != nil {
+		return nil, nil, fmt.Errorf("marshal test request: %w", marshalErr)
+	}
+
+	if _, err := s.validateUpstreamBaseURL(ep.BaseURL); err != nil {
+		return nil, nil, fmt.Errorf("invalid base_url: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	hdr := strings.TrimSpace(ep.AuthHeader)
+	if hdr == "" {
+		hdr = "Authorization"
+	}
+	scheme := strings.TrimSpace(ep.AuthScheme)
+	if strings.EqualFold(hdr, "Authorization") && scheme == "" {
+		scheme = "Bearer"
+	}
+	authValue := apiKey
+	if scheme != "" {
+		authValue = scheme + " " + apiKey
+	}
+	req.Header.Set(hdr, authValue)
+	for k, v := range extraHdrs {
+		req.Header.Set(k, v)
+	}
+	return req, parseFunc, nil
+}
+
+func parseGenericOpenAIChatResponse(body []byte) string {
+	var r struct {
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
+	}
+	if err := json.Unmarshal(body, &r); err != nil || len(r.Choices) == 0 {
+		return ""
+	}
+	return r.Choices[0].Message.Content
+}
+
+func parseGenericOpenAIResponsesResponse(body []byte) string {
+	var r struct {
+		OutputText string `json:"output_text"`
+		Output     []struct {
+			Content []struct {
+				Text string `json:"text"`
+			} `json:"content"`
+		} `json:"output"`
+	}
+	if err := json.Unmarshal(body, &r); err != nil {
+		return ""
+	}
+	if r.OutputText != "" {
+		return r.OutputText
+	}
+	if len(r.Output) > 0 && len(r.Output[0].Content) > 0 {
+		return r.Output[0].Content[0].Text
+	}
+	return ""
+}
+
+func parseGenericAnthropicResponse(body []byte) string {
+	var r struct {
+		Content []struct {
+			Text string `json:"text"`
+		} `json:"content"`
+	}
+	if err := json.Unmarshal(body, &r); err != nil || len(r.Content) == 0 {
+		return ""
+	}
+	return r.Content[0].Text
+}
+
+func parseGenericGeminiResponse(body []byte) string {
+	var r struct {
+		Candidates []struct {
+			Content struct {
+				Parts []struct {
+					Text string `json:"text"`
+				} `json:"parts"`
+			} `json:"content"`
+		} `json:"candidates"`
+	}
+	if err := json.Unmarshal(body, &r); err != nil || len(r.Candidates) == 0 || len(r.Candidates[0].Content.Parts) == 0 {
+		return ""
+	}
+	return r.Candidates[0].Content.Parts[0].Text
 }
 
 // testClaudeAccountConnection tests an Anthropic Claude account's connection

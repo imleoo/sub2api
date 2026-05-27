@@ -26,6 +26,7 @@ type UsageHandler struct {
 	testResultRepo service.ScheduledTestResultRepository
 	groupRepo      service.GroupRepository
 	accountRepo    service.AccountRepository
+	endpointRepo   service.EndpointRepository // 功能 25：generic 账号端点查询
 }
 
 // NewUsageHandler creates a new UsageHandler
@@ -36,6 +37,7 @@ func NewUsageHandler(
 	testResultRepo service.ScheduledTestResultRepository,
 	groupRepo service.GroupRepository,
 	accountRepo service.AccountRepository,
+	endpointRepo service.EndpointRepository,
 ) *UsageHandler {
 	return &UsageHandler{
 		usageService:   usageService,
@@ -44,6 +46,7 @@ func NewUsageHandler(
 		testResultRepo: testResultRepo,
 		groupRepo:      groupRepo,
 		accountRepo:    accountRepo,
+		endpointRepo:   endpointRepo,
 	}
 }
 
@@ -608,6 +611,20 @@ func (h *UsageHandler) collectWhitelistedModelsForAccounts(ctx context.Context, 
 	allowed := make(map[string]service.ModelInfo)
 	for _, account := range accounts {
 		if account == nil || !account.IsActive() {
+			continue
+		}
+		// 功能 25：generic 账号取各 endpoint 的 supported_models 并集（identity 映射）。
+		if account.Platform == service.PlatformGeneric && h.endpointRepo != nil {
+			eps, _ := h.endpointRepo.ListByAccountID(ctx, account.ID)
+			for _, ep := range eps {
+				for _, m := range ep.SupportedModels {
+					m = strings.TrimSpace(m)
+					if m == "" {
+						continue
+					}
+					addWhitelistedModel(allowed, modelsByID, m, m)
+				}
+			}
 			continue
 		}
 		for modelID, mappedModelID := range configuredModelWhitelist(account) {

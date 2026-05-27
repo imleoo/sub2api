@@ -988,6 +988,19 @@ func (a *Account) IsOpenAIOAuth() bool {
 	return a.IsOpenAI() && a.Type == AccountTypeOAuth
 }
 
+// IsGeneric 报告账号是否为通用渠道（多协议 endpoint，账号级单 key）。
+func (a *Account) IsGeneric() bool {
+	return a.Platform == PlatformGeneric
+}
+
+// GetGenericAPIKey 返回 generic 账号的账号级 API Key（所有 endpoint 共用）。
+func (a *Account) GetGenericAPIKey() string {
+	if !a.IsGeneric() {
+		return ""
+	}
+	return a.GetCredential("api_key")
+}
+
 func (a *Account) IsOpenAIApiKey() bool {
 	return a.IsOpenAI() && a.Type == AccountTypeAPIKey
 }

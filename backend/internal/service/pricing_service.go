@@ -351,6 +351,12 @@ func (s *PricingService) migrateOldDiscounts(ctx context.Context) {
 	}
 }
 
+// ReloadFromDB 触发一次 DB → 内存映射的同步刷新，供同步类 handler 写完后调用，
+// 让新增的模型（如 generic 同步入库的国产模型）立即在 ListAllModels / 模型广场可见。
+func (s *PricingService) ReloadFromDB(ctx context.Context) {
+	s.loadPricingFromDB(ctx)
+}
+
 // loadPricingFromDB 从 DB 加载启用的记录，合并到内存 discounts 和 customPrices。
 func (s *PricingService) loadPricingFromDB(ctx context.Context) {
 	if s.modelPricingRepo == nil {
@@ -369,6 +375,7 @@ func (s *PricingService) loadPricingFromDB(ctx context.Context) {
 		s.customPrices = make(map[string]*DBModelPricing)
 	}
 
+	dbOnlyAdded := 0
 	for _, item := range items {
 		// 更新折扣率（DB 优先）
 		if item.DiscountRate != nil && *item.DiscountRate > 0 {
@@ -378,9 +385,38 @@ func (s *PricingService) loadPricingFromDB(ctx context.Context) {
 		if item.CustomInputCost != nil || item.CustomOutputCost != nil {
 			s.customPrices[item.ModelID] = item
 		}
+		// 功能 25：DB 里独有的模型（LiteLLM 远端没有的，如 generic 同步入库的国产模型）
+		// 也注入 pricingData，让 ListAllModels / 模型广场可见。
+		if _, exists := s.pricingData[item.ModelID]; !exists {
+			entry := &LiteLLMModelPricing{
+				LiteLLMProvider: item.Provider,
+				Mode:            item.Mode,
+			}
+			if item.InputCostPerToken != nil {
+				entry.InputCostPerToken = *item.InputCostPerToken
+			}
+			if item.OutputCostPerToken != nil {
+				entry.OutputCostPerToken = *item.OutputCostPerToken
+			}
+			if item.CacheCreationInputTokenCost != nil {
+				entry.CacheCreationInputTokenCost = *item.CacheCreationInputTokenCost
+			}
+			if item.CacheReadInputTokenCost != nil {
+				entry.CacheReadInputTokenCost = *item.CacheReadInputTokenCost
+			}
+			if item.OutputCostPerImage != nil {
+				entry.OutputCostPerImage = *item.OutputCostPerImage
+			}
+			if item.OutputCostPerImageToken != nil {
+				entry.OutputCostPerImageToken = *item.OutputCostPerImageToken
+			}
+			entry.SupportsPromptCaching = item.SupportsPromptCaching
+			s.pricingData[item.ModelID] = entry
+			dbOnlyAdded++
+		}
 	}
 
-	logger.LegacyPrintf("service.pricing", "[Pricing] Loaded %d records from DB into memory", len(items))
+	logger.LegacyPrintf("service.pricing", "[Pricing] Loaded %d records from DB into memory (%d DB-only models added)", len(items), dbOnlyAdded)
 }
 
 // GetDBModelPricing 返回指定模型的 DB 记录（含自定义价格），供 BillingService 使用。

@@ -585,6 +585,13 @@ type GatewayService struct {
 	tlsFPProfileService   *TLSFingerprintProfileService
 	balanceNotifyService  *BalanceNotifyService
 	upstreamCostResolver  *UpstreamCostResolver // Phase 0 P0-5：上游成本快照解析器（可空，flag=false 时不调用）
+
+	endpointRepo EndpointRepository // 功能 25：generic 渠道按 endpoint 解析转发目标
+}
+
+// SetEndpointRepository 注入 endpoint 仓库（Wire 完成后调用，用于 generic 渠道转发）。
+func (s *GatewayService) SetEndpointRepository(repo EndpointRepository) {
+	s.endpointRepo = repo
 }
 
 // NewGatewayService creates a new GatewayService
@@ -2274,7 +2281,20 @@ func (s *GatewayService) resolvePlatform(ctx context.Context, groupID *int64, gr
 	return PlatformAnthropic, false, nil
 }
 
+// listSchedulableAccounts 返回可调度账号；功能 25：在原结果基础上并入具备匹配协议
+// 端点的 generic 账号（flag 守卫，默认关闭，不影响现有流量）。
 func (s *GatewayService) listSchedulableAccounts(ctx context.Context, groupID *int64, platform string, hasForcePlatform bool) ([]Account, bool, error) {
+	accounts, useMixed, err := s.listSchedulableAccountsBase(ctx, groupID, platform, hasForcePlatform)
+	if err != nil {
+		return accounts, useMixed, err
+	}
+	if generic := s.listGenericAccountsForPlatform(ctx, groupID, platform); len(generic) > 0 {
+		accounts = append(accounts, generic...)
+	}
+	return accounts, useMixed, nil
+}
+
+func (s *GatewayService) listSchedulableAccountsBase(ctx context.Context, groupID *int64, platform string, hasForcePlatform bool) ([]Account, bool, error) {
 	if s.schedulerSnapshot != nil {
 		accounts, useMixed, err := s.schedulerSnapshot.ListSchedulableAccounts(ctx, groupID, platform, hasForcePlatform)
 		if err == nil {
@@ -4414,8 +4434,8 @@ func (s *GatewayService) Forward(ctx context.Context, c *gin.Context, account *A
 		}
 	}
 
-
-	if account != nil && account.IsAnthropicAPIKeyPassthroughEnabled() {
+	// 功能 25：generic 渠道 anthropic_messages 端点走 API Key 直通（flag 守卫）。
+	if account != nil && (account.IsAnthropicAPIKeyPassthroughEnabled() || (account.IsGeneric() && s.genericRuntimeEnabled())) {
 		passthroughBody := parsed.Body
 		passthroughModel := parsed.Model
 		if passthroughModel != "" {
@@ -5281,6 +5301,14 @@ func (s *GatewayService) buildUpstreamRequestAnthropicAPIKeyPassthrough(
 ) (*http.Request, error) {
 	targetURL := claudeAPIURL
 	baseURL := account.GetBaseURL()
+	// 功能 25：generic 账号解析端点一次，复用 base_url + auth_header/scheme（万界等中转用 Bearer，不是 x-api-key）。
+	var genericEP *DBEndpoint
+	if account.IsGeneric() {
+		genericEP = s.resolveGenericEndpointForPlatform(ctx, account, PlatformAnthropic)
+		if genericEP != nil {
+			baseURL = genericEP.BaseURL
+		}
+	}
 	if baseURL != "" {
 		validatedURL, err := s.validateUpstreamBaseURL(baseURL)
 		if err != nil {
@@ -5312,7 +5340,21 @@ func (s *GatewayService) buildUpstreamRequestAnthropicAPIKeyPassthrough(
 	req.Header.Del("x-api-key")
 	req.Header.Del("x-goog-api-key")
 	req.Header.Del("cookie")
-	setHeaderRaw(req.Header, "x-api-key", token)
+	if genericEP != nil {
+		// generic：按端点配置注入鉴权（auth_header 空回退 Authorization；scheme 空裸 key）。
+		hdr := strings.TrimSpace(genericEP.AuthHeader)
+		if hdr == "" {
+			hdr = "Authorization"
+		}
+		scheme := strings.TrimSpace(genericEP.AuthScheme)
+		authValue := token
+		if scheme != "" {
+			authValue = scheme + " " + token
+		}
+		setHeaderRaw(req.Header, hdr, authValue)
+	} else {
+		setHeaderRaw(req.Header, "x-api-key", token)
+	}
 
 	if getHeaderRaw(req.Header, "content-type") == "" {
 		setHeaderRaw(req.Header, "content-type", "application/json")
@@ -8761,6 +8803,18 @@ func (s *GatewayService) buildRecordUsageLog(
 ) *UsageLog {
 	durationMs := int(result.Duration.Milliseconds())
 	requestID := resolveUsageBillingRequestID(ctx, result.RequestID)
+	// 功能 25：generic 账号端点归因 — 按入站路径选 anthropic 或 gemini 协议族再解析端点。
+	var genericEndpointStableID *string
+	if account.IsGeneric() {
+		protocols := genericAnthropicProtocols
+		if strings.Contains(input.InboundEndpoint, "/v1beta/") {
+			protocols = genericGeminiProtocols
+		}
+		if ep := resolveGenericEndpointVia(ctx, s.endpointRepo, account, protocols); ep != nil {
+			sid := ep.StableID
+			genericEndpointStableID = &sid
+		}
+	}
 	usageLog := &UsageLog{
 		UserID:                user.ID,
 		APIKeyID:              apiKey.ID,
@@ -8783,6 +8837,7 @@ func (s *GatewayService) buildRecordUsageLog(
 		AccountRateMultiplier: &accountRateMultiplier,
 		BillingType:           billingType,
 		BillingMode:           resolveBillingMode(result, cost),
+		EndpointID:            genericEndpointStableID,
 		Stream:                result.Stream,
 		DurationMs:            &durationMs,
 		FirstTokenMs:          result.FirstTokenMs,

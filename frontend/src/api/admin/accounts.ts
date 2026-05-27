@@ -674,11 +674,41 @@ export async function setPrivacy(id: number): Promise<Account> {
   return data
 }
 
-const getAccountEndpoints = (id: number): Promise<AccountEndpoint[]> =>
-  apiClient.get(`/admin/accounts/${id}/endpoints`)
+async function getAccountEndpoints(id: number): Promise<AccountEndpoint[]> {
+  const { data } = await apiClient.get<AccountEndpoint[]>(`/admin/accounts/${id}/endpoints`)
+  return data ?? []
+}
 
-const updateAccountEndpoints = (id: number, endpoints: AccountEndpointInput[]): Promise<AccountEndpoint[]> =>
-  apiClient.put(`/admin/accounts/${id}/endpoints`, endpoints)
+async function updateAccountEndpoints(
+  id: number,
+  endpoints: AccountEndpointInput[]
+): Promise<AccountEndpoint[]> {
+  const { data } = await apiClient.put<AccountEndpoint[]>(`/admin/accounts/${id}/endpoints`, endpoints)
+  return data ?? []
+}
+
+export interface FetchEndpointModelsRequest {
+  base_url: string
+  api_key?: string
+  account_id?: number
+  auth_header?: string
+  auth_scheme?: string
+  provider?: string
+}
+
+async function fetchEndpointModels(
+  req: FetchEndpointModelsRequest
+): Promise<{ models: string[]; fetched: number; pricing_added: number }> {
+  const { data } = await apiClient.post<{ models: string[]; fetched: number; pricing_added: number }>(
+    '/admin/accounts/endpoints/fetch-models',
+    req
+  )
+  return {
+    models: data?.models ?? [],
+    fetched: data?.fetched ?? 0,
+    pricing_added: data?.pricing_added ?? 0,
+  }
+}
 
 export const accountsAPI = {
   list,
@@ -719,7 +749,8 @@ export const accountsAPI = {
   batchRefresh,
   setPrivacy,
   getAccountEndpoints,
-  updateAccountEndpoints
+  updateAccountEndpoints,
+  fetchEndpointModels
 }
 
 export default accountsAPI

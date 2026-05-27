@@ -13696,28 +13696,30 @@ func (m *ChannelMonitorRequestTemplateMutation) ResetEdge(name string) error {
 // EndpointMutation represents an operation that mutates the Endpoint nodes in the graph.
 type EndpointMutation struct {
 	config
-	op                 Op
-	typ                string
-	id                 *int64
-	stable_id          *string
-	outbound_protocol  *string
-	base_url           *string
-	auth_header        *string
-	auth_scheme        *string
-	models_source      *string
-	priority           *int
-	addpriority        *int
-	health             *string
-	capabilities       *[]string
-	appendcapabilities []string
-	created_at         *time.Time
-	updated_at         *time.Time
-	clearedFields      map[string]struct{}
-	account            *int64
-	clearedaccount     bool
-	done               bool
-	oldValue           func(context.Context) (*Endpoint, error)
-	predicates         []predicate.Endpoint
+	op                     Op
+	typ                    string
+	id                     *int64
+	stable_id              *string
+	outbound_protocol      *string
+	base_url               *string
+	auth_header            *string
+	auth_scheme            *string
+	models_source          *string
+	priority               *int
+	addpriority            *int
+	health                 *string
+	capabilities           *[]string
+	appendcapabilities     []string
+	supported_models       *[]string
+	appendsupported_models []string
+	created_at             *time.Time
+	updated_at             *time.Time
+	clearedFields          map[string]struct{}
+	account                *int64
+	clearedaccount         bool
+	done                   bool
+	oldValue               func(context.Context) (*Endpoint, error)
+	predicates             []predicate.Endpoint
 }
 
 var _ ent.Mutation = (*EndpointMutation)(nil)
@@ -14227,6 +14229,71 @@ func (m *EndpointMutation) ResetCapabilities() {
 	delete(m.clearedFields, endpoint.FieldCapabilities)
 }
 
+// SetSupportedModels sets the "supported_models" field.
+func (m *EndpointMutation) SetSupportedModels(s []string) {
+	m.supported_models = &s
+	m.appendsupported_models = nil
+}
+
+// SupportedModels returns the value of the "supported_models" field in the mutation.
+func (m *EndpointMutation) SupportedModels() (r []string, exists bool) {
+	v := m.supported_models
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSupportedModels returns the old "supported_models" field's value of the Endpoint entity.
+// If the Endpoint object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EndpointMutation) OldSupportedModels(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSupportedModels is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSupportedModels requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSupportedModels: %w", err)
+	}
+	return oldValue.SupportedModels, nil
+}
+
+// AppendSupportedModels adds s to the "supported_models" field.
+func (m *EndpointMutation) AppendSupportedModels(s []string) {
+	m.appendsupported_models = append(m.appendsupported_models, s...)
+}
+
+// AppendedSupportedModels returns the list of values that were appended to the "supported_models" field in this mutation.
+func (m *EndpointMutation) AppendedSupportedModels() ([]string, bool) {
+	if len(m.appendsupported_models) == 0 {
+		return nil, false
+	}
+	return m.appendsupported_models, true
+}
+
+// ClearSupportedModels clears the value of the "supported_models" field.
+func (m *EndpointMutation) ClearSupportedModels() {
+	m.supported_models = nil
+	m.appendsupported_models = nil
+	m.clearedFields[endpoint.FieldSupportedModels] = struct{}{}
+}
+
+// SupportedModelsCleared returns if the "supported_models" field was cleared in this mutation.
+func (m *EndpointMutation) SupportedModelsCleared() bool {
+	_, ok := m.clearedFields[endpoint.FieldSupportedModels]
+	return ok
+}
+
+// ResetSupportedModels resets all changes to the "supported_models" field.
+func (m *EndpointMutation) ResetSupportedModels() {
+	m.supported_models = nil
+	m.appendsupported_models = nil
+	delete(m.clearedFields, endpoint.FieldSupportedModels)
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *EndpointMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -14360,7 +14427,7 @@ func (m *EndpointMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *EndpointMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 13)
 	if m.account != nil {
 		fields = append(fields, endpoint.FieldAccountID)
 	}
@@ -14390,6 +14457,9 @@ func (m *EndpointMutation) Fields() []string {
 	}
 	if m.capabilities != nil {
 		fields = append(fields, endpoint.FieldCapabilities)
+	}
+	if m.supported_models != nil {
+		fields = append(fields, endpoint.FieldSupportedModels)
 	}
 	if m.created_at != nil {
 		fields = append(fields, endpoint.FieldCreatedAt)
@@ -14425,6 +14495,8 @@ func (m *EndpointMutation) Field(name string) (ent.Value, bool) {
 		return m.Health()
 	case endpoint.FieldCapabilities:
 		return m.Capabilities()
+	case endpoint.FieldSupportedModels:
+		return m.SupportedModels()
 	case endpoint.FieldCreatedAt:
 		return m.CreatedAt()
 	case endpoint.FieldUpdatedAt:
@@ -14458,6 +14530,8 @@ func (m *EndpointMutation) OldField(ctx context.Context, name string) (ent.Value
 		return m.OldHealth(ctx)
 	case endpoint.FieldCapabilities:
 		return m.OldCapabilities(ctx)
+	case endpoint.FieldSupportedModels:
+		return m.OldSupportedModels(ctx)
 	case endpoint.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case endpoint.FieldUpdatedAt:
@@ -14541,6 +14615,13 @@ func (m *EndpointMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetCapabilities(v)
 		return nil
+	case endpoint.FieldSupportedModels:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSupportedModels(v)
+		return nil
 	case endpoint.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -14603,6 +14684,9 @@ func (m *EndpointMutation) ClearedFields() []string {
 	if m.FieldCleared(endpoint.FieldCapabilities) {
 		fields = append(fields, endpoint.FieldCapabilities)
 	}
+	if m.FieldCleared(endpoint.FieldSupportedModels) {
+		fields = append(fields, endpoint.FieldSupportedModels)
+	}
 	return fields
 }
 
@@ -14619,6 +14703,9 @@ func (m *EndpointMutation) ClearField(name string) error {
 	switch name {
 	case endpoint.FieldCapabilities:
 		m.ClearCapabilities()
+		return nil
+	case endpoint.FieldSupportedModels:
+		m.ClearSupportedModels()
 		return nil
 	}
 	return fmt.Errorf("unknown Endpoint nullable field %s", name)
@@ -14657,6 +14744,9 @@ func (m *EndpointMutation) ResetField(name string) error {
 		return nil
 	case endpoint.FieldCapabilities:
 		m.ResetCapabilities()
+		return nil
+	case endpoint.FieldSupportedModels:
+		m.ResetSupportedModels()
 		return nil
 	case endpoint.FieldCreatedAt:
 		m.ResetCreatedAt()

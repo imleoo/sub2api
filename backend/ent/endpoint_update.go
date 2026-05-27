@@ -181,6 +181,24 @@ func (_u *EndpointUpdate) ClearCapabilities() *EndpointUpdate {
 	return _u
 }
 
+// SetSupportedModels sets the "supported_models" field.
+func (_u *EndpointUpdate) SetSupportedModels(v []string) *EndpointUpdate {
+	_u.mutation.SetSupportedModels(v)
+	return _u
+}
+
+// AppendSupportedModels appends value to the "supported_models" field.
+func (_u *EndpointUpdate) AppendSupportedModels(v []string) *EndpointUpdate {
+	_u.mutation.AppendSupportedModels(v)
+	return _u
+}
+
+// ClearSupportedModels clears the value of the "supported_models" field.
+func (_u *EndpointUpdate) ClearSupportedModels() *EndpointUpdate {
+	_u.mutation.ClearSupportedModels()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *EndpointUpdate) SetUpdatedAt(v time.Time) *EndpointUpdate {
 	_u.mutation.SetUpdatedAt(v)
@@ -330,6 +348,17 @@ func (_u *EndpointUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.CapabilitiesCleared() {
 		_spec.ClearField(endpoint.FieldCapabilities, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.SupportedModels(); ok {
+		_spec.SetField(endpoint.FieldSupportedModels, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedSupportedModels(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, endpoint.FieldSupportedModels, value)
+		})
+	}
+	if _u.mutation.SupportedModelsCleared() {
+		_spec.ClearField(endpoint.FieldSupportedModels, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(endpoint.FieldUpdatedAt, field.TypeTime, value)
@@ -534,6 +563,24 @@ func (_u *EndpointUpdateOne) ClearCapabilities() *EndpointUpdateOne {
 	return _u
 }
 
+// SetSupportedModels sets the "supported_models" field.
+func (_u *EndpointUpdateOne) SetSupportedModels(v []string) *EndpointUpdateOne {
+	_u.mutation.SetSupportedModels(v)
+	return _u
+}
+
+// AppendSupportedModels appends value to the "supported_models" field.
+func (_u *EndpointUpdateOne) AppendSupportedModels(v []string) *EndpointUpdateOne {
+	_u.mutation.AppendSupportedModels(v)
+	return _u
+}
+
+// ClearSupportedModels clears the value of the "supported_models" field.
+func (_u *EndpointUpdateOne) ClearSupportedModels() *EndpointUpdateOne {
+	_u.mutation.ClearSupportedModels()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *EndpointUpdateOne) SetUpdatedAt(v time.Time) *EndpointUpdateOne {
 	_u.mutation.SetUpdatedAt(v)
@@ -713,6 +760,17 @@ func (_u *EndpointUpdateOne) sqlSave(ctx context.Context) (_node *Endpoint, err 
 	}
 	if _u.mutation.CapabilitiesCleared() {
 		_spec.ClearField(endpoint.FieldCapabilities, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.SupportedModels(); ok {
+		_spec.SetField(endpoint.FieldSupportedModels, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedSupportedModels(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, endpoint.FieldSupportedModels, value)
+		})
+	}
+	if _u.mutation.SupportedModelsCleared() {
+		_spec.ClearField(endpoint.FieldSupportedModels, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(endpoint.FieldUpdatedAt, field.TypeTime, value)

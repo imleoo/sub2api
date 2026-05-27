@@ -50,6 +50,18 @@ type AccountHandler struct {
 	rpmCache              service.RPMCache
 	tokenCacheInvalidator service.TokenCacheInvalidator
 	endpointRepo          service.EndpointRepository
+	modelPricingRepo      service.ModelPricingRepository // 功能 25：端点拉取模型后顺便去重入库到折扣表
+	pricingService        *service.PricingService        // 写完入库后触发 pricingData 重载
+}
+
+// SetModelPricingRepository 注入模型定价仓库（Wire 完成后调用）。
+func (h *AccountHandler) SetModelPricingRepository(repo service.ModelPricingRepository) {
+	h.modelPricingRepo = repo
+}
+
+// SetPricingService 注入定价服务（Wire 完成后调用，用于同步后刷新内存映射）。
+func (h *AccountHandler) SetPricingService(ps *service.PricingService) {
+	h.pricingService = ps
 }
 
 // NewAccountHandler creates a new admin account handler
@@ -81,13 +93,14 @@ func NewAccountHandler(
 
 // AccountEndpointInput 表示创建/更新账号时提交的 endpoint 数据（platform=generic 专用）。
 type AccountEndpointInput struct {
-	StableID         string `json:"stable_id"`                                                                                    // 留空时由后端生成
-	OutboundProtocol string `json:"outbound_protocol" binding:"required"` // anthropic_messages | openai_chat | openai_responses | gemini_v1beta
-	BaseURL          string `json:"base_url" binding:"required"`
-	AuthHeader       string `json:"auth_header"`  // 默认 Authorization
-	AuthScheme       string `json:"auth_scheme"`  // 默认 Bearer
-	ModelsSource     string `json:"models_source"` // remote | manual | static_preset
-	Priority         int    `json:"priority"`
+	StableID         string   `json:"stable_id"`                                                                                    // 留空时由后端生成
+	OutboundProtocol string   `json:"outbound_protocol" binding:"required"` // anthropic_messages | openai_chat | openai_responses | gemini_v1beta
+	BaseURL          string   `json:"base_url" binding:"required"`
+	AuthHeader       string   `json:"auth_header"`  // 默认 Authorization
+	AuthScheme       string   `json:"auth_scheme"`  // 默认 Bearer
+	ModelsSource     string   `json:"models_source"` // remote | manual | static_preset
+	Priority         int      `json:"priority"`
+	SupportedModels  []string `json:"supported_models"` // 功能 25：该端点支持的模型 ID 列表；空=未配置
 }
 
 // CreateAccountRequest represents create account request
@@ -1670,6 +1683,34 @@ func (h *AccountHandler) SetSchedulable(c *gin.Context) {
 	response.Success(c, h.buildAccountResponseWithRuntime(c.Request.Context(), account))
 }
 
+// collectGenericSupportedModels 汇总 generic 账号下各 endpoint 的 supported_models，
+// 去重后以通用 model 结构返回；端点未配置时返回空列表。
+func (h *AccountHandler) collectGenericSupportedModels(ctx context.Context, accountID int64) []gin.H {
+	if h.endpointRepo == nil {
+		return []gin.H{}
+	}
+	eps, err := h.endpointRepo.ListByAccountID(ctx, accountID)
+	if err != nil || len(eps) == 0 {
+		return []gin.H{}
+	}
+	seen := make(map[string]struct{})
+	out := make([]gin.H, 0)
+	for _, ep := range eps {
+		for _, m := range ep.SupportedModels {
+			m = strings.TrimSpace(m)
+			if m == "" {
+				continue
+			}
+			if _, ok := seen[m]; ok {
+				continue
+			}
+			seen[m] = struct{}{}
+			out = append(out, gin.H{"id": m, "type": "model", "display_name": m})
+		}
+	}
+	return out
+}
+
 // GetAvailableModels handles getting available models for an account
 // GET /api/v1/admin/accounts/:id/models
 func (h *AccountHandler) GetAvailableModels(c *gin.Context) {
@@ -1682,6 +1723,14 @@ func (h *AccountHandler) GetAvailableModels(c *gin.Context) {
 	account, err := h.adminService.GetAccount(c.Request.Context(), accountID)
 	if err != nil {
 		response.NotFound(c, "Account not found")
+		return
+	}
+
+	// 功能 25：generic 账号汇总各 endpoint 的 supported_models 返回。
+	// 端点未配置 supported_models 时返回空列表（用户应在端点表单显式填入支持的模型）。
+	if account.Platform == service.PlatformGeneric {
+		models := h.collectGenericSupportedModels(c.Request.Context(), account.ID)
+		response.Success(c, models)
 		return
 	}
 
@@ -1980,6 +2029,107 @@ func (h *AccountHandler) UpdateAccountEndpoints(c *gin.Context) {
 }
 
 // endpointInputToDBEndpoint converts an AccountEndpointInput to a service.DBEndpoint.
+type fetchEndpointModelsRequest struct {
+	BaseURL    string `json:"base_url" binding:"required"`
+	APIKey     string `json:"api_key"`
+	AccountID  int64  `json:"account_id"`
+	AuthHeader string `json:"auth_header"`
+	AuthScheme string `json:"auth_scheme"`
+	Provider   string `json:"provider"` // 入折扣表时的 provider 标签；留空时按 account_id 取账号名，再回退 "generic"
+}
+
+// FetchEndpointModels 从指定 base_url+key 拉取上游 /v1/models 列表，仅返回模型 ID 数组。
+// 编辑场景下 api_key 留空 + 传 account_id，后端从已存账号凭证读取 key（避免要求重输密钥）。
+// POST /api/v1/admin/accounts/endpoints/fetch-models
+func (h *AccountHandler) FetchEndpointModels(c *gin.Context) {
+	if h.accountTestService == nil {
+		response.InternalError(c, "account test service is not configured")
+		return
+	}
+	var req fetchEndpointModelsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "invalid request: "+err.Error())
+		return
+	}
+
+	apiKey := strings.TrimSpace(req.APIKey)
+	if apiKey == "" && req.AccountID > 0 {
+		account, err := h.adminService.GetAccount(c.Request.Context(), req.AccountID)
+		if err != nil || account == nil {
+			response.BadRequest(c, "account not found")
+			return
+		}
+		apiKey = strings.TrimSpace(account.GetCredential("api_key"))
+	}
+	if apiKey == "" {
+		response.BadRequest(c, "api_key is required (or provide account_id to use saved key)")
+		return
+	}
+
+	models, err := h.accountTestService.FetchModelsByConfig(
+		c.Request.Context(),
+		strings.TrimSpace(req.BaseURL),
+		apiKey,
+		req.AuthHeader,
+		req.AuthScheme,
+		"",
+	)
+	if err != nil {
+		var syncErr *service.UpstreamModelSyncError
+		if errors.As(err, &syncErr) {
+			switch syncErr.Kind {
+			case service.UpstreamModelSyncErrorConfiguration, service.UpstreamModelSyncErrorUnsupported:
+				response.BadRequest(c, syncErr.SafeMessage())
+			default:
+				response.Error(c, http.StatusBadGateway, syncErr.SafeMessage())
+			}
+			return
+		}
+		response.Error(c, http.StatusBadGateway, "Failed to fetch models from upstream")
+		return
+	}
+	// 功能 25：顺便把拉取到的模型 SeedIfNotExists 进模型定价表（已存在的不覆盖、不修改价格）。
+	// provider 优先用账号名（区分多上游），无 account_id 时用请求里的 provider 或 fallback "generic"。
+	pricingAdded := 0
+	if h.modelPricingRepo != nil && len(models) > 0 {
+		provider := strings.TrimSpace(req.Provider)
+		if provider == "" && req.AccountID > 0 {
+			if acc, accErr := h.adminService.GetAccount(c.Request.Context(), req.AccountID); accErr == nil && acc != nil {
+				provider = strings.TrimSpace(acc.Name)
+			}
+		}
+		if provider == "" {
+			provider = "generic"
+		}
+		seeds := make([]*service.DBModelPricing, 0, len(models))
+		for _, m := range models {
+			m = strings.TrimSpace(m)
+			if m == "" {
+				continue
+			}
+			seeds = append(seeds, &service.DBModelPricing{
+				ModelID:   m,
+				Provider:  provider,
+				Mode:      "chat",
+				IsCustom:  true,
+				IsEnabled: true,
+			})
+		}
+		if err := h.modelPricingRepo.SeedIfNotExists(c.Request.Context(), seeds); err == nil {
+			pricingAdded = len(seeds) // SeedIfNotExists 不返回实际插入条数，按拉取条数上限给前端做提示
+			// 写完即刷新 pricingService 内存映射，让新模型在「模型广场」立即可见。
+			if h.pricingService != nil {
+				h.pricingService.ReloadFromDB(c.Request.Context())
+			}
+		}
+	}
+	response.Success(c, gin.H{
+		"models":        models,
+		"fetched":       len(models),
+		"pricing_added": pricingAdded,
+	})
+}
+
 func endpointInputToDBEndpoint(accountID int64, inp AccountEndpointInput) *service.DBEndpoint {
 	stableID := inp.StableID
 	if stableID == "" {
@@ -2011,5 +2161,6 @@ func endpointInputToDBEndpoint(accountID int64, inp AccountEndpointInput) *servi
 		ModelsSource:     modelsSource,
 		Priority:         priority,
 		Health:           "healthy",
+		SupportedModels:  inp.SupportedModels,
 	}
 }

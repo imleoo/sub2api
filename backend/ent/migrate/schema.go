@@ -609,6 +609,7 @@ var (
 		{Name: "priority", Type: field.TypeInt, Default: 100},
 		{Name: "health", Type: field.TypeString, Size: 20, Default: "healthy"},
 		{Name: "capabilities", Type: field.TypeJSON, Nullable: true},
+		{Name: "supported_models", Type: field.TypeJSON, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
 		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
 		{Name: "account_id", Type: field.TypeInt64},
@@ -621,7 +622,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "endpoints_accounts_endpoints",
-				Columns:    []*schema.Column{EndpointsColumns[12]},
+				Columns:    []*schema.Column{EndpointsColumns[13]},
 				RefColumns: []*schema.Column{AccountsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -630,12 +631,12 @@ var (
 			{
 				Name:    "endpoint_account_id",
 				Unique:  false,
-				Columns: []*schema.Column{EndpointsColumns[12]},
+				Columns: []*schema.Column{EndpointsColumns[13]},
 			},
 			{
 				Name:    "endpoint_account_id_stable_id",
 				Unique:  true,
-				Columns: []*schema.Column{EndpointsColumns[12], EndpointsColumns[1]},
+				Columns: []*schema.Column{EndpointsColumns[13], EndpointsColumns[1]},
 			},
 			{
 				Name:    "endpoint_outbound_protocol_health",

@@ -77,6 +77,14 @@ func (Endpoint) Fields() []ent.Field {
 		field.JSON("capabilities", []string{}).
 			Optional(),
 
+		// supported_models: JSON 数组，记录该 endpoint 实际支持转发的模型 ID 列表（功能 25）。
+		// 空数组表示未配置/支持全部；非空数组用于：
+		//   1) 用户侧 /v1/models 列表显示
+		//   2) 管理员 GetAvailableModels 返回真实可用模型
+		//   3) 运行时 IsModelSupported 校验（如调度时按模型过滤）
+		field.JSON("supported_models", []string{}).
+			Optional(),
+
 		// 时间戳
 		field.Time("created_at").
 			Immutable().

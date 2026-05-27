@@ -32,6 +32,8 @@ const (
 	FieldHealth = "health"
 	// FieldCapabilities holds the string denoting the capabilities field in the database.
 	FieldCapabilities = "capabilities"
+	// FieldSupportedModels holds the string denoting the supported_models field in the database.
+	FieldSupportedModels = "supported_models"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -62,6 +64,7 @@ var Columns = []string{
 	FieldPriority,
 	FieldHealth,
 	FieldCapabilities,
+	FieldSupportedModels,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }

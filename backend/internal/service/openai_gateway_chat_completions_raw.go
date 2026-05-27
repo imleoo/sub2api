@@ -115,11 +115,16 @@ func (s *OpenAIGatewayService) forwardAsRawChatCompletions(
 	)
 
 	// 5. Build upstream request
+	// 功能 25：generic 渠道用账号级 key + openai 端点 base_url（直通 chat/completions）。
 	apiKey := account.GetOpenAIApiKey()
+	baseURL := account.GetOpenAIBaseURL()
+	if account.IsGeneric() {
+		apiKey = account.GetGenericAPIKey()
+		baseURL = s.genericOpenAIBaseURL(ctx, account)
+	}
 	if apiKey == "" {
 		return nil, fmt.Errorf("account %d missing api_key", account.ID)
 	}
-	baseURL := account.GetOpenAIBaseURL()
 	if baseURL == "" {
 		baseURL = "https://api.openai.com"
 	}

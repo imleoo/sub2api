@@ -1065,6 +1065,12 @@ type GatewaySchedulingConfig struct {
 	//
 	// TODO(P5-6 rollback): 此字段及 platform 维度查询分支计划于 2026-Q3 删除。
 	ProtocolBucketEnabled bool `mapstructure:"protocol_bucket_enabled"`
+
+	// 功能 25: generic 渠道运行时转发开关（env: GATEWAY_SCHEDULING_GENERIC_RUNTIME_ENABLED）。
+	// 为 true 时网关账号选择会纳入具备匹配协议端点的 generic 账号并按 endpoint 直通转发。
+	// 默认 true（viper.SetDefault 设置）：作为快速回滚保险，万一 generic 转发出问题可设为 false 立即恢复旧行为。
+	// 由于此 flag 只影响 platform=generic 的账号，无 generic 账号时与改造前完全等价。
+	GenericRuntimeEnabled bool `mapstructure:"generic_runtime_enabled"`
 }
 
 func (s *ServerConfig) Address() string {
@@ -1869,6 +1875,8 @@ func setDefaults() {
 	viper.SetDefault("gateway.scheduling.outbox_lag_rebuild_failures", 3)
 	viper.SetDefault("gateway.scheduling.outbox_backlog_rebuild_rows", 10000)
 	viper.SetDefault("gateway.scheduling.full_rebuild_interval_seconds", 300)
+	// 功能 25：generic 渠道运行时转发默认开启；如需回滚设 GATEWAY_SCHEDULING_GENERIC_RUNTIME_ENABLED=false。
+	viper.SetDefault("gateway.scheduling.generic_runtime_enabled", true)
 	viper.SetDefault("gateway.usage_record.worker_count", 128)
 	viper.SetDefault("gateway.usage_record.queue_size", 16384)
 	viper.SetDefault("gateway.usage_record.task_timeout_seconds", 5)

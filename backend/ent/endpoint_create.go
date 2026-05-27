@@ -123,6 +123,12 @@ func (_c *EndpointCreate) SetCapabilities(v []string) *EndpointCreate {
 	return _c
 }
 
+// SetSupportedModels sets the "supported_models" field.
+func (_c *EndpointCreate) SetSupportedModels(v []string) *EndpointCreate {
+	_c.mutation.SetSupportedModels(v)
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *EndpointCreate) SetCreatedAt(v time.Time) *EndpointCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -333,6 +339,10 @@ func (_c *EndpointCreate) createSpec() (*Endpoint, *sqlgraph.CreateSpec) {
 		_spec.SetField(endpoint.FieldCapabilities, field.TypeJSON, value)
 		_node.Capabilities = value
 	}
+	if value, ok := _c.mutation.SupportedModels(); ok {
+		_spec.SetField(endpoint.FieldSupportedModels, field.TypeJSON, value)
+		_node.SupportedModels = value
+	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(endpoint.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -539,6 +549,24 @@ func (u *EndpointUpsert) UpdateCapabilities() *EndpointUpsert {
 // ClearCapabilities clears the value of the "capabilities" field.
 func (u *EndpointUpsert) ClearCapabilities() *EndpointUpsert {
 	u.SetNull(endpoint.FieldCapabilities)
+	return u
+}
+
+// SetSupportedModels sets the "supported_models" field.
+func (u *EndpointUpsert) SetSupportedModels(v []string) *EndpointUpsert {
+	u.Set(endpoint.FieldSupportedModels, v)
+	return u
+}
+
+// UpdateSupportedModels sets the "supported_models" field to the value that was provided on create.
+func (u *EndpointUpsert) UpdateSupportedModels() *EndpointUpsert {
+	u.SetExcluded(endpoint.FieldSupportedModels)
+	return u
+}
+
+// ClearSupportedModels clears the value of the "supported_models" field.
+func (u *EndpointUpsert) ClearSupportedModels() *EndpointUpsert {
+	u.SetNull(endpoint.FieldSupportedModels)
 	return u
 }
 
@@ -750,6 +778,27 @@ func (u *EndpointUpsertOne) UpdateCapabilities() *EndpointUpsertOne {
 func (u *EndpointUpsertOne) ClearCapabilities() *EndpointUpsertOne {
 	return u.Update(func(s *EndpointUpsert) {
 		s.ClearCapabilities()
+	})
+}
+
+// SetSupportedModels sets the "supported_models" field.
+func (u *EndpointUpsertOne) SetSupportedModels(v []string) *EndpointUpsertOne {
+	return u.Update(func(s *EndpointUpsert) {
+		s.SetSupportedModels(v)
+	})
+}
+
+// UpdateSupportedModels sets the "supported_models" field to the value that was provided on create.
+func (u *EndpointUpsertOne) UpdateSupportedModels() *EndpointUpsertOne {
+	return u.Update(func(s *EndpointUpsert) {
+		s.UpdateSupportedModels()
+	})
+}
+
+// ClearSupportedModels clears the value of the "supported_models" field.
+func (u *EndpointUpsertOne) ClearSupportedModels() *EndpointUpsertOne {
+	return u.Update(func(s *EndpointUpsert) {
+		s.ClearSupportedModels()
 	})
 }
 
@@ -1129,6 +1178,27 @@ func (u *EndpointUpsertBulk) UpdateCapabilities() *EndpointUpsertBulk {
 func (u *EndpointUpsertBulk) ClearCapabilities() *EndpointUpsertBulk {
 	return u.Update(func(s *EndpointUpsert) {
 		s.ClearCapabilities()
+	})
+}
+
+// SetSupportedModels sets the "supported_models" field.
+func (u *EndpointUpsertBulk) SetSupportedModels(v []string) *EndpointUpsertBulk {
+	return u.Update(func(s *EndpointUpsert) {
+		s.SetSupportedModels(v)
+	})
+}
+
+// UpdateSupportedModels sets the "supported_models" field to the value that was provided on create.
+func (u *EndpointUpsertBulk) UpdateSupportedModels() *EndpointUpsertBulk {
+	return u.Update(func(s *EndpointUpsert) {
+		s.UpdateSupportedModels()
+	})
+}
+
+// ClearSupportedModels clears the value of the "supported_models" field.
+func (u *EndpointUpsertBulk) ClearSupportedModels() *EndpointUpsertBulk {
+	return u.Update(func(s *EndpointUpsert) {
+		s.ClearSupportedModels()
 	})
 }
 

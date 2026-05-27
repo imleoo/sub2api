@@ -635,6 +635,16 @@ func CapabilitiesNotNil() predicate.Endpoint {
 	return predicate.Endpoint(sql.FieldNotNull(FieldCapabilities))
 }
 
+// SupportedModelsIsNil applies the IsNil predicate on the "supported_models" field.
+func SupportedModelsIsNil() predicate.Endpoint {
+	return predicate.Endpoint(sql.FieldIsNull(FieldSupportedModels))
+}
+
+// SupportedModelsNotNil applies the NotNil predicate on the "supported_models" field.
+func SupportedModelsNotNil() predicate.Endpoint {
+	return predicate.Endpoint(sql.FieldNotNull(FieldSupportedModels))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.Endpoint {
 	return predicate.Endpoint(sql.FieldEQ(FieldCreatedAt, v))
