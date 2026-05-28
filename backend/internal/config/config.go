@@ -548,6 +548,18 @@ type PricingConfig struct {
 	CNYRate float64 `mapstructure:"cny_rate"`
 	// 折扣配置文件路径
 	DiscountFile string `mapstructure:"discount_file"`
+
+	// SSOT PR-3：启动时把 fallbackPrices + 灵境共 20 条 seed 进 DB。默认 true。
+	BootstrapSeedEnabled bool `mapstructure:"bootstrap_seed_enabled"`
+	// SSOT PR-5：影子比对（V1 老路径 vs V2 catalog）。每次 GetModelPricing 都跑两遍并对账。
+	// 默认 true，PR-8 删除。
+	ShadowCompare bool `mapstructure:"shadow_compare"`
+	// SSOT PR-6：主计费路径切到 catalog（true）或回退老路径（false）。默认 true。
+	// 一键回退开关，PR-8 之后删除（届时只剩 catalog 路径）。
+	UseCatalogPath bool `mapstructure:"use_catalog_path"`
+	// SSOT PR-6：catalog miss 时是否允许回退到 fallbackPrices。
+	// 默认 true（灰度期保留兼容），PR-8 之后切为 false 并删除 fallbackPrices 实现。
+	LegacyFallbackEnabled bool `mapstructure:"legacy_fallback_enabled"`
 }
 
 type ServerConfig struct {
@@ -1720,6 +1732,10 @@ func setDefaults() {
 	viper.SetDefault("pricing.hash_check_interval_minutes", 10)
 	viper.SetDefault("pricing.cny_rate", 7)
 	viper.SetDefault("pricing.discount_file", "./data/model_discounts.json")
+	viper.SetDefault("pricing.bootstrap_seed_enabled", true)
+	viper.SetDefault("pricing.shadow_compare", true)
+	viper.SetDefault("pricing.use_catalog_path", true)
+	viper.SetDefault("pricing.legacy_fallback_enabled", true)
 
 	// Timezone (default to Asia/Shanghai for Chinese users)
 	viper.SetDefault("timezone", "Asia/Shanghai")

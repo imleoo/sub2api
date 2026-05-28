@@ -26,9 +26,43 @@ type DBModelPricing struct {
 	IsCustom                    bool
 	IsEnabled                   bool
 	LastSyncedAt                *time.Time
-	CreatedAt                   time.Time
-	UpdatedAt                   time.Time
+
+	// SSOT 重构 PR-1：扩展字段
+	InputCostPerTokenPriority       *float64
+	OutputCostPerTokenPriority      *float64
+	CacheReadInputTokenCostPriority *float64
+	CacheCreation5mTokenCost        *float64
+	CacheCreation1hTokenCost        *float64
+	SupportsCacheBreakdown          bool
+	ImageOutputPricePerToken        *float64
+	LongContextInputTokenThreshold  *int64
+	LongContextInputCostMultiplier  *float64
+	LongContextOutputCostMultiplier *float64
+	// SSOT 元数据
+	Source          string // litellm / upstream_sync / manual / bootstrap / lingjing
+	SourceProvider  string // upstream_sync 时记录账号 name
+	SourceAccountID *int64 // 触发入库的账号 id（仅 upstream_sync）
+	PricingStatus   string // priced / unpriced / disabled
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
+
+// Source 常量（用于 DBModelPricing.Source 字段）。
+const (
+	ModelPricingSourceLiteLLM      = "litellm"
+	ModelPricingSourceUpstreamSync = "upstream_sync"
+	ModelPricingSourceManual       = "manual"
+	ModelPricingSourceBootstrap    = "bootstrap"
+	ModelPricingSourceLingjing     = "lingjing"
+)
+
+// PricingStatus 常量。
+const (
+	ModelPricingStatusPriced   = "priced"
+	ModelPricingStatusUnpriced = "unpriced"
+	ModelPricingStatusDisabled = "disabled"
+)
 
 // ModelPricingListFilter 列表查询过滤条件
 type ModelPricingListFilter struct {

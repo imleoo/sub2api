@@ -109,6 +109,56 @@ func OutputCostPerImageToken(v float64) predicate.ModelPricing {
 	return predicate.ModelPricing(sql.FieldEQ(FieldOutputCostPerImageToken, v))
 }
 
+// InputCostPerTokenPriority applies equality check predicate on the "input_cost_per_token_priority" field. It's identical to InputCostPerTokenPriorityEQ.
+func InputCostPerTokenPriority(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldInputCostPerTokenPriority, v))
+}
+
+// OutputCostPerTokenPriority applies equality check predicate on the "output_cost_per_token_priority" field. It's identical to OutputCostPerTokenPriorityEQ.
+func OutputCostPerTokenPriority(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldOutputCostPerTokenPriority, v))
+}
+
+// CacheReadInputTokenCostPriority applies equality check predicate on the "cache_read_input_token_cost_priority" field. It's identical to CacheReadInputTokenCostPriorityEQ.
+func CacheReadInputTokenCostPriority(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldCacheReadInputTokenCostPriority, v))
+}
+
+// CacheCreation5mTokenCost applies equality check predicate on the "cache_creation_5m_token_cost" field. It's identical to CacheCreation5mTokenCostEQ.
+func CacheCreation5mTokenCost(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldCacheCreation5mTokenCost, v))
+}
+
+// CacheCreation1hTokenCost applies equality check predicate on the "cache_creation_1h_token_cost" field. It's identical to CacheCreation1hTokenCostEQ.
+func CacheCreation1hTokenCost(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldCacheCreation1hTokenCost, v))
+}
+
+// SupportsCacheBreakdown applies equality check predicate on the "supports_cache_breakdown" field. It's identical to SupportsCacheBreakdownEQ.
+func SupportsCacheBreakdown(v bool) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldSupportsCacheBreakdown, v))
+}
+
+// ImageOutputPricePerToken applies equality check predicate on the "image_output_price_per_token" field. It's identical to ImageOutputPricePerTokenEQ.
+func ImageOutputPricePerToken(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldImageOutputPricePerToken, v))
+}
+
+// LongContextInputTokenThreshold applies equality check predicate on the "long_context_input_token_threshold" field. It's identical to LongContextInputTokenThresholdEQ.
+func LongContextInputTokenThreshold(v int64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldLongContextInputTokenThreshold, v))
+}
+
+// LongContextInputCostMultiplier applies equality check predicate on the "long_context_input_cost_multiplier" field. It's identical to LongContextInputCostMultiplierEQ.
+func LongContextInputCostMultiplier(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldLongContextInputCostMultiplier, v))
+}
+
+// LongContextOutputCostMultiplier applies equality check predicate on the "long_context_output_cost_multiplier" field. It's identical to LongContextOutputCostMultiplierEQ.
+func LongContextOutputCostMultiplier(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldLongContextOutputCostMultiplier, v))
+}
+
 // SupportsPromptCaching applies equality check predicate on the "supports_prompt_caching" field. It's identical to SupportsPromptCachingEQ.
 func SupportsPromptCaching(v bool) predicate.ModelPricing {
 	return predicate.ModelPricing(sql.FieldEQ(FieldSupportsPromptCaching, v))
@@ -137,6 +187,26 @@ func IsCustom(v bool) predicate.ModelPricing {
 // IsEnabled applies equality check predicate on the "is_enabled" field. It's identical to IsEnabledEQ.
 func IsEnabled(v bool) predicate.ModelPricing {
 	return predicate.ModelPricing(sql.FieldEQ(FieldIsEnabled, v))
+}
+
+// Source applies equality check predicate on the "source" field. It's identical to SourceEQ.
+func Source(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldSource, v))
+}
+
+// SourceProvider applies equality check predicate on the "source_provider" field. It's identical to SourceProviderEQ.
+func SourceProvider(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldSourceProvider, v))
+}
+
+// SourceAccountID applies equality check predicate on the "source_account_id" field. It's identical to SourceAccountIDEQ.
+func SourceAccountID(v int64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldSourceAccountID, v))
+}
+
+// PricingStatus applies equality check predicate on the "pricing_status" field. It's identical to PricingStatusEQ.
+func PricingStatus(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldPricingStatus, v))
 }
 
 // LastSyncedAt applies equality check predicate on the "last_synced_at" field. It's identical to LastSyncedAtEQ.
@@ -799,6 +869,466 @@ func OutputCostPerImageTokenNotNil() predicate.ModelPricing {
 	return predicate.ModelPricing(sql.FieldNotNull(FieldOutputCostPerImageToken))
 }
 
+// InputCostPerTokenPriorityEQ applies the EQ predicate on the "input_cost_per_token_priority" field.
+func InputCostPerTokenPriorityEQ(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldInputCostPerTokenPriority, v))
+}
+
+// InputCostPerTokenPriorityNEQ applies the NEQ predicate on the "input_cost_per_token_priority" field.
+func InputCostPerTokenPriorityNEQ(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNEQ(FieldInputCostPerTokenPriority, v))
+}
+
+// InputCostPerTokenPriorityIn applies the In predicate on the "input_cost_per_token_priority" field.
+func InputCostPerTokenPriorityIn(vs ...float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIn(FieldInputCostPerTokenPriority, vs...))
+}
+
+// InputCostPerTokenPriorityNotIn applies the NotIn predicate on the "input_cost_per_token_priority" field.
+func InputCostPerTokenPriorityNotIn(vs ...float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotIn(FieldInputCostPerTokenPriority, vs...))
+}
+
+// InputCostPerTokenPriorityGT applies the GT predicate on the "input_cost_per_token_priority" field.
+func InputCostPerTokenPriorityGT(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGT(FieldInputCostPerTokenPriority, v))
+}
+
+// InputCostPerTokenPriorityGTE applies the GTE predicate on the "input_cost_per_token_priority" field.
+func InputCostPerTokenPriorityGTE(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGTE(FieldInputCostPerTokenPriority, v))
+}
+
+// InputCostPerTokenPriorityLT applies the LT predicate on the "input_cost_per_token_priority" field.
+func InputCostPerTokenPriorityLT(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLT(FieldInputCostPerTokenPriority, v))
+}
+
+// InputCostPerTokenPriorityLTE applies the LTE predicate on the "input_cost_per_token_priority" field.
+func InputCostPerTokenPriorityLTE(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLTE(FieldInputCostPerTokenPriority, v))
+}
+
+// InputCostPerTokenPriorityIsNil applies the IsNil predicate on the "input_cost_per_token_priority" field.
+func InputCostPerTokenPriorityIsNil() predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIsNull(FieldInputCostPerTokenPriority))
+}
+
+// InputCostPerTokenPriorityNotNil applies the NotNil predicate on the "input_cost_per_token_priority" field.
+func InputCostPerTokenPriorityNotNil() predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotNull(FieldInputCostPerTokenPriority))
+}
+
+// OutputCostPerTokenPriorityEQ applies the EQ predicate on the "output_cost_per_token_priority" field.
+func OutputCostPerTokenPriorityEQ(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldOutputCostPerTokenPriority, v))
+}
+
+// OutputCostPerTokenPriorityNEQ applies the NEQ predicate on the "output_cost_per_token_priority" field.
+func OutputCostPerTokenPriorityNEQ(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNEQ(FieldOutputCostPerTokenPriority, v))
+}
+
+// OutputCostPerTokenPriorityIn applies the In predicate on the "output_cost_per_token_priority" field.
+func OutputCostPerTokenPriorityIn(vs ...float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIn(FieldOutputCostPerTokenPriority, vs...))
+}
+
+// OutputCostPerTokenPriorityNotIn applies the NotIn predicate on the "output_cost_per_token_priority" field.
+func OutputCostPerTokenPriorityNotIn(vs ...float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotIn(FieldOutputCostPerTokenPriority, vs...))
+}
+
+// OutputCostPerTokenPriorityGT applies the GT predicate on the "output_cost_per_token_priority" field.
+func OutputCostPerTokenPriorityGT(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGT(FieldOutputCostPerTokenPriority, v))
+}
+
+// OutputCostPerTokenPriorityGTE applies the GTE predicate on the "output_cost_per_token_priority" field.
+func OutputCostPerTokenPriorityGTE(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGTE(FieldOutputCostPerTokenPriority, v))
+}
+
+// OutputCostPerTokenPriorityLT applies the LT predicate on the "output_cost_per_token_priority" field.
+func OutputCostPerTokenPriorityLT(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLT(FieldOutputCostPerTokenPriority, v))
+}
+
+// OutputCostPerTokenPriorityLTE applies the LTE predicate on the "output_cost_per_token_priority" field.
+func OutputCostPerTokenPriorityLTE(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLTE(FieldOutputCostPerTokenPriority, v))
+}
+
+// OutputCostPerTokenPriorityIsNil applies the IsNil predicate on the "output_cost_per_token_priority" field.
+func OutputCostPerTokenPriorityIsNil() predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIsNull(FieldOutputCostPerTokenPriority))
+}
+
+// OutputCostPerTokenPriorityNotNil applies the NotNil predicate on the "output_cost_per_token_priority" field.
+func OutputCostPerTokenPriorityNotNil() predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotNull(FieldOutputCostPerTokenPriority))
+}
+
+// CacheReadInputTokenCostPriorityEQ applies the EQ predicate on the "cache_read_input_token_cost_priority" field.
+func CacheReadInputTokenCostPriorityEQ(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldCacheReadInputTokenCostPriority, v))
+}
+
+// CacheReadInputTokenCostPriorityNEQ applies the NEQ predicate on the "cache_read_input_token_cost_priority" field.
+func CacheReadInputTokenCostPriorityNEQ(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNEQ(FieldCacheReadInputTokenCostPriority, v))
+}
+
+// CacheReadInputTokenCostPriorityIn applies the In predicate on the "cache_read_input_token_cost_priority" field.
+func CacheReadInputTokenCostPriorityIn(vs ...float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIn(FieldCacheReadInputTokenCostPriority, vs...))
+}
+
+// CacheReadInputTokenCostPriorityNotIn applies the NotIn predicate on the "cache_read_input_token_cost_priority" field.
+func CacheReadInputTokenCostPriorityNotIn(vs ...float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotIn(FieldCacheReadInputTokenCostPriority, vs...))
+}
+
+// CacheReadInputTokenCostPriorityGT applies the GT predicate on the "cache_read_input_token_cost_priority" field.
+func CacheReadInputTokenCostPriorityGT(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGT(FieldCacheReadInputTokenCostPriority, v))
+}
+
+// CacheReadInputTokenCostPriorityGTE applies the GTE predicate on the "cache_read_input_token_cost_priority" field.
+func CacheReadInputTokenCostPriorityGTE(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGTE(FieldCacheReadInputTokenCostPriority, v))
+}
+
+// CacheReadInputTokenCostPriorityLT applies the LT predicate on the "cache_read_input_token_cost_priority" field.
+func CacheReadInputTokenCostPriorityLT(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLT(FieldCacheReadInputTokenCostPriority, v))
+}
+
+// CacheReadInputTokenCostPriorityLTE applies the LTE predicate on the "cache_read_input_token_cost_priority" field.
+func CacheReadInputTokenCostPriorityLTE(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLTE(FieldCacheReadInputTokenCostPriority, v))
+}
+
+// CacheReadInputTokenCostPriorityIsNil applies the IsNil predicate on the "cache_read_input_token_cost_priority" field.
+func CacheReadInputTokenCostPriorityIsNil() predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIsNull(FieldCacheReadInputTokenCostPriority))
+}
+
+// CacheReadInputTokenCostPriorityNotNil applies the NotNil predicate on the "cache_read_input_token_cost_priority" field.
+func CacheReadInputTokenCostPriorityNotNil() predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotNull(FieldCacheReadInputTokenCostPriority))
+}
+
+// CacheCreation5mTokenCostEQ applies the EQ predicate on the "cache_creation_5m_token_cost" field.
+func CacheCreation5mTokenCostEQ(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldCacheCreation5mTokenCost, v))
+}
+
+// CacheCreation5mTokenCostNEQ applies the NEQ predicate on the "cache_creation_5m_token_cost" field.
+func CacheCreation5mTokenCostNEQ(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNEQ(FieldCacheCreation5mTokenCost, v))
+}
+
+// CacheCreation5mTokenCostIn applies the In predicate on the "cache_creation_5m_token_cost" field.
+func CacheCreation5mTokenCostIn(vs ...float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIn(FieldCacheCreation5mTokenCost, vs...))
+}
+
+// CacheCreation5mTokenCostNotIn applies the NotIn predicate on the "cache_creation_5m_token_cost" field.
+func CacheCreation5mTokenCostNotIn(vs ...float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotIn(FieldCacheCreation5mTokenCost, vs...))
+}
+
+// CacheCreation5mTokenCostGT applies the GT predicate on the "cache_creation_5m_token_cost" field.
+func CacheCreation5mTokenCostGT(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGT(FieldCacheCreation5mTokenCost, v))
+}
+
+// CacheCreation5mTokenCostGTE applies the GTE predicate on the "cache_creation_5m_token_cost" field.
+func CacheCreation5mTokenCostGTE(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGTE(FieldCacheCreation5mTokenCost, v))
+}
+
+// CacheCreation5mTokenCostLT applies the LT predicate on the "cache_creation_5m_token_cost" field.
+func CacheCreation5mTokenCostLT(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLT(FieldCacheCreation5mTokenCost, v))
+}
+
+// CacheCreation5mTokenCostLTE applies the LTE predicate on the "cache_creation_5m_token_cost" field.
+func CacheCreation5mTokenCostLTE(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLTE(FieldCacheCreation5mTokenCost, v))
+}
+
+// CacheCreation5mTokenCostIsNil applies the IsNil predicate on the "cache_creation_5m_token_cost" field.
+func CacheCreation5mTokenCostIsNil() predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIsNull(FieldCacheCreation5mTokenCost))
+}
+
+// CacheCreation5mTokenCostNotNil applies the NotNil predicate on the "cache_creation_5m_token_cost" field.
+func CacheCreation5mTokenCostNotNil() predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotNull(FieldCacheCreation5mTokenCost))
+}
+
+// CacheCreation1hTokenCostEQ applies the EQ predicate on the "cache_creation_1h_token_cost" field.
+func CacheCreation1hTokenCostEQ(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldCacheCreation1hTokenCost, v))
+}
+
+// CacheCreation1hTokenCostNEQ applies the NEQ predicate on the "cache_creation_1h_token_cost" field.
+func CacheCreation1hTokenCostNEQ(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNEQ(FieldCacheCreation1hTokenCost, v))
+}
+
+// CacheCreation1hTokenCostIn applies the In predicate on the "cache_creation_1h_token_cost" field.
+func CacheCreation1hTokenCostIn(vs ...float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIn(FieldCacheCreation1hTokenCost, vs...))
+}
+
+// CacheCreation1hTokenCostNotIn applies the NotIn predicate on the "cache_creation_1h_token_cost" field.
+func CacheCreation1hTokenCostNotIn(vs ...float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotIn(FieldCacheCreation1hTokenCost, vs...))
+}
+
+// CacheCreation1hTokenCostGT applies the GT predicate on the "cache_creation_1h_token_cost" field.
+func CacheCreation1hTokenCostGT(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGT(FieldCacheCreation1hTokenCost, v))
+}
+
+// CacheCreation1hTokenCostGTE applies the GTE predicate on the "cache_creation_1h_token_cost" field.
+func CacheCreation1hTokenCostGTE(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGTE(FieldCacheCreation1hTokenCost, v))
+}
+
+// CacheCreation1hTokenCostLT applies the LT predicate on the "cache_creation_1h_token_cost" field.
+func CacheCreation1hTokenCostLT(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLT(FieldCacheCreation1hTokenCost, v))
+}
+
+// CacheCreation1hTokenCostLTE applies the LTE predicate on the "cache_creation_1h_token_cost" field.
+func CacheCreation1hTokenCostLTE(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLTE(FieldCacheCreation1hTokenCost, v))
+}
+
+// CacheCreation1hTokenCostIsNil applies the IsNil predicate on the "cache_creation_1h_token_cost" field.
+func CacheCreation1hTokenCostIsNil() predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIsNull(FieldCacheCreation1hTokenCost))
+}
+
+// CacheCreation1hTokenCostNotNil applies the NotNil predicate on the "cache_creation_1h_token_cost" field.
+func CacheCreation1hTokenCostNotNil() predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotNull(FieldCacheCreation1hTokenCost))
+}
+
+// SupportsCacheBreakdownEQ applies the EQ predicate on the "supports_cache_breakdown" field.
+func SupportsCacheBreakdownEQ(v bool) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldSupportsCacheBreakdown, v))
+}
+
+// SupportsCacheBreakdownNEQ applies the NEQ predicate on the "supports_cache_breakdown" field.
+func SupportsCacheBreakdownNEQ(v bool) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNEQ(FieldSupportsCacheBreakdown, v))
+}
+
+// ImageOutputPricePerTokenEQ applies the EQ predicate on the "image_output_price_per_token" field.
+func ImageOutputPricePerTokenEQ(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldImageOutputPricePerToken, v))
+}
+
+// ImageOutputPricePerTokenNEQ applies the NEQ predicate on the "image_output_price_per_token" field.
+func ImageOutputPricePerTokenNEQ(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNEQ(FieldImageOutputPricePerToken, v))
+}
+
+// ImageOutputPricePerTokenIn applies the In predicate on the "image_output_price_per_token" field.
+func ImageOutputPricePerTokenIn(vs ...float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIn(FieldImageOutputPricePerToken, vs...))
+}
+
+// ImageOutputPricePerTokenNotIn applies the NotIn predicate on the "image_output_price_per_token" field.
+func ImageOutputPricePerTokenNotIn(vs ...float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotIn(FieldImageOutputPricePerToken, vs...))
+}
+
+// ImageOutputPricePerTokenGT applies the GT predicate on the "image_output_price_per_token" field.
+func ImageOutputPricePerTokenGT(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGT(FieldImageOutputPricePerToken, v))
+}
+
+// ImageOutputPricePerTokenGTE applies the GTE predicate on the "image_output_price_per_token" field.
+func ImageOutputPricePerTokenGTE(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGTE(FieldImageOutputPricePerToken, v))
+}
+
+// ImageOutputPricePerTokenLT applies the LT predicate on the "image_output_price_per_token" field.
+func ImageOutputPricePerTokenLT(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLT(FieldImageOutputPricePerToken, v))
+}
+
+// ImageOutputPricePerTokenLTE applies the LTE predicate on the "image_output_price_per_token" field.
+func ImageOutputPricePerTokenLTE(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLTE(FieldImageOutputPricePerToken, v))
+}
+
+// ImageOutputPricePerTokenIsNil applies the IsNil predicate on the "image_output_price_per_token" field.
+func ImageOutputPricePerTokenIsNil() predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIsNull(FieldImageOutputPricePerToken))
+}
+
+// ImageOutputPricePerTokenNotNil applies the NotNil predicate on the "image_output_price_per_token" field.
+func ImageOutputPricePerTokenNotNil() predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotNull(FieldImageOutputPricePerToken))
+}
+
+// LongContextInputTokenThresholdEQ applies the EQ predicate on the "long_context_input_token_threshold" field.
+func LongContextInputTokenThresholdEQ(v int64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldLongContextInputTokenThreshold, v))
+}
+
+// LongContextInputTokenThresholdNEQ applies the NEQ predicate on the "long_context_input_token_threshold" field.
+func LongContextInputTokenThresholdNEQ(v int64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNEQ(FieldLongContextInputTokenThreshold, v))
+}
+
+// LongContextInputTokenThresholdIn applies the In predicate on the "long_context_input_token_threshold" field.
+func LongContextInputTokenThresholdIn(vs ...int64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIn(FieldLongContextInputTokenThreshold, vs...))
+}
+
+// LongContextInputTokenThresholdNotIn applies the NotIn predicate on the "long_context_input_token_threshold" field.
+func LongContextInputTokenThresholdNotIn(vs ...int64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotIn(FieldLongContextInputTokenThreshold, vs...))
+}
+
+// LongContextInputTokenThresholdGT applies the GT predicate on the "long_context_input_token_threshold" field.
+func LongContextInputTokenThresholdGT(v int64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGT(FieldLongContextInputTokenThreshold, v))
+}
+
+// LongContextInputTokenThresholdGTE applies the GTE predicate on the "long_context_input_token_threshold" field.
+func LongContextInputTokenThresholdGTE(v int64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGTE(FieldLongContextInputTokenThreshold, v))
+}
+
+// LongContextInputTokenThresholdLT applies the LT predicate on the "long_context_input_token_threshold" field.
+func LongContextInputTokenThresholdLT(v int64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLT(FieldLongContextInputTokenThreshold, v))
+}
+
+// LongContextInputTokenThresholdLTE applies the LTE predicate on the "long_context_input_token_threshold" field.
+func LongContextInputTokenThresholdLTE(v int64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLTE(FieldLongContextInputTokenThreshold, v))
+}
+
+// LongContextInputTokenThresholdIsNil applies the IsNil predicate on the "long_context_input_token_threshold" field.
+func LongContextInputTokenThresholdIsNil() predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIsNull(FieldLongContextInputTokenThreshold))
+}
+
+// LongContextInputTokenThresholdNotNil applies the NotNil predicate on the "long_context_input_token_threshold" field.
+func LongContextInputTokenThresholdNotNil() predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotNull(FieldLongContextInputTokenThreshold))
+}
+
+// LongContextInputCostMultiplierEQ applies the EQ predicate on the "long_context_input_cost_multiplier" field.
+func LongContextInputCostMultiplierEQ(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldLongContextInputCostMultiplier, v))
+}
+
+// LongContextInputCostMultiplierNEQ applies the NEQ predicate on the "long_context_input_cost_multiplier" field.
+func LongContextInputCostMultiplierNEQ(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNEQ(FieldLongContextInputCostMultiplier, v))
+}
+
+// LongContextInputCostMultiplierIn applies the In predicate on the "long_context_input_cost_multiplier" field.
+func LongContextInputCostMultiplierIn(vs ...float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIn(FieldLongContextInputCostMultiplier, vs...))
+}
+
+// LongContextInputCostMultiplierNotIn applies the NotIn predicate on the "long_context_input_cost_multiplier" field.
+func LongContextInputCostMultiplierNotIn(vs ...float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotIn(FieldLongContextInputCostMultiplier, vs...))
+}
+
+// LongContextInputCostMultiplierGT applies the GT predicate on the "long_context_input_cost_multiplier" field.
+func LongContextInputCostMultiplierGT(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGT(FieldLongContextInputCostMultiplier, v))
+}
+
+// LongContextInputCostMultiplierGTE applies the GTE predicate on the "long_context_input_cost_multiplier" field.
+func LongContextInputCostMultiplierGTE(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGTE(FieldLongContextInputCostMultiplier, v))
+}
+
+// LongContextInputCostMultiplierLT applies the LT predicate on the "long_context_input_cost_multiplier" field.
+func LongContextInputCostMultiplierLT(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLT(FieldLongContextInputCostMultiplier, v))
+}
+
+// LongContextInputCostMultiplierLTE applies the LTE predicate on the "long_context_input_cost_multiplier" field.
+func LongContextInputCostMultiplierLTE(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLTE(FieldLongContextInputCostMultiplier, v))
+}
+
+// LongContextInputCostMultiplierIsNil applies the IsNil predicate on the "long_context_input_cost_multiplier" field.
+func LongContextInputCostMultiplierIsNil() predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIsNull(FieldLongContextInputCostMultiplier))
+}
+
+// LongContextInputCostMultiplierNotNil applies the NotNil predicate on the "long_context_input_cost_multiplier" field.
+func LongContextInputCostMultiplierNotNil() predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotNull(FieldLongContextInputCostMultiplier))
+}
+
+// LongContextOutputCostMultiplierEQ applies the EQ predicate on the "long_context_output_cost_multiplier" field.
+func LongContextOutputCostMultiplierEQ(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldLongContextOutputCostMultiplier, v))
+}
+
+// LongContextOutputCostMultiplierNEQ applies the NEQ predicate on the "long_context_output_cost_multiplier" field.
+func LongContextOutputCostMultiplierNEQ(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNEQ(FieldLongContextOutputCostMultiplier, v))
+}
+
+// LongContextOutputCostMultiplierIn applies the In predicate on the "long_context_output_cost_multiplier" field.
+func LongContextOutputCostMultiplierIn(vs ...float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIn(FieldLongContextOutputCostMultiplier, vs...))
+}
+
+// LongContextOutputCostMultiplierNotIn applies the NotIn predicate on the "long_context_output_cost_multiplier" field.
+func LongContextOutputCostMultiplierNotIn(vs ...float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotIn(FieldLongContextOutputCostMultiplier, vs...))
+}
+
+// LongContextOutputCostMultiplierGT applies the GT predicate on the "long_context_output_cost_multiplier" field.
+func LongContextOutputCostMultiplierGT(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGT(FieldLongContextOutputCostMultiplier, v))
+}
+
+// LongContextOutputCostMultiplierGTE applies the GTE predicate on the "long_context_output_cost_multiplier" field.
+func LongContextOutputCostMultiplierGTE(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGTE(FieldLongContextOutputCostMultiplier, v))
+}
+
+// LongContextOutputCostMultiplierLT applies the LT predicate on the "long_context_output_cost_multiplier" field.
+func LongContextOutputCostMultiplierLT(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLT(FieldLongContextOutputCostMultiplier, v))
+}
+
+// LongContextOutputCostMultiplierLTE applies the LTE predicate on the "long_context_output_cost_multiplier" field.
+func LongContextOutputCostMultiplierLTE(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLTE(FieldLongContextOutputCostMultiplier, v))
+}
+
+// LongContextOutputCostMultiplierIsNil applies the IsNil predicate on the "long_context_output_cost_multiplier" field.
+func LongContextOutputCostMultiplierIsNil() predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIsNull(FieldLongContextOutputCostMultiplier))
+}
+
+// LongContextOutputCostMultiplierNotNil applies the NotNil predicate on the "long_context_output_cost_multiplier" field.
+func LongContextOutputCostMultiplierNotNil() predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotNull(FieldLongContextOutputCostMultiplier))
+}
+
 // SupportsPromptCachingEQ applies the EQ predicate on the "supports_prompt_caching" field.
 func SupportsPromptCachingEQ(v bool) predicate.ModelPricing {
 	return predicate.ModelPricing(sql.FieldEQ(FieldSupportsPromptCaching, v))
@@ -977,6 +1507,251 @@ func IsEnabledEQ(v bool) predicate.ModelPricing {
 // IsEnabledNEQ applies the NEQ predicate on the "is_enabled" field.
 func IsEnabledNEQ(v bool) predicate.ModelPricing {
 	return predicate.ModelPricing(sql.FieldNEQ(FieldIsEnabled, v))
+}
+
+// SourceEQ applies the EQ predicate on the "source" field.
+func SourceEQ(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldSource, v))
+}
+
+// SourceNEQ applies the NEQ predicate on the "source" field.
+func SourceNEQ(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNEQ(FieldSource, v))
+}
+
+// SourceIn applies the In predicate on the "source" field.
+func SourceIn(vs ...string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIn(FieldSource, vs...))
+}
+
+// SourceNotIn applies the NotIn predicate on the "source" field.
+func SourceNotIn(vs ...string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotIn(FieldSource, vs...))
+}
+
+// SourceGT applies the GT predicate on the "source" field.
+func SourceGT(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGT(FieldSource, v))
+}
+
+// SourceGTE applies the GTE predicate on the "source" field.
+func SourceGTE(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGTE(FieldSource, v))
+}
+
+// SourceLT applies the LT predicate on the "source" field.
+func SourceLT(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLT(FieldSource, v))
+}
+
+// SourceLTE applies the LTE predicate on the "source" field.
+func SourceLTE(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLTE(FieldSource, v))
+}
+
+// SourceContains applies the Contains predicate on the "source" field.
+func SourceContains(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldContains(FieldSource, v))
+}
+
+// SourceHasPrefix applies the HasPrefix predicate on the "source" field.
+func SourceHasPrefix(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldHasPrefix(FieldSource, v))
+}
+
+// SourceHasSuffix applies the HasSuffix predicate on the "source" field.
+func SourceHasSuffix(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldHasSuffix(FieldSource, v))
+}
+
+// SourceEqualFold applies the EqualFold predicate on the "source" field.
+func SourceEqualFold(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEqualFold(FieldSource, v))
+}
+
+// SourceContainsFold applies the ContainsFold predicate on the "source" field.
+func SourceContainsFold(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldContainsFold(FieldSource, v))
+}
+
+// SourceProviderEQ applies the EQ predicate on the "source_provider" field.
+func SourceProviderEQ(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldSourceProvider, v))
+}
+
+// SourceProviderNEQ applies the NEQ predicate on the "source_provider" field.
+func SourceProviderNEQ(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNEQ(FieldSourceProvider, v))
+}
+
+// SourceProviderIn applies the In predicate on the "source_provider" field.
+func SourceProviderIn(vs ...string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIn(FieldSourceProvider, vs...))
+}
+
+// SourceProviderNotIn applies the NotIn predicate on the "source_provider" field.
+func SourceProviderNotIn(vs ...string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotIn(FieldSourceProvider, vs...))
+}
+
+// SourceProviderGT applies the GT predicate on the "source_provider" field.
+func SourceProviderGT(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGT(FieldSourceProvider, v))
+}
+
+// SourceProviderGTE applies the GTE predicate on the "source_provider" field.
+func SourceProviderGTE(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGTE(FieldSourceProvider, v))
+}
+
+// SourceProviderLT applies the LT predicate on the "source_provider" field.
+func SourceProviderLT(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLT(FieldSourceProvider, v))
+}
+
+// SourceProviderLTE applies the LTE predicate on the "source_provider" field.
+func SourceProviderLTE(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLTE(FieldSourceProvider, v))
+}
+
+// SourceProviderContains applies the Contains predicate on the "source_provider" field.
+func SourceProviderContains(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldContains(FieldSourceProvider, v))
+}
+
+// SourceProviderHasPrefix applies the HasPrefix predicate on the "source_provider" field.
+func SourceProviderHasPrefix(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldHasPrefix(FieldSourceProvider, v))
+}
+
+// SourceProviderHasSuffix applies the HasSuffix predicate on the "source_provider" field.
+func SourceProviderHasSuffix(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldHasSuffix(FieldSourceProvider, v))
+}
+
+// SourceProviderEqualFold applies the EqualFold predicate on the "source_provider" field.
+func SourceProviderEqualFold(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEqualFold(FieldSourceProvider, v))
+}
+
+// SourceProviderContainsFold applies the ContainsFold predicate on the "source_provider" field.
+func SourceProviderContainsFold(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldContainsFold(FieldSourceProvider, v))
+}
+
+// SourceAccountIDEQ applies the EQ predicate on the "source_account_id" field.
+func SourceAccountIDEQ(v int64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldSourceAccountID, v))
+}
+
+// SourceAccountIDNEQ applies the NEQ predicate on the "source_account_id" field.
+func SourceAccountIDNEQ(v int64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNEQ(FieldSourceAccountID, v))
+}
+
+// SourceAccountIDIn applies the In predicate on the "source_account_id" field.
+func SourceAccountIDIn(vs ...int64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIn(FieldSourceAccountID, vs...))
+}
+
+// SourceAccountIDNotIn applies the NotIn predicate on the "source_account_id" field.
+func SourceAccountIDNotIn(vs ...int64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotIn(FieldSourceAccountID, vs...))
+}
+
+// SourceAccountIDGT applies the GT predicate on the "source_account_id" field.
+func SourceAccountIDGT(v int64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGT(FieldSourceAccountID, v))
+}
+
+// SourceAccountIDGTE applies the GTE predicate on the "source_account_id" field.
+func SourceAccountIDGTE(v int64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGTE(FieldSourceAccountID, v))
+}
+
+// SourceAccountIDLT applies the LT predicate on the "source_account_id" field.
+func SourceAccountIDLT(v int64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLT(FieldSourceAccountID, v))
+}
+
+// SourceAccountIDLTE applies the LTE predicate on the "source_account_id" field.
+func SourceAccountIDLTE(v int64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLTE(FieldSourceAccountID, v))
+}
+
+// SourceAccountIDIsNil applies the IsNil predicate on the "source_account_id" field.
+func SourceAccountIDIsNil() predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIsNull(FieldSourceAccountID))
+}
+
+// SourceAccountIDNotNil applies the NotNil predicate on the "source_account_id" field.
+func SourceAccountIDNotNil() predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotNull(FieldSourceAccountID))
+}
+
+// PricingStatusEQ applies the EQ predicate on the "pricing_status" field.
+func PricingStatusEQ(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldPricingStatus, v))
+}
+
+// PricingStatusNEQ applies the NEQ predicate on the "pricing_status" field.
+func PricingStatusNEQ(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNEQ(FieldPricingStatus, v))
+}
+
+// PricingStatusIn applies the In predicate on the "pricing_status" field.
+func PricingStatusIn(vs ...string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIn(FieldPricingStatus, vs...))
+}
+
+// PricingStatusNotIn applies the NotIn predicate on the "pricing_status" field.
+func PricingStatusNotIn(vs ...string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotIn(FieldPricingStatus, vs...))
+}
+
+// PricingStatusGT applies the GT predicate on the "pricing_status" field.
+func PricingStatusGT(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGT(FieldPricingStatus, v))
+}
+
+// PricingStatusGTE applies the GTE predicate on the "pricing_status" field.
+func PricingStatusGTE(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGTE(FieldPricingStatus, v))
+}
+
+// PricingStatusLT applies the LT predicate on the "pricing_status" field.
+func PricingStatusLT(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLT(FieldPricingStatus, v))
+}
+
+// PricingStatusLTE applies the LTE predicate on the "pricing_status" field.
+func PricingStatusLTE(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLTE(FieldPricingStatus, v))
+}
+
+// PricingStatusContains applies the Contains predicate on the "pricing_status" field.
+func PricingStatusContains(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldContains(FieldPricingStatus, v))
+}
+
+// PricingStatusHasPrefix applies the HasPrefix predicate on the "pricing_status" field.
+func PricingStatusHasPrefix(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldHasPrefix(FieldPricingStatus, v))
+}
+
+// PricingStatusHasSuffix applies the HasSuffix predicate on the "pricing_status" field.
+func PricingStatusHasSuffix(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldHasSuffix(FieldPricingStatus, v))
+}
+
+// PricingStatusEqualFold applies the EqualFold predicate on the "pricing_status" field.
+func PricingStatusEqualFold(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEqualFold(FieldPricingStatus, v))
+}
+
+// PricingStatusContainsFold applies the ContainsFold predicate on the "pricing_status" field.
+func PricingStatusContainsFold(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldContainsFold(FieldPricingStatus, v))
 }
 
 // LastSyncedAtEQ applies the EQ predicate on the "last_synced_at" field.

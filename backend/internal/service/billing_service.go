@@ -114,239 +114,41 @@ type CostBreakdown struct {
 // sources can price the requested model.
 var ErrModelPricingUnavailable = errors.New("pricing not found")
 
+// ErrModelUnpriced 表示模型已在 catalog 注册（model_id 存在）但价格字段全为 NULL
+// （pricing_status=unpriced）。按 SSOT 设计这是 fail-closed 信号：
+// 调用方应当返回 5xx 而非按 0 价计费，等管理员在折扣页定价后才能继续使用。
+var ErrModelUnpriced = errors.New("model is registered but unpriced")
+
 // BillingService 计费服务
 type BillingService struct {
 	cfg            *config.Config
 	pricingService *PricingService
-	fallbackPrices map[string]*ModelPricing // 硬编码回退价格
 }
 
 // NewBillingService 创建计费服务实例
 func NewBillingService(cfg *config.Config, pricingService *PricingService) *BillingService {
-	s := &BillingService{
+	return &BillingService{
 		cfg:            cfg,
 		pricingService: pricingService,
-		fallbackPrices: make(map[string]*ModelPricing),
-	}
-
-	// 初始化硬编码回退价格（当动态价格不可用时使用）
-	s.initFallbackPricing()
-
-	return s
-}
-
-// initFallbackPricing 初始化硬编码回退价格（当动态价格不可用时使用）
-// 价格单位：USD per token（与LiteLLM格式一致）
-func (s *BillingService) initFallbackPricing() {
-	// Claude 4.5 Opus
-	s.fallbackPrices["claude-opus-4.5"] = &ModelPricing{
-		InputPricePerToken:         5e-6,    // $5 per MTok
-		OutputPricePerToken:        25e-6,   // $25 per MTok
-		CacheCreationPricePerToken: 6.25e-6, // $6.25 per MTok
-		CacheReadPricePerToken:     0.5e-6,  // $0.50 per MTok
-		SupportsCacheBreakdown:     false,
-	}
-
-	// Claude 4 Sonnet
-	s.fallbackPrices["claude-sonnet-4"] = &ModelPricing{
-		InputPricePerToken:         3e-6,    // $3 per MTok
-		OutputPricePerToken:        15e-6,   // $15 per MTok
-		CacheCreationPricePerToken: 3.75e-6, // $3.75 per MTok
-		CacheReadPricePerToken:     0.3e-6,  // $0.30 per MTok
-		SupportsCacheBreakdown:     false,
-	}
-
-	// Claude 3.5 Sonnet
-	s.fallbackPrices["claude-3-5-sonnet"] = &ModelPricing{
-		InputPricePerToken:         3e-6,    // $3 per MTok
-		OutputPricePerToken:        15e-6,   // $15 per MTok
-		CacheCreationPricePerToken: 3.75e-6, // $3.75 per MTok
-		CacheReadPricePerToken:     0.3e-6,  // $0.30 per MTok
-		SupportsCacheBreakdown:     false,
-	}
-
-	// Claude 3.5 Haiku
-	s.fallbackPrices["claude-3-5-haiku"] = &ModelPricing{
-		InputPricePerToken:         1e-6,    // $1 per MTok
-		OutputPricePerToken:        5e-6,    // $5 per MTok
-		CacheCreationPricePerToken: 1.25e-6, // $1.25 per MTok
-		CacheReadPricePerToken:     0.1e-6,  // $0.10 per MTok
-		SupportsCacheBreakdown:     false,
-	}
-
-	// Claude 3 Opus
-	s.fallbackPrices["claude-3-opus"] = &ModelPricing{
-		InputPricePerToken:         15e-6,    // $15 per MTok
-		OutputPricePerToken:        75e-6,    // $75 per MTok
-		CacheCreationPricePerToken: 18.75e-6, // $18.75 per MTok
-		CacheReadPricePerToken:     1.5e-6,   // $1.50 per MTok
-		SupportsCacheBreakdown:     false,
-	}
-
-	// Claude 3 Haiku
-	s.fallbackPrices["claude-3-haiku"] = &ModelPricing{
-		InputPricePerToken:         0.25e-6, // $0.25 per MTok
-		OutputPricePerToken:        1.25e-6, // $1.25 per MTok
-		CacheCreationPricePerToken: 0.3e-6,  // $0.30 per MTok
-		CacheReadPricePerToken:     0.03e-6, // $0.03 per MTok
-		SupportsCacheBreakdown:     false,
-	}
-
-	// Claude 4.6 Opus (与4.5同价)
-	s.fallbackPrices["claude-opus-4.6"] = s.fallbackPrices["claude-opus-4.5"]
-
-	// Claude 4.7 Opus (暂与4.6同价，待官方定价更新)
-	s.fallbackPrices["claude-opus-4.7"] = s.fallbackPrices["claude-opus-4.6"]
-
-	// Gemini 3.1 Pro
-	s.fallbackPrices["gemini-3.1-pro"] = &ModelPricing{
-		InputPricePerToken:         2e-6,   // $2 per MTok
-		OutputPricePerToken:        12e-6,  // $12 per MTok
-		CacheCreationPricePerToken: 2e-6,   // $2 per MTok
-		CacheReadPricePerToken:     0.2e-6, // $0.20 per MTok
-		SupportsCacheBreakdown:     false,
-	}
-
-	// OpenAI GPT-5.4（业务指定价格）
-	s.fallbackPrices["gpt-5.4"] = &ModelPricing{
-		InputPricePerToken:             2.5e-6,  // $2.5 per MTok
-		InputPricePerTokenPriority:     5e-6,    // $5 per MTok
-		OutputPricePerToken:            15e-6,   // $15 per MTok
-		OutputPricePerTokenPriority:    30e-6,   // $30 per MTok
-		CacheCreationPricePerToken:     2.5e-6,  // $2.5 per MTok
-		CacheReadPricePerToken:         0.25e-6, // $0.25 per MTok
-		CacheReadPricePerTokenPriority: 0.5e-6,  // $0.5 per MTok
-		SupportsCacheBreakdown:         false,
-		LongContextInputThreshold:      openAIGPT54LongContextInputThreshold,
-		LongContextInputMultiplier:     openAIGPT54LongContextInputMultiplier,
-		LongContextOutputMultiplier:    openAIGPT54LongContextOutputMultiplier,
-	}
-	// GPT-5.5 暂无独立定价，回退到 GPT-5.4
-	s.fallbackPrices["gpt-5.5"] = s.fallbackPrices["gpt-5.4"]
-
-	s.fallbackPrices["gpt-5.4-mini"] = &ModelPricing{
-		InputPricePerToken:     7.5e-7,
-		OutputPricePerToken:    4.5e-6,
-		CacheReadPricePerToken: 7.5e-8,
-		SupportsCacheBreakdown: false,
-	}
-	s.fallbackPrices["gpt-5.4-nano"] = &ModelPricing{
-		InputPricePerToken:     2e-7,
-		OutputPricePerToken:    1.25e-6,
-		CacheReadPricePerToken: 2e-8,
-		SupportsCacheBreakdown: false,
-	}
-	// OpenAI GPT-5.2（本地兜底）
-	s.fallbackPrices["gpt-5.2"] = &ModelPricing{
-		InputPricePerToken:             1.75e-6,
-		InputPricePerTokenPriority:     3.5e-6,
-		OutputPricePerToken:            14e-6,
-		OutputPricePerTokenPriority:    28e-6,
-		CacheCreationPricePerToken:     1.75e-6,
-		CacheReadPricePerToken:         0.175e-6,
-		CacheReadPricePerTokenPriority: 0.35e-6,
-		SupportsCacheBreakdown:         false,
-	}
-	// Codex 族兜底统一按 GPT-5.3 Codex 价格计费
-	s.fallbackPrices["gpt-5.3-codex"] = &ModelPricing{
-		InputPricePerToken:             1.5e-6, // $1.5 per MTok
-		InputPricePerTokenPriority:     3e-6,   // $3 per MTok
-		OutputPricePerToken:            12e-6,  // $12 per MTok
-		OutputPricePerTokenPriority:    24e-6,  // $24 per MTok
-		CacheCreationPricePerToken:     1.5e-6, // $1.5 per MTok
-		CacheReadPricePerToken:         0.15e-6,
-		CacheReadPricePerTokenPriority: 0.3e-6,
-		SupportsCacheBreakdown:         false,
 	}
 }
 
-// getFallbackPricing 根据模型系列获取回退价格
-func (s *BillingService) getFallbackPricing(model string) *ModelPricing {
-	modelLower := strings.ToLower(model)
-
-	// 按模型系列匹配
-	if strings.Contains(modelLower, "opus") {
-		if strings.Contains(modelLower, "4.7") || strings.Contains(modelLower, "4-7") {
-			return s.fallbackPrices["claude-opus-4.7"]
-		}
-		if strings.Contains(modelLower, "4.6") || strings.Contains(modelLower, "4-6") {
-			return s.fallbackPrices["claude-opus-4.6"]
-		}
-		if strings.Contains(modelLower, "4.5") || strings.Contains(modelLower, "4-5") {
-			return s.fallbackPrices["claude-opus-4.5"]
-		}
-		return s.fallbackPrices["claude-3-opus"]
-	}
-	if strings.Contains(modelLower, "sonnet") {
-		if strings.Contains(modelLower, "4") && !strings.Contains(modelLower, "3") {
-			return s.fallbackPrices["claude-sonnet-4"]
-		}
-		return s.fallbackPrices["claude-3-5-sonnet"]
-	}
-	if strings.Contains(modelLower, "haiku") {
-		if strings.Contains(modelLower, "3-5") || strings.Contains(modelLower, "3.5") {
-			return s.fallbackPrices["claude-3-5-haiku"]
-		}
-		return s.fallbackPrices["claude-3-haiku"]
-	}
-	// Claude 未知型号统一回退到 Sonnet，避免计费中断。
-	if strings.Contains(modelLower, "claude") {
-		return s.fallbackPrices["claude-sonnet-4"]
-	}
-	if strings.Contains(modelLower, "gemini-3.1-pro") || strings.Contains(modelLower, "gemini-3-1-pro") {
-		return s.fallbackPrices["gemini-3.1-pro"]
-	}
-
-	// OpenAI 仅匹配已知 GPT-5/Codex 族，避免未知 OpenAI 型号误计价。
-	if normalized := normalizeKnownOpenAICodexModel(modelLower); normalized != "" {
-		switch normalized {
-		case "gpt-5.5":
-			return s.fallbackPrices["gpt-5.5"]
-		case "gpt-5.4-mini":
-			return s.fallbackPrices["gpt-5.4-mini"]
-		case "gpt-5.4-nano":
-			return s.fallbackPrices["gpt-5.4-nano"]
-		case "gpt-5.4":
-			return s.fallbackPrices["gpt-5.4"]
-		case "gpt-5.2":
-			return s.fallbackPrices["gpt-5.2"]
-		case "gpt-5.3-codex", "gpt-5.3-codex-spark":
-			return s.fallbackPrices["gpt-5.3-codex"]
-		}
-	}
-
-	return nil
-}
-
-// applyDiscount 将折扣率应用到价格上（保持向后兼容）
-func (s *BillingService) applyDiscount(model string, p *ModelPricing) *ModelPricing {
+// GetModelPricing 获取模型价格配置，走 catalog 路径。
+// catalog miss → ErrModelPricingUnavailable；catalog 命中但未定价 → ErrModelUnpriced。
+func (s *BillingService) GetModelPricing(model string) (*ModelPricing, error) {
+	model = strings.ToLower(model)
 	if s.pricingService == nil {
-		return p
+		return nil, fmt.Errorf("%w for model: %s", ErrModelPricingUnavailable, model)
 	}
-	d := s.pricingService.GetDiscount(model)
-	if d == 1.0 {
-		return p
-	}
-	p.InputPricePerToken *= d
-	p.InputPricePerTokenPriority *= d
-	p.OutputPricePerToken *= d
-	p.OutputPricePerTokenPriority *= d
-	p.CacheCreationPricePerToken *= d
-	p.CacheCreation5mPrice *= d
-	p.CacheCreation1hPrice *= d
-	p.CacheReadPricePerToken *= d
-	p.CacheReadPricePerTokenPriority *= d
-	p.ImageOutputPricePerToken *= d
-	return p
+	return s.getModelPricingFromCatalog(model)
 }
 
-// resolveEffectivePrice 应用自定义价格和折扣率。
+// resolveEffectivePriceWithEntry 应用自定义价格和折扣率，直接接受 dbEntry。
 // 生效逻辑：base = custom_cost ?? upstream_cost; final = base × (discount_rate ?? 1.0)
-func (s *BillingService) resolveEffectivePrice(model string, p *ModelPricing) *ModelPricing {
+func (s *BillingService) resolveEffectivePriceWithEntry(model string, p *ModelPricing, dbEntry *DBModelPricing) *ModelPricing {
 	if s.pricingService == nil {
 		return p
 	}
-	dbEntry := s.pricingService.GetDBModelPricing(model)
 
 	result := *p // shallow copy to avoid mutating the original
 
@@ -363,7 +165,7 @@ func (s *BillingService) resolveEffectivePrice(model string, p *ModelPricing) *M
 	}
 
 	// 获取折扣率（优先从 DB 记录，回退到 discounts map）
-	rate := 1.0
+	var rate float64
 	if dbEntry != nil && dbEntry.DiscountRate != nil && *dbEntry.DiscountRate > 0 {
 		rate = *dbEntry.DiscountRate
 	} else {
@@ -389,49 +191,77 @@ func (s *BillingService) resolveEffectivePrice(model string, p *ModelPricing) *M
 	return &result
 }
 
-// GetModelPricing 获取模型价格配置
-func (s *BillingService) GetModelPricing(model string) (*ModelPricing, error) {
-	// 标准化模型名称（转小写）
-	model = strings.ToLower(model)
-
-	// 1. 优先从动态价格服务获取
-	if s.pricingService != nil {
-		litellmPricing := s.pricingService.GetModelPricing(model)
-		if litellmPricing != nil {
-			// 启用 5m/1h 分类计费的条件：
-			// 1. 存在 1h 价格
-			// 2. 1h 价格 > 5m 价格（防止 LiteLLM 数据错误导致少收费）
-			price5m := litellmPricing.CacheCreationInputTokenCost
-			price1h := litellmPricing.CacheCreationInputTokenCostAbove1hr
-			enableBreakdown := price1h > 0 && price1h > price5m
-			pricing := &ModelPricing{
-				InputPricePerToken:             litellmPricing.InputCostPerToken,
-				InputPricePerTokenPriority:     litellmPricing.InputCostPerTokenPriority,
-				OutputPricePerToken:            litellmPricing.OutputCostPerToken,
-				OutputPricePerTokenPriority:    litellmPricing.OutputCostPerTokenPriority,
-				CacheCreationPricePerToken:     litellmPricing.CacheCreationInputTokenCost,
-				CacheReadPricePerToken:         litellmPricing.CacheReadInputTokenCost,
-				CacheReadPricePerTokenPriority: litellmPricing.CacheReadInputTokenCostPriority,
-				CacheCreation5mPrice:           price5m,
-				CacheCreation1hPrice:           price1h,
-				SupportsCacheBreakdown:         enableBreakdown,
-				LongContextInputThreshold:      litellmPricing.LongContextInputTokenThreshold,
-				LongContextInputMultiplier:     litellmPricing.LongContextInputCostMultiplier,
-				LongContextOutputMultiplier:    litellmPricing.LongContextOutputCostMultiplier,
-				ImageOutputPricePerToken:       litellmPricing.OutputCostPerImageToken,
-			}
-			return s.applyModelSpecificPricingPolicy(model, s.resolveEffectivePrice(model, pricing)), nil
+// getModelPricingFromCatalog 走 catalog 主路径：LookupCatalogWithFuzzy → unpriced 检查 → 投影。
+// catalog miss → ErrModelPricingUnavailable；命中但未定价 → ErrModelUnpriced（fail-closed）。
+func (s *BillingService) getModelPricingFromCatalog(model string) (*ModelPricing, error) {
+	dbEntry := s.pricingService.LookupCatalogWithFuzzy(model)
+	if dbEntry != nil {
+		if dbEntry.PricingStatus == ModelPricingStatusUnpriced &&
+			dbEntry.InputCostPerToken == nil &&
+			dbEntry.OutputCostPerToken == nil &&
+			dbEntry.OutputCostPerImage == nil &&
+			dbEntry.OutputCostPerImageToken == nil &&
+			dbEntry.CustomInputCost == nil &&
+			dbEntry.CustomOutputCost == nil {
+			log.Printf("[Billing] model_unpriced_blocked model=%s catalog_id=%d", model, dbEntry.ID)
+			return nil, fmt.Errorf("%w for model: %s", ErrModelUnpriced, model)
 		}
+		pricing := projectDBPricingToModelPricing(dbEntry)
+		return s.applyModelSpecificPricingPolicy(model, s.resolveEffectivePriceWithEntry(model, pricing, dbEntry)), nil
 	}
-
-	// 2. 使用硬编码回退价格
-	fallback := s.getFallbackPricing(model)
-	if fallback != nil {
-		log.Printf("[Billing] Using fallback pricing for model: %s", model)
-		return s.applyModelSpecificPricingPolicy(model, s.resolveEffectivePrice(model, fallback)), nil
-	}
-
 	return nil, fmt.Errorf("%w for model: %s", ErrModelPricingUnavailable, model)
+}
+
+// projectDBPricingToModelPricing 把 catalog DB 行投影为 BillingService 使用的 ModelPricing 结构。
+func projectDBPricingToModelPricing(dbEntry *DBModelPricing) *ModelPricing {
+	pricing := &ModelPricing{}
+	if dbEntry == nil {
+		return pricing
+	}
+	if dbEntry.InputCostPerToken != nil {
+		pricing.InputPricePerToken = *dbEntry.InputCostPerToken
+	}
+	if dbEntry.InputCostPerTokenPriority != nil {
+		pricing.InputPricePerTokenPriority = *dbEntry.InputCostPerTokenPriority
+	}
+	if dbEntry.OutputCostPerToken != nil {
+		pricing.OutputPricePerToken = *dbEntry.OutputCostPerToken
+	}
+	if dbEntry.OutputCostPerTokenPriority != nil {
+		pricing.OutputPricePerTokenPriority = *dbEntry.OutputCostPerTokenPriority
+	}
+	if dbEntry.CacheCreationInputTokenCost != nil {
+		pricing.CacheCreationPricePerToken = *dbEntry.CacheCreationInputTokenCost
+	}
+	if dbEntry.CacheReadInputTokenCost != nil {
+		pricing.CacheReadPricePerToken = *dbEntry.CacheReadInputTokenCost
+	}
+	if dbEntry.CacheReadInputTokenCostPriority != nil {
+		pricing.CacheReadPricePerTokenPriority = *dbEntry.CacheReadInputTokenCostPriority
+	}
+	if dbEntry.CacheCreation5mTokenCost != nil {
+		pricing.CacheCreation5mPrice = *dbEntry.CacheCreation5mTokenCost
+	} else if dbEntry.CacheCreationInputTokenCost != nil {
+		// 未设 5m 专属字段时，用通用 cache creation 成本兜底 5m 价格
+		pricing.CacheCreation5mPrice = *dbEntry.CacheCreationInputTokenCost
+	}
+	if dbEntry.CacheCreation1hTokenCost != nil {
+		pricing.CacheCreation1hPrice = *dbEntry.CacheCreation1hTokenCost
+	}
+	pricing.SupportsCacheBreakdown = dbEntry.SupportsCacheBreakdown
+	if dbEntry.LongContextInputTokenThreshold != nil {
+		pricing.LongContextInputThreshold = int(*dbEntry.LongContextInputTokenThreshold)
+	}
+	if dbEntry.LongContextInputCostMultiplier != nil {
+		pricing.LongContextInputMultiplier = *dbEntry.LongContextInputCostMultiplier
+	}
+	if dbEntry.LongContextOutputCostMultiplier != nil {
+		pricing.LongContextOutputMultiplier = *dbEntry.LongContextOutputCostMultiplier
+	}
+	if dbEntry.ImageOutputPricePerToken != nil {
+		pricing.ImageOutputPricePerToken = *dbEntry.ImageOutputPricePerToken
+	}
+	return pricing
 }
 
 // GetModelPricingWithChannel 获取模型定价，渠道配置的价格覆盖默认值
@@ -811,22 +641,23 @@ func (s *BillingService) CalculateCostWithLongContext(model string, tokens Usage
 
 // ListSupportedModels 列出所有支持的模型（现在总是返回true，因为有模糊匹配）
 func (s *BillingService) ListSupportedModels() []string {
-	models := make([]string, 0)
-	// 返回回退价格支持的模型系列
-	for model := range s.fallbackPrices {
-		models = append(models, model)
+	if s.pricingService == nil {
+		return nil
 	}
-	return models
+	models := s.pricingService.ListEnabledCatalogModels()
+	names := make([]string, 0, len(models))
+	for _, m := range models {
+		names = append(names, m.ID)
+	}
+	return names
 }
 
-// IsModelSupported 检查模型是否支持（现在总是返回true，因为有模糊匹配回退）
+// IsModelSupported 检查模型是否在 catalog 中存在（含 fuzzy 匹配）。
 func (s *BillingService) IsModelSupported(model string) bool {
-	// 所有Claude模型都有回退价格支持
-	modelLower := strings.ToLower(model)
-	return strings.Contains(modelLower, "claude") ||
-		strings.Contains(modelLower, "opus") ||
-		strings.Contains(modelLower, "sonnet") ||
-		strings.Contains(modelLower, "haiku")
+	if s.pricingService == nil {
+		return false
+	}
+	return s.pricingService.LookupCatalogWithFuzzy(strings.ToLower(model)) != nil
 }
 
 // GetEstimatedCost 估算费用（用于前端展示）
@@ -850,9 +681,8 @@ func (s *BillingService) GetPricingServiceStatus() map[string]any {
 		return s.pricingService.GetStatus()
 	}
 	return map[string]any{
-		"model_count":  len(s.fallbackPrices),
-		"last_updated": "using fallback",
-		"local_hash":   "N/A",
+		"catalog_size": 0,
+		"last_updated": "pricing service not initialized",
 	}
 }
 
@@ -926,15 +756,16 @@ func (s *BillingService) getImageUnitPrice(model string, imageSize string, group
 	return s.getDefaultImagePrice(model, imageSize)
 }
 
-// getDefaultImagePrice 获取 LiteLLM 默认图片价格
+// getDefaultImagePrice 获取模型的默认图片价格
 func (s *BillingService) getDefaultImagePrice(model string, imageSize string) float64 {
 	basePrice := 0.0
 
-	// 从 PricingService 获取 output_cost_per_image
 	if s.pricingService != nil {
-		pricing := s.pricingService.GetModelPricing(model)
-		if pricing != nil && pricing.OutputCostPerImage > 0 {
-			basePrice = pricing.OutputCostPerImage
+		dbEntry := s.pricingService.LookupCatalogWithFuzzy(model)
+		if dbEntry != nil && dbEntry.OutputCostPerImage != nil && *dbEntry.OutputCostPerImage > 0 {
+			basePrice = *dbEntry.OutputCostPerImage
+		} else if dbEntry != nil && dbEntry.OutputCostPerImageToken != nil && *dbEntry.OutputCostPerImageToken > 0 {
+			basePrice = *dbEntry.OutputCostPerImageToken
 		}
 	}
 

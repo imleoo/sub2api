@@ -21,6 +21,9 @@ func (f *fakeEndpointRepo) GetByID(context.Context, int64) (*DBEndpoint, error) 
 func (f *fakeEndpointRepo) FindByStableID(context.Context, int64, string) (*DBEndpoint, error) {
 	return nil, nil
 }
+func (f *fakeEndpointRepo) UpdateSupportedModels(context.Context, int64, []string) error {
+	return nil
+}
 func (f *fakeEndpointRepo) ListByAccountID(_ context.Context, id int64) ([]*DBEndpoint, error) {
 	return f.byAccount[id], nil
 }

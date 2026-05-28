@@ -38,6 +38,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
 	"github.com/Wei-Shaw/sub2api/ent/paymentproviderinstance"
 	"github.com/Wei-Shaw/sub2api/ent/pendingauthsession"
+	"github.com/Wei-Shaw/sub2api/ent/pricingdriftlog"
 	"github.com/Wei-Shaw/sub2api/ent/promocode"
 	"github.com/Wei-Shaw/sub2api/ent/promocodeusage"
 	"github.com/Wei-Shaw/sub2api/ent/providerpricing"
@@ -109,6 +110,8 @@ type Client struct {
 	PaymentProviderInstance *PaymentProviderInstanceClient
 	// PendingAuthSession is the client for interacting with the PendingAuthSession builders.
 	PendingAuthSession *PendingAuthSessionClient
+	// PricingDriftLog is the client for interacting with the PricingDriftLog builders.
+	PricingDriftLog *PricingDriftLogClient
 	// PromoCode is the client for interacting with the PromoCode builders.
 	PromoCode *PromoCodeClient
 	// PromoCodeUsage is the client for interacting with the PromoCodeUsage builders.
@@ -175,6 +178,7 @@ func (c *Client) init() {
 	c.PaymentOrder = NewPaymentOrderClient(c.config)
 	c.PaymentProviderInstance = NewPaymentProviderInstanceClient(c.config)
 	c.PendingAuthSession = NewPendingAuthSessionClient(c.config)
+	c.PricingDriftLog = NewPricingDriftLogClient(c.config)
 	c.PromoCode = NewPromoCodeClient(c.config)
 	c.PromoCodeUsage = NewPromoCodeUsageClient(c.config)
 	c.ProviderPricing = NewProviderPricingClient(c.config)
@@ -306,6 +310,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		PaymentOrder:                  NewPaymentOrderClient(cfg),
 		PaymentProviderInstance:       NewPaymentProviderInstanceClient(cfg),
 		PendingAuthSession:            NewPendingAuthSessionClient(cfg),
+		PricingDriftLog:               NewPricingDriftLogClient(cfg),
 		PromoCode:                     NewPromoCodeClient(cfg),
 		PromoCodeUsage:                NewPromoCodeUsageClient(cfg),
 		ProviderPricing:               NewProviderPricingClient(cfg),
@@ -364,6 +369,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		PaymentOrder:                  NewPaymentOrderClient(cfg),
 		PaymentProviderInstance:       NewPaymentProviderInstanceClient(cfg),
 		PendingAuthSession:            NewPendingAuthSessionClient(cfg),
+		PricingDriftLog:               NewPricingDriftLogClient(cfg),
 		PromoCode:                     NewPromoCodeClient(cfg),
 		PromoCodeUsage:                NewPromoCodeUsageClient(cfg),
 		ProviderPricing:               NewProviderPricingClient(cfg),
@@ -415,10 +421,10 @@ func (c *Client) Use(hooks ...Hook) {
 		c.ChannelMonitorRequestTemplate, c.Endpoint, c.ErrorPassthroughRule, c.Group,
 		c.IdempotencyRecord, c.IdentityAdoptionDecision, c.KeywordStat, c.LingjingTask,
 		c.ModelPricing, c.PaymentAuditLog, c.PaymentOrder, c.PaymentProviderInstance,
-		c.PendingAuthSession, c.PromoCode, c.PromoCodeUsage, c.ProviderPricing,
-		c.Proxy, c.RedeemCode, c.SecuritySecret, c.Setting, c.SubscriptionPlan,
-		c.TLSFingerprintProfile, c.UsageCleanupTask, c.UsageLog, c.User,
-		c.UserAllowedGroup, c.UserAttributeDefinition, c.UserAttributeValue,
+		c.PendingAuthSession, c.PricingDriftLog, c.PromoCode, c.PromoCodeUsage,
+		c.ProviderPricing, c.Proxy, c.RedeemCode, c.SecuritySecret, c.Setting,
+		c.SubscriptionPlan, c.TLSFingerprintProfile, c.UsageCleanupTask, c.UsageLog,
+		c.User, c.UserAllowedGroup, c.UserAttributeDefinition, c.UserAttributeValue,
 		c.UserSubscription,
 	} {
 		n.Use(hooks...)
@@ -435,10 +441,10 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.ChannelMonitorRequestTemplate, c.Endpoint, c.ErrorPassthroughRule, c.Group,
 		c.IdempotencyRecord, c.IdentityAdoptionDecision, c.KeywordStat, c.LingjingTask,
 		c.ModelPricing, c.PaymentAuditLog, c.PaymentOrder, c.PaymentProviderInstance,
-		c.PendingAuthSession, c.PromoCode, c.PromoCodeUsage, c.ProviderPricing,
-		c.Proxy, c.RedeemCode, c.SecuritySecret, c.Setting, c.SubscriptionPlan,
-		c.TLSFingerprintProfile, c.UsageCleanupTask, c.UsageLog, c.User,
-		c.UserAllowedGroup, c.UserAttributeDefinition, c.UserAttributeValue,
+		c.PendingAuthSession, c.PricingDriftLog, c.PromoCode, c.PromoCodeUsage,
+		c.ProviderPricing, c.Proxy, c.RedeemCode, c.SecuritySecret, c.Setting,
+		c.SubscriptionPlan, c.TLSFingerprintProfile, c.UsageCleanupTask, c.UsageLog,
+		c.User, c.UserAllowedGroup, c.UserAttributeDefinition, c.UserAttributeValue,
 		c.UserSubscription,
 	} {
 		n.Intercept(interceptors...)
@@ -494,6 +500,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.PaymentProviderInstance.mutate(ctx, m)
 	case *PendingAuthSessionMutation:
 		return c.PendingAuthSession.mutate(ctx, m)
+	case *PricingDriftLogMutation:
+		return c.PricingDriftLog.mutate(ctx, m)
 	case *PromoCodeMutation:
 		return c.PromoCode.mutate(ctx, m)
 	case *PromoCodeUsageMutation:
@@ -4139,6 +4147,139 @@ func (c *PendingAuthSessionClient) mutate(ctx context.Context, m *PendingAuthSes
 	}
 }
 
+// PricingDriftLogClient is a client for the PricingDriftLog schema.
+type PricingDriftLogClient struct {
+	config
+}
+
+// NewPricingDriftLogClient returns a client for the PricingDriftLog from the given config.
+func NewPricingDriftLogClient(c config) *PricingDriftLogClient {
+	return &PricingDriftLogClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `pricingdriftlog.Hooks(f(g(h())))`.
+func (c *PricingDriftLogClient) Use(hooks ...Hook) {
+	c.hooks.PricingDriftLog = append(c.hooks.PricingDriftLog, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `pricingdriftlog.Intercept(f(g(h())))`.
+func (c *PricingDriftLogClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PricingDriftLog = append(c.inters.PricingDriftLog, interceptors...)
+}
+
+// Create returns a builder for creating a PricingDriftLog entity.
+func (c *PricingDriftLogClient) Create() *PricingDriftLogCreate {
+	mutation := newPricingDriftLogMutation(c.config, OpCreate)
+	return &PricingDriftLogCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PricingDriftLog entities.
+func (c *PricingDriftLogClient) CreateBulk(builders ...*PricingDriftLogCreate) *PricingDriftLogCreateBulk {
+	return &PricingDriftLogCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PricingDriftLogClient) MapCreateBulk(slice any, setFunc func(*PricingDriftLogCreate, int)) *PricingDriftLogCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PricingDriftLogCreateBulk{err: fmt.Errorf("calling to PricingDriftLogClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PricingDriftLogCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PricingDriftLogCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PricingDriftLog.
+func (c *PricingDriftLogClient) Update() *PricingDriftLogUpdate {
+	mutation := newPricingDriftLogMutation(c.config, OpUpdate)
+	return &PricingDriftLogUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PricingDriftLogClient) UpdateOne(_m *PricingDriftLog) *PricingDriftLogUpdateOne {
+	mutation := newPricingDriftLogMutation(c.config, OpUpdateOne, withPricingDriftLog(_m))
+	return &PricingDriftLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PricingDriftLogClient) UpdateOneID(id int64) *PricingDriftLogUpdateOne {
+	mutation := newPricingDriftLogMutation(c.config, OpUpdateOne, withPricingDriftLogID(id))
+	return &PricingDriftLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PricingDriftLog.
+func (c *PricingDriftLogClient) Delete() *PricingDriftLogDelete {
+	mutation := newPricingDriftLogMutation(c.config, OpDelete)
+	return &PricingDriftLogDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PricingDriftLogClient) DeleteOne(_m *PricingDriftLog) *PricingDriftLogDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PricingDriftLogClient) DeleteOneID(id int64) *PricingDriftLogDeleteOne {
+	builder := c.Delete().Where(pricingdriftlog.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PricingDriftLogDeleteOne{builder}
+}
+
+// Query returns a query builder for PricingDriftLog.
+func (c *PricingDriftLogClient) Query() *PricingDriftLogQuery {
+	return &PricingDriftLogQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePricingDriftLog},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PricingDriftLog entity by its id.
+func (c *PricingDriftLogClient) Get(ctx context.Context, id int64) (*PricingDriftLog, error) {
+	return c.Query().Where(pricingdriftlog.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PricingDriftLogClient) GetX(ctx context.Context, id int64) *PricingDriftLog {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PricingDriftLogClient) Hooks() []Hook {
+	return c.hooks.PricingDriftLog
+}
+
+// Interceptors returns the client interceptors.
+func (c *PricingDriftLogClient) Interceptors() []Interceptor {
+	return c.inters.PricingDriftLog
+}
+
+func (c *PricingDriftLogClient) mutate(ctx context.Context, m *PricingDriftLogMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PricingDriftLogCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PricingDriftLogUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PricingDriftLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PricingDriftLogDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PricingDriftLog mutation op: %q", m.Op())
+	}
+}
+
 // PromoCodeClient is a client for the PromoCode schema.
 type PromoCodeClient struct {
 	config
@@ -6762,10 +6903,11 @@ type (
 		ChannelMonitorHistory, ChannelMonitorRequestTemplate, Endpoint,
 		ErrorPassthroughRule, Group, IdempotencyRecord, IdentityAdoptionDecision,
 		KeywordStat, LingjingTask, ModelPricing, PaymentAuditLog, PaymentOrder,
-		PaymentProviderInstance, PendingAuthSession, PromoCode, PromoCodeUsage,
-		ProviderPricing, Proxy, RedeemCode, SecuritySecret, Setting, SubscriptionPlan,
-		TLSFingerprintProfile, UsageCleanupTask, UsageLog, User, UserAllowedGroup,
-		UserAttributeDefinition, UserAttributeValue, UserSubscription []ent.Hook
+		PaymentProviderInstance, PendingAuthSession, PricingDriftLog, PromoCode,
+		PromoCodeUsage, ProviderPricing, Proxy, RedeemCode, SecuritySecret, Setting,
+		SubscriptionPlan, TLSFingerprintProfile, UsageCleanupTask, UsageLog, User,
+		UserAllowedGroup, UserAttributeDefinition, UserAttributeValue,
+		UserSubscription []ent.Hook
 	}
 	inters struct {
 		APIKey, Account, AccountGroup, Announcement, AnnouncementRead, AuthIdentity,
@@ -6773,10 +6915,11 @@ type (
 		ChannelMonitorHistory, ChannelMonitorRequestTemplate, Endpoint,
 		ErrorPassthroughRule, Group, IdempotencyRecord, IdentityAdoptionDecision,
 		KeywordStat, LingjingTask, ModelPricing, PaymentAuditLog, PaymentOrder,
-		PaymentProviderInstance, PendingAuthSession, PromoCode, PromoCodeUsage,
-		ProviderPricing, Proxy, RedeemCode, SecuritySecret, Setting, SubscriptionPlan,
-		TLSFingerprintProfile, UsageCleanupTask, UsageLog, User, UserAllowedGroup,
-		UserAttributeDefinition, UserAttributeValue, UserSubscription []ent.Interceptor
+		PaymentProviderInstance, PendingAuthSession, PricingDriftLog, PromoCode,
+		PromoCodeUsage, ProviderPricing, Proxy, RedeemCode, SecuritySecret, Setting,
+		SubscriptionPlan, TLSFingerprintProfile, UsageCleanupTask, UsageLog, User,
+		UserAllowedGroup, UserAttributeDefinition, UserAttributeValue,
+		UserSubscription []ent.Interceptor
 	}
 )
 

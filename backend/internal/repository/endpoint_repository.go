@@ -135,6 +135,21 @@ func (r *endpointRepository) ListByAccountID(ctx context.Context, accountID int6
 	return out, nil
 }
 
+func (r *endpointRepository) UpdateSupportedModels(ctx context.Context, id int64, models []string) error {
+	builder := clientFromContext(ctx, r.client).Endpoint.UpdateOneID(id).
+		SetUpdatedAt(time.Now().UTC())
+	if len(models) > 0 {
+		builder.SetSupportedModels(models)
+	} else {
+		builder.ClearSupportedModels()
+	}
+	_, err := builder.Save(ctx)
+	if err != nil {
+		return translatePersistenceError(err, errEndpointNotFound, nil)
+	}
+	return nil
+}
+
 func (r *endpointRepository) FindByStableID(ctx context.Context, accountID int64, stableID string) (*service.DBEndpoint, error) {
 	rows, err := r.client.Endpoint.Query().
 		Where(

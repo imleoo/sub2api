@@ -118,12 +118,45 @@ func (s *ChannelService) fillGlobalPricingFallback(models []SupportedModel) {
 		if !pricingNeedsFallback(models[i].Pricing) {
 			continue
 		}
-		lp := s.pricingService.GetModelPricing(models[i].Name)
+		dbEntry := s.pricingService.LookupCatalogWithFuzzy(models[i].Name)
+		lp := dbPricingToLiteLLM(dbEntry)
 		if lp == nil {
 			continue
 		}
 		models[i].Pricing = synthesizePricingFromLiteLLM(lp, models[i].Pricing)
 	}
+}
+
+// dbPricingToLiteLLM converts a DBModelPricing catalog entry to LiteLLMModelPricing for
+// display-only pricing fallback (channel_available). Does not affect billing.
+func dbPricingToLiteLLM(entry *DBModelPricing) *LiteLLMModelPricing {
+	if entry == nil {
+		return nil
+	}
+	lp := &LiteLLMModelPricing{
+		LiteLLMProvider:       entry.Provider,
+		Mode:                  entry.Mode,
+		SupportsPromptCaching: entry.SupportsPromptCaching,
+	}
+	if entry.InputCostPerToken != nil {
+		lp.InputCostPerToken = *entry.InputCostPerToken
+	}
+	if entry.OutputCostPerToken != nil {
+		lp.OutputCostPerToken = *entry.OutputCostPerToken
+	}
+	if entry.CacheCreationInputTokenCost != nil {
+		lp.CacheCreationInputTokenCost = *entry.CacheCreationInputTokenCost
+	}
+	if entry.CacheReadInputTokenCost != nil {
+		lp.CacheReadInputTokenCost = *entry.CacheReadInputTokenCost
+	}
+	if entry.OutputCostPerImage != nil {
+		lp.OutputCostPerImage = *entry.OutputCostPerImage
+	}
+	if entry.OutputCostPerImageToken != nil {
+		lp.OutputCostPerImageToken = *entry.OutputCostPerImageToken
+	}
+	return lp
 }
 
 // pricingNeedsFallback 判定一个 ChannelModelPricing 是否需要走全局回落。

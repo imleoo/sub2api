@@ -238,6 +238,7 @@ const OVERSEAS_MODEL_ID_PREFIXES = [
   'grok-', 'grok.',
   'nova-', 'amazon.nova', 'titan-',
   'palm-', 'palm2-', 'bison',
+  'veo',
 ]
 
 const OVERSEAS_REASONING_MODEL_RE = /^o[1-5](-|\.|$)/
@@ -396,6 +397,12 @@ function shouldShowModel(model: ModelInfo): boolean {
   const id = model.id.toLowerCase()
   const provider = model.provider?.toLowerCase() || ''
 
+  // Non-overseas models (domestic providers): always show
+  if (!isOverseasModelID(model.id)) {
+    return true
+  }
+
+  // Overseas models: apply minimum version restrictions to hide legacy models
   // Claude models (anthropic provider or model id starts with claude)
   if (provider === 'anthropic' || id.startsWith('claude-')) {
     return isClaudeVersionAtLeast(id, 4.5)
@@ -411,12 +418,7 @@ function shouldShowModel(model: ModelInfo): boolean {
     return isGeminiVersionAtLeast(id, 3)
   }
 
-  // GLM models (zhipu provider or model id starts with glm)
-  if (provider === 'zhipu' || id.startsWith('glm-')) {
-    return isGLMVersionAtLeast(id, 5)
-  }
-
-  // Other providers: hidden
+  // Other overseas providers: hidden
   return false
 }
 
@@ -499,28 +501,6 @@ function isGeminiVersionAtLeast(id: string, minVersion: number): boolean {
   return parseGeminiVersion(id) >= minVersion
 }
 
-/**
- * Parse GLM model version from id
- * Returns version number (e.g., 5.0, 4.5) or 0 if cannot parse
- */
-function parseGLMVersion(id: string): number {
-  // glm-4 -> 4.0
-  // glm-4.5 -> 4.5
-  // glm-4.6 -> 4.6
-  // glm-5 -> 5.0
-
-  const match = id.match(/glm-(\d+)(?:\.(\d+))?/)
-  if (match) {
-    const major = parseInt(match[1], 10)
-    const minor = match[2] ? parseInt(match[2], 10) : 0
-    return major + minor / 10
-  }
-  return 0
-}
-
-function isGLMVersionAtLeast(id: string, minVersion: number): boolean {
-  return parseGLMVersion(id) >= minVersion
-}
 
 // ─── Formatters ──────────────────────────
 function formatPrice(costPerToken: number): string {

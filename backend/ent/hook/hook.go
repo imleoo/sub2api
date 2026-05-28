@@ -285,6 +285,18 @@ func (f PendingAuthSessionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PendingAuthSessionMutation", m)
 }
 
+// The PricingDriftLogFunc type is an adapter to allow the use of ordinary
+// function as PricingDriftLog mutator.
+type PricingDriftLogFunc func(context.Context, *ent.PricingDriftLogMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PricingDriftLogFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PricingDriftLogMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PricingDriftLogMutation", m)
+}
+
 // The PromoCodeFunc type is an adapter to allow the use of ordinary
 // function as PromoCode mutator.
 type PromoCodeFunc func(context.Context, *ent.PromoCodeMutation) (ent.Value, error)

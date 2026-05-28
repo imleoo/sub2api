@@ -51,6 +51,21 @@ var codexModelMap = map[string]string{
 	"gpt-5-codex":                "gpt-5.3-codex",
 }
 
+// CodexAliasPairs 返回 (variant, canonical) 对的列表，供 SSOT PR-4 aliasIdx 构建使用。
+// 把 OpenAI codex/gpt-5.x 的各种变体映射到 catalog 中的标准 model_id。
+// 列表顺序：原 codexModelMap 迭代顺序 + codexVersionModelPrefixes（前缀匹配规则）。
+// 调用方应去重并按需归一化 variant key。
+func CodexAliasPairs() [][2]string {
+	pairs := make([][2]string, 0, len(codexModelMap)+len(codexVersionModelPrefixes))
+	for variant, target := range codexModelMap {
+		pairs = append(pairs, [2]string{variant, target})
+	}
+	for _, p := range codexVersionModelPrefixes {
+		pairs = append(pairs, [2]string{p.prefix, p.target})
+	}
+	return pairs
+}
+
 var codexVersionModelPrefixes = []struct {
 	prefix string
 	target string

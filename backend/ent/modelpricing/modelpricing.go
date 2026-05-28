@@ -35,6 +35,26 @@ const (
 	FieldOutputCostPerImage = "output_cost_per_image"
 	// FieldOutputCostPerImageToken holds the string denoting the output_cost_per_image_token field in the database.
 	FieldOutputCostPerImageToken = "output_cost_per_image_token"
+	// FieldInputCostPerTokenPriority holds the string denoting the input_cost_per_token_priority field in the database.
+	FieldInputCostPerTokenPriority = "input_cost_per_token_priority"
+	// FieldOutputCostPerTokenPriority holds the string denoting the output_cost_per_token_priority field in the database.
+	FieldOutputCostPerTokenPriority = "output_cost_per_token_priority"
+	// FieldCacheReadInputTokenCostPriority holds the string denoting the cache_read_input_token_cost_priority field in the database.
+	FieldCacheReadInputTokenCostPriority = "cache_read_input_token_cost_priority"
+	// FieldCacheCreation5mTokenCost holds the string denoting the cache_creation_5m_token_cost field in the database.
+	FieldCacheCreation5mTokenCost = "cache_creation_5m_token_cost"
+	// FieldCacheCreation1hTokenCost holds the string denoting the cache_creation_1h_token_cost field in the database.
+	FieldCacheCreation1hTokenCost = "cache_creation_1h_token_cost"
+	// FieldSupportsCacheBreakdown holds the string denoting the supports_cache_breakdown field in the database.
+	FieldSupportsCacheBreakdown = "supports_cache_breakdown"
+	// FieldImageOutputPricePerToken holds the string denoting the image_output_price_per_token field in the database.
+	FieldImageOutputPricePerToken = "image_output_price_per_token"
+	// FieldLongContextInputTokenThreshold holds the string denoting the long_context_input_token_threshold field in the database.
+	FieldLongContextInputTokenThreshold = "long_context_input_token_threshold"
+	// FieldLongContextInputCostMultiplier holds the string denoting the long_context_input_cost_multiplier field in the database.
+	FieldLongContextInputCostMultiplier = "long_context_input_cost_multiplier"
+	// FieldLongContextOutputCostMultiplier holds the string denoting the long_context_output_cost_multiplier field in the database.
+	FieldLongContextOutputCostMultiplier = "long_context_output_cost_multiplier"
 	// FieldSupportsPromptCaching holds the string denoting the supports_prompt_caching field in the database.
 	FieldSupportsPromptCaching = "supports_prompt_caching"
 	// FieldCustomInputCost holds the string denoting the custom_input_cost field in the database.
@@ -47,6 +67,14 @@ const (
 	FieldIsCustom = "is_custom"
 	// FieldIsEnabled holds the string denoting the is_enabled field in the database.
 	FieldIsEnabled = "is_enabled"
+	// FieldSource holds the string denoting the source field in the database.
+	FieldSource = "source"
+	// FieldSourceProvider holds the string denoting the source_provider field in the database.
+	FieldSourceProvider = "source_provider"
+	// FieldSourceAccountID holds the string denoting the source_account_id field in the database.
+	FieldSourceAccountID = "source_account_id"
+	// FieldPricingStatus holds the string denoting the pricing_status field in the database.
+	FieldPricingStatus = "pricing_status"
 	// FieldLastSyncedAt holds the string denoting the last_synced_at field in the database.
 	FieldLastSyncedAt = "last_synced_at"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -71,12 +99,26 @@ var Columns = []string{
 	FieldCacheReadInputTokenCost,
 	FieldOutputCostPerImage,
 	FieldOutputCostPerImageToken,
+	FieldInputCostPerTokenPriority,
+	FieldOutputCostPerTokenPriority,
+	FieldCacheReadInputTokenCostPriority,
+	FieldCacheCreation5mTokenCost,
+	FieldCacheCreation1hTokenCost,
+	FieldSupportsCacheBreakdown,
+	FieldImageOutputPricePerToken,
+	FieldLongContextInputTokenThreshold,
+	FieldLongContextInputCostMultiplier,
+	FieldLongContextOutputCostMultiplier,
 	FieldSupportsPromptCaching,
 	FieldCustomInputCost,
 	FieldCustomOutputCost,
 	FieldDiscountRate,
 	FieldIsCustom,
 	FieldIsEnabled,
+	FieldSource,
+	FieldSourceProvider,
+	FieldSourceAccountID,
+	FieldPricingStatus,
 	FieldLastSyncedAt,
 	FieldCreatedAt,
 	FieldUpdatedAt,
@@ -105,12 +147,26 @@ var (
 	DefaultMode string
 	// ModeValidator is a validator for the "mode" field. It is called by the builders before save.
 	ModeValidator func(string) error
+	// DefaultSupportsCacheBreakdown holds the default value on creation for the "supports_cache_breakdown" field.
+	DefaultSupportsCacheBreakdown bool
 	// DefaultSupportsPromptCaching holds the default value on creation for the "supports_prompt_caching" field.
 	DefaultSupportsPromptCaching bool
 	// DefaultIsCustom holds the default value on creation for the "is_custom" field.
 	DefaultIsCustom bool
 	// DefaultIsEnabled holds the default value on creation for the "is_enabled" field.
 	DefaultIsEnabled bool
+	// DefaultSource holds the default value on creation for the "source" field.
+	DefaultSource string
+	// SourceValidator is a validator for the "source" field. It is called by the builders before save.
+	SourceValidator func(string) error
+	// DefaultSourceProvider holds the default value on creation for the "source_provider" field.
+	DefaultSourceProvider string
+	// SourceProviderValidator is a validator for the "source_provider" field. It is called by the builders before save.
+	SourceProviderValidator func(string) error
+	// DefaultPricingStatus holds the default value on creation for the "pricing_status" field.
+	DefaultPricingStatus string
+	// PricingStatusValidator is a validator for the "pricing_status" field. It is called by the builders before save.
+	PricingStatusValidator func(string) error
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -182,6 +238,56 @@ func ByOutputCostPerImageToken(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldOutputCostPerImageToken, opts...).ToFunc()
 }
 
+// ByInputCostPerTokenPriority orders the results by the input_cost_per_token_priority field.
+func ByInputCostPerTokenPriority(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInputCostPerTokenPriority, opts...).ToFunc()
+}
+
+// ByOutputCostPerTokenPriority orders the results by the output_cost_per_token_priority field.
+func ByOutputCostPerTokenPriority(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOutputCostPerTokenPriority, opts...).ToFunc()
+}
+
+// ByCacheReadInputTokenCostPriority orders the results by the cache_read_input_token_cost_priority field.
+func ByCacheReadInputTokenCostPriority(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCacheReadInputTokenCostPriority, opts...).ToFunc()
+}
+
+// ByCacheCreation5mTokenCost orders the results by the cache_creation_5m_token_cost field.
+func ByCacheCreation5mTokenCost(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCacheCreation5mTokenCost, opts...).ToFunc()
+}
+
+// ByCacheCreation1hTokenCost orders the results by the cache_creation_1h_token_cost field.
+func ByCacheCreation1hTokenCost(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCacheCreation1hTokenCost, opts...).ToFunc()
+}
+
+// BySupportsCacheBreakdown orders the results by the supports_cache_breakdown field.
+func BySupportsCacheBreakdown(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSupportsCacheBreakdown, opts...).ToFunc()
+}
+
+// ByImageOutputPricePerToken orders the results by the image_output_price_per_token field.
+func ByImageOutputPricePerToken(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldImageOutputPricePerToken, opts...).ToFunc()
+}
+
+// ByLongContextInputTokenThreshold orders the results by the long_context_input_token_threshold field.
+func ByLongContextInputTokenThreshold(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLongContextInputTokenThreshold, opts...).ToFunc()
+}
+
+// ByLongContextInputCostMultiplier orders the results by the long_context_input_cost_multiplier field.
+func ByLongContextInputCostMultiplier(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLongContextInputCostMultiplier, opts...).ToFunc()
+}
+
+// ByLongContextOutputCostMultiplier orders the results by the long_context_output_cost_multiplier field.
+func ByLongContextOutputCostMultiplier(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLongContextOutputCostMultiplier, opts...).ToFunc()
+}
+
 // BySupportsPromptCaching orders the results by the supports_prompt_caching field.
 func BySupportsPromptCaching(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSupportsPromptCaching, opts...).ToFunc()
@@ -210,6 +316,26 @@ func ByIsCustom(opts ...sql.OrderTermOption) OrderOption {
 // ByIsEnabled orders the results by the is_enabled field.
 func ByIsEnabled(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIsEnabled, opts...).ToFunc()
+}
+
+// BySource orders the results by the source field.
+func BySource(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSource, opts...).ToFunc()
+}
+
+// BySourceProvider orders the results by the source_provider field.
+func BySourceProvider(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSourceProvider, opts...).ToFunc()
+}
+
+// BySourceAccountID orders the results by the source_account_id field.
+func BySourceAccountID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSourceAccountID, opts...).ToFunc()
+}
+
+// ByPricingStatus orders the results by the pricing_status field.
+func ByPricingStatus(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPricingStatus, opts...).ToFunc()
 }
 
 // ByLastSyncedAt orders the results by the last_synced_at field.

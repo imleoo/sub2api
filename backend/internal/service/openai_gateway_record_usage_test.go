@@ -131,6 +131,32 @@ func i64p(v int64) *int64 {
 	return &v
 }
 
+// newGatewayTestBillingService creates a BillingService backed by bootstrap catalog
+// plus test-only models (gpt-5.1: fictional, priced same as gpt-5.2) for gateway tests.
+func newGatewayTestBillingService(cfg *config.Config) *BillingService {
+	seeds := BootstrapPricingSeeds()
+	catalog := make(map[string]*DBModelPricing, len(seeds)+1)
+	for _, s := range seeds {
+		catalog[s.ModelID] = s
+	}
+	input, output := 1.75e-6, 14.0e-6
+	catalog["gpt-5.1"] = &DBModelPricing{
+		ModelID:            "gpt-5.1",
+		Provider:           "openai",
+		Mode:               "chat",
+		InputCostPerToken:  &input,
+		OutputCostPerToken: &output,
+		IsEnabled:          true,
+		PricingStatus:      ModelPricingStatusPriced,
+		Source:             bootstrapSourceLabel,
+	}
+	ps := &PricingService{
+		catalog:  catalog,
+		aliasIdx: buildAliasIndex(catalog),
+	}
+	return NewBillingService(cfg, ps)
+}
+
 func newOpenAIRecordUsageServiceForTest(usageRepo UsageLogRepository, userRepo UserRepository, subRepo UserSubscriptionRepository, rateRepo UserGroupRateRepository) *OpenAIGatewayService {
 	cfg := &config.Config{}
 	cfg.Default.RateMultiplier = 1.1
@@ -145,7 +171,7 @@ func newOpenAIRecordUsageServiceForTest(usageRepo UsageLogRepository, userRepo U
 		cfg,
 		nil,
 		nil,
-		NewBillingService(cfg, nil),
+		newGatewayTestBillingService(cfg),
 		nil,
 		&BillingCacheService{},
 		nil,

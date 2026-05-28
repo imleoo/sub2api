@@ -614,15 +614,26 @@ func (h *UsageHandler) collectWhitelistedModelsForAccounts(ctx context.Context, 
 			continue
 		}
 		// 功能 25：generic 账号取各 endpoint 的 supported_models 并集（identity 映射）。
+		// PR-7：若某个 endpoint 的 supported_models 为空，则以 catalog 中所有 is_enabled 模型兜底，
+		// 避免新配置的 generic endpoint 因未显式配置白名单而导致模型广场显示为空。
 		if account.Platform == service.PlatformGeneric && h.endpointRepo != nil {
 			eps, _ := h.endpointRepo.ListByAccountID(ctx, account.ID)
 			for _, ep := range eps {
-				for _, m := range ep.SupportedModels {
-					m = strings.TrimSpace(m)
-					if m == "" {
-						continue
+				if len(ep.SupportedModels) == 0 {
+					// 空白名单 → 显示全部 catalog 启用模型
+					if h.pricingService != nil {
+						for _, m := range h.pricingService.ListEnabledCatalogModels() {
+							allowed[m.ID] = m
+						}
 					}
-					addWhitelistedModel(allowed, modelsByID, m, m)
+				} else {
+					for _, m := range ep.SupportedModels {
+						m = strings.TrimSpace(m)
+						if m == "" {
+							continue
+						}
+						addWhitelistedModel(allowed, modelsByID, m, m)
+					}
 				}
 			}
 			continue

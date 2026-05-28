@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
@@ -77,13 +78,23 @@ func (r *modelPricingRepository) upsertBatchSlice(ctx context.Context, models []
 	now := time.Now()
 	builders := make([]*dbent.ModelPricingCreate, 0, len(models))
 	for _, m := range models {
+		// SSOT PR-1：远端同步行强制 source=litellm，pricing_status 根据是否有上游价推断。
+		pricingStatus := service.ModelPricingStatusUnpriced
+		if m.InputCostPerToken != nil || m.OutputCostPerToken != nil ||
+			m.OutputCostPerImage != nil || m.OutputCostPerImageToken != nil {
+			pricingStatus = service.ModelPricingStatusPriced
+		}
 		c := r.client.ModelPricing.Create().
 			SetModelID(m.ModelID).
 			SetProvider(m.Provider).
 			SetMode(m.Mode).
 			SetSupportsPromptCaching(m.SupportsPromptCaching).
+			SetSupportsCacheBreakdown(m.SupportsCacheBreakdown).
 			SetIsCustom(false).
 			SetIsEnabled(m.IsEnabled).
+			SetSource(service.ModelPricingSourceLiteLLM).
+			SetSourceProvider("").
+			SetPricingStatus(pricingStatus).
 			SetNillableDisplayName(m.DisplayName).
 			SetNillableDescription(m.Description).
 			SetNillableInputCostPerToken(m.InputCostPerToken).
@@ -92,6 +103,15 @@ func (r *modelPricingRepository) upsertBatchSlice(ctx context.Context, models []
 			SetNillableCacheReadInputTokenCost(m.CacheReadInputTokenCost).
 			SetNillableOutputCostPerImage(m.OutputCostPerImage).
 			SetNillableOutputCostPerImageToken(m.OutputCostPerImageToken).
+			SetNillableInputCostPerTokenPriority(m.InputCostPerTokenPriority).
+			SetNillableOutputCostPerTokenPriority(m.OutputCostPerTokenPriority).
+			SetNillableCacheReadInputTokenCostPriority(m.CacheReadInputTokenCostPriority).
+			SetNillableCacheCreation5mTokenCost(m.CacheCreation5mTokenCost).
+			SetNillableCacheCreation1hTokenCost(m.CacheCreation1hTokenCost).
+			SetNillableImageOutputPricePerToken(m.ImageOutputPricePerToken).
+			SetNillableLongContextInputTokenThreshold(m.LongContextInputTokenThreshold).
+			SetNillableLongContextInputCostMultiplier(m.LongContextInputCostMultiplier).
+			SetNillableLongContextOutputCostMultiplier(m.LongContextOutputCostMultiplier).
 			SetLastSyncedAt(now)
 		builders = append(builders, c)
 	}
@@ -102,6 +122,7 @@ func (r *modelPricingRepository) upsertBatchSlice(ctx context.Context, models []
 			u.UpdateProvider()
 			u.UpdateMode()
 			u.UpdateSupportsPromptCaching()
+			u.UpdateSupportsCacheBreakdown()
 			u.UpdateDisplayName()
 			u.UpdateDescription()
 			u.UpdateInputCostPerToken()
@@ -110,22 +131,58 @@ func (r *modelPricingRepository) upsertBatchSlice(ctx context.Context, models []
 			u.UpdateCacheReadInputTokenCost()
 			u.UpdateOutputCostPerImage()
 			u.UpdateOutputCostPerImageToken()
+			u.UpdateInputCostPerTokenPriority()
+			u.UpdateOutputCostPerTokenPriority()
+			u.UpdateCacheReadInputTokenCostPriority()
+			u.UpdateCacheCreation5mTokenCost()
+			u.UpdateCacheCreation1hTokenCost()
+			u.UpdateImageOutputPricePerToken()
+			u.UpdateLongContextInputTokenThreshold()
+			u.UpdateLongContextInputCostMultiplier()
+			u.UpdateLongContextOutputCostMultiplier()
 			u.UpdateLastSyncedAt()
 			u.UpdateUpdatedAt()
+			// 远端同步保持 source=litellm 不变，pricing_status 跟随价格状态变化。
+			u.UpdateSource()
+			u.UpdatePricingStatus()
 		}).
 		Exec(ctx)
 }
 
-// Create 创建一条手动自定义模型定价记录。
+// Create 创建一条模型定价记录。
+// SSOT PR-1：保留 IsCustom 兼容字段（按入参 m.IsCustom；未显式设置时根据 Source 推断）。
+// Source/PricingStatus 入参未填时给安全默认（manual / unpriced）。
 func (r *modelPricingRepository) Create(ctx context.Context, m *service.DBModelPricing) error {
 	client := clientFromContext(ctx, r.client)
-	created, err := client.ModelPricing.Create().
+
+	source := strings.TrimSpace(m.Source)
+	if source == "" {
+		source = service.ModelPricingSourceManual
+	}
+	pricingStatus := strings.TrimSpace(m.PricingStatus)
+	if pricingStatus == "" {
+		if m.InputCostPerToken != nil || m.OutputCostPerToken != nil ||
+			m.CustomInputCost != nil || m.CustomOutputCost != nil ||
+			m.OutputCostPerImage != nil || m.OutputCostPerImageToken != nil {
+			pricingStatus = service.ModelPricingStatusPriced
+		} else {
+			pricingStatus = service.ModelPricingStatusUnpriced
+		}
+	}
+	// IsCustom 兼容兜底：source!=litellm 视为 custom。
+	isCustom := m.IsCustom || source != service.ModelPricingSourceLiteLLM
+
+	builder := client.ModelPricing.Create().
 		SetModelID(m.ModelID).
 		SetProvider(m.Provider).
 		SetMode(m.Mode).
 		SetSupportsPromptCaching(m.SupportsPromptCaching).
-		SetIsCustom(true).
+		SetSupportsCacheBreakdown(m.SupportsCacheBreakdown).
+		SetIsCustom(isCustom).
 		SetIsEnabled(m.IsEnabled).
+		SetSource(source).
+		SetSourceProvider(m.SourceProvider).
+		SetPricingStatus(pricingStatus).
 		SetNillableDisplayName(m.DisplayName).
 		SetNillableDescription(m.Description).
 		SetNillableInputCostPerToken(m.InputCostPerToken).
@@ -137,11 +194,24 @@ func (r *modelPricingRepository) Create(ctx context.Context, m *service.DBModelP
 		SetNillableCustomInputCost(m.CustomInputCost).
 		SetNillableCustomOutputCost(m.CustomOutputCost).
 		SetNillableDiscountRate(m.DiscountRate).
-		Save(ctx)
+		SetNillableInputCostPerTokenPriority(m.InputCostPerTokenPriority).
+		SetNillableOutputCostPerTokenPriority(m.OutputCostPerTokenPriority).
+		SetNillableCacheReadInputTokenCostPriority(m.CacheReadInputTokenCostPriority).
+		SetNillableCacheCreation5mTokenCost(m.CacheCreation5mTokenCost).
+		SetNillableCacheCreation1hTokenCost(m.CacheCreation1hTokenCost).
+		SetNillableImageOutputPricePerToken(m.ImageOutputPricePerToken).
+		SetNillableLongContextInputTokenThreshold(m.LongContextInputTokenThreshold).
+		SetNillableLongContextInputCostMultiplier(m.LongContextInputCostMultiplier).
+		SetNillableLongContextOutputCostMultiplier(m.LongContextOutputCostMultiplier).
+		SetNillableSourceAccountID(m.SourceAccountID)
+	created, err := builder.Save(ctx)
 	if err != nil {
 		return translatePersistenceError(err, nil, nil)
 	}
 	m.ID = created.ID
+	m.Source = created.Source
+	m.PricingStatus = created.PricingStatus
+	m.IsCustom = created.IsCustom
 	m.CreatedAt = created.CreatedAt
 	m.UpdatedAt = created.UpdatedAt
 	return nil
@@ -303,6 +373,68 @@ func (r *modelPricingRepository) Update(ctx context.Context, m *service.DBModelP
 		builder.ClearDiscountRate()
 	}
 
+	// SSOT PR-1 扩展字段：与现有 nil = clear 语义一致。
+	if m.InputCostPerTokenPriority != nil {
+		builder.SetInputCostPerTokenPriority(*m.InputCostPerTokenPriority)
+	} else {
+		builder.ClearInputCostPerTokenPriority()
+	}
+	if m.OutputCostPerTokenPriority != nil {
+		builder.SetOutputCostPerTokenPriority(*m.OutputCostPerTokenPriority)
+	} else {
+		builder.ClearOutputCostPerTokenPriority()
+	}
+	if m.CacheReadInputTokenCostPriority != nil {
+		builder.SetCacheReadInputTokenCostPriority(*m.CacheReadInputTokenCostPriority)
+	} else {
+		builder.ClearCacheReadInputTokenCostPriority()
+	}
+	if m.CacheCreation5mTokenCost != nil {
+		builder.SetCacheCreation5mTokenCost(*m.CacheCreation5mTokenCost)
+	} else {
+		builder.ClearCacheCreation5mTokenCost()
+	}
+	if m.CacheCreation1hTokenCost != nil {
+		builder.SetCacheCreation1hTokenCost(*m.CacheCreation1hTokenCost)
+	} else {
+		builder.ClearCacheCreation1hTokenCost()
+	}
+	builder.SetSupportsCacheBreakdown(m.SupportsCacheBreakdown)
+	if m.ImageOutputPricePerToken != nil {
+		builder.SetImageOutputPricePerToken(*m.ImageOutputPricePerToken)
+	} else {
+		builder.ClearImageOutputPricePerToken()
+	}
+	if m.LongContextInputTokenThreshold != nil {
+		builder.SetLongContextInputTokenThreshold(*m.LongContextInputTokenThreshold)
+	} else {
+		builder.ClearLongContextInputTokenThreshold()
+	}
+	if m.LongContextInputCostMultiplier != nil {
+		builder.SetLongContextInputCostMultiplier(*m.LongContextInputCostMultiplier)
+	} else {
+		builder.ClearLongContextInputCostMultiplier()
+	}
+	if m.LongContextOutputCostMultiplier != nil {
+		builder.SetLongContextOutputCostMultiplier(*m.LongContextOutputCostMultiplier)
+	} else {
+		builder.ClearLongContextOutputCostMultiplier()
+	}
+	// SSOT 元数据：source / source_provider / source_account_id / pricing_status
+	// 仅在入参非空时更新，避免把空串写回。
+	if s := strings.TrimSpace(m.Source); s != "" {
+		builder.SetSource(s)
+	}
+	builder.SetSourceProvider(m.SourceProvider)
+	if m.SourceAccountID != nil {
+		builder.SetSourceAccountID(*m.SourceAccountID)
+	} else {
+		builder.ClearSourceAccountID()
+	}
+	if s := strings.TrimSpace(m.PricingStatus); s != "" {
+		builder.SetPricingStatus(s)
+	}
+
 	updated, err := builder.Save(ctx)
 	if err != nil {
 		return translatePersistenceError(err, errModelPricingNotFound, nil)
@@ -407,7 +539,23 @@ func modelPricingEntityToService(m *dbent.ModelPricing) *service.DBModelPricing 
 		IsCustom:                    m.IsCustom,
 		IsEnabled:                   m.IsEnabled,
 		LastSyncedAt:                m.LastSyncedAt,
-		CreatedAt:                   m.CreatedAt,
-		UpdatedAt:                   m.UpdatedAt,
+
+		InputCostPerTokenPriority:       m.InputCostPerTokenPriority,
+		OutputCostPerTokenPriority:      m.OutputCostPerTokenPriority,
+		CacheReadInputTokenCostPriority: m.CacheReadInputTokenCostPriority,
+		CacheCreation5mTokenCost:        m.CacheCreation5mTokenCost,
+		CacheCreation1hTokenCost:        m.CacheCreation1hTokenCost,
+		SupportsCacheBreakdown:          m.SupportsCacheBreakdown,
+		ImageOutputPricePerToken:        m.ImageOutputPricePerToken,
+		LongContextInputTokenThreshold:  m.LongContextInputTokenThreshold,
+		LongContextInputCostMultiplier:  m.LongContextInputCostMultiplier,
+		LongContextOutputCostMultiplier: m.LongContextOutputCostMultiplier,
+		Source:                          m.Source,
+		SourceProvider:                  m.SourceProvider,
+		SourceAccountID:                 m.SourceAccountID,
+		PricingStatus:                   m.PricingStatus,
+
+		CreatedAt: m.CreatedAt,
+		UpdatedAt: m.UpdatedAt,
 	}
 }

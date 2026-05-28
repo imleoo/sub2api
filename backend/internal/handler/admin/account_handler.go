@@ -50,8 +50,9 @@ type AccountHandler struct {
 	rpmCache              service.RPMCache
 	tokenCacheInvalidator service.TokenCacheInvalidator
 	endpointRepo          service.EndpointRepository
-	modelPricingRepo      service.ModelPricingRepository // 功能 25：端点拉取模型后顺便去重入库到折扣表
-	pricingService        *service.PricingService        // 写完入库后触发 pricingData 重载
+	modelPricingRepo      service.ModelPricingRepository    // 功能 25：端点拉取模型后顺便去重入库到折扣表
+	pricingService        *service.PricingService           // 写完入库后触发 pricingData 重载
+	modelCatalogService   *service.ModelCatalogService      // PR-7：统一写路径
 }
 
 // SetModelPricingRepository 注入模型定价仓库（Wire 完成后调用）。
@@ -62,6 +63,11 @@ func (h *AccountHandler) SetModelPricingRepository(repo service.ModelPricingRepo
 // SetPricingService 注入定价服务（Wire 完成后调用，用于同步后刷新内存映射）。
 func (h *AccountHandler) SetPricingService(ps *service.PricingService) {
 	h.pricingService = ps
+}
+
+// SetModelCatalogService 注入 catalog 写路径服务（Wire 完成后调用）。
+func (h *AccountHandler) SetModelCatalogService(s *service.ModelCatalogService) {
+	h.modelCatalogService = s
 }
 
 // NewAccountHandler creates a new admin account handler
@@ -2033,6 +2039,7 @@ type fetchEndpointModelsRequest struct {
 	BaseURL    string `json:"base_url" binding:"required"`
 	APIKey     string `json:"api_key"`
 	AccountID  int64  `json:"account_id"`
+	EndpointID int64  `json:"endpoint_id"` // PR-7：提供时自动回写 endpoints.supported_models
 	AuthHeader string `json:"auth_header"`
 	AuthScheme string `json:"auth_scheme"`
 	Provider   string `json:"provider"` // 入折扣表时的 provider 标签；留空时按 account_id 取账号名，再回退 "generic"
@@ -2088,10 +2095,19 @@ func (h *AccountHandler) FetchEndpointModels(c *gin.Context) {
 		response.Error(c, http.StatusBadGateway, "Failed to fetch models from upstream")
 		return
 	}
+	// PR-7：如果提供了 endpoint_id，把拉取到的模型列表直接回写到 endpoints.supported_models，
+	// 省去前端需要保存账号才能生效的额外步骤。
+	endpointSaved := false
+	if req.EndpointID > 0 && h.endpointRepo != nil && len(models) > 0 {
+		if err := h.endpointRepo.UpdateSupportedModels(c.Request.Context(), req.EndpointID, models); err == nil {
+			endpointSaved = true
+		}
+	}
+
 	// 功能 25：顺便把拉取到的模型 SeedIfNotExists 进模型定价表（已存在的不覆盖、不修改价格）。
 	// provider 优先用账号名（区分多上游），无 account_id 时用请求里的 provider 或 fallback "generic"。
 	pricingAdded := 0
-	if h.modelPricingRepo != nil && len(models) > 0 {
+	if len(models) > 0 {
 		provider := strings.TrimSpace(req.Provider)
 		if provider == "" && req.AccountID > 0 {
 			if acc, accErr := h.adminService.GetAccount(c.Request.Context(), req.AccountID); accErr == nil && acc != nil {
@@ -2110,23 +2126,31 @@ func (h *AccountHandler) FetchEndpointModels(c *gin.Context) {
 			seeds = append(seeds, &service.DBModelPricing{
 				ModelID:   m,
 				Provider:  provider,
+				Source:    service.ModelPricingSourceUpstreamSync,
 				Mode:      "chat",
 				IsCustom:  true,
 				IsEnabled: true,
 			})
 		}
-		if err := h.modelPricingRepo.SeedIfNotExists(c.Request.Context(), seeds); err == nil {
-			pricingAdded = len(seeds) // SeedIfNotExists 不返回实际插入条数，按拉取条数上限给前端做提示
-			// 写完即刷新 pricingService 内存映射，让新模型在「模型广场」立即可见。
-			if h.pricingService != nil {
-				h.pricingService.ReloadFromDB(c.Request.Context())
+		// 优先通过 ModelCatalogService（统一 source 规则 + 自动 ReloadFromDB）；
+		// 无注入时降级到直接调用 repo，保持原有行为。
+		if h.modelCatalogService != nil {
+			n, _ := h.modelCatalogService.UpsertModels(c.Request.Context(), seeds, service.ModelPricingSourceUpstreamSync)
+			pricingAdded = n
+		} else if h.modelPricingRepo != nil {
+			if err := h.modelPricingRepo.SeedIfNotExists(c.Request.Context(), seeds); err == nil {
+				pricingAdded = len(seeds)
+				if h.pricingService != nil {
+					h.pricingService.ReloadFromDB(c.Request.Context())
+				}
 			}
 		}
 	}
 	response.Success(c, gin.H{
-		"models":        models,
-		"fetched":       len(models),
-		"pricing_added": pricingAdded,
+		"models":         models,
+		"fetched":        len(models),
+		"pricing_added":  pricingAdded,
+		"endpoint_saved": endpointSaved,
 	})
 }
 

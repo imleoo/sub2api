@@ -945,12 +945,26 @@ var (
 		{Name: "cache_read_input_token_cost", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
 		{Name: "output_cost_per_image", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
 		{Name: "output_cost_per_image_token", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
+		{Name: "input_cost_per_token_priority", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
+		{Name: "output_cost_per_token_priority", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
+		{Name: "cache_read_input_token_cost_priority", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
+		{Name: "cache_creation_5m_token_cost", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
+		{Name: "cache_creation_1h_token_cost", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
+		{Name: "supports_cache_breakdown", Type: field.TypeBool, Default: false},
+		{Name: "image_output_price_per_token", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
+		{Name: "long_context_input_token_threshold", Type: field.TypeInt64, Nullable: true},
+		{Name: "long_context_input_cost_multiplier", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(10,4)"}},
+		{Name: "long_context_output_cost_multiplier", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(10,4)"}},
 		{Name: "supports_prompt_caching", Type: field.TypeBool, Default: false},
 		{Name: "custom_input_cost", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
 		{Name: "custom_output_cost", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
 		{Name: "discount_rate", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(10,4)"}},
 		{Name: "is_custom", Type: field.TypeBool, Default: false},
 		{Name: "is_enabled", Type: field.TypeBool, Default: true},
+		{Name: "source", Type: field.TypeString, Size: 20, Default: "manual"},
+		{Name: "source_provider", Type: field.TypeString, Size: 100, Default: ""},
+		{Name: "source_account_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "pricing_status", Type: field.TypeString, Size: 20, Default: "unpriced"},
 		{Name: "last_synced_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
 		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
 		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
@@ -974,12 +988,22 @@ var (
 			{
 				Name:    "modelpricing_is_custom",
 				Unique:  false,
-				Columns: []*schema.Column{ModelPricingsColumns[16]},
+				Columns: []*schema.Column{ModelPricingsColumns[26]},
 			},
 			{
 				Name:    "modelpricing_is_enabled",
 				Unique:  false,
-				Columns: []*schema.Column{ModelPricingsColumns[17]},
+				Columns: []*schema.Column{ModelPricingsColumns[27]},
+			},
+			{
+				Name:    "modelpricing_source",
+				Unique:  false,
+				Columns: []*schema.Column{ModelPricingsColumns[28]},
+			},
+			{
+				Name:    "modelpricing_pricing_status",
+				Unique:  false,
+				Columns: []*schema.Column{ModelPricingsColumns[31]},
 			},
 		},
 	}
@@ -1204,6 +1228,39 @@ var (
 				Name:    "pendingauthsession_completion_code_hash",
 				Unique:  false,
 				Columns: []*schema.Column{PendingAuthSessionsColumns[14]},
+			},
+		},
+	}
+	// PricingDriftLogsColumns holds the columns for the "pricing_drift_logs" table.
+	PricingDriftLogsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "model_id", Type: field.TypeString, Size: 200},
+		{Name: "drift_kind", Type: field.TypeString, Size: 32},
+		{Name: "v1_pricing", Type: field.TypeJSON, Nullable: true},
+		{Name: "v2_pricing", Type: field.TypeJSON, Nullable: true},
+		{Name: "hit_path", Type: field.TypeString, Nullable: true, Size: 64},
+		{Name: "occurred_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+	}
+	// PricingDriftLogsTable holds the schema information for the "pricing_drift_logs" table.
+	PricingDriftLogsTable = &schema.Table{
+		Name:       "pricing_drift_logs",
+		Columns:    PricingDriftLogsColumns,
+		PrimaryKey: []*schema.Column{PricingDriftLogsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "pricingdriftlog_model_id",
+				Unique:  false,
+				Columns: []*schema.Column{PricingDriftLogsColumns[1]},
+			},
+			{
+				Name:    "pricingdriftlog_drift_kind",
+				Unique:  false,
+				Columns: []*schema.Column{PricingDriftLogsColumns[2]},
+			},
+			{
+				Name:    "pricingdriftlog_occurred_at",
+				Unique:  false,
+				Columns: []*schema.Column{PricingDriftLogsColumns[6]},
 			},
 		},
 	}
@@ -1960,6 +2017,7 @@ var (
 		PaymentOrdersTable,
 		PaymentProviderInstancesTable,
 		PendingAuthSessionsTable,
+		PricingDriftLogsTable,
 		PromoCodesTable,
 		PromoCodeUsagesTable,
 		ProviderPricingsTable,
@@ -2065,6 +2123,9 @@ func init() {
 	PendingAuthSessionsTable.ForeignKeys[0].RefTable = UsersTable
 	PendingAuthSessionsTable.Annotation = &entsql.Annotation{
 		Table: "pending_auth_sessions",
+	}
+	PricingDriftLogsTable.Annotation = &entsql.Annotation{
+		Table: "pricing_drift_logs",
 	}
 	PromoCodesTable.Annotation = &entsql.Annotation{
 		Table: "promo_codes",

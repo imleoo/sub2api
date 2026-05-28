@@ -168,6 +168,146 @@ func (_c *ModelPricingCreate) SetNillableOutputCostPerImageToken(v *float64) *Mo
 	return _c
 }
 
+// SetInputCostPerTokenPriority sets the "input_cost_per_token_priority" field.
+func (_c *ModelPricingCreate) SetInputCostPerTokenPriority(v float64) *ModelPricingCreate {
+	_c.mutation.SetInputCostPerTokenPriority(v)
+	return _c
+}
+
+// SetNillableInputCostPerTokenPriority sets the "input_cost_per_token_priority" field if the given value is not nil.
+func (_c *ModelPricingCreate) SetNillableInputCostPerTokenPriority(v *float64) *ModelPricingCreate {
+	if v != nil {
+		_c.SetInputCostPerTokenPriority(*v)
+	}
+	return _c
+}
+
+// SetOutputCostPerTokenPriority sets the "output_cost_per_token_priority" field.
+func (_c *ModelPricingCreate) SetOutputCostPerTokenPriority(v float64) *ModelPricingCreate {
+	_c.mutation.SetOutputCostPerTokenPriority(v)
+	return _c
+}
+
+// SetNillableOutputCostPerTokenPriority sets the "output_cost_per_token_priority" field if the given value is not nil.
+func (_c *ModelPricingCreate) SetNillableOutputCostPerTokenPriority(v *float64) *ModelPricingCreate {
+	if v != nil {
+		_c.SetOutputCostPerTokenPriority(*v)
+	}
+	return _c
+}
+
+// SetCacheReadInputTokenCostPriority sets the "cache_read_input_token_cost_priority" field.
+func (_c *ModelPricingCreate) SetCacheReadInputTokenCostPriority(v float64) *ModelPricingCreate {
+	_c.mutation.SetCacheReadInputTokenCostPriority(v)
+	return _c
+}
+
+// SetNillableCacheReadInputTokenCostPriority sets the "cache_read_input_token_cost_priority" field if the given value is not nil.
+func (_c *ModelPricingCreate) SetNillableCacheReadInputTokenCostPriority(v *float64) *ModelPricingCreate {
+	if v != nil {
+		_c.SetCacheReadInputTokenCostPriority(*v)
+	}
+	return _c
+}
+
+// SetCacheCreation5mTokenCost sets the "cache_creation_5m_token_cost" field.
+func (_c *ModelPricingCreate) SetCacheCreation5mTokenCost(v float64) *ModelPricingCreate {
+	_c.mutation.SetCacheCreation5mTokenCost(v)
+	return _c
+}
+
+// SetNillableCacheCreation5mTokenCost sets the "cache_creation_5m_token_cost" field if the given value is not nil.
+func (_c *ModelPricingCreate) SetNillableCacheCreation5mTokenCost(v *float64) *ModelPricingCreate {
+	if v != nil {
+		_c.SetCacheCreation5mTokenCost(*v)
+	}
+	return _c
+}
+
+// SetCacheCreation1hTokenCost sets the "cache_creation_1h_token_cost" field.
+func (_c *ModelPricingCreate) SetCacheCreation1hTokenCost(v float64) *ModelPricingCreate {
+	_c.mutation.SetCacheCreation1hTokenCost(v)
+	return _c
+}
+
+// SetNillableCacheCreation1hTokenCost sets the "cache_creation_1h_token_cost" field if the given value is not nil.
+func (_c *ModelPricingCreate) SetNillableCacheCreation1hTokenCost(v *float64) *ModelPricingCreate {
+	if v != nil {
+		_c.SetCacheCreation1hTokenCost(*v)
+	}
+	return _c
+}
+
+// SetSupportsCacheBreakdown sets the "supports_cache_breakdown" field.
+func (_c *ModelPricingCreate) SetSupportsCacheBreakdown(v bool) *ModelPricingCreate {
+	_c.mutation.SetSupportsCacheBreakdown(v)
+	return _c
+}
+
+// SetNillableSupportsCacheBreakdown sets the "supports_cache_breakdown" field if the given value is not nil.
+func (_c *ModelPricingCreate) SetNillableSupportsCacheBreakdown(v *bool) *ModelPricingCreate {
+	if v != nil {
+		_c.SetSupportsCacheBreakdown(*v)
+	}
+	return _c
+}
+
+// SetImageOutputPricePerToken sets the "image_output_price_per_token" field.
+func (_c *ModelPricingCreate) SetImageOutputPricePerToken(v float64) *ModelPricingCreate {
+	_c.mutation.SetImageOutputPricePerToken(v)
+	return _c
+}
+
+// SetNillableImageOutputPricePerToken sets the "image_output_price_per_token" field if the given value is not nil.
+func (_c *ModelPricingCreate) SetNillableImageOutputPricePerToken(v *float64) *ModelPricingCreate {
+	if v != nil {
+		_c.SetImageOutputPricePerToken(*v)
+	}
+	return _c
+}
+
+// SetLongContextInputTokenThreshold sets the "long_context_input_token_threshold" field.
+func (_c *ModelPricingCreate) SetLongContextInputTokenThreshold(v int64) *ModelPricingCreate {
+	_c.mutation.SetLongContextInputTokenThreshold(v)
+	return _c
+}
+
+// SetNillableLongContextInputTokenThreshold sets the "long_context_input_token_threshold" field if the given value is not nil.
+func (_c *ModelPricingCreate) SetNillableLongContextInputTokenThreshold(v *int64) *ModelPricingCreate {
+	if v != nil {
+		_c.SetLongContextInputTokenThreshold(*v)
+	}
+	return _c
+}
+
+// SetLongContextInputCostMultiplier sets the "long_context_input_cost_multiplier" field.
+func (_c *ModelPricingCreate) SetLongContextInputCostMultiplier(v float64) *ModelPricingCreate {
+	_c.mutation.SetLongContextInputCostMultiplier(v)
+	return _c
+}
+
+// SetNillableLongContextInputCostMultiplier sets the "long_context_input_cost_multiplier" field if the given value is not nil.
+func (_c *ModelPricingCreate) SetNillableLongContextInputCostMultiplier(v *float64) *ModelPricingCreate {
+	if v != nil {
+		_c.SetLongContextInputCostMultiplier(*v)
+	}
+	return _c
+}
+
+// SetLongContextOutputCostMultiplier sets the "long_context_output_cost_multiplier" field.
+func (_c *ModelPricingCreate) SetLongContextOutputCostMultiplier(v float64) *ModelPricingCreate {
+	_c.mutation.SetLongContextOutputCostMultiplier(v)
+	return _c
+}
+
+// SetNillableLongContextOutputCostMultiplier sets the "long_context_output_cost_multiplier" field if the given value is not nil.
+func (_c *ModelPricingCreate) SetNillableLongContextOutputCostMultiplier(v *float64) *ModelPricingCreate {
+	if v != nil {
+		_c.SetLongContextOutputCostMultiplier(*v)
+	}
+	return _c
+}
+
 // SetSupportsPromptCaching sets the "supports_prompt_caching" field.
 func (_c *ModelPricingCreate) SetSupportsPromptCaching(v bool) *ModelPricingCreate {
 	_c.mutation.SetSupportsPromptCaching(v)
@@ -248,6 +388,62 @@ func (_c *ModelPricingCreate) SetIsEnabled(v bool) *ModelPricingCreate {
 func (_c *ModelPricingCreate) SetNillableIsEnabled(v *bool) *ModelPricingCreate {
 	if v != nil {
 		_c.SetIsEnabled(*v)
+	}
+	return _c
+}
+
+// SetSource sets the "source" field.
+func (_c *ModelPricingCreate) SetSource(v string) *ModelPricingCreate {
+	_c.mutation.SetSource(v)
+	return _c
+}
+
+// SetNillableSource sets the "source" field if the given value is not nil.
+func (_c *ModelPricingCreate) SetNillableSource(v *string) *ModelPricingCreate {
+	if v != nil {
+		_c.SetSource(*v)
+	}
+	return _c
+}
+
+// SetSourceProvider sets the "source_provider" field.
+func (_c *ModelPricingCreate) SetSourceProvider(v string) *ModelPricingCreate {
+	_c.mutation.SetSourceProvider(v)
+	return _c
+}
+
+// SetNillableSourceProvider sets the "source_provider" field if the given value is not nil.
+func (_c *ModelPricingCreate) SetNillableSourceProvider(v *string) *ModelPricingCreate {
+	if v != nil {
+		_c.SetSourceProvider(*v)
+	}
+	return _c
+}
+
+// SetSourceAccountID sets the "source_account_id" field.
+func (_c *ModelPricingCreate) SetSourceAccountID(v int64) *ModelPricingCreate {
+	_c.mutation.SetSourceAccountID(v)
+	return _c
+}
+
+// SetNillableSourceAccountID sets the "source_account_id" field if the given value is not nil.
+func (_c *ModelPricingCreate) SetNillableSourceAccountID(v *int64) *ModelPricingCreate {
+	if v != nil {
+		_c.SetSourceAccountID(*v)
+	}
+	return _c
+}
+
+// SetPricingStatus sets the "pricing_status" field.
+func (_c *ModelPricingCreate) SetPricingStatus(v string) *ModelPricingCreate {
+	_c.mutation.SetPricingStatus(v)
+	return _c
+}
+
+// SetNillablePricingStatus sets the "pricing_status" field if the given value is not nil.
+func (_c *ModelPricingCreate) SetNillablePricingStatus(v *string) *ModelPricingCreate {
+	if v != nil {
+		_c.SetPricingStatus(*v)
 	}
 	return _c
 }
@@ -337,6 +533,10 @@ func (_c *ModelPricingCreate) defaults() {
 		v := modelpricing.DefaultMode
 		_c.mutation.SetMode(v)
 	}
+	if _, ok := _c.mutation.SupportsCacheBreakdown(); !ok {
+		v := modelpricing.DefaultSupportsCacheBreakdown
+		_c.mutation.SetSupportsCacheBreakdown(v)
+	}
 	if _, ok := _c.mutation.SupportsPromptCaching(); !ok {
 		v := modelpricing.DefaultSupportsPromptCaching
 		_c.mutation.SetSupportsPromptCaching(v)
@@ -348,6 +548,18 @@ func (_c *ModelPricingCreate) defaults() {
 	if _, ok := _c.mutation.IsEnabled(); !ok {
 		v := modelpricing.DefaultIsEnabled
 		_c.mutation.SetIsEnabled(v)
+	}
+	if _, ok := _c.mutation.Source(); !ok {
+		v := modelpricing.DefaultSource
+		_c.mutation.SetSource(v)
+	}
+	if _, ok := _c.mutation.SourceProvider(); !ok {
+		v := modelpricing.DefaultSourceProvider
+		_c.mutation.SetSourceProvider(v)
+	}
+	if _, ok := _c.mutation.PricingStatus(); !ok {
+		v := modelpricing.DefaultPricingStatus
+		_c.mutation.SetPricingStatus(v)
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := modelpricing.DefaultCreatedAt()
@@ -390,6 +602,9 @@ func (_c *ModelPricingCreate) check() error {
 			return &ValidationError{Name: "mode", err: fmt.Errorf(`ent: validator failed for field "ModelPricing.mode": %w`, err)}
 		}
 	}
+	if _, ok := _c.mutation.SupportsCacheBreakdown(); !ok {
+		return &ValidationError{Name: "supports_cache_breakdown", err: errors.New(`ent: missing required field "ModelPricing.supports_cache_breakdown"`)}
+	}
 	if _, ok := _c.mutation.SupportsPromptCaching(); !ok {
 		return &ValidationError{Name: "supports_prompt_caching", err: errors.New(`ent: missing required field "ModelPricing.supports_prompt_caching"`)}
 	}
@@ -398,6 +613,30 @@ func (_c *ModelPricingCreate) check() error {
 	}
 	if _, ok := _c.mutation.IsEnabled(); !ok {
 		return &ValidationError{Name: "is_enabled", err: errors.New(`ent: missing required field "ModelPricing.is_enabled"`)}
+	}
+	if _, ok := _c.mutation.Source(); !ok {
+		return &ValidationError{Name: "source", err: errors.New(`ent: missing required field "ModelPricing.source"`)}
+	}
+	if v, ok := _c.mutation.Source(); ok {
+		if err := modelpricing.SourceValidator(v); err != nil {
+			return &ValidationError{Name: "source", err: fmt.Errorf(`ent: validator failed for field "ModelPricing.source": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.SourceProvider(); !ok {
+		return &ValidationError{Name: "source_provider", err: errors.New(`ent: missing required field "ModelPricing.source_provider"`)}
+	}
+	if v, ok := _c.mutation.SourceProvider(); ok {
+		if err := modelpricing.SourceProviderValidator(v); err != nil {
+			return &ValidationError{Name: "source_provider", err: fmt.Errorf(`ent: validator failed for field "ModelPricing.source_provider": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.PricingStatus(); !ok {
+		return &ValidationError{Name: "pricing_status", err: errors.New(`ent: missing required field "ModelPricing.pricing_status"`)}
+	}
+	if v, ok := _c.mutation.PricingStatus(); ok {
+		if err := modelpricing.PricingStatusValidator(v); err != nil {
+			return &ValidationError{Name: "pricing_status", err: fmt.Errorf(`ent: validator failed for field "ModelPricing.pricing_status": %w`, err)}
+		}
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "ModelPricing.created_at"`)}
@@ -476,6 +715,46 @@ func (_c *ModelPricingCreate) createSpec() (*ModelPricing, *sqlgraph.CreateSpec)
 		_spec.SetField(modelpricing.FieldOutputCostPerImageToken, field.TypeFloat64, value)
 		_node.OutputCostPerImageToken = &value
 	}
+	if value, ok := _c.mutation.InputCostPerTokenPriority(); ok {
+		_spec.SetField(modelpricing.FieldInputCostPerTokenPriority, field.TypeFloat64, value)
+		_node.InputCostPerTokenPriority = &value
+	}
+	if value, ok := _c.mutation.OutputCostPerTokenPriority(); ok {
+		_spec.SetField(modelpricing.FieldOutputCostPerTokenPriority, field.TypeFloat64, value)
+		_node.OutputCostPerTokenPriority = &value
+	}
+	if value, ok := _c.mutation.CacheReadInputTokenCostPriority(); ok {
+		_spec.SetField(modelpricing.FieldCacheReadInputTokenCostPriority, field.TypeFloat64, value)
+		_node.CacheReadInputTokenCostPriority = &value
+	}
+	if value, ok := _c.mutation.CacheCreation5mTokenCost(); ok {
+		_spec.SetField(modelpricing.FieldCacheCreation5mTokenCost, field.TypeFloat64, value)
+		_node.CacheCreation5mTokenCost = &value
+	}
+	if value, ok := _c.mutation.CacheCreation1hTokenCost(); ok {
+		_spec.SetField(modelpricing.FieldCacheCreation1hTokenCost, field.TypeFloat64, value)
+		_node.CacheCreation1hTokenCost = &value
+	}
+	if value, ok := _c.mutation.SupportsCacheBreakdown(); ok {
+		_spec.SetField(modelpricing.FieldSupportsCacheBreakdown, field.TypeBool, value)
+		_node.SupportsCacheBreakdown = value
+	}
+	if value, ok := _c.mutation.ImageOutputPricePerToken(); ok {
+		_spec.SetField(modelpricing.FieldImageOutputPricePerToken, field.TypeFloat64, value)
+		_node.ImageOutputPricePerToken = &value
+	}
+	if value, ok := _c.mutation.LongContextInputTokenThreshold(); ok {
+		_spec.SetField(modelpricing.FieldLongContextInputTokenThreshold, field.TypeInt64, value)
+		_node.LongContextInputTokenThreshold = &value
+	}
+	if value, ok := _c.mutation.LongContextInputCostMultiplier(); ok {
+		_spec.SetField(modelpricing.FieldLongContextInputCostMultiplier, field.TypeFloat64, value)
+		_node.LongContextInputCostMultiplier = &value
+	}
+	if value, ok := _c.mutation.LongContextOutputCostMultiplier(); ok {
+		_spec.SetField(modelpricing.FieldLongContextOutputCostMultiplier, field.TypeFloat64, value)
+		_node.LongContextOutputCostMultiplier = &value
+	}
 	if value, ok := _c.mutation.SupportsPromptCaching(); ok {
 		_spec.SetField(modelpricing.FieldSupportsPromptCaching, field.TypeBool, value)
 		_node.SupportsPromptCaching = value
@@ -499,6 +778,22 @@ func (_c *ModelPricingCreate) createSpec() (*ModelPricing, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.IsEnabled(); ok {
 		_spec.SetField(modelpricing.FieldIsEnabled, field.TypeBool, value)
 		_node.IsEnabled = value
+	}
+	if value, ok := _c.mutation.Source(); ok {
+		_spec.SetField(modelpricing.FieldSource, field.TypeString, value)
+		_node.Source = value
+	}
+	if value, ok := _c.mutation.SourceProvider(); ok {
+		_spec.SetField(modelpricing.FieldSourceProvider, field.TypeString, value)
+		_node.SourceProvider = value
+	}
+	if value, ok := _c.mutation.SourceAccountID(); ok {
+		_spec.SetField(modelpricing.FieldSourceAccountID, field.TypeInt64, value)
+		_node.SourceAccountID = &value
+	}
+	if value, ok := _c.mutation.PricingStatus(); ok {
+		_spec.SetField(modelpricing.FieldPricingStatus, field.TypeString, value)
+		_node.PricingStatus = value
 	}
 	if value, ok := _c.mutation.LastSyncedAt(); ok {
 		_spec.SetField(modelpricing.FieldLastSyncedAt, field.TypeTime, value)
@@ -780,6 +1075,234 @@ func (u *ModelPricingUpsert) ClearOutputCostPerImageToken() *ModelPricingUpsert 
 	return u
 }
 
+// SetInputCostPerTokenPriority sets the "input_cost_per_token_priority" field.
+func (u *ModelPricingUpsert) SetInputCostPerTokenPriority(v float64) *ModelPricingUpsert {
+	u.Set(modelpricing.FieldInputCostPerTokenPriority, v)
+	return u
+}
+
+// UpdateInputCostPerTokenPriority sets the "input_cost_per_token_priority" field to the value that was provided on create.
+func (u *ModelPricingUpsert) UpdateInputCostPerTokenPriority() *ModelPricingUpsert {
+	u.SetExcluded(modelpricing.FieldInputCostPerTokenPriority)
+	return u
+}
+
+// AddInputCostPerTokenPriority adds v to the "input_cost_per_token_priority" field.
+func (u *ModelPricingUpsert) AddInputCostPerTokenPriority(v float64) *ModelPricingUpsert {
+	u.Add(modelpricing.FieldInputCostPerTokenPriority, v)
+	return u
+}
+
+// ClearInputCostPerTokenPriority clears the value of the "input_cost_per_token_priority" field.
+func (u *ModelPricingUpsert) ClearInputCostPerTokenPriority() *ModelPricingUpsert {
+	u.SetNull(modelpricing.FieldInputCostPerTokenPriority)
+	return u
+}
+
+// SetOutputCostPerTokenPriority sets the "output_cost_per_token_priority" field.
+func (u *ModelPricingUpsert) SetOutputCostPerTokenPriority(v float64) *ModelPricingUpsert {
+	u.Set(modelpricing.FieldOutputCostPerTokenPriority, v)
+	return u
+}
+
+// UpdateOutputCostPerTokenPriority sets the "output_cost_per_token_priority" field to the value that was provided on create.
+func (u *ModelPricingUpsert) UpdateOutputCostPerTokenPriority() *ModelPricingUpsert {
+	u.SetExcluded(modelpricing.FieldOutputCostPerTokenPriority)
+	return u
+}
+
+// AddOutputCostPerTokenPriority adds v to the "output_cost_per_token_priority" field.
+func (u *ModelPricingUpsert) AddOutputCostPerTokenPriority(v float64) *ModelPricingUpsert {
+	u.Add(modelpricing.FieldOutputCostPerTokenPriority, v)
+	return u
+}
+
+// ClearOutputCostPerTokenPriority clears the value of the "output_cost_per_token_priority" field.
+func (u *ModelPricingUpsert) ClearOutputCostPerTokenPriority() *ModelPricingUpsert {
+	u.SetNull(modelpricing.FieldOutputCostPerTokenPriority)
+	return u
+}
+
+// SetCacheReadInputTokenCostPriority sets the "cache_read_input_token_cost_priority" field.
+func (u *ModelPricingUpsert) SetCacheReadInputTokenCostPriority(v float64) *ModelPricingUpsert {
+	u.Set(modelpricing.FieldCacheReadInputTokenCostPriority, v)
+	return u
+}
+
+// UpdateCacheReadInputTokenCostPriority sets the "cache_read_input_token_cost_priority" field to the value that was provided on create.
+func (u *ModelPricingUpsert) UpdateCacheReadInputTokenCostPriority() *ModelPricingUpsert {
+	u.SetExcluded(modelpricing.FieldCacheReadInputTokenCostPriority)
+	return u
+}
+
+// AddCacheReadInputTokenCostPriority adds v to the "cache_read_input_token_cost_priority" field.
+func (u *ModelPricingUpsert) AddCacheReadInputTokenCostPriority(v float64) *ModelPricingUpsert {
+	u.Add(modelpricing.FieldCacheReadInputTokenCostPriority, v)
+	return u
+}
+
+// ClearCacheReadInputTokenCostPriority clears the value of the "cache_read_input_token_cost_priority" field.
+func (u *ModelPricingUpsert) ClearCacheReadInputTokenCostPriority() *ModelPricingUpsert {
+	u.SetNull(modelpricing.FieldCacheReadInputTokenCostPriority)
+	return u
+}
+
+// SetCacheCreation5mTokenCost sets the "cache_creation_5m_token_cost" field.
+func (u *ModelPricingUpsert) SetCacheCreation5mTokenCost(v float64) *ModelPricingUpsert {
+	u.Set(modelpricing.FieldCacheCreation5mTokenCost, v)
+	return u
+}
+
+// UpdateCacheCreation5mTokenCost sets the "cache_creation_5m_token_cost" field to the value that was provided on create.
+func (u *ModelPricingUpsert) UpdateCacheCreation5mTokenCost() *ModelPricingUpsert {
+	u.SetExcluded(modelpricing.FieldCacheCreation5mTokenCost)
+	return u
+}
+
+// AddCacheCreation5mTokenCost adds v to the "cache_creation_5m_token_cost" field.
+func (u *ModelPricingUpsert) AddCacheCreation5mTokenCost(v float64) *ModelPricingUpsert {
+	u.Add(modelpricing.FieldCacheCreation5mTokenCost, v)
+	return u
+}
+
+// ClearCacheCreation5mTokenCost clears the value of the "cache_creation_5m_token_cost" field.
+func (u *ModelPricingUpsert) ClearCacheCreation5mTokenCost() *ModelPricingUpsert {
+	u.SetNull(modelpricing.FieldCacheCreation5mTokenCost)
+	return u
+}
+
+// SetCacheCreation1hTokenCost sets the "cache_creation_1h_token_cost" field.
+func (u *ModelPricingUpsert) SetCacheCreation1hTokenCost(v float64) *ModelPricingUpsert {
+	u.Set(modelpricing.FieldCacheCreation1hTokenCost, v)
+	return u
+}
+
+// UpdateCacheCreation1hTokenCost sets the "cache_creation_1h_token_cost" field to the value that was provided on create.
+func (u *ModelPricingUpsert) UpdateCacheCreation1hTokenCost() *ModelPricingUpsert {
+	u.SetExcluded(modelpricing.FieldCacheCreation1hTokenCost)
+	return u
+}
+
+// AddCacheCreation1hTokenCost adds v to the "cache_creation_1h_token_cost" field.
+func (u *ModelPricingUpsert) AddCacheCreation1hTokenCost(v float64) *ModelPricingUpsert {
+	u.Add(modelpricing.FieldCacheCreation1hTokenCost, v)
+	return u
+}
+
+// ClearCacheCreation1hTokenCost clears the value of the "cache_creation_1h_token_cost" field.
+func (u *ModelPricingUpsert) ClearCacheCreation1hTokenCost() *ModelPricingUpsert {
+	u.SetNull(modelpricing.FieldCacheCreation1hTokenCost)
+	return u
+}
+
+// SetSupportsCacheBreakdown sets the "supports_cache_breakdown" field.
+func (u *ModelPricingUpsert) SetSupportsCacheBreakdown(v bool) *ModelPricingUpsert {
+	u.Set(modelpricing.FieldSupportsCacheBreakdown, v)
+	return u
+}
+
+// UpdateSupportsCacheBreakdown sets the "supports_cache_breakdown" field to the value that was provided on create.
+func (u *ModelPricingUpsert) UpdateSupportsCacheBreakdown() *ModelPricingUpsert {
+	u.SetExcluded(modelpricing.FieldSupportsCacheBreakdown)
+	return u
+}
+
+// SetImageOutputPricePerToken sets the "image_output_price_per_token" field.
+func (u *ModelPricingUpsert) SetImageOutputPricePerToken(v float64) *ModelPricingUpsert {
+	u.Set(modelpricing.FieldImageOutputPricePerToken, v)
+	return u
+}
+
+// UpdateImageOutputPricePerToken sets the "image_output_price_per_token" field to the value that was provided on create.
+func (u *ModelPricingUpsert) UpdateImageOutputPricePerToken() *ModelPricingUpsert {
+	u.SetExcluded(modelpricing.FieldImageOutputPricePerToken)
+	return u
+}
+
+// AddImageOutputPricePerToken adds v to the "image_output_price_per_token" field.
+func (u *ModelPricingUpsert) AddImageOutputPricePerToken(v float64) *ModelPricingUpsert {
+	u.Add(modelpricing.FieldImageOutputPricePerToken, v)
+	return u
+}
+
+// ClearImageOutputPricePerToken clears the value of the "image_output_price_per_token" field.
+func (u *ModelPricingUpsert) ClearImageOutputPricePerToken() *ModelPricingUpsert {
+	u.SetNull(modelpricing.FieldImageOutputPricePerToken)
+	return u
+}
+
+// SetLongContextInputTokenThreshold sets the "long_context_input_token_threshold" field.
+func (u *ModelPricingUpsert) SetLongContextInputTokenThreshold(v int64) *ModelPricingUpsert {
+	u.Set(modelpricing.FieldLongContextInputTokenThreshold, v)
+	return u
+}
+
+// UpdateLongContextInputTokenThreshold sets the "long_context_input_token_threshold" field to the value that was provided on create.
+func (u *ModelPricingUpsert) UpdateLongContextInputTokenThreshold() *ModelPricingUpsert {
+	u.SetExcluded(modelpricing.FieldLongContextInputTokenThreshold)
+	return u
+}
+
+// AddLongContextInputTokenThreshold adds v to the "long_context_input_token_threshold" field.
+func (u *ModelPricingUpsert) AddLongContextInputTokenThreshold(v int64) *ModelPricingUpsert {
+	u.Add(modelpricing.FieldLongContextInputTokenThreshold, v)
+	return u
+}
+
+// ClearLongContextInputTokenThreshold clears the value of the "long_context_input_token_threshold" field.
+func (u *ModelPricingUpsert) ClearLongContextInputTokenThreshold() *ModelPricingUpsert {
+	u.SetNull(modelpricing.FieldLongContextInputTokenThreshold)
+	return u
+}
+
+// SetLongContextInputCostMultiplier sets the "long_context_input_cost_multiplier" field.
+func (u *ModelPricingUpsert) SetLongContextInputCostMultiplier(v float64) *ModelPricingUpsert {
+	u.Set(modelpricing.FieldLongContextInputCostMultiplier, v)
+	return u
+}
+
+// UpdateLongContextInputCostMultiplier sets the "long_context_input_cost_multiplier" field to the value that was provided on create.
+func (u *ModelPricingUpsert) UpdateLongContextInputCostMultiplier() *ModelPricingUpsert {
+	u.SetExcluded(modelpricing.FieldLongContextInputCostMultiplier)
+	return u
+}
+
+// AddLongContextInputCostMultiplier adds v to the "long_context_input_cost_multiplier" field.
+func (u *ModelPricingUpsert) AddLongContextInputCostMultiplier(v float64) *ModelPricingUpsert {
+	u.Add(modelpricing.FieldLongContextInputCostMultiplier, v)
+	return u
+}
+
+// ClearLongContextInputCostMultiplier clears the value of the "long_context_input_cost_multiplier" field.
+func (u *ModelPricingUpsert) ClearLongContextInputCostMultiplier() *ModelPricingUpsert {
+	u.SetNull(modelpricing.FieldLongContextInputCostMultiplier)
+	return u
+}
+
+// SetLongContextOutputCostMultiplier sets the "long_context_output_cost_multiplier" field.
+func (u *ModelPricingUpsert) SetLongContextOutputCostMultiplier(v float64) *ModelPricingUpsert {
+	u.Set(modelpricing.FieldLongContextOutputCostMultiplier, v)
+	return u
+}
+
+// UpdateLongContextOutputCostMultiplier sets the "long_context_output_cost_multiplier" field to the value that was provided on create.
+func (u *ModelPricingUpsert) UpdateLongContextOutputCostMultiplier() *ModelPricingUpsert {
+	u.SetExcluded(modelpricing.FieldLongContextOutputCostMultiplier)
+	return u
+}
+
+// AddLongContextOutputCostMultiplier adds v to the "long_context_output_cost_multiplier" field.
+func (u *ModelPricingUpsert) AddLongContextOutputCostMultiplier(v float64) *ModelPricingUpsert {
+	u.Add(modelpricing.FieldLongContextOutputCostMultiplier, v)
+	return u
+}
+
+// ClearLongContextOutputCostMultiplier clears the value of the "long_context_output_cost_multiplier" field.
+func (u *ModelPricingUpsert) ClearLongContextOutputCostMultiplier() *ModelPricingUpsert {
+	u.SetNull(modelpricing.FieldLongContextOutputCostMultiplier)
+	return u
+}
+
 // SetSupportsPromptCaching sets the "supports_prompt_caching" field.
 func (u *ModelPricingUpsert) SetSupportsPromptCaching(v bool) *ModelPricingUpsert {
 	u.Set(modelpricing.FieldSupportsPromptCaching, v)
@@ -885,6 +1408,66 @@ func (u *ModelPricingUpsert) SetIsEnabled(v bool) *ModelPricingUpsert {
 // UpdateIsEnabled sets the "is_enabled" field to the value that was provided on create.
 func (u *ModelPricingUpsert) UpdateIsEnabled() *ModelPricingUpsert {
 	u.SetExcluded(modelpricing.FieldIsEnabled)
+	return u
+}
+
+// SetSource sets the "source" field.
+func (u *ModelPricingUpsert) SetSource(v string) *ModelPricingUpsert {
+	u.Set(modelpricing.FieldSource, v)
+	return u
+}
+
+// UpdateSource sets the "source" field to the value that was provided on create.
+func (u *ModelPricingUpsert) UpdateSource() *ModelPricingUpsert {
+	u.SetExcluded(modelpricing.FieldSource)
+	return u
+}
+
+// SetSourceProvider sets the "source_provider" field.
+func (u *ModelPricingUpsert) SetSourceProvider(v string) *ModelPricingUpsert {
+	u.Set(modelpricing.FieldSourceProvider, v)
+	return u
+}
+
+// UpdateSourceProvider sets the "source_provider" field to the value that was provided on create.
+func (u *ModelPricingUpsert) UpdateSourceProvider() *ModelPricingUpsert {
+	u.SetExcluded(modelpricing.FieldSourceProvider)
+	return u
+}
+
+// SetSourceAccountID sets the "source_account_id" field.
+func (u *ModelPricingUpsert) SetSourceAccountID(v int64) *ModelPricingUpsert {
+	u.Set(modelpricing.FieldSourceAccountID, v)
+	return u
+}
+
+// UpdateSourceAccountID sets the "source_account_id" field to the value that was provided on create.
+func (u *ModelPricingUpsert) UpdateSourceAccountID() *ModelPricingUpsert {
+	u.SetExcluded(modelpricing.FieldSourceAccountID)
+	return u
+}
+
+// AddSourceAccountID adds v to the "source_account_id" field.
+func (u *ModelPricingUpsert) AddSourceAccountID(v int64) *ModelPricingUpsert {
+	u.Add(modelpricing.FieldSourceAccountID, v)
+	return u
+}
+
+// ClearSourceAccountID clears the value of the "source_account_id" field.
+func (u *ModelPricingUpsert) ClearSourceAccountID() *ModelPricingUpsert {
+	u.SetNull(modelpricing.FieldSourceAccountID)
+	return u
+}
+
+// SetPricingStatus sets the "pricing_status" field.
+func (u *ModelPricingUpsert) SetPricingStatus(v string) *ModelPricingUpsert {
+	u.Set(modelpricing.FieldPricingStatus, v)
+	return u
+}
+
+// UpdatePricingStatus sets the "pricing_status" field to the value that was provided on create.
+func (u *ModelPricingUpsert) UpdatePricingStatus() *ModelPricingUpsert {
+	u.SetExcluded(modelpricing.FieldPricingStatus)
 	return u
 }
 
@@ -1215,6 +1798,272 @@ func (u *ModelPricingUpsertOne) ClearOutputCostPerImageToken() *ModelPricingUpse
 	})
 }
 
+// SetInputCostPerTokenPriority sets the "input_cost_per_token_priority" field.
+func (u *ModelPricingUpsertOne) SetInputCostPerTokenPriority(v float64) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetInputCostPerTokenPriority(v)
+	})
+}
+
+// AddInputCostPerTokenPriority adds v to the "input_cost_per_token_priority" field.
+func (u *ModelPricingUpsertOne) AddInputCostPerTokenPriority(v float64) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.AddInputCostPerTokenPriority(v)
+	})
+}
+
+// UpdateInputCostPerTokenPriority sets the "input_cost_per_token_priority" field to the value that was provided on create.
+func (u *ModelPricingUpsertOne) UpdateInputCostPerTokenPriority() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateInputCostPerTokenPriority()
+	})
+}
+
+// ClearInputCostPerTokenPriority clears the value of the "input_cost_per_token_priority" field.
+func (u *ModelPricingUpsertOne) ClearInputCostPerTokenPriority() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.ClearInputCostPerTokenPriority()
+	})
+}
+
+// SetOutputCostPerTokenPriority sets the "output_cost_per_token_priority" field.
+func (u *ModelPricingUpsertOne) SetOutputCostPerTokenPriority(v float64) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetOutputCostPerTokenPriority(v)
+	})
+}
+
+// AddOutputCostPerTokenPriority adds v to the "output_cost_per_token_priority" field.
+func (u *ModelPricingUpsertOne) AddOutputCostPerTokenPriority(v float64) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.AddOutputCostPerTokenPriority(v)
+	})
+}
+
+// UpdateOutputCostPerTokenPriority sets the "output_cost_per_token_priority" field to the value that was provided on create.
+func (u *ModelPricingUpsertOne) UpdateOutputCostPerTokenPriority() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateOutputCostPerTokenPriority()
+	})
+}
+
+// ClearOutputCostPerTokenPriority clears the value of the "output_cost_per_token_priority" field.
+func (u *ModelPricingUpsertOne) ClearOutputCostPerTokenPriority() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.ClearOutputCostPerTokenPriority()
+	})
+}
+
+// SetCacheReadInputTokenCostPriority sets the "cache_read_input_token_cost_priority" field.
+func (u *ModelPricingUpsertOne) SetCacheReadInputTokenCostPriority(v float64) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetCacheReadInputTokenCostPriority(v)
+	})
+}
+
+// AddCacheReadInputTokenCostPriority adds v to the "cache_read_input_token_cost_priority" field.
+func (u *ModelPricingUpsertOne) AddCacheReadInputTokenCostPriority(v float64) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.AddCacheReadInputTokenCostPriority(v)
+	})
+}
+
+// UpdateCacheReadInputTokenCostPriority sets the "cache_read_input_token_cost_priority" field to the value that was provided on create.
+func (u *ModelPricingUpsertOne) UpdateCacheReadInputTokenCostPriority() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateCacheReadInputTokenCostPriority()
+	})
+}
+
+// ClearCacheReadInputTokenCostPriority clears the value of the "cache_read_input_token_cost_priority" field.
+func (u *ModelPricingUpsertOne) ClearCacheReadInputTokenCostPriority() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.ClearCacheReadInputTokenCostPriority()
+	})
+}
+
+// SetCacheCreation5mTokenCost sets the "cache_creation_5m_token_cost" field.
+func (u *ModelPricingUpsertOne) SetCacheCreation5mTokenCost(v float64) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetCacheCreation5mTokenCost(v)
+	})
+}
+
+// AddCacheCreation5mTokenCost adds v to the "cache_creation_5m_token_cost" field.
+func (u *ModelPricingUpsertOne) AddCacheCreation5mTokenCost(v float64) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.AddCacheCreation5mTokenCost(v)
+	})
+}
+
+// UpdateCacheCreation5mTokenCost sets the "cache_creation_5m_token_cost" field to the value that was provided on create.
+func (u *ModelPricingUpsertOne) UpdateCacheCreation5mTokenCost() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateCacheCreation5mTokenCost()
+	})
+}
+
+// ClearCacheCreation5mTokenCost clears the value of the "cache_creation_5m_token_cost" field.
+func (u *ModelPricingUpsertOne) ClearCacheCreation5mTokenCost() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.ClearCacheCreation5mTokenCost()
+	})
+}
+
+// SetCacheCreation1hTokenCost sets the "cache_creation_1h_token_cost" field.
+func (u *ModelPricingUpsertOne) SetCacheCreation1hTokenCost(v float64) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetCacheCreation1hTokenCost(v)
+	})
+}
+
+// AddCacheCreation1hTokenCost adds v to the "cache_creation_1h_token_cost" field.
+func (u *ModelPricingUpsertOne) AddCacheCreation1hTokenCost(v float64) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.AddCacheCreation1hTokenCost(v)
+	})
+}
+
+// UpdateCacheCreation1hTokenCost sets the "cache_creation_1h_token_cost" field to the value that was provided on create.
+func (u *ModelPricingUpsertOne) UpdateCacheCreation1hTokenCost() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateCacheCreation1hTokenCost()
+	})
+}
+
+// ClearCacheCreation1hTokenCost clears the value of the "cache_creation_1h_token_cost" field.
+func (u *ModelPricingUpsertOne) ClearCacheCreation1hTokenCost() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.ClearCacheCreation1hTokenCost()
+	})
+}
+
+// SetSupportsCacheBreakdown sets the "supports_cache_breakdown" field.
+func (u *ModelPricingUpsertOne) SetSupportsCacheBreakdown(v bool) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetSupportsCacheBreakdown(v)
+	})
+}
+
+// UpdateSupportsCacheBreakdown sets the "supports_cache_breakdown" field to the value that was provided on create.
+func (u *ModelPricingUpsertOne) UpdateSupportsCacheBreakdown() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateSupportsCacheBreakdown()
+	})
+}
+
+// SetImageOutputPricePerToken sets the "image_output_price_per_token" field.
+func (u *ModelPricingUpsertOne) SetImageOutputPricePerToken(v float64) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetImageOutputPricePerToken(v)
+	})
+}
+
+// AddImageOutputPricePerToken adds v to the "image_output_price_per_token" field.
+func (u *ModelPricingUpsertOne) AddImageOutputPricePerToken(v float64) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.AddImageOutputPricePerToken(v)
+	})
+}
+
+// UpdateImageOutputPricePerToken sets the "image_output_price_per_token" field to the value that was provided on create.
+func (u *ModelPricingUpsertOne) UpdateImageOutputPricePerToken() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateImageOutputPricePerToken()
+	})
+}
+
+// ClearImageOutputPricePerToken clears the value of the "image_output_price_per_token" field.
+func (u *ModelPricingUpsertOne) ClearImageOutputPricePerToken() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.ClearImageOutputPricePerToken()
+	})
+}
+
+// SetLongContextInputTokenThreshold sets the "long_context_input_token_threshold" field.
+func (u *ModelPricingUpsertOne) SetLongContextInputTokenThreshold(v int64) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetLongContextInputTokenThreshold(v)
+	})
+}
+
+// AddLongContextInputTokenThreshold adds v to the "long_context_input_token_threshold" field.
+func (u *ModelPricingUpsertOne) AddLongContextInputTokenThreshold(v int64) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.AddLongContextInputTokenThreshold(v)
+	})
+}
+
+// UpdateLongContextInputTokenThreshold sets the "long_context_input_token_threshold" field to the value that was provided on create.
+func (u *ModelPricingUpsertOne) UpdateLongContextInputTokenThreshold() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateLongContextInputTokenThreshold()
+	})
+}
+
+// ClearLongContextInputTokenThreshold clears the value of the "long_context_input_token_threshold" field.
+func (u *ModelPricingUpsertOne) ClearLongContextInputTokenThreshold() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.ClearLongContextInputTokenThreshold()
+	})
+}
+
+// SetLongContextInputCostMultiplier sets the "long_context_input_cost_multiplier" field.
+func (u *ModelPricingUpsertOne) SetLongContextInputCostMultiplier(v float64) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetLongContextInputCostMultiplier(v)
+	})
+}
+
+// AddLongContextInputCostMultiplier adds v to the "long_context_input_cost_multiplier" field.
+func (u *ModelPricingUpsertOne) AddLongContextInputCostMultiplier(v float64) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.AddLongContextInputCostMultiplier(v)
+	})
+}
+
+// UpdateLongContextInputCostMultiplier sets the "long_context_input_cost_multiplier" field to the value that was provided on create.
+func (u *ModelPricingUpsertOne) UpdateLongContextInputCostMultiplier() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateLongContextInputCostMultiplier()
+	})
+}
+
+// ClearLongContextInputCostMultiplier clears the value of the "long_context_input_cost_multiplier" field.
+func (u *ModelPricingUpsertOne) ClearLongContextInputCostMultiplier() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.ClearLongContextInputCostMultiplier()
+	})
+}
+
+// SetLongContextOutputCostMultiplier sets the "long_context_output_cost_multiplier" field.
+func (u *ModelPricingUpsertOne) SetLongContextOutputCostMultiplier(v float64) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetLongContextOutputCostMultiplier(v)
+	})
+}
+
+// AddLongContextOutputCostMultiplier adds v to the "long_context_output_cost_multiplier" field.
+func (u *ModelPricingUpsertOne) AddLongContextOutputCostMultiplier(v float64) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.AddLongContextOutputCostMultiplier(v)
+	})
+}
+
+// UpdateLongContextOutputCostMultiplier sets the "long_context_output_cost_multiplier" field to the value that was provided on create.
+func (u *ModelPricingUpsertOne) UpdateLongContextOutputCostMultiplier() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateLongContextOutputCostMultiplier()
+	})
+}
+
+// ClearLongContextOutputCostMultiplier clears the value of the "long_context_output_cost_multiplier" field.
+func (u *ModelPricingUpsertOne) ClearLongContextOutputCostMultiplier() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.ClearLongContextOutputCostMultiplier()
+	})
+}
+
 // SetSupportsPromptCaching sets the "supports_prompt_caching" field.
 func (u *ModelPricingUpsertOne) SetSupportsPromptCaching(v bool) *ModelPricingUpsertOne {
 	return u.Update(func(s *ModelPricingUpsert) {
@@ -1338,6 +2187,76 @@ func (u *ModelPricingUpsertOne) SetIsEnabled(v bool) *ModelPricingUpsertOne {
 func (u *ModelPricingUpsertOne) UpdateIsEnabled() *ModelPricingUpsertOne {
 	return u.Update(func(s *ModelPricingUpsert) {
 		s.UpdateIsEnabled()
+	})
+}
+
+// SetSource sets the "source" field.
+func (u *ModelPricingUpsertOne) SetSource(v string) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetSource(v)
+	})
+}
+
+// UpdateSource sets the "source" field to the value that was provided on create.
+func (u *ModelPricingUpsertOne) UpdateSource() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateSource()
+	})
+}
+
+// SetSourceProvider sets the "source_provider" field.
+func (u *ModelPricingUpsertOne) SetSourceProvider(v string) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetSourceProvider(v)
+	})
+}
+
+// UpdateSourceProvider sets the "source_provider" field to the value that was provided on create.
+func (u *ModelPricingUpsertOne) UpdateSourceProvider() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateSourceProvider()
+	})
+}
+
+// SetSourceAccountID sets the "source_account_id" field.
+func (u *ModelPricingUpsertOne) SetSourceAccountID(v int64) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetSourceAccountID(v)
+	})
+}
+
+// AddSourceAccountID adds v to the "source_account_id" field.
+func (u *ModelPricingUpsertOne) AddSourceAccountID(v int64) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.AddSourceAccountID(v)
+	})
+}
+
+// UpdateSourceAccountID sets the "source_account_id" field to the value that was provided on create.
+func (u *ModelPricingUpsertOne) UpdateSourceAccountID() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateSourceAccountID()
+	})
+}
+
+// ClearSourceAccountID clears the value of the "source_account_id" field.
+func (u *ModelPricingUpsertOne) ClearSourceAccountID() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.ClearSourceAccountID()
+	})
+}
+
+// SetPricingStatus sets the "pricing_status" field.
+func (u *ModelPricingUpsertOne) SetPricingStatus(v string) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetPricingStatus(v)
+	})
+}
+
+// UpdatePricingStatus sets the "pricing_status" field to the value that was provided on create.
+func (u *ModelPricingUpsertOne) UpdatePricingStatus() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdatePricingStatus()
 	})
 }
 
@@ -1839,6 +2758,272 @@ func (u *ModelPricingUpsertBulk) ClearOutputCostPerImageToken() *ModelPricingUps
 	})
 }
 
+// SetInputCostPerTokenPriority sets the "input_cost_per_token_priority" field.
+func (u *ModelPricingUpsertBulk) SetInputCostPerTokenPriority(v float64) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetInputCostPerTokenPriority(v)
+	})
+}
+
+// AddInputCostPerTokenPriority adds v to the "input_cost_per_token_priority" field.
+func (u *ModelPricingUpsertBulk) AddInputCostPerTokenPriority(v float64) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.AddInputCostPerTokenPriority(v)
+	})
+}
+
+// UpdateInputCostPerTokenPriority sets the "input_cost_per_token_priority" field to the value that was provided on create.
+func (u *ModelPricingUpsertBulk) UpdateInputCostPerTokenPriority() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateInputCostPerTokenPriority()
+	})
+}
+
+// ClearInputCostPerTokenPriority clears the value of the "input_cost_per_token_priority" field.
+func (u *ModelPricingUpsertBulk) ClearInputCostPerTokenPriority() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.ClearInputCostPerTokenPriority()
+	})
+}
+
+// SetOutputCostPerTokenPriority sets the "output_cost_per_token_priority" field.
+func (u *ModelPricingUpsertBulk) SetOutputCostPerTokenPriority(v float64) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetOutputCostPerTokenPriority(v)
+	})
+}
+
+// AddOutputCostPerTokenPriority adds v to the "output_cost_per_token_priority" field.
+func (u *ModelPricingUpsertBulk) AddOutputCostPerTokenPriority(v float64) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.AddOutputCostPerTokenPriority(v)
+	})
+}
+
+// UpdateOutputCostPerTokenPriority sets the "output_cost_per_token_priority" field to the value that was provided on create.
+func (u *ModelPricingUpsertBulk) UpdateOutputCostPerTokenPriority() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateOutputCostPerTokenPriority()
+	})
+}
+
+// ClearOutputCostPerTokenPriority clears the value of the "output_cost_per_token_priority" field.
+func (u *ModelPricingUpsertBulk) ClearOutputCostPerTokenPriority() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.ClearOutputCostPerTokenPriority()
+	})
+}
+
+// SetCacheReadInputTokenCostPriority sets the "cache_read_input_token_cost_priority" field.
+func (u *ModelPricingUpsertBulk) SetCacheReadInputTokenCostPriority(v float64) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetCacheReadInputTokenCostPriority(v)
+	})
+}
+
+// AddCacheReadInputTokenCostPriority adds v to the "cache_read_input_token_cost_priority" field.
+func (u *ModelPricingUpsertBulk) AddCacheReadInputTokenCostPriority(v float64) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.AddCacheReadInputTokenCostPriority(v)
+	})
+}
+
+// UpdateCacheReadInputTokenCostPriority sets the "cache_read_input_token_cost_priority" field to the value that was provided on create.
+func (u *ModelPricingUpsertBulk) UpdateCacheReadInputTokenCostPriority() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateCacheReadInputTokenCostPriority()
+	})
+}
+
+// ClearCacheReadInputTokenCostPriority clears the value of the "cache_read_input_token_cost_priority" field.
+func (u *ModelPricingUpsertBulk) ClearCacheReadInputTokenCostPriority() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.ClearCacheReadInputTokenCostPriority()
+	})
+}
+
+// SetCacheCreation5mTokenCost sets the "cache_creation_5m_token_cost" field.
+func (u *ModelPricingUpsertBulk) SetCacheCreation5mTokenCost(v float64) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetCacheCreation5mTokenCost(v)
+	})
+}
+
+// AddCacheCreation5mTokenCost adds v to the "cache_creation_5m_token_cost" field.
+func (u *ModelPricingUpsertBulk) AddCacheCreation5mTokenCost(v float64) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.AddCacheCreation5mTokenCost(v)
+	})
+}
+
+// UpdateCacheCreation5mTokenCost sets the "cache_creation_5m_token_cost" field to the value that was provided on create.
+func (u *ModelPricingUpsertBulk) UpdateCacheCreation5mTokenCost() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateCacheCreation5mTokenCost()
+	})
+}
+
+// ClearCacheCreation5mTokenCost clears the value of the "cache_creation_5m_token_cost" field.
+func (u *ModelPricingUpsertBulk) ClearCacheCreation5mTokenCost() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.ClearCacheCreation5mTokenCost()
+	})
+}
+
+// SetCacheCreation1hTokenCost sets the "cache_creation_1h_token_cost" field.
+func (u *ModelPricingUpsertBulk) SetCacheCreation1hTokenCost(v float64) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetCacheCreation1hTokenCost(v)
+	})
+}
+
+// AddCacheCreation1hTokenCost adds v to the "cache_creation_1h_token_cost" field.
+func (u *ModelPricingUpsertBulk) AddCacheCreation1hTokenCost(v float64) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.AddCacheCreation1hTokenCost(v)
+	})
+}
+
+// UpdateCacheCreation1hTokenCost sets the "cache_creation_1h_token_cost" field to the value that was provided on create.
+func (u *ModelPricingUpsertBulk) UpdateCacheCreation1hTokenCost() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateCacheCreation1hTokenCost()
+	})
+}
+
+// ClearCacheCreation1hTokenCost clears the value of the "cache_creation_1h_token_cost" field.
+func (u *ModelPricingUpsertBulk) ClearCacheCreation1hTokenCost() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.ClearCacheCreation1hTokenCost()
+	})
+}
+
+// SetSupportsCacheBreakdown sets the "supports_cache_breakdown" field.
+func (u *ModelPricingUpsertBulk) SetSupportsCacheBreakdown(v bool) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetSupportsCacheBreakdown(v)
+	})
+}
+
+// UpdateSupportsCacheBreakdown sets the "supports_cache_breakdown" field to the value that was provided on create.
+func (u *ModelPricingUpsertBulk) UpdateSupportsCacheBreakdown() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateSupportsCacheBreakdown()
+	})
+}
+
+// SetImageOutputPricePerToken sets the "image_output_price_per_token" field.
+func (u *ModelPricingUpsertBulk) SetImageOutputPricePerToken(v float64) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetImageOutputPricePerToken(v)
+	})
+}
+
+// AddImageOutputPricePerToken adds v to the "image_output_price_per_token" field.
+func (u *ModelPricingUpsertBulk) AddImageOutputPricePerToken(v float64) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.AddImageOutputPricePerToken(v)
+	})
+}
+
+// UpdateImageOutputPricePerToken sets the "image_output_price_per_token" field to the value that was provided on create.
+func (u *ModelPricingUpsertBulk) UpdateImageOutputPricePerToken() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateImageOutputPricePerToken()
+	})
+}
+
+// ClearImageOutputPricePerToken clears the value of the "image_output_price_per_token" field.
+func (u *ModelPricingUpsertBulk) ClearImageOutputPricePerToken() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.ClearImageOutputPricePerToken()
+	})
+}
+
+// SetLongContextInputTokenThreshold sets the "long_context_input_token_threshold" field.
+func (u *ModelPricingUpsertBulk) SetLongContextInputTokenThreshold(v int64) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetLongContextInputTokenThreshold(v)
+	})
+}
+
+// AddLongContextInputTokenThreshold adds v to the "long_context_input_token_threshold" field.
+func (u *ModelPricingUpsertBulk) AddLongContextInputTokenThreshold(v int64) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.AddLongContextInputTokenThreshold(v)
+	})
+}
+
+// UpdateLongContextInputTokenThreshold sets the "long_context_input_token_threshold" field to the value that was provided on create.
+func (u *ModelPricingUpsertBulk) UpdateLongContextInputTokenThreshold() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateLongContextInputTokenThreshold()
+	})
+}
+
+// ClearLongContextInputTokenThreshold clears the value of the "long_context_input_token_threshold" field.
+func (u *ModelPricingUpsertBulk) ClearLongContextInputTokenThreshold() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.ClearLongContextInputTokenThreshold()
+	})
+}
+
+// SetLongContextInputCostMultiplier sets the "long_context_input_cost_multiplier" field.
+func (u *ModelPricingUpsertBulk) SetLongContextInputCostMultiplier(v float64) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetLongContextInputCostMultiplier(v)
+	})
+}
+
+// AddLongContextInputCostMultiplier adds v to the "long_context_input_cost_multiplier" field.
+func (u *ModelPricingUpsertBulk) AddLongContextInputCostMultiplier(v float64) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.AddLongContextInputCostMultiplier(v)
+	})
+}
+
+// UpdateLongContextInputCostMultiplier sets the "long_context_input_cost_multiplier" field to the value that was provided on create.
+func (u *ModelPricingUpsertBulk) UpdateLongContextInputCostMultiplier() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateLongContextInputCostMultiplier()
+	})
+}
+
+// ClearLongContextInputCostMultiplier clears the value of the "long_context_input_cost_multiplier" field.
+func (u *ModelPricingUpsertBulk) ClearLongContextInputCostMultiplier() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.ClearLongContextInputCostMultiplier()
+	})
+}
+
+// SetLongContextOutputCostMultiplier sets the "long_context_output_cost_multiplier" field.
+func (u *ModelPricingUpsertBulk) SetLongContextOutputCostMultiplier(v float64) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetLongContextOutputCostMultiplier(v)
+	})
+}
+
+// AddLongContextOutputCostMultiplier adds v to the "long_context_output_cost_multiplier" field.
+func (u *ModelPricingUpsertBulk) AddLongContextOutputCostMultiplier(v float64) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.AddLongContextOutputCostMultiplier(v)
+	})
+}
+
+// UpdateLongContextOutputCostMultiplier sets the "long_context_output_cost_multiplier" field to the value that was provided on create.
+func (u *ModelPricingUpsertBulk) UpdateLongContextOutputCostMultiplier() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateLongContextOutputCostMultiplier()
+	})
+}
+
+// ClearLongContextOutputCostMultiplier clears the value of the "long_context_output_cost_multiplier" field.
+func (u *ModelPricingUpsertBulk) ClearLongContextOutputCostMultiplier() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.ClearLongContextOutputCostMultiplier()
+	})
+}
+
 // SetSupportsPromptCaching sets the "supports_prompt_caching" field.
 func (u *ModelPricingUpsertBulk) SetSupportsPromptCaching(v bool) *ModelPricingUpsertBulk {
 	return u.Update(func(s *ModelPricingUpsert) {
@@ -1962,6 +3147,76 @@ func (u *ModelPricingUpsertBulk) SetIsEnabled(v bool) *ModelPricingUpsertBulk {
 func (u *ModelPricingUpsertBulk) UpdateIsEnabled() *ModelPricingUpsertBulk {
 	return u.Update(func(s *ModelPricingUpsert) {
 		s.UpdateIsEnabled()
+	})
+}
+
+// SetSource sets the "source" field.
+func (u *ModelPricingUpsertBulk) SetSource(v string) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetSource(v)
+	})
+}
+
+// UpdateSource sets the "source" field to the value that was provided on create.
+func (u *ModelPricingUpsertBulk) UpdateSource() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateSource()
+	})
+}
+
+// SetSourceProvider sets the "source_provider" field.
+func (u *ModelPricingUpsertBulk) SetSourceProvider(v string) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetSourceProvider(v)
+	})
+}
+
+// UpdateSourceProvider sets the "source_provider" field to the value that was provided on create.
+func (u *ModelPricingUpsertBulk) UpdateSourceProvider() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateSourceProvider()
+	})
+}
+
+// SetSourceAccountID sets the "source_account_id" field.
+func (u *ModelPricingUpsertBulk) SetSourceAccountID(v int64) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetSourceAccountID(v)
+	})
+}
+
+// AddSourceAccountID adds v to the "source_account_id" field.
+func (u *ModelPricingUpsertBulk) AddSourceAccountID(v int64) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.AddSourceAccountID(v)
+	})
+}
+
+// UpdateSourceAccountID sets the "source_account_id" field to the value that was provided on create.
+func (u *ModelPricingUpsertBulk) UpdateSourceAccountID() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateSourceAccountID()
+	})
+}
+
+// ClearSourceAccountID clears the value of the "source_account_id" field.
+func (u *ModelPricingUpsertBulk) ClearSourceAccountID() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.ClearSourceAccountID()
+	})
+}
+
+// SetPricingStatus sets the "pricing_status" field.
+func (u *ModelPricingUpsertBulk) SetPricingStatus(v string) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetPricingStatus(v)
+	})
+}
+
+// UpdatePricingStatus sets the "pricing_status" field to the value that was provided on create.
+func (u *ModelPricingUpsertBulk) UpdatePricingStatus() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdatePricingStatus()
 	})
 }
 

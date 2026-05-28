@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -435,14 +436,41 @@ func TestTryCustomRules_RuleMatchesButModelNot_ContinuesToNext(t *testing.T) {
 // tryModelFilePricing
 // ---------------------------------------------------------------------------
 
-// newTestBillingServiceWithPrices creates a BillingService with pre-populated
-// fallback prices for testing. No config or pricing service is needed.
-// The key must match what getFallbackPricing resolves to for a given model name.
-// E.g., model "claude-sonnet-4" resolves to key "claude-sonnet-4".
+// newTestBillingServiceWithPrices creates a catalog-backed BillingService for testing.
 func newTestBillingServiceWithPrices(prices map[string]*ModelPricing) *BillingService {
-	return &BillingService{
-		fallbackPrices: prices,
+	f := func(v float64) *float64 { return &v }
+	catalog := make(map[string]*DBModelPricing, len(prices))
+	for modelID, p := range prices {
+		if p == nil {
+			continue // nil price → not in catalog → ErrModelPricingUnavailable
+		}
+		entry := &DBModelPricing{
+			ModelID:       modelID,
+			IsEnabled:     true,
+			PricingStatus: ModelPricingStatusPriced,
+		}
+		if p.InputPricePerToken != 0 {
+			entry.InputCostPerToken = f(p.InputPricePerToken)
+		}
+		if p.OutputPricePerToken != 0 {
+			entry.OutputCostPerToken = f(p.OutputPricePerToken)
+		}
+		if p.CacheCreationPricePerToken != 0 {
+			entry.CacheCreationInputTokenCost = f(p.CacheCreationPricePerToken)
+		}
+		if p.CacheReadPricePerToken != 0 {
+			entry.CacheReadInputTokenCost = f(p.CacheReadPricePerToken)
+		}
+		if p.ImageOutputPricePerToken != 0 {
+			entry.ImageOutputPricePerToken = f(p.ImageOutputPricePerToken)
+		}
+		catalog[modelID] = entry
 	}
+	ps := &PricingService{
+		catalog:  catalog,
+		aliasIdx: buildAliasIndex(catalog),
+	}
+	return NewBillingService(&config.Config{}, ps)
 }
 
 func TestTryModelFilePricing_Success(t *testing.T) {

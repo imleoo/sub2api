@@ -11,7 +11,21 @@ import (
 )
 
 func newTestBillingService() *BillingService {
-	return NewBillingService(&config.Config{}, nil)
+	return newTestBillingServiceWithConfig(&config.Config{})
+}
+
+func newTestBillingServiceWithConfig(cfg *config.Config) *BillingService {
+	seeds := BootstrapPricingSeeds()
+	catalog := make(map[string]*DBModelPricing, len(seeds))
+	for _, s := range seeds {
+		catalog[s.ModelID] = s
+	}
+	ps := &PricingService{
+		modelPricingRepo: &stubModelPricingRepo{items: seeds},
+		catalog:          catalog,
+		aliasIdx:         buildAliasIndex(catalog),
+	}
+	return NewBillingService(cfg, ps)
 }
 
 func TestCalculateCost_BasicComputation(t *testing.T) {
@@ -197,44 +211,6 @@ func TestCalculateCost_OpenAIGPT54LongContextAppliesWholeSessionMultipliers(t *t
 	require.InDelta(t, expectedInput+expectedOutput, cost.ActualCost, 1e-10)
 }
 
-func TestGetFallbackPricing_FamilyMatching(t *testing.T) {
-	svc := newTestBillingService()
-
-	tests := []struct {
-		name             string
-		model            string
-		expectedInput    float64
-		expectNilPricing bool
-	}{
-		{name: "empty model", model: "   ", expectNilPricing: true},
-		{name: "claude opus 4.6", model: "claude-opus-4.6-20260201", expectedInput: 5e-6},
-		{name: "claude opus 4.5 alt separator", model: "claude-opus-4-5-20260101", expectedInput: 5e-6},
-		{name: "claude generic model fallback sonnet", model: "claude-foo-bar", expectedInput: 3e-6},
-		{name: "gemini explicit fallback", model: "gemini-3-1-pro", expectedInput: 2e-6},
-		{name: "gemini unknown no fallback", model: "gemini-2.0-pro", expectNilPricing: true},
-		{name: "openai gpt5.4", model: "gpt-5.4", expectedInput: 2.5e-6},
-		{name: "openai gpt5.4 mini", model: "gpt-5.4-mini", expectedInput: 7.5e-7},
-		{name: "openai gpt5.3 codex", model: "gpt-5.3-codex", expectedInput: 1.5e-6},
-		{name: "openai gpt5.3 codex spark", model: "gpt-5.3-codex-spark", expectedInput: 1.5e-6},
-		{name: "openai legacy gpt5.1 falls back to gpt5.4", model: "gpt-5.1", expectedInput: 2.5e-6},
-		{name: "openai legacy gpt5.1 codex falls back to gpt5.3 codex", model: "gpt-5.1-codex", expectedInput: 1.5e-6},
-		{name: "openai legacy codex mini latest falls back to gpt5.3 codex", model: "codex-mini-latest", expectedInput: 1.5e-6},
-		{name: "openai unknown no fallback", model: "gpt-unknown-model", expectNilPricing: true},
-		{name: "non supported family", model: "qwen-max", expectNilPricing: true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			pricing := svc.getFallbackPricing(tt.model)
-			if tt.expectNilPricing {
-				require.Nil(t, pricing)
-				return
-			}
-			require.NotNil(t, pricing)
-			require.InDelta(t, tt.expectedInput, pricing.InputPricePerToken, 1e-12)
-		})
-	}
-}
 func TestCalculateCostWithLongContext_BelowThreshold(t *testing.T) {
 	svc := newTestBillingService()
 
@@ -365,7 +341,7 @@ func TestCalculateCost_ZeroTokens(t *testing.T) {
 func TestCalculateCostWithConfig(t *testing.T) {
 	cfg := &config.Config{}
 	cfg.Default.RateMultiplier = 1.5
-	svc := NewBillingService(cfg, nil)
+	svc := newTestBillingServiceWithConfig(cfg)
 
 	tokens := UsageTokens{InputTokens: 1000, OutputTokens: 500}
 	cost, err := svc.CalculateCostWithConfig("claude-sonnet-4", tokens)
@@ -378,7 +354,7 @@ func TestCalculateCostWithConfig(t *testing.T) {
 func TestCalculateCostWithConfig_ZeroMultiplier(t *testing.T) {
 	cfg := &config.Config{}
 	cfg.Default.RateMultiplier = 0
-	svc := NewBillingService(cfg, nil)
+	svc := newTestBillingServiceWithConfig(cfg)
 
 	tokens := UsageTokens{InputTokens: 1000}
 	cost, err := svc.CalculateCostWithConfig("claude-sonnet-4", tokens)
@@ -406,15 +382,17 @@ func TestListSupportedModels(t *testing.T) {
 }
 
 func TestGetPricingServiceStatus_NilService(t *testing.T) {
-	svc := newTestBillingService()
+	// nil PricingService → GetStatus 应返回占位状态而非 panic
+	svc := NewBillingService(&config.Config{}, nil)
 
 	status := svc.GetPricingServiceStatus()
 	require.NotNil(t, status)
-	require.Equal(t, "using fallback", status["last_updated"])
+	require.Equal(t, "pricing service not initialized", status["last_updated"])
 }
 
 func TestForceUpdatePricing_NilService(t *testing.T) {
-	svc := newTestBillingService()
+	// nil PricingService → ForceUpdatePricing 应返回错误而非 panic
+	svc := NewBillingService(&config.Config{}, nil)
 
 	err := svc.ForceUpdatePricing()
 	require.Error(t, err)
@@ -422,11 +400,12 @@ func TestForceUpdatePricing_NilService(t *testing.T) {
 }
 
 func TestCalculateCostWithLongContext_PropagatesError(t *testing.T) {
-	// 使用空的 fallback prices 让 GetModelPricing 失败
-	svc := &BillingService{
-		cfg:            &config.Config{},
-		fallbackPrices: make(map[string]*ModelPricing),
+	// 空 catalog → GetModelPricing 失败
+	ps := &PricingService{
+		catalog:  map[string]*DBModelPricing{},
+		aliasIdx: map[string]string{},
 	}
+	svc := NewBillingService(&config.Config{}, ps)
 
 	tokens := UsageTokens{InputTokens: 300000, CacheReadTokens: 0}
 	_, err := svc.CalculateCostWithLongContext("unknown-model", tokens, 1.0, 200000, 2.0)
@@ -435,18 +414,24 @@ func TestCalculateCostWithLongContext_PropagatesError(t *testing.T) {
 }
 
 func TestCalculateCost_SupportsCacheBreakdown(t *testing.T) {
-	svc := &BillingService{
-		cfg: &config.Config{},
-		fallbackPrices: map[string]*ModelPricing{
+	in, out := 3e-6, 15e-6
+	c5m, c1h := 4e-6, 5e-6
+	ps := &PricingService{
+		catalog: map[string]*DBModelPricing{
 			"claude-sonnet-4": {
-				InputPricePerToken:     3e-6,
-				OutputPricePerToken:    15e-6,
+				ModelID:                "claude-sonnet-4",
+				InputCostPerToken:      &in,
+				OutputCostPerToken:     &out,
 				SupportsCacheBreakdown: true,
-				CacheCreation5mPrice:   4e-6, // per token
-				CacheCreation1hPrice:   5e-6, // per token
+				CacheCreation5mTokenCost: &c5m,
+				CacheCreation1hTokenCost: &c1h,
+				IsEnabled:              true,
+				PricingStatus:          ModelPricingStatusPriced,
 			},
 		},
+		aliasIdx: map[string]string{},
 	}
+	svc := NewBillingService(&config.Config{}, ps)
 
 	tokens := UsageTokens{
 		InputTokens:           1000,
@@ -572,21 +557,27 @@ func TestCalculateCostWithServiceTier_PriorityFallsBackToTierMultiplierWithoutEx
 }
 
 func TestBillingServiceGetModelPricing_UsesDynamicPriorityFields(t *testing.T) {
+	f := func(v float64) *float64 { return &v }
+	lcThresh := int64(272000)
 	pricingSvc := &PricingService{
-		pricingData: map[string]*LiteLLMModelPricing{
+		catalog: map[string]*DBModelPricing{
 			"gpt-5.4": {
-				InputCostPerToken:               2.5e-6,
-				InputCostPerTokenPriority:       5e-6,
-				OutputCostPerToken:              15e-6,
-				OutputCostPerTokenPriority:      30e-6,
-				CacheCreationInputTokenCost:     2.5e-6,
-				CacheReadInputTokenCost:         0.25e-6,
-				CacheReadInputTokenCostPriority: 0.5e-6,
-				LongContextInputTokenThreshold:  272000,
-				LongContextInputCostMultiplier:  2.0,
-				LongContextOutputCostMultiplier: 1.5,
+				ModelID:                         "gpt-5.4",
+				InputCostPerToken:               f(2.5e-6),
+				InputCostPerTokenPriority:       f(5e-6),
+				OutputCostPerToken:              f(15e-6),
+				OutputCostPerTokenPriority:      f(30e-6),
+				CacheCreationInputTokenCost:     f(2.5e-6),
+				CacheReadInputTokenCost:         f(0.25e-6),
+				CacheReadInputTokenCostPriority: f(0.5e-6),
+				LongContextInputTokenThreshold:  &lcThresh,
+				LongContextInputCostMultiplier:  f(2.0),
+				LongContextOutputCostMultiplier: f(1.5),
+				IsEnabled:                       true,
+				PricingStatus:                   ModelPricingStatusPriced,
 			},
 		},
+		aliasIdx: map[string]string{},
 	}
 	svc := NewBillingService(&config.Config{}, pricingSvc)
 
@@ -621,15 +612,20 @@ func TestBillingServiceGetModelPricing_OpenAIFallbackGpt52Variants(t *testing.T)
 }
 
 func TestCalculateCostWithServiceTier_PriorityFallsBackToTierMultiplierWhenExplicitPriceMissing(t *testing.T) {
+	f := func(v float64) *float64 { return &v }
 	svc := NewBillingService(&config.Config{}, &PricingService{
-		pricingData: map[string]*LiteLLMModelPricing{
+		catalog: map[string]*DBModelPricing{
 			"custom-no-priority": {
-				InputCostPerToken:           1e-6,
-				OutputCostPerToken:          2e-6,
-				CacheCreationInputTokenCost: 0.5e-6,
-				CacheReadInputTokenCost:     0.25e-6,
+				ModelID:                     "custom-no-priority",
+				InputCostPerToken:           f(1e-6),
+				OutputCostPerToken:          f(2e-6),
+				CacheCreationInputTokenCost: f(0.5e-6),
+				CacheReadInputTokenCost:     f(0.25e-6),
+				IsEnabled:                   true,
+				PricingStatus:               ModelPricingStatusPriced,
 			},
 		},
+		aliasIdx: map[string]string{},
 	})
 	tokens := UsageTokens{InputTokens: 100, OutputTokens: 50, CacheCreationTokens: 40, CacheReadTokens: 20}
 
@@ -665,22 +661,29 @@ func TestGetModelPricing_OpenAIGpt52FallbacksExposePriorityPrices(t *testing.T) 
 }
 
 func TestGetModelPricing_MapsDynamicPriorityFieldsIntoBillingPricing(t *testing.T) {
+	f := func(v float64) *float64 { return &v }
+	lcThresh := int64(999)
 	svc := NewBillingService(&config.Config{}, &PricingService{
-		pricingData: map[string]*LiteLLMModelPricing{
+		catalog: map[string]*DBModelPricing{
 			"dynamic-tier-model": {
-				InputCostPerToken:                   1e-6,
-				InputCostPerTokenPriority:           2e-6,
-				OutputCostPerToken:                  3e-6,
-				OutputCostPerTokenPriority:          6e-6,
-				CacheCreationInputTokenCost:         4e-6,
-				CacheCreationInputTokenCostAbove1hr: 5e-6,
-				CacheReadInputTokenCost:             7e-7,
-				CacheReadInputTokenCostPriority:     8e-7,
-				LongContextInputTokenThreshold:      999,
-				LongContextInputCostMultiplier:      1.5,
-				LongContextOutputCostMultiplier:     1.25,
+				ModelID:                             "dynamic-tier-model",
+				InputCostPerToken:                   f(1e-6),
+				InputCostPerTokenPriority:           f(2e-6),
+				OutputCostPerToken:                  f(3e-6),
+				OutputCostPerTokenPriority:          f(6e-6),
+				CacheCreationInputTokenCost:         f(4e-6),
+				CacheCreation1hTokenCost:            f(5e-6),
+				CacheReadInputTokenCost:             f(7e-7),
+				CacheReadInputTokenCostPriority:     f(8e-7),
+				LongContextInputTokenThreshold:      &lcThresh,
+				LongContextInputCostMultiplier:      f(1.5),
+				LongContextOutputCostMultiplier:     f(1.25),
+				SupportsCacheBreakdown:              true,
+				IsEnabled:                           true,
+				PricingStatus:                       ModelPricingStatusPriced,
 			},
 		},
+		aliasIdx: map[string]string{},
 	})
 
 	pricing, err := svc.GetModelPricing("dynamic-tier-model")

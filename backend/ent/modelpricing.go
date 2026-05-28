@@ -39,6 +39,26 @@ type ModelPricing struct {
 	OutputCostPerImage *float64 `json:"output_cost_per_image,omitempty"`
 	// OutputCostPerImageToken holds the value of the "output_cost_per_image_token" field.
 	OutputCostPerImageToken *float64 `json:"output_cost_per_image_token,omitempty"`
+	// InputCostPerTokenPriority holds the value of the "input_cost_per_token_priority" field.
+	InputCostPerTokenPriority *float64 `json:"input_cost_per_token_priority,omitempty"`
+	// OutputCostPerTokenPriority holds the value of the "output_cost_per_token_priority" field.
+	OutputCostPerTokenPriority *float64 `json:"output_cost_per_token_priority,omitempty"`
+	// CacheReadInputTokenCostPriority holds the value of the "cache_read_input_token_cost_priority" field.
+	CacheReadInputTokenCostPriority *float64 `json:"cache_read_input_token_cost_priority,omitempty"`
+	// CacheCreation5mTokenCost holds the value of the "cache_creation_5m_token_cost" field.
+	CacheCreation5mTokenCost *float64 `json:"cache_creation_5m_token_cost,omitempty"`
+	// CacheCreation1hTokenCost holds the value of the "cache_creation_1h_token_cost" field.
+	CacheCreation1hTokenCost *float64 `json:"cache_creation_1h_token_cost,omitempty"`
+	// SupportsCacheBreakdown holds the value of the "supports_cache_breakdown" field.
+	SupportsCacheBreakdown bool `json:"supports_cache_breakdown,omitempty"`
+	// ImageOutputPricePerToken holds the value of the "image_output_price_per_token" field.
+	ImageOutputPricePerToken *float64 `json:"image_output_price_per_token,omitempty"`
+	// LongContextInputTokenThreshold holds the value of the "long_context_input_token_threshold" field.
+	LongContextInputTokenThreshold *int64 `json:"long_context_input_token_threshold,omitempty"`
+	// LongContextInputCostMultiplier holds the value of the "long_context_input_cost_multiplier" field.
+	LongContextInputCostMultiplier *float64 `json:"long_context_input_cost_multiplier,omitempty"`
+	// LongContextOutputCostMultiplier holds the value of the "long_context_output_cost_multiplier" field.
+	LongContextOutputCostMultiplier *float64 `json:"long_context_output_cost_multiplier,omitempty"`
 	// SupportsPromptCaching holds the value of the "supports_prompt_caching" field.
 	SupportsPromptCaching bool `json:"supports_prompt_caching,omitempty"`
 	// CustomInputCost holds the value of the "custom_input_cost" field.
@@ -51,6 +71,14 @@ type ModelPricing struct {
 	IsCustom bool `json:"is_custom,omitempty"`
 	// IsEnabled holds the value of the "is_enabled" field.
 	IsEnabled bool `json:"is_enabled,omitempty"`
+	// Source holds the value of the "source" field.
+	Source string `json:"source,omitempty"`
+	// SourceProvider holds the value of the "source_provider" field.
+	SourceProvider string `json:"source_provider,omitempty"`
+	// SourceAccountID holds the value of the "source_account_id" field.
+	SourceAccountID *int64 `json:"source_account_id,omitempty"`
+	// PricingStatus holds the value of the "pricing_status" field.
+	PricingStatus string `json:"pricing_status,omitempty"`
 	// LastSyncedAt holds the value of the "last_synced_at" field.
 	LastSyncedAt *time.Time `json:"last_synced_at,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -65,13 +93,13 @@ func (*ModelPricing) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case modelpricing.FieldSupportsPromptCaching, modelpricing.FieldIsCustom, modelpricing.FieldIsEnabled:
+		case modelpricing.FieldSupportsCacheBreakdown, modelpricing.FieldSupportsPromptCaching, modelpricing.FieldIsCustom, modelpricing.FieldIsEnabled:
 			values[i] = new(sql.NullBool)
-		case modelpricing.FieldInputCostPerToken, modelpricing.FieldOutputCostPerToken, modelpricing.FieldCacheCreationInputTokenCost, modelpricing.FieldCacheReadInputTokenCost, modelpricing.FieldOutputCostPerImage, modelpricing.FieldOutputCostPerImageToken, modelpricing.FieldCustomInputCost, modelpricing.FieldCustomOutputCost, modelpricing.FieldDiscountRate:
+		case modelpricing.FieldInputCostPerToken, modelpricing.FieldOutputCostPerToken, modelpricing.FieldCacheCreationInputTokenCost, modelpricing.FieldCacheReadInputTokenCost, modelpricing.FieldOutputCostPerImage, modelpricing.FieldOutputCostPerImageToken, modelpricing.FieldInputCostPerTokenPriority, modelpricing.FieldOutputCostPerTokenPriority, modelpricing.FieldCacheReadInputTokenCostPriority, modelpricing.FieldCacheCreation5mTokenCost, modelpricing.FieldCacheCreation1hTokenCost, modelpricing.FieldImageOutputPricePerToken, modelpricing.FieldLongContextInputCostMultiplier, modelpricing.FieldLongContextOutputCostMultiplier, modelpricing.FieldCustomInputCost, modelpricing.FieldCustomOutputCost, modelpricing.FieldDiscountRate:
 			values[i] = new(sql.NullFloat64)
-		case modelpricing.FieldID:
+		case modelpricing.FieldID, modelpricing.FieldLongContextInputTokenThreshold, modelpricing.FieldSourceAccountID:
 			values[i] = new(sql.NullInt64)
-		case modelpricing.FieldModelID, modelpricing.FieldDisplayName, modelpricing.FieldDescription, modelpricing.FieldProvider, modelpricing.FieldMode:
+		case modelpricing.FieldModelID, modelpricing.FieldDisplayName, modelpricing.FieldDescription, modelpricing.FieldProvider, modelpricing.FieldMode, modelpricing.FieldSource, modelpricing.FieldSourceProvider, modelpricing.FieldPricingStatus:
 			values[i] = new(sql.NullString)
 		case modelpricing.FieldLastSyncedAt, modelpricing.FieldCreatedAt, modelpricing.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -170,6 +198,75 @@ func (_m *ModelPricing) assignValues(columns []string, values []any) error {
 				_m.OutputCostPerImageToken = new(float64)
 				*_m.OutputCostPerImageToken = value.Float64
 			}
+		case modelpricing.FieldInputCostPerTokenPriority:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field input_cost_per_token_priority", values[i])
+			} else if value.Valid {
+				_m.InputCostPerTokenPriority = new(float64)
+				*_m.InputCostPerTokenPriority = value.Float64
+			}
+		case modelpricing.FieldOutputCostPerTokenPriority:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field output_cost_per_token_priority", values[i])
+			} else if value.Valid {
+				_m.OutputCostPerTokenPriority = new(float64)
+				*_m.OutputCostPerTokenPriority = value.Float64
+			}
+		case modelpricing.FieldCacheReadInputTokenCostPriority:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field cache_read_input_token_cost_priority", values[i])
+			} else if value.Valid {
+				_m.CacheReadInputTokenCostPriority = new(float64)
+				*_m.CacheReadInputTokenCostPriority = value.Float64
+			}
+		case modelpricing.FieldCacheCreation5mTokenCost:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field cache_creation_5m_token_cost", values[i])
+			} else if value.Valid {
+				_m.CacheCreation5mTokenCost = new(float64)
+				*_m.CacheCreation5mTokenCost = value.Float64
+			}
+		case modelpricing.FieldCacheCreation1hTokenCost:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field cache_creation_1h_token_cost", values[i])
+			} else if value.Valid {
+				_m.CacheCreation1hTokenCost = new(float64)
+				*_m.CacheCreation1hTokenCost = value.Float64
+			}
+		case modelpricing.FieldSupportsCacheBreakdown:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field supports_cache_breakdown", values[i])
+			} else if value.Valid {
+				_m.SupportsCacheBreakdown = value.Bool
+			}
+		case modelpricing.FieldImageOutputPricePerToken:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field image_output_price_per_token", values[i])
+			} else if value.Valid {
+				_m.ImageOutputPricePerToken = new(float64)
+				*_m.ImageOutputPricePerToken = value.Float64
+			}
+		case modelpricing.FieldLongContextInputTokenThreshold:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field long_context_input_token_threshold", values[i])
+			} else if value.Valid {
+				_m.LongContextInputTokenThreshold = new(int64)
+				*_m.LongContextInputTokenThreshold = value.Int64
+			}
+		case modelpricing.FieldLongContextInputCostMultiplier:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field long_context_input_cost_multiplier", values[i])
+			} else if value.Valid {
+				_m.LongContextInputCostMultiplier = new(float64)
+				*_m.LongContextInputCostMultiplier = value.Float64
+			}
+		case modelpricing.FieldLongContextOutputCostMultiplier:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field long_context_output_cost_multiplier", values[i])
+			} else if value.Valid {
+				_m.LongContextOutputCostMultiplier = new(float64)
+				*_m.LongContextOutputCostMultiplier = value.Float64
+			}
 		case modelpricing.FieldSupportsPromptCaching:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field supports_prompt_caching", values[i])
@@ -208,6 +305,31 @@ func (_m *ModelPricing) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field is_enabled", values[i])
 			} else if value.Valid {
 				_m.IsEnabled = value.Bool
+			}
+		case modelpricing.FieldSource:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field source", values[i])
+			} else if value.Valid {
+				_m.Source = value.String
+			}
+		case modelpricing.FieldSourceProvider:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field source_provider", values[i])
+			} else if value.Valid {
+				_m.SourceProvider = value.String
+			}
+		case modelpricing.FieldSourceAccountID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field source_account_id", values[i])
+			} else if value.Valid {
+				_m.SourceAccountID = new(int64)
+				*_m.SourceAccountID = value.Int64
+			}
+		case modelpricing.FieldPricingStatus:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field pricing_status", values[i])
+			} else if value.Valid {
+				_m.PricingStatus = value.String
 			}
 		case modelpricing.FieldLastSyncedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -313,6 +435,54 @@ func (_m *ModelPricing) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
+	if v := _m.InputCostPerTokenPriority; v != nil {
+		builder.WriteString("input_cost_per_token_priority=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.OutputCostPerTokenPriority; v != nil {
+		builder.WriteString("output_cost_per_token_priority=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.CacheReadInputTokenCostPriority; v != nil {
+		builder.WriteString("cache_read_input_token_cost_priority=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.CacheCreation5mTokenCost; v != nil {
+		builder.WriteString("cache_creation_5m_token_cost=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.CacheCreation1hTokenCost; v != nil {
+		builder.WriteString("cache_creation_1h_token_cost=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("supports_cache_breakdown=")
+	builder.WriteString(fmt.Sprintf("%v", _m.SupportsCacheBreakdown))
+	builder.WriteString(", ")
+	if v := _m.ImageOutputPricePerToken; v != nil {
+		builder.WriteString("image_output_price_per_token=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.LongContextInputTokenThreshold; v != nil {
+		builder.WriteString("long_context_input_token_threshold=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.LongContextInputCostMultiplier; v != nil {
+		builder.WriteString("long_context_input_cost_multiplier=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.LongContextOutputCostMultiplier; v != nil {
+		builder.WriteString("long_context_output_cost_multiplier=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
 	builder.WriteString("supports_prompt_caching=")
 	builder.WriteString(fmt.Sprintf("%v", _m.SupportsPromptCaching))
 	builder.WriteString(", ")
@@ -336,6 +506,20 @@ func (_m *ModelPricing) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("is_enabled=")
 	builder.WriteString(fmt.Sprintf("%v", _m.IsEnabled))
+	builder.WriteString(", ")
+	builder.WriteString("source=")
+	builder.WriteString(_m.Source)
+	builder.WriteString(", ")
+	builder.WriteString("source_provider=")
+	builder.WriteString(_m.SourceProvider)
+	builder.WriteString(", ")
+	if v := _m.SourceAccountID; v != nil {
+		builder.WriteString("source_account_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("pricing_status=")
+	builder.WriteString(_m.PricingStatus)
 	builder.WriteString(", ")
 	if v := _m.LastSyncedAt; v != nil {
 		builder.WriteString("last_synced_at=")

@@ -36,6 +36,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/paymentproviderinstance"
 	"github.com/Wei-Shaw/sub2api/ent/pendingauthsession"
 	"github.com/Wei-Shaw/sub2api/ent/predicate"
+	"github.com/Wei-Shaw/sub2api/ent/pricingdriftlog"
 	"github.com/Wei-Shaw/sub2api/ent/promocode"
 	"github.com/Wei-Shaw/sub2api/ent/promocodeusage"
 	"github.com/Wei-Shaw/sub2api/ent/providerpricing"
@@ -87,6 +88,7 @@ const (
 	TypePaymentOrder                  = "PaymentOrder"
 	TypePaymentProviderInstance       = "PaymentProviderInstance"
 	TypePendingAuthSession            = "PendingAuthSession"
+	TypePricingDriftLog               = "PricingDriftLog"
 	TypePromoCode                     = "PromoCode"
 	TypePromoCodeUsage                = "PromoCodeUsage"
 	TypeProviderPricing               = "ProviderPricing"
@@ -23706,42 +23708,66 @@ func (m *LingjingTaskMutation) ResetEdge(name string) error {
 // ModelPricingMutation represents an operation that mutates the ModelPricing nodes in the graph.
 type ModelPricingMutation struct {
 	config
-	op                                 Op
-	typ                                string
-	id                                 *int64
-	model_id                           *string
-	display_name                       *string
-	description                        *string
-	provider                           *string
-	mode                               *string
-	input_cost_per_token               *float64
-	addinput_cost_per_token            *float64
-	output_cost_per_token              *float64
-	addoutput_cost_per_token           *float64
-	cache_creation_input_token_cost    *float64
-	addcache_creation_input_token_cost *float64
-	cache_read_input_token_cost        *float64
-	addcache_read_input_token_cost     *float64
-	output_cost_per_image              *float64
-	addoutput_cost_per_image           *float64
-	output_cost_per_image_token        *float64
-	addoutput_cost_per_image_token     *float64
-	supports_prompt_caching            *bool
-	custom_input_cost                  *float64
-	addcustom_input_cost               *float64
-	custom_output_cost                 *float64
-	addcustom_output_cost              *float64
-	discount_rate                      *float64
-	adddiscount_rate                   *float64
-	is_custom                          *bool
-	is_enabled                         *bool
-	last_synced_at                     *time.Time
-	created_at                         *time.Time
-	updated_at                         *time.Time
-	clearedFields                      map[string]struct{}
-	done                               bool
-	oldValue                           func(context.Context) (*ModelPricing, error)
-	predicates                         []predicate.ModelPricing
+	op                                      Op
+	typ                                     string
+	id                                      *int64
+	model_id                                *string
+	display_name                            *string
+	description                             *string
+	provider                                *string
+	mode                                    *string
+	input_cost_per_token                    *float64
+	addinput_cost_per_token                 *float64
+	output_cost_per_token                   *float64
+	addoutput_cost_per_token                *float64
+	cache_creation_input_token_cost         *float64
+	addcache_creation_input_token_cost      *float64
+	cache_read_input_token_cost             *float64
+	addcache_read_input_token_cost          *float64
+	output_cost_per_image                   *float64
+	addoutput_cost_per_image                *float64
+	output_cost_per_image_token             *float64
+	addoutput_cost_per_image_token          *float64
+	input_cost_per_token_priority           *float64
+	addinput_cost_per_token_priority        *float64
+	output_cost_per_token_priority          *float64
+	addoutput_cost_per_token_priority       *float64
+	cache_read_input_token_cost_priority    *float64
+	addcache_read_input_token_cost_priority *float64
+	cache_creation_5m_token_cost            *float64
+	addcache_creation_5m_token_cost         *float64
+	cache_creation_1h_token_cost            *float64
+	addcache_creation_1h_token_cost         *float64
+	supports_cache_breakdown                *bool
+	image_output_price_per_token            *float64
+	addimage_output_price_per_token         *float64
+	long_context_input_token_threshold      *int64
+	addlong_context_input_token_threshold   *int64
+	long_context_input_cost_multiplier      *float64
+	addlong_context_input_cost_multiplier   *float64
+	long_context_output_cost_multiplier     *float64
+	addlong_context_output_cost_multiplier  *float64
+	supports_prompt_caching                 *bool
+	custom_input_cost                       *float64
+	addcustom_input_cost                    *float64
+	custom_output_cost                      *float64
+	addcustom_output_cost                   *float64
+	discount_rate                           *float64
+	adddiscount_rate                        *float64
+	is_custom                               *bool
+	is_enabled                              *bool
+	source                                  *string
+	source_provider                         *string
+	source_account_id                       *int64
+	addsource_account_id                    *int64
+	pricing_status                          *string
+	last_synced_at                          *time.Time
+	created_at                              *time.Time
+	updated_at                              *time.Time
+	clearedFields                           map[string]struct{}
+	done                                    bool
+	oldValue                                func(context.Context) (*ModelPricing, error)
+	predicates                              []predicate.ModelPricing
 }
 
 var _ ent.Mutation = (*ModelPricingMutation)(nil)
@@ -24468,6 +24494,672 @@ func (m *ModelPricingMutation) ResetOutputCostPerImageToken() {
 	delete(m.clearedFields, modelpricing.FieldOutputCostPerImageToken)
 }
 
+// SetInputCostPerTokenPriority sets the "input_cost_per_token_priority" field.
+func (m *ModelPricingMutation) SetInputCostPerTokenPriority(f float64) {
+	m.input_cost_per_token_priority = &f
+	m.addinput_cost_per_token_priority = nil
+}
+
+// InputCostPerTokenPriority returns the value of the "input_cost_per_token_priority" field in the mutation.
+func (m *ModelPricingMutation) InputCostPerTokenPriority() (r float64, exists bool) {
+	v := m.input_cost_per_token_priority
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInputCostPerTokenPriority returns the old "input_cost_per_token_priority" field's value of the ModelPricing entity.
+// If the ModelPricing object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ModelPricingMutation) OldInputCostPerTokenPriority(ctx context.Context) (v *float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInputCostPerTokenPriority is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInputCostPerTokenPriority requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInputCostPerTokenPriority: %w", err)
+	}
+	return oldValue.InputCostPerTokenPriority, nil
+}
+
+// AddInputCostPerTokenPriority adds f to the "input_cost_per_token_priority" field.
+func (m *ModelPricingMutation) AddInputCostPerTokenPriority(f float64) {
+	if m.addinput_cost_per_token_priority != nil {
+		*m.addinput_cost_per_token_priority += f
+	} else {
+		m.addinput_cost_per_token_priority = &f
+	}
+}
+
+// AddedInputCostPerTokenPriority returns the value that was added to the "input_cost_per_token_priority" field in this mutation.
+func (m *ModelPricingMutation) AddedInputCostPerTokenPriority() (r float64, exists bool) {
+	v := m.addinput_cost_per_token_priority
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearInputCostPerTokenPriority clears the value of the "input_cost_per_token_priority" field.
+func (m *ModelPricingMutation) ClearInputCostPerTokenPriority() {
+	m.input_cost_per_token_priority = nil
+	m.addinput_cost_per_token_priority = nil
+	m.clearedFields[modelpricing.FieldInputCostPerTokenPriority] = struct{}{}
+}
+
+// InputCostPerTokenPriorityCleared returns if the "input_cost_per_token_priority" field was cleared in this mutation.
+func (m *ModelPricingMutation) InputCostPerTokenPriorityCleared() bool {
+	_, ok := m.clearedFields[modelpricing.FieldInputCostPerTokenPriority]
+	return ok
+}
+
+// ResetInputCostPerTokenPriority resets all changes to the "input_cost_per_token_priority" field.
+func (m *ModelPricingMutation) ResetInputCostPerTokenPriority() {
+	m.input_cost_per_token_priority = nil
+	m.addinput_cost_per_token_priority = nil
+	delete(m.clearedFields, modelpricing.FieldInputCostPerTokenPriority)
+}
+
+// SetOutputCostPerTokenPriority sets the "output_cost_per_token_priority" field.
+func (m *ModelPricingMutation) SetOutputCostPerTokenPriority(f float64) {
+	m.output_cost_per_token_priority = &f
+	m.addoutput_cost_per_token_priority = nil
+}
+
+// OutputCostPerTokenPriority returns the value of the "output_cost_per_token_priority" field in the mutation.
+func (m *ModelPricingMutation) OutputCostPerTokenPriority() (r float64, exists bool) {
+	v := m.output_cost_per_token_priority
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOutputCostPerTokenPriority returns the old "output_cost_per_token_priority" field's value of the ModelPricing entity.
+// If the ModelPricing object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ModelPricingMutation) OldOutputCostPerTokenPriority(ctx context.Context) (v *float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOutputCostPerTokenPriority is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOutputCostPerTokenPriority requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOutputCostPerTokenPriority: %w", err)
+	}
+	return oldValue.OutputCostPerTokenPriority, nil
+}
+
+// AddOutputCostPerTokenPriority adds f to the "output_cost_per_token_priority" field.
+func (m *ModelPricingMutation) AddOutputCostPerTokenPriority(f float64) {
+	if m.addoutput_cost_per_token_priority != nil {
+		*m.addoutput_cost_per_token_priority += f
+	} else {
+		m.addoutput_cost_per_token_priority = &f
+	}
+}
+
+// AddedOutputCostPerTokenPriority returns the value that was added to the "output_cost_per_token_priority" field in this mutation.
+func (m *ModelPricingMutation) AddedOutputCostPerTokenPriority() (r float64, exists bool) {
+	v := m.addoutput_cost_per_token_priority
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearOutputCostPerTokenPriority clears the value of the "output_cost_per_token_priority" field.
+func (m *ModelPricingMutation) ClearOutputCostPerTokenPriority() {
+	m.output_cost_per_token_priority = nil
+	m.addoutput_cost_per_token_priority = nil
+	m.clearedFields[modelpricing.FieldOutputCostPerTokenPriority] = struct{}{}
+}
+
+// OutputCostPerTokenPriorityCleared returns if the "output_cost_per_token_priority" field was cleared in this mutation.
+func (m *ModelPricingMutation) OutputCostPerTokenPriorityCleared() bool {
+	_, ok := m.clearedFields[modelpricing.FieldOutputCostPerTokenPriority]
+	return ok
+}
+
+// ResetOutputCostPerTokenPriority resets all changes to the "output_cost_per_token_priority" field.
+func (m *ModelPricingMutation) ResetOutputCostPerTokenPriority() {
+	m.output_cost_per_token_priority = nil
+	m.addoutput_cost_per_token_priority = nil
+	delete(m.clearedFields, modelpricing.FieldOutputCostPerTokenPriority)
+}
+
+// SetCacheReadInputTokenCostPriority sets the "cache_read_input_token_cost_priority" field.
+func (m *ModelPricingMutation) SetCacheReadInputTokenCostPriority(f float64) {
+	m.cache_read_input_token_cost_priority = &f
+	m.addcache_read_input_token_cost_priority = nil
+}
+
+// CacheReadInputTokenCostPriority returns the value of the "cache_read_input_token_cost_priority" field in the mutation.
+func (m *ModelPricingMutation) CacheReadInputTokenCostPriority() (r float64, exists bool) {
+	v := m.cache_read_input_token_cost_priority
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCacheReadInputTokenCostPriority returns the old "cache_read_input_token_cost_priority" field's value of the ModelPricing entity.
+// If the ModelPricing object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ModelPricingMutation) OldCacheReadInputTokenCostPriority(ctx context.Context) (v *float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCacheReadInputTokenCostPriority is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCacheReadInputTokenCostPriority requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCacheReadInputTokenCostPriority: %w", err)
+	}
+	return oldValue.CacheReadInputTokenCostPriority, nil
+}
+
+// AddCacheReadInputTokenCostPriority adds f to the "cache_read_input_token_cost_priority" field.
+func (m *ModelPricingMutation) AddCacheReadInputTokenCostPriority(f float64) {
+	if m.addcache_read_input_token_cost_priority != nil {
+		*m.addcache_read_input_token_cost_priority += f
+	} else {
+		m.addcache_read_input_token_cost_priority = &f
+	}
+}
+
+// AddedCacheReadInputTokenCostPriority returns the value that was added to the "cache_read_input_token_cost_priority" field in this mutation.
+func (m *ModelPricingMutation) AddedCacheReadInputTokenCostPriority() (r float64, exists bool) {
+	v := m.addcache_read_input_token_cost_priority
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearCacheReadInputTokenCostPriority clears the value of the "cache_read_input_token_cost_priority" field.
+func (m *ModelPricingMutation) ClearCacheReadInputTokenCostPriority() {
+	m.cache_read_input_token_cost_priority = nil
+	m.addcache_read_input_token_cost_priority = nil
+	m.clearedFields[modelpricing.FieldCacheReadInputTokenCostPriority] = struct{}{}
+}
+
+// CacheReadInputTokenCostPriorityCleared returns if the "cache_read_input_token_cost_priority" field was cleared in this mutation.
+func (m *ModelPricingMutation) CacheReadInputTokenCostPriorityCleared() bool {
+	_, ok := m.clearedFields[modelpricing.FieldCacheReadInputTokenCostPriority]
+	return ok
+}
+
+// ResetCacheReadInputTokenCostPriority resets all changes to the "cache_read_input_token_cost_priority" field.
+func (m *ModelPricingMutation) ResetCacheReadInputTokenCostPriority() {
+	m.cache_read_input_token_cost_priority = nil
+	m.addcache_read_input_token_cost_priority = nil
+	delete(m.clearedFields, modelpricing.FieldCacheReadInputTokenCostPriority)
+}
+
+// SetCacheCreation5mTokenCost sets the "cache_creation_5m_token_cost" field.
+func (m *ModelPricingMutation) SetCacheCreation5mTokenCost(f float64) {
+	m.cache_creation_5m_token_cost = &f
+	m.addcache_creation_5m_token_cost = nil
+}
+
+// CacheCreation5mTokenCost returns the value of the "cache_creation_5m_token_cost" field in the mutation.
+func (m *ModelPricingMutation) CacheCreation5mTokenCost() (r float64, exists bool) {
+	v := m.cache_creation_5m_token_cost
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCacheCreation5mTokenCost returns the old "cache_creation_5m_token_cost" field's value of the ModelPricing entity.
+// If the ModelPricing object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ModelPricingMutation) OldCacheCreation5mTokenCost(ctx context.Context) (v *float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCacheCreation5mTokenCost is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCacheCreation5mTokenCost requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCacheCreation5mTokenCost: %w", err)
+	}
+	return oldValue.CacheCreation5mTokenCost, nil
+}
+
+// AddCacheCreation5mTokenCost adds f to the "cache_creation_5m_token_cost" field.
+func (m *ModelPricingMutation) AddCacheCreation5mTokenCost(f float64) {
+	if m.addcache_creation_5m_token_cost != nil {
+		*m.addcache_creation_5m_token_cost += f
+	} else {
+		m.addcache_creation_5m_token_cost = &f
+	}
+}
+
+// AddedCacheCreation5mTokenCost returns the value that was added to the "cache_creation_5m_token_cost" field in this mutation.
+func (m *ModelPricingMutation) AddedCacheCreation5mTokenCost() (r float64, exists bool) {
+	v := m.addcache_creation_5m_token_cost
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearCacheCreation5mTokenCost clears the value of the "cache_creation_5m_token_cost" field.
+func (m *ModelPricingMutation) ClearCacheCreation5mTokenCost() {
+	m.cache_creation_5m_token_cost = nil
+	m.addcache_creation_5m_token_cost = nil
+	m.clearedFields[modelpricing.FieldCacheCreation5mTokenCost] = struct{}{}
+}
+
+// CacheCreation5mTokenCostCleared returns if the "cache_creation_5m_token_cost" field was cleared in this mutation.
+func (m *ModelPricingMutation) CacheCreation5mTokenCostCleared() bool {
+	_, ok := m.clearedFields[modelpricing.FieldCacheCreation5mTokenCost]
+	return ok
+}
+
+// ResetCacheCreation5mTokenCost resets all changes to the "cache_creation_5m_token_cost" field.
+func (m *ModelPricingMutation) ResetCacheCreation5mTokenCost() {
+	m.cache_creation_5m_token_cost = nil
+	m.addcache_creation_5m_token_cost = nil
+	delete(m.clearedFields, modelpricing.FieldCacheCreation5mTokenCost)
+}
+
+// SetCacheCreation1hTokenCost sets the "cache_creation_1h_token_cost" field.
+func (m *ModelPricingMutation) SetCacheCreation1hTokenCost(f float64) {
+	m.cache_creation_1h_token_cost = &f
+	m.addcache_creation_1h_token_cost = nil
+}
+
+// CacheCreation1hTokenCost returns the value of the "cache_creation_1h_token_cost" field in the mutation.
+func (m *ModelPricingMutation) CacheCreation1hTokenCost() (r float64, exists bool) {
+	v := m.cache_creation_1h_token_cost
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCacheCreation1hTokenCost returns the old "cache_creation_1h_token_cost" field's value of the ModelPricing entity.
+// If the ModelPricing object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ModelPricingMutation) OldCacheCreation1hTokenCost(ctx context.Context) (v *float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCacheCreation1hTokenCost is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCacheCreation1hTokenCost requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCacheCreation1hTokenCost: %w", err)
+	}
+	return oldValue.CacheCreation1hTokenCost, nil
+}
+
+// AddCacheCreation1hTokenCost adds f to the "cache_creation_1h_token_cost" field.
+func (m *ModelPricingMutation) AddCacheCreation1hTokenCost(f float64) {
+	if m.addcache_creation_1h_token_cost != nil {
+		*m.addcache_creation_1h_token_cost += f
+	} else {
+		m.addcache_creation_1h_token_cost = &f
+	}
+}
+
+// AddedCacheCreation1hTokenCost returns the value that was added to the "cache_creation_1h_token_cost" field in this mutation.
+func (m *ModelPricingMutation) AddedCacheCreation1hTokenCost() (r float64, exists bool) {
+	v := m.addcache_creation_1h_token_cost
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearCacheCreation1hTokenCost clears the value of the "cache_creation_1h_token_cost" field.
+func (m *ModelPricingMutation) ClearCacheCreation1hTokenCost() {
+	m.cache_creation_1h_token_cost = nil
+	m.addcache_creation_1h_token_cost = nil
+	m.clearedFields[modelpricing.FieldCacheCreation1hTokenCost] = struct{}{}
+}
+
+// CacheCreation1hTokenCostCleared returns if the "cache_creation_1h_token_cost" field was cleared in this mutation.
+func (m *ModelPricingMutation) CacheCreation1hTokenCostCleared() bool {
+	_, ok := m.clearedFields[modelpricing.FieldCacheCreation1hTokenCost]
+	return ok
+}
+
+// ResetCacheCreation1hTokenCost resets all changes to the "cache_creation_1h_token_cost" field.
+func (m *ModelPricingMutation) ResetCacheCreation1hTokenCost() {
+	m.cache_creation_1h_token_cost = nil
+	m.addcache_creation_1h_token_cost = nil
+	delete(m.clearedFields, modelpricing.FieldCacheCreation1hTokenCost)
+}
+
+// SetSupportsCacheBreakdown sets the "supports_cache_breakdown" field.
+func (m *ModelPricingMutation) SetSupportsCacheBreakdown(b bool) {
+	m.supports_cache_breakdown = &b
+}
+
+// SupportsCacheBreakdown returns the value of the "supports_cache_breakdown" field in the mutation.
+func (m *ModelPricingMutation) SupportsCacheBreakdown() (r bool, exists bool) {
+	v := m.supports_cache_breakdown
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSupportsCacheBreakdown returns the old "supports_cache_breakdown" field's value of the ModelPricing entity.
+// If the ModelPricing object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ModelPricingMutation) OldSupportsCacheBreakdown(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSupportsCacheBreakdown is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSupportsCacheBreakdown requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSupportsCacheBreakdown: %w", err)
+	}
+	return oldValue.SupportsCacheBreakdown, nil
+}
+
+// ResetSupportsCacheBreakdown resets all changes to the "supports_cache_breakdown" field.
+func (m *ModelPricingMutation) ResetSupportsCacheBreakdown() {
+	m.supports_cache_breakdown = nil
+}
+
+// SetImageOutputPricePerToken sets the "image_output_price_per_token" field.
+func (m *ModelPricingMutation) SetImageOutputPricePerToken(f float64) {
+	m.image_output_price_per_token = &f
+	m.addimage_output_price_per_token = nil
+}
+
+// ImageOutputPricePerToken returns the value of the "image_output_price_per_token" field in the mutation.
+func (m *ModelPricingMutation) ImageOutputPricePerToken() (r float64, exists bool) {
+	v := m.image_output_price_per_token
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldImageOutputPricePerToken returns the old "image_output_price_per_token" field's value of the ModelPricing entity.
+// If the ModelPricing object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ModelPricingMutation) OldImageOutputPricePerToken(ctx context.Context) (v *float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldImageOutputPricePerToken is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldImageOutputPricePerToken requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldImageOutputPricePerToken: %w", err)
+	}
+	return oldValue.ImageOutputPricePerToken, nil
+}
+
+// AddImageOutputPricePerToken adds f to the "image_output_price_per_token" field.
+func (m *ModelPricingMutation) AddImageOutputPricePerToken(f float64) {
+	if m.addimage_output_price_per_token != nil {
+		*m.addimage_output_price_per_token += f
+	} else {
+		m.addimage_output_price_per_token = &f
+	}
+}
+
+// AddedImageOutputPricePerToken returns the value that was added to the "image_output_price_per_token" field in this mutation.
+func (m *ModelPricingMutation) AddedImageOutputPricePerToken() (r float64, exists bool) {
+	v := m.addimage_output_price_per_token
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearImageOutputPricePerToken clears the value of the "image_output_price_per_token" field.
+func (m *ModelPricingMutation) ClearImageOutputPricePerToken() {
+	m.image_output_price_per_token = nil
+	m.addimage_output_price_per_token = nil
+	m.clearedFields[modelpricing.FieldImageOutputPricePerToken] = struct{}{}
+}
+
+// ImageOutputPricePerTokenCleared returns if the "image_output_price_per_token" field was cleared in this mutation.
+func (m *ModelPricingMutation) ImageOutputPricePerTokenCleared() bool {
+	_, ok := m.clearedFields[modelpricing.FieldImageOutputPricePerToken]
+	return ok
+}
+
+// ResetImageOutputPricePerToken resets all changes to the "image_output_price_per_token" field.
+func (m *ModelPricingMutation) ResetImageOutputPricePerToken() {
+	m.image_output_price_per_token = nil
+	m.addimage_output_price_per_token = nil
+	delete(m.clearedFields, modelpricing.FieldImageOutputPricePerToken)
+}
+
+// SetLongContextInputTokenThreshold sets the "long_context_input_token_threshold" field.
+func (m *ModelPricingMutation) SetLongContextInputTokenThreshold(i int64) {
+	m.long_context_input_token_threshold = &i
+	m.addlong_context_input_token_threshold = nil
+}
+
+// LongContextInputTokenThreshold returns the value of the "long_context_input_token_threshold" field in the mutation.
+func (m *ModelPricingMutation) LongContextInputTokenThreshold() (r int64, exists bool) {
+	v := m.long_context_input_token_threshold
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLongContextInputTokenThreshold returns the old "long_context_input_token_threshold" field's value of the ModelPricing entity.
+// If the ModelPricing object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ModelPricingMutation) OldLongContextInputTokenThreshold(ctx context.Context) (v *int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLongContextInputTokenThreshold is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLongContextInputTokenThreshold requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLongContextInputTokenThreshold: %w", err)
+	}
+	return oldValue.LongContextInputTokenThreshold, nil
+}
+
+// AddLongContextInputTokenThreshold adds i to the "long_context_input_token_threshold" field.
+func (m *ModelPricingMutation) AddLongContextInputTokenThreshold(i int64) {
+	if m.addlong_context_input_token_threshold != nil {
+		*m.addlong_context_input_token_threshold += i
+	} else {
+		m.addlong_context_input_token_threshold = &i
+	}
+}
+
+// AddedLongContextInputTokenThreshold returns the value that was added to the "long_context_input_token_threshold" field in this mutation.
+func (m *ModelPricingMutation) AddedLongContextInputTokenThreshold() (r int64, exists bool) {
+	v := m.addlong_context_input_token_threshold
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearLongContextInputTokenThreshold clears the value of the "long_context_input_token_threshold" field.
+func (m *ModelPricingMutation) ClearLongContextInputTokenThreshold() {
+	m.long_context_input_token_threshold = nil
+	m.addlong_context_input_token_threshold = nil
+	m.clearedFields[modelpricing.FieldLongContextInputTokenThreshold] = struct{}{}
+}
+
+// LongContextInputTokenThresholdCleared returns if the "long_context_input_token_threshold" field was cleared in this mutation.
+func (m *ModelPricingMutation) LongContextInputTokenThresholdCleared() bool {
+	_, ok := m.clearedFields[modelpricing.FieldLongContextInputTokenThreshold]
+	return ok
+}
+
+// ResetLongContextInputTokenThreshold resets all changes to the "long_context_input_token_threshold" field.
+func (m *ModelPricingMutation) ResetLongContextInputTokenThreshold() {
+	m.long_context_input_token_threshold = nil
+	m.addlong_context_input_token_threshold = nil
+	delete(m.clearedFields, modelpricing.FieldLongContextInputTokenThreshold)
+}
+
+// SetLongContextInputCostMultiplier sets the "long_context_input_cost_multiplier" field.
+func (m *ModelPricingMutation) SetLongContextInputCostMultiplier(f float64) {
+	m.long_context_input_cost_multiplier = &f
+	m.addlong_context_input_cost_multiplier = nil
+}
+
+// LongContextInputCostMultiplier returns the value of the "long_context_input_cost_multiplier" field in the mutation.
+func (m *ModelPricingMutation) LongContextInputCostMultiplier() (r float64, exists bool) {
+	v := m.long_context_input_cost_multiplier
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLongContextInputCostMultiplier returns the old "long_context_input_cost_multiplier" field's value of the ModelPricing entity.
+// If the ModelPricing object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ModelPricingMutation) OldLongContextInputCostMultiplier(ctx context.Context) (v *float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLongContextInputCostMultiplier is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLongContextInputCostMultiplier requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLongContextInputCostMultiplier: %w", err)
+	}
+	return oldValue.LongContextInputCostMultiplier, nil
+}
+
+// AddLongContextInputCostMultiplier adds f to the "long_context_input_cost_multiplier" field.
+func (m *ModelPricingMutation) AddLongContextInputCostMultiplier(f float64) {
+	if m.addlong_context_input_cost_multiplier != nil {
+		*m.addlong_context_input_cost_multiplier += f
+	} else {
+		m.addlong_context_input_cost_multiplier = &f
+	}
+}
+
+// AddedLongContextInputCostMultiplier returns the value that was added to the "long_context_input_cost_multiplier" field in this mutation.
+func (m *ModelPricingMutation) AddedLongContextInputCostMultiplier() (r float64, exists bool) {
+	v := m.addlong_context_input_cost_multiplier
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearLongContextInputCostMultiplier clears the value of the "long_context_input_cost_multiplier" field.
+func (m *ModelPricingMutation) ClearLongContextInputCostMultiplier() {
+	m.long_context_input_cost_multiplier = nil
+	m.addlong_context_input_cost_multiplier = nil
+	m.clearedFields[modelpricing.FieldLongContextInputCostMultiplier] = struct{}{}
+}
+
+// LongContextInputCostMultiplierCleared returns if the "long_context_input_cost_multiplier" field was cleared in this mutation.
+func (m *ModelPricingMutation) LongContextInputCostMultiplierCleared() bool {
+	_, ok := m.clearedFields[modelpricing.FieldLongContextInputCostMultiplier]
+	return ok
+}
+
+// ResetLongContextInputCostMultiplier resets all changes to the "long_context_input_cost_multiplier" field.
+func (m *ModelPricingMutation) ResetLongContextInputCostMultiplier() {
+	m.long_context_input_cost_multiplier = nil
+	m.addlong_context_input_cost_multiplier = nil
+	delete(m.clearedFields, modelpricing.FieldLongContextInputCostMultiplier)
+}
+
+// SetLongContextOutputCostMultiplier sets the "long_context_output_cost_multiplier" field.
+func (m *ModelPricingMutation) SetLongContextOutputCostMultiplier(f float64) {
+	m.long_context_output_cost_multiplier = &f
+	m.addlong_context_output_cost_multiplier = nil
+}
+
+// LongContextOutputCostMultiplier returns the value of the "long_context_output_cost_multiplier" field in the mutation.
+func (m *ModelPricingMutation) LongContextOutputCostMultiplier() (r float64, exists bool) {
+	v := m.long_context_output_cost_multiplier
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLongContextOutputCostMultiplier returns the old "long_context_output_cost_multiplier" field's value of the ModelPricing entity.
+// If the ModelPricing object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ModelPricingMutation) OldLongContextOutputCostMultiplier(ctx context.Context) (v *float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLongContextOutputCostMultiplier is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLongContextOutputCostMultiplier requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLongContextOutputCostMultiplier: %w", err)
+	}
+	return oldValue.LongContextOutputCostMultiplier, nil
+}
+
+// AddLongContextOutputCostMultiplier adds f to the "long_context_output_cost_multiplier" field.
+func (m *ModelPricingMutation) AddLongContextOutputCostMultiplier(f float64) {
+	if m.addlong_context_output_cost_multiplier != nil {
+		*m.addlong_context_output_cost_multiplier += f
+	} else {
+		m.addlong_context_output_cost_multiplier = &f
+	}
+}
+
+// AddedLongContextOutputCostMultiplier returns the value that was added to the "long_context_output_cost_multiplier" field in this mutation.
+func (m *ModelPricingMutation) AddedLongContextOutputCostMultiplier() (r float64, exists bool) {
+	v := m.addlong_context_output_cost_multiplier
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearLongContextOutputCostMultiplier clears the value of the "long_context_output_cost_multiplier" field.
+func (m *ModelPricingMutation) ClearLongContextOutputCostMultiplier() {
+	m.long_context_output_cost_multiplier = nil
+	m.addlong_context_output_cost_multiplier = nil
+	m.clearedFields[modelpricing.FieldLongContextOutputCostMultiplier] = struct{}{}
+}
+
+// LongContextOutputCostMultiplierCleared returns if the "long_context_output_cost_multiplier" field was cleared in this mutation.
+func (m *ModelPricingMutation) LongContextOutputCostMultiplierCleared() bool {
+	_, ok := m.clearedFields[modelpricing.FieldLongContextOutputCostMultiplier]
+	return ok
+}
+
+// ResetLongContextOutputCostMultiplier resets all changes to the "long_context_output_cost_multiplier" field.
+func (m *ModelPricingMutation) ResetLongContextOutputCostMultiplier() {
+	m.long_context_output_cost_multiplier = nil
+	m.addlong_context_output_cost_multiplier = nil
+	delete(m.clearedFields, modelpricing.FieldLongContextOutputCostMultiplier)
+}
+
 // SetSupportsPromptCaching sets the "supports_prompt_caching" field.
 func (m *ModelPricingMutation) SetSupportsPromptCaching(b bool) {
 	m.supports_prompt_caching = &b
@@ -24786,6 +25478,184 @@ func (m *ModelPricingMutation) ResetIsEnabled() {
 	m.is_enabled = nil
 }
 
+// SetSource sets the "source" field.
+func (m *ModelPricingMutation) SetSource(s string) {
+	m.source = &s
+}
+
+// Source returns the value of the "source" field in the mutation.
+func (m *ModelPricingMutation) Source() (r string, exists bool) {
+	v := m.source
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSource returns the old "source" field's value of the ModelPricing entity.
+// If the ModelPricing object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ModelPricingMutation) OldSource(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSource is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSource requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSource: %w", err)
+	}
+	return oldValue.Source, nil
+}
+
+// ResetSource resets all changes to the "source" field.
+func (m *ModelPricingMutation) ResetSource() {
+	m.source = nil
+}
+
+// SetSourceProvider sets the "source_provider" field.
+func (m *ModelPricingMutation) SetSourceProvider(s string) {
+	m.source_provider = &s
+}
+
+// SourceProvider returns the value of the "source_provider" field in the mutation.
+func (m *ModelPricingMutation) SourceProvider() (r string, exists bool) {
+	v := m.source_provider
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSourceProvider returns the old "source_provider" field's value of the ModelPricing entity.
+// If the ModelPricing object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ModelPricingMutation) OldSourceProvider(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSourceProvider is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSourceProvider requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSourceProvider: %w", err)
+	}
+	return oldValue.SourceProvider, nil
+}
+
+// ResetSourceProvider resets all changes to the "source_provider" field.
+func (m *ModelPricingMutation) ResetSourceProvider() {
+	m.source_provider = nil
+}
+
+// SetSourceAccountID sets the "source_account_id" field.
+func (m *ModelPricingMutation) SetSourceAccountID(i int64) {
+	m.source_account_id = &i
+	m.addsource_account_id = nil
+}
+
+// SourceAccountID returns the value of the "source_account_id" field in the mutation.
+func (m *ModelPricingMutation) SourceAccountID() (r int64, exists bool) {
+	v := m.source_account_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSourceAccountID returns the old "source_account_id" field's value of the ModelPricing entity.
+// If the ModelPricing object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ModelPricingMutation) OldSourceAccountID(ctx context.Context) (v *int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSourceAccountID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSourceAccountID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSourceAccountID: %w", err)
+	}
+	return oldValue.SourceAccountID, nil
+}
+
+// AddSourceAccountID adds i to the "source_account_id" field.
+func (m *ModelPricingMutation) AddSourceAccountID(i int64) {
+	if m.addsource_account_id != nil {
+		*m.addsource_account_id += i
+	} else {
+		m.addsource_account_id = &i
+	}
+}
+
+// AddedSourceAccountID returns the value that was added to the "source_account_id" field in this mutation.
+func (m *ModelPricingMutation) AddedSourceAccountID() (r int64, exists bool) {
+	v := m.addsource_account_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearSourceAccountID clears the value of the "source_account_id" field.
+func (m *ModelPricingMutation) ClearSourceAccountID() {
+	m.source_account_id = nil
+	m.addsource_account_id = nil
+	m.clearedFields[modelpricing.FieldSourceAccountID] = struct{}{}
+}
+
+// SourceAccountIDCleared returns if the "source_account_id" field was cleared in this mutation.
+func (m *ModelPricingMutation) SourceAccountIDCleared() bool {
+	_, ok := m.clearedFields[modelpricing.FieldSourceAccountID]
+	return ok
+}
+
+// ResetSourceAccountID resets all changes to the "source_account_id" field.
+func (m *ModelPricingMutation) ResetSourceAccountID() {
+	m.source_account_id = nil
+	m.addsource_account_id = nil
+	delete(m.clearedFields, modelpricing.FieldSourceAccountID)
+}
+
+// SetPricingStatus sets the "pricing_status" field.
+func (m *ModelPricingMutation) SetPricingStatus(s string) {
+	m.pricing_status = &s
+}
+
+// PricingStatus returns the value of the "pricing_status" field in the mutation.
+func (m *ModelPricingMutation) PricingStatus() (r string, exists bool) {
+	v := m.pricing_status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPricingStatus returns the old "pricing_status" field's value of the ModelPricing entity.
+// If the ModelPricing object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ModelPricingMutation) OldPricingStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPricingStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPricingStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPricingStatus: %w", err)
+	}
+	return oldValue.PricingStatus, nil
+}
+
+// ResetPricingStatus resets all changes to the "pricing_status" field.
+func (m *ModelPricingMutation) ResetPricingStatus() {
+	m.pricing_status = nil
+}
+
 // SetLastSyncedAt sets the "last_synced_at" field.
 func (m *ModelPricingMutation) SetLastSyncedAt(t time.Time) {
 	m.last_synced_at = &t
@@ -24941,7 +25811,7 @@ func (m *ModelPricingMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ModelPricingMutation) Fields() []string {
-	fields := make([]string, 0, 20)
+	fields := make([]string, 0, 34)
 	if m.model_id != nil {
 		fields = append(fields, modelpricing.FieldModelID)
 	}
@@ -24975,6 +25845,36 @@ func (m *ModelPricingMutation) Fields() []string {
 	if m.output_cost_per_image_token != nil {
 		fields = append(fields, modelpricing.FieldOutputCostPerImageToken)
 	}
+	if m.input_cost_per_token_priority != nil {
+		fields = append(fields, modelpricing.FieldInputCostPerTokenPriority)
+	}
+	if m.output_cost_per_token_priority != nil {
+		fields = append(fields, modelpricing.FieldOutputCostPerTokenPriority)
+	}
+	if m.cache_read_input_token_cost_priority != nil {
+		fields = append(fields, modelpricing.FieldCacheReadInputTokenCostPriority)
+	}
+	if m.cache_creation_5m_token_cost != nil {
+		fields = append(fields, modelpricing.FieldCacheCreation5mTokenCost)
+	}
+	if m.cache_creation_1h_token_cost != nil {
+		fields = append(fields, modelpricing.FieldCacheCreation1hTokenCost)
+	}
+	if m.supports_cache_breakdown != nil {
+		fields = append(fields, modelpricing.FieldSupportsCacheBreakdown)
+	}
+	if m.image_output_price_per_token != nil {
+		fields = append(fields, modelpricing.FieldImageOutputPricePerToken)
+	}
+	if m.long_context_input_token_threshold != nil {
+		fields = append(fields, modelpricing.FieldLongContextInputTokenThreshold)
+	}
+	if m.long_context_input_cost_multiplier != nil {
+		fields = append(fields, modelpricing.FieldLongContextInputCostMultiplier)
+	}
+	if m.long_context_output_cost_multiplier != nil {
+		fields = append(fields, modelpricing.FieldLongContextOutputCostMultiplier)
+	}
 	if m.supports_prompt_caching != nil {
 		fields = append(fields, modelpricing.FieldSupportsPromptCaching)
 	}
@@ -24992,6 +25892,18 @@ func (m *ModelPricingMutation) Fields() []string {
 	}
 	if m.is_enabled != nil {
 		fields = append(fields, modelpricing.FieldIsEnabled)
+	}
+	if m.source != nil {
+		fields = append(fields, modelpricing.FieldSource)
+	}
+	if m.source_provider != nil {
+		fields = append(fields, modelpricing.FieldSourceProvider)
+	}
+	if m.source_account_id != nil {
+		fields = append(fields, modelpricing.FieldSourceAccountID)
+	}
+	if m.pricing_status != nil {
+		fields = append(fields, modelpricing.FieldPricingStatus)
 	}
 	if m.last_synced_at != nil {
 		fields = append(fields, modelpricing.FieldLastSyncedAt)
@@ -25032,6 +25944,26 @@ func (m *ModelPricingMutation) Field(name string) (ent.Value, bool) {
 		return m.OutputCostPerImage()
 	case modelpricing.FieldOutputCostPerImageToken:
 		return m.OutputCostPerImageToken()
+	case modelpricing.FieldInputCostPerTokenPriority:
+		return m.InputCostPerTokenPriority()
+	case modelpricing.FieldOutputCostPerTokenPriority:
+		return m.OutputCostPerTokenPriority()
+	case modelpricing.FieldCacheReadInputTokenCostPriority:
+		return m.CacheReadInputTokenCostPriority()
+	case modelpricing.FieldCacheCreation5mTokenCost:
+		return m.CacheCreation5mTokenCost()
+	case modelpricing.FieldCacheCreation1hTokenCost:
+		return m.CacheCreation1hTokenCost()
+	case modelpricing.FieldSupportsCacheBreakdown:
+		return m.SupportsCacheBreakdown()
+	case modelpricing.FieldImageOutputPricePerToken:
+		return m.ImageOutputPricePerToken()
+	case modelpricing.FieldLongContextInputTokenThreshold:
+		return m.LongContextInputTokenThreshold()
+	case modelpricing.FieldLongContextInputCostMultiplier:
+		return m.LongContextInputCostMultiplier()
+	case modelpricing.FieldLongContextOutputCostMultiplier:
+		return m.LongContextOutputCostMultiplier()
 	case modelpricing.FieldSupportsPromptCaching:
 		return m.SupportsPromptCaching()
 	case modelpricing.FieldCustomInputCost:
@@ -25044,6 +25976,14 @@ func (m *ModelPricingMutation) Field(name string) (ent.Value, bool) {
 		return m.IsCustom()
 	case modelpricing.FieldIsEnabled:
 		return m.IsEnabled()
+	case modelpricing.FieldSource:
+		return m.Source()
+	case modelpricing.FieldSourceProvider:
+		return m.SourceProvider()
+	case modelpricing.FieldSourceAccountID:
+		return m.SourceAccountID()
+	case modelpricing.FieldPricingStatus:
+		return m.PricingStatus()
 	case modelpricing.FieldLastSyncedAt:
 		return m.LastSyncedAt()
 	case modelpricing.FieldCreatedAt:
@@ -25081,6 +26021,26 @@ func (m *ModelPricingMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldOutputCostPerImage(ctx)
 	case modelpricing.FieldOutputCostPerImageToken:
 		return m.OldOutputCostPerImageToken(ctx)
+	case modelpricing.FieldInputCostPerTokenPriority:
+		return m.OldInputCostPerTokenPriority(ctx)
+	case modelpricing.FieldOutputCostPerTokenPriority:
+		return m.OldOutputCostPerTokenPriority(ctx)
+	case modelpricing.FieldCacheReadInputTokenCostPriority:
+		return m.OldCacheReadInputTokenCostPriority(ctx)
+	case modelpricing.FieldCacheCreation5mTokenCost:
+		return m.OldCacheCreation5mTokenCost(ctx)
+	case modelpricing.FieldCacheCreation1hTokenCost:
+		return m.OldCacheCreation1hTokenCost(ctx)
+	case modelpricing.FieldSupportsCacheBreakdown:
+		return m.OldSupportsCacheBreakdown(ctx)
+	case modelpricing.FieldImageOutputPricePerToken:
+		return m.OldImageOutputPricePerToken(ctx)
+	case modelpricing.FieldLongContextInputTokenThreshold:
+		return m.OldLongContextInputTokenThreshold(ctx)
+	case modelpricing.FieldLongContextInputCostMultiplier:
+		return m.OldLongContextInputCostMultiplier(ctx)
+	case modelpricing.FieldLongContextOutputCostMultiplier:
+		return m.OldLongContextOutputCostMultiplier(ctx)
 	case modelpricing.FieldSupportsPromptCaching:
 		return m.OldSupportsPromptCaching(ctx)
 	case modelpricing.FieldCustomInputCost:
@@ -25093,6 +26053,14 @@ func (m *ModelPricingMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldIsCustom(ctx)
 	case modelpricing.FieldIsEnabled:
 		return m.OldIsEnabled(ctx)
+	case modelpricing.FieldSource:
+		return m.OldSource(ctx)
+	case modelpricing.FieldSourceProvider:
+		return m.OldSourceProvider(ctx)
+	case modelpricing.FieldSourceAccountID:
+		return m.OldSourceAccountID(ctx)
+	case modelpricing.FieldPricingStatus:
+		return m.OldPricingStatus(ctx)
 	case modelpricing.FieldLastSyncedAt:
 		return m.OldLastSyncedAt(ctx)
 	case modelpricing.FieldCreatedAt:
@@ -25185,6 +26153,76 @@ func (m *ModelPricingMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetOutputCostPerImageToken(v)
 		return nil
+	case modelpricing.FieldInputCostPerTokenPriority:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInputCostPerTokenPriority(v)
+		return nil
+	case modelpricing.FieldOutputCostPerTokenPriority:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOutputCostPerTokenPriority(v)
+		return nil
+	case modelpricing.FieldCacheReadInputTokenCostPriority:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCacheReadInputTokenCostPriority(v)
+		return nil
+	case modelpricing.FieldCacheCreation5mTokenCost:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCacheCreation5mTokenCost(v)
+		return nil
+	case modelpricing.FieldCacheCreation1hTokenCost:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCacheCreation1hTokenCost(v)
+		return nil
+	case modelpricing.FieldSupportsCacheBreakdown:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSupportsCacheBreakdown(v)
+		return nil
+	case modelpricing.FieldImageOutputPricePerToken:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetImageOutputPricePerToken(v)
+		return nil
+	case modelpricing.FieldLongContextInputTokenThreshold:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLongContextInputTokenThreshold(v)
+		return nil
+	case modelpricing.FieldLongContextInputCostMultiplier:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLongContextInputCostMultiplier(v)
+		return nil
+	case modelpricing.FieldLongContextOutputCostMultiplier:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLongContextOutputCostMultiplier(v)
+		return nil
 	case modelpricing.FieldSupportsPromptCaching:
 		v, ok := value.(bool)
 		if !ok {
@@ -25226,6 +26264,34 @@ func (m *ModelPricingMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetIsEnabled(v)
+		return nil
+	case modelpricing.FieldSource:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSource(v)
+		return nil
+	case modelpricing.FieldSourceProvider:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSourceProvider(v)
+		return nil
+	case modelpricing.FieldSourceAccountID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSourceAccountID(v)
+		return nil
+	case modelpricing.FieldPricingStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPricingStatus(v)
 		return nil
 	case modelpricing.FieldLastSyncedAt:
 		v, ok := value.(time.Time)
@@ -25274,6 +26340,33 @@ func (m *ModelPricingMutation) AddedFields() []string {
 	if m.addoutput_cost_per_image_token != nil {
 		fields = append(fields, modelpricing.FieldOutputCostPerImageToken)
 	}
+	if m.addinput_cost_per_token_priority != nil {
+		fields = append(fields, modelpricing.FieldInputCostPerTokenPriority)
+	}
+	if m.addoutput_cost_per_token_priority != nil {
+		fields = append(fields, modelpricing.FieldOutputCostPerTokenPriority)
+	}
+	if m.addcache_read_input_token_cost_priority != nil {
+		fields = append(fields, modelpricing.FieldCacheReadInputTokenCostPriority)
+	}
+	if m.addcache_creation_5m_token_cost != nil {
+		fields = append(fields, modelpricing.FieldCacheCreation5mTokenCost)
+	}
+	if m.addcache_creation_1h_token_cost != nil {
+		fields = append(fields, modelpricing.FieldCacheCreation1hTokenCost)
+	}
+	if m.addimage_output_price_per_token != nil {
+		fields = append(fields, modelpricing.FieldImageOutputPricePerToken)
+	}
+	if m.addlong_context_input_token_threshold != nil {
+		fields = append(fields, modelpricing.FieldLongContextInputTokenThreshold)
+	}
+	if m.addlong_context_input_cost_multiplier != nil {
+		fields = append(fields, modelpricing.FieldLongContextInputCostMultiplier)
+	}
+	if m.addlong_context_output_cost_multiplier != nil {
+		fields = append(fields, modelpricing.FieldLongContextOutputCostMultiplier)
+	}
 	if m.addcustom_input_cost != nil {
 		fields = append(fields, modelpricing.FieldCustomInputCost)
 	}
@@ -25282,6 +26375,9 @@ func (m *ModelPricingMutation) AddedFields() []string {
 	}
 	if m.adddiscount_rate != nil {
 		fields = append(fields, modelpricing.FieldDiscountRate)
+	}
+	if m.addsource_account_id != nil {
+		fields = append(fields, modelpricing.FieldSourceAccountID)
 	}
 	return fields
 }
@@ -25303,12 +26399,32 @@ func (m *ModelPricingMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedOutputCostPerImage()
 	case modelpricing.FieldOutputCostPerImageToken:
 		return m.AddedOutputCostPerImageToken()
+	case modelpricing.FieldInputCostPerTokenPriority:
+		return m.AddedInputCostPerTokenPriority()
+	case modelpricing.FieldOutputCostPerTokenPriority:
+		return m.AddedOutputCostPerTokenPriority()
+	case modelpricing.FieldCacheReadInputTokenCostPriority:
+		return m.AddedCacheReadInputTokenCostPriority()
+	case modelpricing.FieldCacheCreation5mTokenCost:
+		return m.AddedCacheCreation5mTokenCost()
+	case modelpricing.FieldCacheCreation1hTokenCost:
+		return m.AddedCacheCreation1hTokenCost()
+	case modelpricing.FieldImageOutputPricePerToken:
+		return m.AddedImageOutputPricePerToken()
+	case modelpricing.FieldLongContextInputTokenThreshold:
+		return m.AddedLongContextInputTokenThreshold()
+	case modelpricing.FieldLongContextInputCostMultiplier:
+		return m.AddedLongContextInputCostMultiplier()
+	case modelpricing.FieldLongContextOutputCostMultiplier:
+		return m.AddedLongContextOutputCostMultiplier()
 	case modelpricing.FieldCustomInputCost:
 		return m.AddedCustomInputCost()
 	case modelpricing.FieldCustomOutputCost:
 		return m.AddedCustomOutputCost()
 	case modelpricing.FieldDiscountRate:
 		return m.AddedDiscountRate()
+	case modelpricing.FieldSourceAccountID:
+		return m.AddedSourceAccountID()
 	}
 	return nil, false
 }
@@ -25360,6 +26476,69 @@ func (m *ModelPricingMutation) AddField(name string, value ent.Value) error {
 		}
 		m.AddOutputCostPerImageToken(v)
 		return nil
+	case modelpricing.FieldInputCostPerTokenPriority:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddInputCostPerTokenPriority(v)
+		return nil
+	case modelpricing.FieldOutputCostPerTokenPriority:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddOutputCostPerTokenPriority(v)
+		return nil
+	case modelpricing.FieldCacheReadInputTokenCostPriority:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCacheReadInputTokenCostPriority(v)
+		return nil
+	case modelpricing.FieldCacheCreation5mTokenCost:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCacheCreation5mTokenCost(v)
+		return nil
+	case modelpricing.FieldCacheCreation1hTokenCost:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCacheCreation1hTokenCost(v)
+		return nil
+	case modelpricing.FieldImageOutputPricePerToken:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddImageOutputPricePerToken(v)
+		return nil
+	case modelpricing.FieldLongContextInputTokenThreshold:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddLongContextInputTokenThreshold(v)
+		return nil
+	case modelpricing.FieldLongContextInputCostMultiplier:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddLongContextInputCostMultiplier(v)
+		return nil
+	case modelpricing.FieldLongContextOutputCostMultiplier:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddLongContextOutputCostMultiplier(v)
+		return nil
 	case modelpricing.FieldCustomInputCost:
 		v, ok := value.(float64)
 		if !ok {
@@ -25380,6 +26559,13 @@ func (m *ModelPricingMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddDiscountRate(v)
+		return nil
+	case modelpricing.FieldSourceAccountID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSourceAccountID(v)
 		return nil
 	}
 	return fmt.Errorf("unknown ModelPricing numeric field %s", name)
@@ -25413,6 +26599,33 @@ func (m *ModelPricingMutation) ClearedFields() []string {
 	if m.FieldCleared(modelpricing.FieldOutputCostPerImageToken) {
 		fields = append(fields, modelpricing.FieldOutputCostPerImageToken)
 	}
+	if m.FieldCleared(modelpricing.FieldInputCostPerTokenPriority) {
+		fields = append(fields, modelpricing.FieldInputCostPerTokenPriority)
+	}
+	if m.FieldCleared(modelpricing.FieldOutputCostPerTokenPriority) {
+		fields = append(fields, modelpricing.FieldOutputCostPerTokenPriority)
+	}
+	if m.FieldCleared(modelpricing.FieldCacheReadInputTokenCostPriority) {
+		fields = append(fields, modelpricing.FieldCacheReadInputTokenCostPriority)
+	}
+	if m.FieldCleared(modelpricing.FieldCacheCreation5mTokenCost) {
+		fields = append(fields, modelpricing.FieldCacheCreation5mTokenCost)
+	}
+	if m.FieldCleared(modelpricing.FieldCacheCreation1hTokenCost) {
+		fields = append(fields, modelpricing.FieldCacheCreation1hTokenCost)
+	}
+	if m.FieldCleared(modelpricing.FieldImageOutputPricePerToken) {
+		fields = append(fields, modelpricing.FieldImageOutputPricePerToken)
+	}
+	if m.FieldCleared(modelpricing.FieldLongContextInputTokenThreshold) {
+		fields = append(fields, modelpricing.FieldLongContextInputTokenThreshold)
+	}
+	if m.FieldCleared(modelpricing.FieldLongContextInputCostMultiplier) {
+		fields = append(fields, modelpricing.FieldLongContextInputCostMultiplier)
+	}
+	if m.FieldCleared(modelpricing.FieldLongContextOutputCostMultiplier) {
+		fields = append(fields, modelpricing.FieldLongContextOutputCostMultiplier)
+	}
 	if m.FieldCleared(modelpricing.FieldCustomInputCost) {
 		fields = append(fields, modelpricing.FieldCustomInputCost)
 	}
@@ -25421,6 +26634,9 @@ func (m *ModelPricingMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(modelpricing.FieldDiscountRate) {
 		fields = append(fields, modelpricing.FieldDiscountRate)
+	}
+	if m.FieldCleared(modelpricing.FieldSourceAccountID) {
+		fields = append(fields, modelpricing.FieldSourceAccountID)
 	}
 	if m.FieldCleared(modelpricing.FieldLastSyncedAt) {
 		fields = append(fields, modelpricing.FieldLastSyncedAt)
@@ -25463,6 +26679,33 @@ func (m *ModelPricingMutation) ClearField(name string) error {
 	case modelpricing.FieldOutputCostPerImageToken:
 		m.ClearOutputCostPerImageToken()
 		return nil
+	case modelpricing.FieldInputCostPerTokenPriority:
+		m.ClearInputCostPerTokenPriority()
+		return nil
+	case modelpricing.FieldOutputCostPerTokenPriority:
+		m.ClearOutputCostPerTokenPriority()
+		return nil
+	case modelpricing.FieldCacheReadInputTokenCostPriority:
+		m.ClearCacheReadInputTokenCostPriority()
+		return nil
+	case modelpricing.FieldCacheCreation5mTokenCost:
+		m.ClearCacheCreation5mTokenCost()
+		return nil
+	case modelpricing.FieldCacheCreation1hTokenCost:
+		m.ClearCacheCreation1hTokenCost()
+		return nil
+	case modelpricing.FieldImageOutputPricePerToken:
+		m.ClearImageOutputPricePerToken()
+		return nil
+	case modelpricing.FieldLongContextInputTokenThreshold:
+		m.ClearLongContextInputTokenThreshold()
+		return nil
+	case modelpricing.FieldLongContextInputCostMultiplier:
+		m.ClearLongContextInputCostMultiplier()
+		return nil
+	case modelpricing.FieldLongContextOutputCostMultiplier:
+		m.ClearLongContextOutputCostMultiplier()
+		return nil
 	case modelpricing.FieldCustomInputCost:
 		m.ClearCustomInputCost()
 		return nil
@@ -25471,6 +26714,9 @@ func (m *ModelPricingMutation) ClearField(name string) error {
 		return nil
 	case modelpricing.FieldDiscountRate:
 		m.ClearDiscountRate()
+		return nil
+	case modelpricing.FieldSourceAccountID:
+		m.ClearSourceAccountID()
 		return nil
 	case modelpricing.FieldLastSyncedAt:
 		m.ClearLastSyncedAt()
@@ -25516,6 +26762,36 @@ func (m *ModelPricingMutation) ResetField(name string) error {
 	case modelpricing.FieldOutputCostPerImageToken:
 		m.ResetOutputCostPerImageToken()
 		return nil
+	case modelpricing.FieldInputCostPerTokenPriority:
+		m.ResetInputCostPerTokenPriority()
+		return nil
+	case modelpricing.FieldOutputCostPerTokenPriority:
+		m.ResetOutputCostPerTokenPriority()
+		return nil
+	case modelpricing.FieldCacheReadInputTokenCostPriority:
+		m.ResetCacheReadInputTokenCostPriority()
+		return nil
+	case modelpricing.FieldCacheCreation5mTokenCost:
+		m.ResetCacheCreation5mTokenCost()
+		return nil
+	case modelpricing.FieldCacheCreation1hTokenCost:
+		m.ResetCacheCreation1hTokenCost()
+		return nil
+	case modelpricing.FieldSupportsCacheBreakdown:
+		m.ResetSupportsCacheBreakdown()
+		return nil
+	case modelpricing.FieldImageOutputPricePerToken:
+		m.ResetImageOutputPricePerToken()
+		return nil
+	case modelpricing.FieldLongContextInputTokenThreshold:
+		m.ResetLongContextInputTokenThreshold()
+		return nil
+	case modelpricing.FieldLongContextInputCostMultiplier:
+		m.ResetLongContextInputCostMultiplier()
+		return nil
+	case modelpricing.FieldLongContextOutputCostMultiplier:
+		m.ResetLongContextOutputCostMultiplier()
+		return nil
 	case modelpricing.FieldSupportsPromptCaching:
 		m.ResetSupportsPromptCaching()
 		return nil
@@ -25533,6 +26809,18 @@ func (m *ModelPricingMutation) ResetField(name string) error {
 		return nil
 	case modelpricing.FieldIsEnabled:
 		m.ResetIsEnabled()
+		return nil
+	case modelpricing.FieldSource:
+		m.ResetSource()
+		return nil
+	case modelpricing.FieldSourceProvider:
+		m.ResetSourceProvider()
+		return nil
+	case modelpricing.FieldSourceAccountID:
+		m.ResetSourceAccountID()
+		return nil
+	case modelpricing.FieldPricingStatus:
+		m.ResetPricingStatus()
 		return nil
 	case modelpricing.FieldLastSyncedAt:
 		m.ResetLastSyncedAt()
@@ -31782,6 +33070,662 @@ func (m *PendingAuthSessionMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown PendingAuthSession edge %s", name)
+}
+
+// PricingDriftLogMutation represents an operation that mutates the PricingDriftLog nodes in the graph.
+type PricingDriftLogMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int64
+	model_id      *string
+	drift_kind    *string
+	v1_pricing    *map[string]interface{}
+	v2_pricing    *map[string]interface{}
+	hit_path      *string
+	occurred_at   *time.Time
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*PricingDriftLog, error)
+	predicates    []predicate.PricingDriftLog
+}
+
+var _ ent.Mutation = (*PricingDriftLogMutation)(nil)
+
+// pricingdriftlogOption allows management of the mutation configuration using functional options.
+type pricingdriftlogOption func(*PricingDriftLogMutation)
+
+// newPricingDriftLogMutation creates new mutation for the PricingDriftLog entity.
+func newPricingDriftLogMutation(c config, op Op, opts ...pricingdriftlogOption) *PricingDriftLogMutation {
+	m := &PricingDriftLogMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePricingDriftLog,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPricingDriftLogID sets the ID field of the mutation.
+func withPricingDriftLogID(id int64) pricingdriftlogOption {
+	return func(m *PricingDriftLogMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PricingDriftLog
+		)
+		m.oldValue = func(ctx context.Context) (*PricingDriftLog, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PricingDriftLog.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPricingDriftLog sets the old PricingDriftLog of the mutation.
+func withPricingDriftLog(node *PricingDriftLog) pricingdriftlogOption {
+	return func(m *PricingDriftLogMutation) {
+		m.oldValue = func(context.Context) (*PricingDriftLog, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PricingDriftLogMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PricingDriftLogMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PricingDriftLogMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PricingDriftLogMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().PricingDriftLog.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetModelID sets the "model_id" field.
+func (m *PricingDriftLogMutation) SetModelID(s string) {
+	m.model_id = &s
+}
+
+// ModelID returns the value of the "model_id" field in the mutation.
+func (m *PricingDriftLogMutation) ModelID() (r string, exists bool) {
+	v := m.model_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldModelID returns the old "model_id" field's value of the PricingDriftLog entity.
+// If the PricingDriftLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PricingDriftLogMutation) OldModelID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldModelID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldModelID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldModelID: %w", err)
+	}
+	return oldValue.ModelID, nil
+}
+
+// ResetModelID resets all changes to the "model_id" field.
+func (m *PricingDriftLogMutation) ResetModelID() {
+	m.model_id = nil
+}
+
+// SetDriftKind sets the "drift_kind" field.
+func (m *PricingDriftLogMutation) SetDriftKind(s string) {
+	m.drift_kind = &s
+}
+
+// DriftKind returns the value of the "drift_kind" field in the mutation.
+func (m *PricingDriftLogMutation) DriftKind() (r string, exists bool) {
+	v := m.drift_kind
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDriftKind returns the old "drift_kind" field's value of the PricingDriftLog entity.
+// If the PricingDriftLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PricingDriftLogMutation) OldDriftKind(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDriftKind is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDriftKind requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDriftKind: %w", err)
+	}
+	return oldValue.DriftKind, nil
+}
+
+// ResetDriftKind resets all changes to the "drift_kind" field.
+func (m *PricingDriftLogMutation) ResetDriftKind() {
+	m.drift_kind = nil
+}
+
+// SetV1Pricing sets the "v1_pricing" field.
+func (m *PricingDriftLogMutation) SetV1Pricing(value map[string]interface{}) {
+	m.v1_pricing = &value
+}
+
+// V1Pricing returns the value of the "v1_pricing" field in the mutation.
+func (m *PricingDriftLogMutation) V1Pricing() (r map[string]interface{}, exists bool) {
+	v := m.v1_pricing
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldV1Pricing returns the old "v1_pricing" field's value of the PricingDriftLog entity.
+// If the PricingDriftLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PricingDriftLogMutation) OldV1Pricing(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldV1Pricing is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldV1Pricing requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldV1Pricing: %w", err)
+	}
+	return oldValue.V1Pricing, nil
+}
+
+// ClearV1Pricing clears the value of the "v1_pricing" field.
+func (m *PricingDriftLogMutation) ClearV1Pricing() {
+	m.v1_pricing = nil
+	m.clearedFields[pricingdriftlog.FieldV1Pricing] = struct{}{}
+}
+
+// V1PricingCleared returns if the "v1_pricing" field was cleared in this mutation.
+func (m *PricingDriftLogMutation) V1PricingCleared() bool {
+	_, ok := m.clearedFields[pricingdriftlog.FieldV1Pricing]
+	return ok
+}
+
+// ResetV1Pricing resets all changes to the "v1_pricing" field.
+func (m *PricingDriftLogMutation) ResetV1Pricing() {
+	m.v1_pricing = nil
+	delete(m.clearedFields, pricingdriftlog.FieldV1Pricing)
+}
+
+// SetV2Pricing sets the "v2_pricing" field.
+func (m *PricingDriftLogMutation) SetV2Pricing(value map[string]interface{}) {
+	m.v2_pricing = &value
+}
+
+// V2Pricing returns the value of the "v2_pricing" field in the mutation.
+func (m *PricingDriftLogMutation) V2Pricing() (r map[string]interface{}, exists bool) {
+	v := m.v2_pricing
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldV2Pricing returns the old "v2_pricing" field's value of the PricingDriftLog entity.
+// If the PricingDriftLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PricingDriftLogMutation) OldV2Pricing(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldV2Pricing is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldV2Pricing requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldV2Pricing: %w", err)
+	}
+	return oldValue.V2Pricing, nil
+}
+
+// ClearV2Pricing clears the value of the "v2_pricing" field.
+func (m *PricingDriftLogMutation) ClearV2Pricing() {
+	m.v2_pricing = nil
+	m.clearedFields[pricingdriftlog.FieldV2Pricing] = struct{}{}
+}
+
+// V2PricingCleared returns if the "v2_pricing" field was cleared in this mutation.
+func (m *PricingDriftLogMutation) V2PricingCleared() bool {
+	_, ok := m.clearedFields[pricingdriftlog.FieldV2Pricing]
+	return ok
+}
+
+// ResetV2Pricing resets all changes to the "v2_pricing" field.
+func (m *PricingDriftLogMutation) ResetV2Pricing() {
+	m.v2_pricing = nil
+	delete(m.clearedFields, pricingdriftlog.FieldV2Pricing)
+}
+
+// SetHitPath sets the "hit_path" field.
+func (m *PricingDriftLogMutation) SetHitPath(s string) {
+	m.hit_path = &s
+}
+
+// HitPath returns the value of the "hit_path" field in the mutation.
+func (m *PricingDriftLogMutation) HitPath() (r string, exists bool) {
+	v := m.hit_path
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHitPath returns the old "hit_path" field's value of the PricingDriftLog entity.
+// If the PricingDriftLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PricingDriftLogMutation) OldHitPath(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldHitPath is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldHitPath requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHitPath: %w", err)
+	}
+	return oldValue.HitPath, nil
+}
+
+// ClearHitPath clears the value of the "hit_path" field.
+func (m *PricingDriftLogMutation) ClearHitPath() {
+	m.hit_path = nil
+	m.clearedFields[pricingdriftlog.FieldHitPath] = struct{}{}
+}
+
+// HitPathCleared returns if the "hit_path" field was cleared in this mutation.
+func (m *PricingDriftLogMutation) HitPathCleared() bool {
+	_, ok := m.clearedFields[pricingdriftlog.FieldHitPath]
+	return ok
+}
+
+// ResetHitPath resets all changes to the "hit_path" field.
+func (m *PricingDriftLogMutation) ResetHitPath() {
+	m.hit_path = nil
+	delete(m.clearedFields, pricingdriftlog.FieldHitPath)
+}
+
+// SetOccurredAt sets the "occurred_at" field.
+func (m *PricingDriftLogMutation) SetOccurredAt(t time.Time) {
+	m.occurred_at = &t
+}
+
+// OccurredAt returns the value of the "occurred_at" field in the mutation.
+func (m *PricingDriftLogMutation) OccurredAt() (r time.Time, exists bool) {
+	v := m.occurred_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOccurredAt returns the old "occurred_at" field's value of the PricingDriftLog entity.
+// If the PricingDriftLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PricingDriftLogMutation) OldOccurredAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOccurredAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOccurredAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOccurredAt: %w", err)
+	}
+	return oldValue.OccurredAt, nil
+}
+
+// ResetOccurredAt resets all changes to the "occurred_at" field.
+func (m *PricingDriftLogMutation) ResetOccurredAt() {
+	m.occurred_at = nil
+}
+
+// Where appends a list predicates to the PricingDriftLogMutation builder.
+func (m *PricingDriftLogMutation) Where(ps ...predicate.PricingDriftLog) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the PricingDriftLogMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *PricingDriftLogMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.PricingDriftLog, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *PricingDriftLogMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *PricingDriftLogMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (PricingDriftLog).
+func (m *PricingDriftLogMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PricingDriftLogMutation) Fields() []string {
+	fields := make([]string, 0, 6)
+	if m.model_id != nil {
+		fields = append(fields, pricingdriftlog.FieldModelID)
+	}
+	if m.drift_kind != nil {
+		fields = append(fields, pricingdriftlog.FieldDriftKind)
+	}
+	if m.v1_pricing != nil {
+		fields = append(fields, pricingdriftlog.FieldV1Pricing)
+	}
+	if m.v2_pricing != nil {
+		fields = append(fields, pricingdriftlog.FieldV2Pricing)
+	}
+	if m.hit_path != nil {
+		fields = append(fields, pricingdriftlog.FieldHitPath)
+	}
+	if m.occurred_at != nil {
+		fields = append(fields, pricingdriftlog.FieldOccurredAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PricingDriftLogMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case pricingdriftlog.FieldModelID:
+		return m.ModelID()
+	case pricingdriftlog.FieldDriftKind:
+		return m.DriftKind()
+	case pricingdriftlog.FieldV1Pricing:
+		return m.V1Pricing()
+	case pricingdriftlog.FieldV2Pricing:
+		return m.V2Pricing()
+	case pricingdriftlog.FieldHitPath:
+		return m.HitPath()
+	case pricingdriftlog.FieldOccurredAt:
+		return m.OccurredAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PricingDriftLogMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case pricingdriftlog.FieldModelID:
+		return m.OldModelID(ctx)
+	case pricingdriftlog.FieldDriftKind:
+		return m.OldDriftKind(ctx)
+	case pricingdriftlog.FieldV1Pricing:
+		return m.OldV1Pricing(ctx)
+	case pricingdriftlog.FieldV2Pricing:
+		return m.OldV2Pricing(ctx)
+	case pricingdriftlog.FieldHitPath:
+		return m.OldHitPath(ctx)
+	case pricingdriftlog.FieldOccurredAt:
+		return m.OldOccurredAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown PricingDriftLog field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PricingDriftLogMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case pricingdriftlog.FieldModelID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetModelID(v)
+		return nil
+	case pricingdriftlog.FieldDriftKind:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDriftKind(v)
+		return nil
+	case pricingdriftlog.FieldV1Pricing:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetV1Pricing(v)
+		return nil
+	case pricingdriftlog.FieldV2Pricing:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetV2Pricing(v)
+		return nil
+	case pricingdriftlog.FieldHitPath:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHitPath(v)
+		return nil
+	case pricingdriftlog.FieldOccurredAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOccurredAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PricingDriftLog field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PricingDriftLogMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PricingDriftLogMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PricingDriftLogMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown PricingDriftLog numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PricingDriftLogMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(pricingdriftlog.FieldV1Pricing) {
+		fields = append(fields, pricingdriftlog.FieldV1Pricing)
+	}
+	if m.FieldCleared(pricingdriftlog.FieldV2Pricing) {
+		fields = append(fields, pricingdriftlog.FieldV2Pricing)
+	}
+	if m.FieldCleared(pricingdriftlog.FieldHitPath) {
+		fields = append(fields, pricingdriftlog.FieldHitPath)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PricingDriftLogMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PricingDriftLogMutation) ClearField(name string) error {
+	switch name {
+	case pricingdriftlog.FieldV1Pricing:
+		m.ClearV1Pricing()
+		return nil
+	case pricingdriftlog.FieldV2Pricing:
+		m.ClearV2Pricing()
+		return nil
+	case pricingdriftlog.FieldHitPath:
+		m.ClearHitPath()
+		return nil
+	}
+	return fmt.Errorf("unknown PricingDriftLog nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PricingDriftLogMutation) ResetField(name string) error {
+	switch name {
+	case pricingdriftlog.FieldModelID:
+		m.ResetModelID()
+		return nil
+	case pricingdriftlog.FieldDriftKind:
+		m.ResetDriftKind()
+		return nil
+	case pricingdriftlog.FieldV1Pricing:
+		m.ResetV1Pricing()
+		return nil
+	case pricingdriftlog.FieldV2Pricing:
+		m.ResetV2Pricing()
+		return nil
+	case pricingdriftlog.FieldHitPath:
+		m.ResetHitPath()
+		return nil
+	case pricingdriftlog.FieldOccurredAt:
+		m.ResetOccurredAt()
+		return nil
+	}
+	return fmt.Errorf("unknown PricingDriftLog field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PricingDriftLogMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PricingDriftLogMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PricingDriftLogMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PricingDriftLogMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PricingDriftLogMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PricingDriftLogMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PricingDriftLogMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown PricingDriftLog unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PricingDriftLogMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown PricingDriftLog edge %s", name)
 }
 
 // PromoCodeMutation represents an operation that mutates the PromoCode nodes in the graph.

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -17,9 +16,7 @@ import (
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/openai"
 	"github.com/Wei-Shaw/sub2api/internal/util/urlvalidator"
-	"go.uber.org/zap"
 )
 
 // Lingjing 灵境豆包模型静态定价（不在 LiteLLM 远端数据中）
@@ -53,37 +50,6 @@ var (
 	}
 )
 
-var (
-	openAIModelDatePattern     = regexp.MustCompile(`-\d{8}$`)
-	openAIModelBasePattern     = regexp.MustCompile(`^(gpt-\d+(?:\.\d+)?)(?:-|$)`)
-	openAIGPT54FallbackPricing = &LiteLLMModelPricing{
-		InputCostPerToken:               2.5e-06, // $2.5 per MTok
-		OutputCostPerToken:              1.5e-05, // $15 per MTok
-		CacheReadInputTokenCost:         2.5e-07, // $0.25 per MTok
-		LongContextInputTokenThreshold:  272000,
-		LongContextInputCostMultiplier:  2.0,
-		LongContextOutputCostMultiplier: 1.5,
-		LiteLLMProvider:                 "openai",
-		Mode:                            "chat",
-		SupportsPromptCaching:           true,
-	}
-	openAIGPT54MiniFallbackPricing = &LiteLLMModelPricing{
-		InputCostPerToken:       7.5e-07,
-		OutputCostPerToken:      4.5e-06,
-		CacheReadInputTokenCost: 7.5e-08,
-		LiteLLMProvider:         "openai",
-		Mode:                    "chat",
-		SupportsPromptCaching:   true,
-	}
-	openAIGPT54NanoFallbackPricing = &LiteLLMModelPricing{
-		InputCostPerToken:       2e-07,
-		OutputCostPerToken:      1.25e-06,
-		CacheReadInputTokenCost: 2e-08,
-		LiteLLMProvider:         "openai",
-		Mode:                    "chat",
-		SupportsPromptCaching:   true,
-	}
-)
 
 // LiteLLMModelPricing LiteLLM价格数据结构
 // 只保留我们需要的字段，使用指针来处理可能缺失的值
@@ -138,11 +104,14 @@ type PricingService struct {
 	settingRepo      SettingRepository
 	modelPricingRepo ModelPricingRepository
 	mu               sync.RWMutex
-	pricingData      map[string]*LiteLLMModelPricing
-	discounts        map[string]float64
-	customPrices     map[string]*DBModelPricing // model_id -> DB 记录（含自定义价格）
 	lastUpdated      time.Time
 	localHash        string
+
+	catalog           map[string]*DBModelPricing
+	aliasIdx          map[string]string // normalizedID → canonical model_id
+	lastCatalogLoadAt time.Time
+	lastRemoteCheckAt time.Time
+	catalogLoadErrors int64
 
 	// 停止信号
 	stopCh chan struct{}
@@ -155,9 +124,6 @@ func NewPricingService(cfg *config.Config, remoteClient PricingRemoteClient, set
 		cfg:          cfg,
 		remoteClient: remoteClient,
 		settingRepo:  settingRepo,
-		pricingData:  make(map[string]*LiteLLMModelPricing),
-		discounts:    make(map[string]float64),
-		customPrices: make(map[string]*DBModelPricing),
 		stopCh:       make(chan struct{}),
 	}
 	return s
@@ -170,12 +136,11 @@ func (s *PricingService) SetModelPricingRepo(repo ModelPricingRepository) {
 
 // Initialize 初始化价格服务
 func (s *PricingService) Initialize() error {
-	// 确保数据目录存在
 	if err := os.MkdirAll(s.cfg.Pricing.DataDir, 0755); err != nil {
 		logger.LegacyPrintf("service.pricing", "[Pricing] Failed to create data directory: %v", err)
 	}
 
-	// 首次加载价格数据
+	// 首次加载远端价格 JSON，解析后写入 DB
 	if err := s.checkAndUpdatePricing(); err != nil {
 		logger.LegacyPrintf("service.pricing", "[Pricing] Initial load failed, using fallback: %v", err)
 		if err := s.useFallbackPricing(); err != nil {
@@ -183,25 +148,18 @@ func (s *PricingService) Initialize() error {
 		}
 	}
 
-	// 加载折扣配置
-	s.loadDiscounts()
+	// Bootstrap seed（20 条兜底 + 灵境），SeedIfNotExists 跳过已存在行
+	if os.Getenv("PRICING_BOOTSTRAP_SEED") != "0" {
+		RunBootstrapSeed(context.Background(), s.modelPricingRepo)
+	}
 
-	// 将远端同步数据写入 DB
-	s.syncPricingToDB(context.Background())
-
-	// Seed 灵境模型
-	s.seedCustomModels(context.Background())
-
-	// 迁移旧折扣到 DB
-	s.migrateOldDiscounts(context.Background())
-
-	// 从 DB 加载（合并自定义模型的 discount 和 custom pricing）
-	s.loadPricingFromDB(context.Background())
+	// 从 DB 构建 catalog + aliasIdx
+	s.buildCatalogAndAliasIndex(context.Background())
 
 	// 启动定时更新
 	s.startUpdateScheduler()
 
-	logger.LegacyPrintf("service.pricing", "[Pricing] Service initialized with %d models", len(s.pricingData))
+	logger.LegacyPrintf("service.pricing", "[Pricing] Service initialized with %d catalog models", len(s.catalog))
 	return nil
 }
 
@@ -217,216 +175,172 @@ func (s *PricingService) TriggerDBSync(ctx context.Context) error {
 	if err := s.checkAndUpdatePricing(); err != nil {
 		return fmt.Errorf("trigger db sync: remote update: %w", err)
 	}
-	s.syncPricingToDB(ctx)
+	s.buildCatalogAndAliasIndex(ctx)
 	return nil
-}
-
-// syncPricingToDB 把内存中的 pricingData 转换成 []DBModelPricing 并调用 repo.UpsertBatch。
-func (s *PricingService) syncPricingToDB(ctx context.Context) {
-	if s.modelPricingRepo == nil {
-		return
-	}
-	s.mu.RLock()
-	data := s.pricingData
-	s.mu.RUnlock()
-
-	now := time.Now()
-	models := make([]*DBModelPricing, 0, len(data))
-	for modelID, p := range data {
-		m := &DBModelPricing{
-			ModelID:               modelID,
-			Provider:              p.LiteLLMProvider,
-			Mode:                  p.Mode,
-			SupportsPromptCaching: p.SupportsPromptCaching,
-			IsCustom:              false,
-			IsEnabled:             true,
-			LastSyncedAt:          &now,
-		}
-		if p.InputCostPerToken != 0 {
-			v := p.InputCostPerToken
-			m.InputCostPerToken = &v
-		}
-		if p.OutputCostPerToken != 0 {
-			v := p.OutputCostPerToken
-			m.OutputCostPerToken = &v
-		}
-		if p.CacheCreationInputTokenCost != 0 {
-			v := p.CacheCreationInputTokenCost
-			m.CacheCreationInputTokenCost = &v
-		}
-		if p.CacheReadInputTokenCost != 0 {
-			v := p.CacheReadInputTokenCost
-			m.CacheReadInputTokenCost = &v
-		}
-		if p.OutputCostPerImage != 0 {
-			v := p.OutputCostPerImage
-			m.OutputCostPerImage = &v
-		}
-		if p.OutputCostPerImageToken != 0 {
-			v := p.OutputCostPerImageToken
-			m.OutputCostPerImageToken = &v
-		}
-		models = append(models, m)
-	}
-
-	if err := s.modelPricingRepo.UpsertBatch(ctx, models); err != nil {
-		logger.LegacyPrintf("service.pricing", "[Pricing] Failed to sync pricing to DB: %v", err)
-	} else {
-		logger.LegacyPrintf("service.pricing", "[Pricing] Synced %d models to DB", len(models))
-	}
-}
-
-// seedCustomModels 把灵境模型写入 DB（仅在不存在时插入）。
-func (s *PricingService) seedCustomModels(ctx context.Context) {
-	if s.modelPricingRepo == nil {
-		return
-	}
-	seeds := []*DBModelPricing{
-		{
-			ModelID:             "doubao-seedream-4-0-250828",
-			Provider:            "lingjing",
-			Mode:                "image_generation",
-			IsCustom:            true,
-			IsEnabled:           true,
-			OutputCostPerImage:  pricingFloat64Ptr(lingjingSeedream40Pricing.OutputCostPerImage),
-		},
-		{
-			ModelID:             "doubao-seedream-4-5-251128",
-			Provider:            "lingjing",
-			Mode:                "image_generation",
-			IsCustom:            true,
-			IsEnabled:           true,
-			OutputCostPerImage:  pricingFloat64Ptr(lingjingSeedream40Pricing.OutputCostPerImage),
-		},
-		{
-			ModelID:             "Doubao-Seedream-5.0-lite",
-			Provider:            "lingjing",
-			Mode:                "image_generation",
-			IsCustom:            true,
-			IsEnabled:           true,
-			OutputCostPerImage:  pricingFloat64Ptr(lingjingSeedream5LitePricing.OutputCostPerImage),
-		},
-		{
-			ModelID:                 "doubao-seedance-1.5-pro-5s",
-			Provider:                "lingjing",
-			Mode:                    "video_generation",
-			IsCustom:                true,
-			IsEnabled:               true,
-			OutputCostPerImageToken: pricingFloat64Ptr(lingjingSeedance15Pro5sPricing.OutputCostPerImageToken),
-		},
-		{
-			ModelID:                 "doubao-seedance-1.5-pro-10s",
-			Provider:                "lingjing",
-			Mode:                    "video_generation",
-			IsCustom:                true,
-			IsEnabled:               true,
-			OutputCostPerImageToken: pricingFloat64Ptr(lingjingSeedance15Pro10sPricing.OutputCostPerImageToken),
-		},
-	}
-	if err := s.modelPricingRepo.SeedIfNotExists(ctx, seeds); err != nil {
-		logger.LegacyPrintf("service.pricing", "[Pricing] Failed to seed custom models: %v", err)
-	}
 }
 
 // pricingFloat64Ptr is a small helper to take the address of a float64 literal.
 func pricingFloat64Ptr(v float64) *float64 { return &v }
 
-// migrateOldDiscounts 把内存 discounts（从 settings.model_discounts 加载）写入 DB。
-func (s *PricingService) migrateOldDiscounts(ctx context.Context) {
-	if s.modelPricingRepo == nil {
-		return
-	}
-	s.mu.RLock()
-	discounts := make(map[string]float64, len(s.discounts))
-	for k, v := range s.discounts {
-		discounts[k] = v
-	}
-	s.mu.RUnlock()
-
-	if len(discounts) == 0 {
-		return
-	}
-	if err := s.modelPricingRepo.BulkUpdateDiscountRates(ctx, discounts); err != nil {
-		logger.LegacyPrintf("service.pricing", "[Pricing] Failed to migrate old discounts to DB: %v", err)
-	}
-}
-
-// ReloadFromDB 触发一次 DB → 内存映射的同步刷新，供同步类 handler 写完后调用，
-// 让新增的模型（如 generic 同步入库的国产模型）立即在 ListAllModels / 模型广场可见。
+// ReloadFromDB 触发一次 DB → catalog + aliasIdx 的同步刷新，供写路径调用后立即可见。
 func (s *PricingService) ReloadFromDB(ctx context.Context) {
-	s.loadPricingFromDB(ctx)
+	s.buildCatalogAndAliasIndex(ctx)
 }
 
-// loadPricingFromDB 从 DB 加载启用的记录，合并到内存 discounts 和 customPrices。
-func (s *PricingService) loadPricingFromDB(ctx context.Context) {
+// buildCatalogAndAliasIndex 从 DB 加载启用的全部模型，构建 catalog + aliasIdx 两个临时副本，
+// 然后原子替换。任何步骤失败 → 保留旧 catalog，错误计数 +1（fail-open）。
+//
+// aliasIdx 来源（按优先级覆盖）：
+//   1. CodexAliasPairs() 51 条 OpenAI 别名归一化
+//   2. DB 每行 model_id 自身 + 小写 + normalizeModelNameForPricing 归一化
+//   注：matchByModelFamily 家族 fuzzy 不预计算，在 lookupCatalog 中按需调用，与现有行为一致
+//
+// 计费路径在 PR-6 切流前仍走 pricingData，本结构仅供 GetModelPricingV2 / 测试用。
+func (s *PricingService) buildCatalogAndAliasIndex(ctx context.Context) {
 	if s.modelPricingRepo == nil {
 		return
 	}
 	items, err := s.modelPricingRepo.LoadAllEnabled(ctx)
 	if err != nil {
-		logger.LegacyPrintf("service.pricing", "[Pricing] Failed to load pricing from DB: %v", err)
+		s.mu.Lock()
+		s.catalogLoadErrors++
+		s.mu.Unlock()
+		logger.LegacyPrintf("service.pricing", "[Pricing][Catalog] LoadAllEnabled failed: %v (keeping old catalog)", err)
 		return
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.customPrices == nil {
-		s.customPrices = make(map[string]*DBModelPricing)
-	}
-
-	dbOnlyAdded := 0
+	newCatalog := make(map[string]*DBModelPricing, len(items))
 	for _, item := range items {
-		// 更新折扣率（DB 优先）
-		if item.DiscountRate != nil && *item.DiscountRate > 0 {
-			s.discounts[item.ModelID] = *item.DiscountRate
+		if item == nil || item.ModelID == "" {
+			continue
 		}
-		// 存储自定义价格（任何有 custom_input_cost 或 custom_output_cost 的记录）
-		if item.CustomInputCost != nil || item.CustomOutputCost != nil {
-			s.customPrices[item.ModelID] = item
-		}
-		// 功能 25：DB 里独有的模型（LiteLLM 远端没有的，如 generic 同步入库的国产模型）
-		// 也注入 pricingData，让 ListAllModels / 模型广场可见。
-		if _, exists := s.pricingData[item.ModelID]; !exists {
-			entry := &LiteLLMModelPricing{
-				LiteLLMProvider: item.Provider,
-				Mode:            item.Mode,
-			}
-			if item.InputCostPerToken != nil {
-				entry.InputCostPerToken = *item.InputCostPerToken
-			}
-			if item.OutputCostPerToken != nil {
-				entry.OutputCostPerToken = *item.OutputCostPerToken
-			}
-			if item.CacheCreationInputTokenCost != nil {
-				entry.CacheCreationInputTokenCost = *item.CacheCreationInputTokenCost
-			}
-			if item.CacheReadInputTokenCost != nil {
-				entry.CacheReadInputTokenCost = *item.CacheReadInputTokenCost
-			}
-			if item.OutputCostPerImage != nil {
-				entry.OutputCostPerImage = *item.OutputCostPerImage
-			}
-			if item.OutputCostPerImageToken != nil {
-				entry.OutputCostPerImageToken = *item.OutputCostPerImageToken
-			}
-			entry.SupportsPromptCaching = item.SupportsPromptCaching
-			s.pricingData[item.ModelID] = entry
-			dbOnlyAdded++
-		}
+		newCatalog[item.ModelID] = item
 	}
 
-	logger.LegacyPrintf("service.pricing", "[Pricing] Loaded %d records from DB into memory (%d DB-only models added)", len(items), dbOnlyAdded)
+	newAlias := buildAliasIndex(newCatalog)
+
+	s.mu.Lock()
+	s.catalog = newCatalog
+	s.aliasIdx = newAlias
+	s.lastCatalogLoadAt = time.Now()
+	s.mu.Unlock()
+
+	logger.LegacyPrintf("service.pricing", "[Pricing][Catalog] built catalog=%d alias=%d", len(newCatalog), len(newAlias))
 }
 
-// GetDBModelPricing 返回指定模型的 DB 记录（含自定义价格），供 BillingService 使用。
-func (s *PricingService) GetDBModelPricing(modelID string) *DBModelPricing {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	if s.customPrices == nil {
+// buildAliasIndex 构建 normalizedID → canonical model_id 索引。
+// 三路来源（后写覆盖前写，但实际上没有冲突）：
+//   A. catalog 自身：每行 model_id 的小写形态 / normalizeModelNameForPricing 归一化形态 → 自身
+//   B. CodexAliasPairs：OpenAI 变体 → catalog 中的标准 model_id
+func buildAliasIndex(catalog map[string]*DBModelPricing) map[string]string {
+	if len(catalog) == 0 {
+		return map[string]string{}
+	}
+	idx := make(map[string]string, len(catalog)*3)
+
+	// A. catalog 自身
+	for modelID := range catalog {
+		lower := strings.ToLower(modelID)
+		idx[lower] = modelID
+		normalized := normalizeModelNameForPricing(lower)
+		if normalized != "" && normalized != lower {
+			idx[normalized] = modelID
+		}
+	}
+
+	// B. CodexAliasPairs — 仅当 target model_id 在 catalog 里才注入，避免悬空别名
+	for _, pair := range CodexAliasPairs() {
+		variant := strings.ToLower(strings.TrimSpace(pair[0]))
+		target := strings.TrimSpace(pair[1])
+		if variant == "" || target == "" {
+			continue
+		}
+		if _, ok := catalog[target]; !ok {
+			continue
+		}
+		// 不覆盖已有的"模型自身别名"——variant 形态相同的就跳过
+		if _, exists := idx[variant]; exists {
+			continue
+		}
+		idx[variant] = target
+	}
+
+	return idx
+}
+
+// LookupCatalogWithFuzzy 先走精确 + alias，再走 Claude 家族 fuzzy。
+// 这是 PR-6 切流的主入口：BillingService 用它替换老的 pricingData 路径。
+// 同样不读 pricingData，纯依赖 catalog。
+func (s *PricingService) LookupCatalogWithFuzzy(model string) *DBModelPricing {
+	if entry := s.LookupCatalog(model); entry != nil {
+		return entry
+	}
+	return s.matchFamilyInCatalog(strings.ToLower(strings.TrimSpace(model)))
+}
+
+// LookupCatalog 走 SSOT PR-4 影子路径：先精确查 catalog、再走 aliasIdx 归一化。
+// 不做 matchByModelFamily fuzzy（PR-6 LookupCatalogWithFuzzy 才接入）。
+// 返回 nil 表示 catalog miss — 调用方应保留兼容 fallback（unpriced 在 PR-6 视配置 block）。
+func (s *PricingService) LookupCatalog(model string) *DBModelPricing {
+	if model == "" {
 		return nil
 	}
-	return s.customPrices[modelID]
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.catalog == nil {
+		return nil
+	}
+	// 1. 精确命中
+	if entry, ok := s.catalog[model]; ok {
+		return entry
+	}
+	// 2. 小写 / 归一化
+	lower := strings.ToLower(strings.TrimSpace(model))
+	if canonical, ok := s.aliasIdx[lower]; ok {
+		if entry, ok := s.catalog[canonical]; ok {
+			return entry
+		}
+	}
+	normalized := normalizeModelNameForPricing(lower)
+	if normalized != "" && normalized != lower {
+		if canonical, ok := s.aliasIdx[normalized]; ok {
+			if entry, ok := s.catalog[canonical]; ok {
+				return entry
+			}
+		}
+	}
+	// 3. normalizeKnownOpenAICodexModel — 处理 GPT 日期版本号等更宽松形式（如 gpt-5.4-2026-03-05）
+	if codexNorm := normalizeKnownOpenAICodexModel(lower); codexNorm != "" && codexNorm != lower {
+		if entry, ok := s.catalog[codexNorm]; ok {
+			return entry
+		}
+		if canonical, ok := s.aliasIdx[codexNorm]; ok {
+			if entry, ok := s.catalog[canonical]; ok {
+				return entry
+			}
+		}
+	}
+	return nil
+}
+
+// CatalogSize 返回当前 catalog 中的模型数量（供监控 / 测试断言用）。
+func (s *PricingService) CatalogSize() int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return len(s.catalog)
+}
+
+// AliasIndexSize 返回当前 aliasIdx 中的 alias 数量。
+func (s *PricingService) AliasIndexSize() int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return len(s.aliasIdx)
+}
+
+// GetDBModelPricing 返回指定模型的 catalog 行（含自定义价格），供 BillingService 使用。
+func (s *PricingService) GetDBModelPricing(modelID string) *DBModelPricing {
+	return s.LookupCatalog(modelID)
 }
 
 // startUpdateScheduler 启动定时更新调度器
@@ -446,9 +360,15 @@ func (s *PricingService) startUpdateScheduler() {
 		for {
 			select {
 			case <-ticker.C:
+				ctx := context.Background()
+				s.mu.Lock()
+				s.lastRemoteCheckAt = time.Now()
+				s.mu.Unlock()
 				if err := s.syncWithRemote(); err != nil {
 					logger.LegacyPrintf("service.pricing", "[Pricing] Sync failed: %v", err)
 				}
+				// 即使远端 hash 未变也强制刷新 catalog，保证多实例改价 ≤ 1 个 tick 对齐。
+				s.buildCatalogAndAliasIndex(ctx)
 			case <-s.stopCh:
 				return
 			}
@@ -613,14 +533,22 @@ func (s *PricingService) downloadPricingData() error {
 		logger.LegacyPrintf("service.pricing", "[Pricing] Failed to save hash: %v", err)
 	}
 
-	// 更新内存数据
-	injectCustomPricingModels(data)
+	// 写入 DB，然后重建 catalog
+	if s.modelPricingRepo != nil {
+		models := liteLLMMapToDBModels(data)
+		if err := s.modelPricingRepo.UpsertBatch(context.Background(), models); err != nil {
+			logger.LegacyPrintf("service.pricing", "[Pricing] UpsertBatch failed: %v", err)
+		} else {
+			logger.LegacyPrintf("service.pricing", "[Pricing] Upserted %d models to DB", len(models))
+		}
+	}
+
 	s.mu.Lock()
-	s.pricingData = data
 	s.lastUpdated = time.Now()
 	s.localHash = syncHash
 	s.mu.Unlock()
 
+	s.buildCatalogAndAliasIndex(context.Background())
 	logger.LegacyPrintf("service.pricing", "[Pricing] Downloaded %d models successfully", len(data))
 	return nil
 }
@@ -706,28 +634,30 @@ func (s *PricingService) parsePricingData(body []byte) (map[string]*LiteLLMModel
 	return result, nil
 }
 
-// loadPricingData 从本地文件加载价格数据
+// loadPricingData 从本地文件加载价格数据，写入 DB 后重建 catalog。
 func (s *PricingService) loadPricingData(filePath string) error {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("read file failed: %w", err)
 	}
 
-	// 使用灵活的解析方式
 	pricingData, err := s.parsePricingData(data)
 	if err != nil {
 		return fmt.Errorf("parse pricing data: %w", err)
 	}
 
-	// 计算哈希
 	hash := sha256.Sum256(data)
 	hashStr := hex.EncodeToString(hash[:])
 
-	injectCustomPricingModels(pricingData)
-	s.mu.Lock()
-	s.pricingData = pricingData
-	s.localHash = hashStr
+	if s.modelPricingRepo != nil {
+		models := liteLLMMapToDBModels(pricingData)
+		if err := s.modelPricingRepo.UpsertBatch(context.Background(), models); err != nil {
+			logger.LegacyPrintf("service.pricing", "[Pricing] UpsertBatch failed: %v", err)
+		}
+	}
 
+	s.mu.Lock()
+	s.localHash = hashStr
 	info, _ := os.Stat(filePath)
 	if info != nil {
 		s.lastUpdated = info.ModTime()
@@ -736,8 +666,69 @@ func (s *PricingService) loadPricingData(filePath string) error {
 	}
 	s.mu.Unlock()
 
+	s.buildCatalogAndAliasIndex(context.Background())
 	logger.LegacyPrintf("service.pricing", "[Pricing] Loaded %d models from %s", len(pricingData), filePath)
 	return nil
+}
+
+// liteLLMMapToDBModels 将 LiteLLM 解析结果转为 DB 写入格式（source=litellm）。
+func liteLLMMapToDBModels(data map[string]*LiteLLMModelPricing) []*DBModelPricing {
+	now := time.Now()
+	models := make([]*DBModelPricing, 0, len(data))
+	for modelID, p := range data {
+		m := &DBModelPricing{
+			ModelID:               modelID,
+			Provider:              p.LiteLLMProvider,
+			Mode:                  p.Mode,
+			SupportsPromptCaching: p.SupportsPromptCaching,
+			IsCustom:              false,
+			IsEnabled:             true,
+			Source:                ModelPricingSourceLiteLLM,
+			LastSyncedAt:          &now,
+		}
+		if p.InputCostPerToken != 0 {
+			v := p.InputCostPerToken
+			m.InputCostPerToken = &v
+		}
+		if p.OutputCostPerToken != 0 {
+			v := p.OutputCostPerToken
+			m.OutputCostPerToken = &v
+		}
+		if p.InputCostPerTokenPriority != 0 {
+			v := p.InputCostPerTokenPriority
+			m.InputCostPerTokenPriority = &v
+		}
+		if p.OutputCostPerTokenPriority != 0 {
+			v := p.OutputCostPerTokenPriority
+			m.OutputCostPerTokenPriority = &v
+		}
+		if p.CacheCreationInputTokenCost != 0 {
+			v := p.CacheCreationInputTokenCost
+			m.CacheCreationInputTokenCost = &v
+		}
+		if p.CacheCreationInputTokenCostAbove1hr != 0 {
+			v := p.CacheCreationInputTokenCostAbove1hr
+			m.CacheCreation1hTokenCost = &v
+		}
+		if p.CacheReadInputTokenCost != 0 {
+			v := p.CacheReadInputTokenCost
+			m.CacheReadInputTokenCost = &v
+		}
+		if p.CacheReadInputTokenCostPriority != 0 {
+			v := p.CacheReadInputTokenCostPriority
+			m.CacheReadInputTokenCostPriority = &v
+		}
+		if p.OutputCostPerImage != 0 {
+			v := p.OutputCostPerImage
+			m.OutputCostPerImage = &v
+		}
+		if p.OutputCostPerImageToken != 0 {
+			v := p.OutputCostPerImageToken
+			m.OutputCostPerImageToken = &v
+		}
+		models = append(models, m)
+	}
+	return models
 }
 
 // useFallbackPricing 使用回退价格文件
@@ -800,84 +791,6 @@ func (s *PricingService) validatePricingURL(raw string) (string, error) {
 	return normalized, nil
 }
 
-// GetModelPricing 获取模型价格（带模糊匹配）
-func (s *PricingService) GetModelPricing(modelName string) *LiteLLMModelPricing {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	if modelName == "" {
-		return nil
-	}
-
-	// 标准化模型名称（同时兼容 "models/xxx"、VertexAI 资源名等前缀）
-	modelLower := strings.ToLower(strings.TrimSpace(modelName))
-	lookupCandidates := s.buildModelLookupCandidates(modelLower)
-
-	// 1. 精确匹配
-	for _, candidate := range lookupCandidates {
-		if candidate == "" {
-			continue
-		}
-		if pricing, ok := s.pricingData[candidate]; ok {
-			return pricing
-		}
-	}
-
-	// 2. 处理常见的模型名称变体
-	// claude-opus-4-5-20251101 -> claude-opus-4.5-20251101
-	for _, candidate := range lookupCandidates {
-		normalized := strings.ReplaceAll(candidate, "-4-5-", "-4.5-")
-		if pricing, ok := s.pricingData[normalized]; ok {
-			return pricing
-		}
-	}
-
-	// 3. 尝试模糊匹配（去掉版本号后缀）
-	// claude-opus-4-5-20251101 -> claude-opus-4.5
-	baseName := s.extractBaseName(lookupCandidates[0])
-	for key, pricing := range s.pricingData {
-		keyBase := s.extractBaseName(strings.ToLower(key))
-		if keyBase == baseName {
-			return pricing
-		}
-	}
-
-	// 4. 基于模型系列匹配（Claude）
-	if pricing := s.matchByModelFamily(lookupCandidates[0]); pricing != nil {
-		return pricing
-	}
-
-	// 5. OpenAI 模型回退策略
-	if strings.HasPrefix(lookupCandidates[0], "gpt-") {
-		return s.matchOpenAIModel(lookupCandidates[0])
-	}
-
-	// 6. 灵境豆包模型静态定价
-	if pricing := matchLingjingModel(modelName); pricing != nil {
-		return pricing
-	}
-
-	return nil
-}
-
-// injectCustomPricingModels 将自定义平台（灵境等）的静态定价注入到远端数据 map 中，
-// 使其能在模型广场、模型折扣等依赖 pricingData 枚举的功能中可见。
-// 调用时不持锁，应在赋值给 s.pricingData 之前调用。
-func injectCustomPricingModels(data map[string]*LiteLLMModelPricing) {
-	customModels := map[string]*LiteLLMModelPricing{
-		"doubao-seedream-4-0-250828": lingjingSeedream40Pricing,
-		"doubao-seedream-4-5-251128": lingjingSeedream40Pricing,
-		"Doubao-Seedream-5.0-lite":   lingjingSeedream5LitePricing,
-		"doubao-seedance-1.5-pro-5s": lingjingSeedance15Pro5sPricing,
-		"doubao-seedance-1.5-pro-10s": lingjingSeedance15Pro10sPricing,
-	}
-	for k, v := range customModels {
-		if _, exists := data[k]; !exists {
-			data[k] = v
-		}
-	}
-}
-
 // matchLingjingModel 灵境豆包模型静态定价匹配。
 // 灵境模型不在 LiteLLM 远端数据中，使用代码内置价格。
 func matchLingjingModel(model string) *LiteLLMModelPricing {
@@ -895,36 +808,6 @@ func matchLingjingModel(model string) *LiteLLMModelPricing {
 	return nil
 }
 
-func (s *PricingService) buildModelLookupCandidates(modelLower string) []string {
-	// Prefer canonical model name first (this also improves billing compatibility with "models/xxx").
-	candidates := []string{
-		normalizeModelNameForPricing(modelLower),
-		modelLower,
-	}
-	candidates = append(candidates,
-		strings.TrimPrefix(modelLower, "models/"),
-		lastSegment(modelLower),
-		lastSegment(strings.TrimPrefix(modelLower, "models/")),
-	)
-
-	seen := make(map[string]struct{}, len(candidates))
-	out := make([]string, 0, len(candidates))
-	for _, c := range candidates {
-		c = strings.TrimSpace(c)
-		if c == "" {
-			continue
-		}
-		if _, ok := seen[c]; ok {
-			continue
-		}
-		seen[c] = struct{}{}
-		out = append(out, c)
-	}
-	if len(out) == 0 {
-		return []string{modelLower}
-	}
-	return out
-}
 
 func normalizeModelNameForPricing(model string) string {
 	// Common Gemini/VertexAI forms:
@@ -957,42 +840,26 @@ func lastSegment(model string) string {
 	return model
 }
 
-// extractBaseName 提取基础模型名称（去掉日期版本号）
-func (s *PricingService) extractBaseName(model string) string {
-	// 移除日期后缀 (如 -20251101, -20241022)
-	parts := strings.Split(model, "-")
-	result := make([]string, 0, len(parts))
-	for _, part := range parts {
-		// 跳过看起来像日期的部分（8位数字）
-		if len(part) == 8 && isNumeric(part) {
-			continue
-		}
-		// 跳过版本号（如 v1:0）
-		if strings.Contains(part, ":") {
-			continue
-		}
-		result = append(result, part)
-	}
-	return strings.Join(result, "-")
-}
 
-// matchByModelFamily 基于模型系列匹配
-func (s *PricingService) matchByModelFamily(model string) *LiteLLMModelPricing {
-	// modelFamily 定义一个模型系列的匹配和定价查找规则。
-	type modelFamily struct {
-		name    string   // 系列名称
-		match   []string // 用于将模型归类到此系列的模式（strings.Contains 匹配）
-		pricing []string // 用于在定价数据中查找价格的模式（nil 则复用 match；可包含低版本 fallback）
+// matchFamilyInCatalog 在 catalog 上执行 Claude 家族 fuzzy 匹配。
+func (s *PricingService) matchFamilyInCatalog(model string) *DBModelPricing {
+	if model == "" {
+		return nil
 	}
 
-	// 按特异性降序排列：高版本号在前，避免 "claude-opus-4"（opus-4 系列）
-	// 因子串关系误匹配 "claude-opus-4-7"（opus-4.7 系列）。
-	// 注意：原 map 实现存在 Go map 迭代随机性导致的同类 bug，此处改为有序切片修复。
-	families := []modelFamily{
+	type claudeFamily struct {
+		name    string
+		match   []string
+		pricing []string
+	}
+	// 与 matchByModelFamily 保持一致的家族切片顺序（高版本优先）。
+	// opus-3 须单独列出，避免 Phase-3 用 "claude-opus-4" 子串误命中 claude-opus-4.x 条目。
+	families := []claudeFamily{
 		{name: "opus-4.7", match: []string{"claude-opus-4-7", "claude-opus-4.7"}, pricing: []string{"claude-opus-4-7", "claude-opus-4.7", "claude-opus-4-6"}},
 		{name: "opus-4.6", match: []string{"claude-opus-4-6", "claude-opus-4.6"}},
 		{name: "opus-4.5", match: []string{"claude-opus-4-5", "claude-opus-4.5"}},
-		{name: "opus-4", match: []string{"claude-opus-4", "claude-3-opus"}},
+		{name: "opus-4", match: []string{"claude-opus-4"}},
+		{name: "opus-3", match: []string{"claude-3-opus"}, pricing: []string{"claude-3-opus"}},
 		{name: "sonnet-4.5", match: []string{"claude-sonnet-4-5", "claude-sonnet-4.5"}},
 		{name: "sonnet-4", match: []string{"claude-sonnet-4", "claude-3-5-sonnet"}},
 		{name: "sonnet-3.5", match: []string{"claude-3-5-sonnet", "claude-3.5-sonnet"}},
@@ -1001,8 +868,8 @@ func (s *PricingService) matchByModelFamily(model string) *LiteLLMModelPricing {
 		{name: "haiku-3", match: []string{"claude-3-haiku"}},
 	}
 
-	// Phase 1: 按有序切片归类（最具体的系列优先匹配）
-	var matched *modelFamily
+	// Phase 1: 按有序切片归类
+	var matched *claudeFamily
 	for i := range families {
 		for _, pattern := range families[i].match {
 			if strings.Contains(model, pattern) || strings.Contains(model, strings.ReplaceAll(pattern, "-", "")) {
@@ -1015,7 +882,7 @@ func (s *PricingService) matchByModelFamily(model string) *LiteLLMModelPricing {
 		}
 	}
 
-	// Phase 2: 二次兜底——当模型 ID 不含已知模式串时，按关键字粗分
+	// Phase 2: 关键字粗分兜底
 	if matched == nil {
 		var fallbackName string
 		switch {
@@ -1046,6 +913,9 @@ func (s *PricingService) matchByModelFamily(model string) *LiteLLMModelPricing {
 			default:
 				fallbackName = "haiku-3"
 			}
+		case strings.HasPrefix(model, "claude"):
+			// 未知 claude-* 模型（无 opus/sonnet/haiku 关键词）兜底到 sonnet-4 价格。
+			fallbackName = "sonnet-4"
 		}
 		if fallbackName != "" {
 			for i := range families {
@@ -1061,17 +931,20 @@ func (s *PricingService) matchByModelFamily(model string) *LiteLLMModelPricing {
 		return nil
 	}
 
-	// Phase 3: 在定价数据中查找该系列的价格
+	// Phase 3: 在 catalog 上子串查找
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	lookups := matched.pricing
 	if lookups == nil {
 		lookups = matched.match
 	}
 	for _, pattern := range lookups {
-		for key, pricing := range s.pricingData {
+		for key, entry := range s.catalog {
 			keyLower := strings.ToLower(key)
 			if strings.Contains(keyLower, pattern) {
-				logger.LegacyPrintf("service.pricing", "[Pricing] Fuzzy matched %s -> %s", model, key)
-				return pricing
+				logger.LegacyPrintf("service.pricing", "[Pricing][Catalog] Fuzzy matched %s -> %s", model, key)
+				return entry
 			}
 		}
 	}
@@ -1079,121 +952,6 @@ func (s *PricingService) matchByModelFamily(model string) *LiteLLMModelPricing {
 	return nil
 }
 
-// matchOpenAIModel OpenAI 模型回退匹配策略
-// 回退顺序：
-// 1. gpt-5.3-codex-spark* -> gpt-5.1-codex（按业务要求固定计费）
-// 2. gpt-5.2-codex -> gpt-5.2（去掉后缀如 -codex, -mini, -max 等）
-// 3. gpt-5.2-20251222 -> gpt-5.2（去掉日期版本号）
-// 4. gpt-5.3-codex -> gpt-5.2-codex
-// 5. gpt-5.4* -> 业务静态兜底价
-// 6. 最终回退到 DefaultTestModel (gpt-5.1-codex)
-func (s *PricingService) matchOpenAIModel(model string) *LiteLLMModelPricing {
-	if strings.HasPrefix(model, "gpt-5.3-codex-spark") {
-		if pricing, ok := s.pricingData["gpt-5.1-codex"]; ok {
-			logger.LegacyPrintf("service.pricing", "[Pricing][SparkBilling] %s -> %s billing", model, "gpt-5.1-codex")
-			logger.With(zap.String("component", "service.pricing")).
-				Info(fmt.Sprintf("[Pricing] OpenAI fallback matched %s -> %s", model, "gpt-5.1-codex"))
-			return pricing
-		}
-	}
-
-	// 尝试的回退变体
-	variants := s.generateOpenAIModelVariants(model, openAIModelDatePattern)
-
-	for _, variant := range variants {
-		if pricing, ok := s.pricingData[variant]; ok {
-			logger.With(zap.String("component", "service.pricing")).
-				Info(fmt.Sprintf("[Pricing] OpenAI fallback matched %s -> %s", model, variant))
-			return pricing
-		}
-	}
-
-	if strings.HasPrefix(model, "gpt-5.3-codex") {
-		if pricing, ok := s.pricingData["gpt-5.2-codex"]; ok {
-			logger.With(zap.String("component", "service.pricing")).
-				Info(fmt.Sprintf("[Pricing] OpenAI fallback matched %s -> %s", model, "gpt-5.2-codex"))
-			return pricing
-		}
-	}
-
-	// GPT-5.5 回退到 GPT-5.4 定价
-	if strings.HasPrefix(model, "gpt-5.5") {
-		logger.With(zap.String("component", "service.pricing")).
-			Info(fmt.Sprintf("[Pricing] OpenAI fallback matched %s -> %s", model, "gpt-5.4(static)"))
-		return openAIGPT54FallbackPricing
-	}
-
-	if strings.HasPrefix(model, "gpt-5.4-mini") {
-		logger.With(zap.String("component", "service.pricing")).
-			Info(fmt.Sprintf("[Pricing] OpenAI fallback matched %s -> %s", model, "gpt-5.4-mini(static)"))
-		return openAIGPT54MiniFallbackPricing
-	}
-
-	if strings.HasPrefix(model, "gpt-5.4-nano") {
-		logger.With(zap.String("component", "service.pricing")).
-			Info(fmt.Sprintf("[Pricing] OpenAI fallback matched %s -> %s", model, "gpt-5.4-nano(static)"))
-		return openAIGPT54NanoFallbackPricing
-	}
-
-	if strings.HasPrefix(model, "gpt-5.4") {
-		logger.With(zap.String("component", "service.pricing")).
-			Info(fmt.Sprintf("[Pricing] OpenAI fallback matched %s -> %s", model, "gpt-5.4(static)"))
-		return openAIGPT54FallbackPricing
-	}
-
-	if isOpenAIImageGenerationModel(model) {
-		for _, candidate := range []string{"gpt-image-2", "gpt-image-1.5", "gpt-image-1"} {
-			if pricing, ok := s.pricingData[candidate]; ok {
-				logger.LegacyPrintf("service.pricing", "[Pricing] OpenAI image fallback matched %s -> %s", model, candidate)
-				return pricing
-			}
-		}
-		return nil
-	}
-
-	// 最终回退到 DefaultTestModel
-	defaultModel := strings.ToLower(openai.DefaultTestModel)
-	if pricing, ok := s.pricingData[defaultModel]; ok {
-		logger.LegacyPrintf("service.pricing", "[Pricing] OpenAI fallback to default model %s -> %s", model, defaultModel)
-		return pricing
-	}
-
-	return nil
-}
-
-// generateOpenAIModelVariants 生成 OpenAI 模型的回退变体列表
-func (s *PricingService) generateOpenAIModelVariants(model string, datePattern *regexp.Regexp) []string {
-	seen := make(map[string]bool)
-	var variants []string
-
-	addVariant := func(v string) {
-		if v != model && !seen[v] {
-			seen[v] = true
-			variants = append(variants, v)
-		}
-	}
-
-	// 1. 去掉日期版本号: gpt-5.2-20251222 -> gpt-5.2
-	withoutDate := datePattern.ReplaceAllString(model, "")
-	if withoutDate != model {
-		addVariant(withoutDate)
-	}
-
-	// 2. 提取基础版本号: gpt-5.2-codex -> gpt-5.2
-	// 只匹配纯数字版本号格式 gpt-X 或 gpt-X.Y，不匹配 gpt-4o 这种带字母后缀的
-	if matches := openAIModelBasePattern.FindStringSubmatch(model); len(matches) > 1 {
-		addVariant(matches[1])
-	}
-
-	// 3. 同时去掉日期后再提取基础版本号
-	if withoutDate != model {
-		if matches := openAIModelBasePattern.FindStringSubmatch(withoutDate); len(matches) > 1 {
-			addVariant(matches[1])
-		}
-	}
-
-	return variants
-}
 
 // GetStatus 获取服务状态
 func (s *PricingService) GetStatus() map[string]any {
@@ -1201,9 +959,13 @@ func (s *PricingService) GetStatus() map[string]any {
 	defer s.mu.RUnlock()
 
 	return map[string]any{
-		"model_count":  len(s.pricingData),
-		"last_updated": s.lastUpdated,
-		"local_hash":   s.localHash[:min(8, len(s.localHash))],
+		"last_updated":              s.lastUpdated,
+		"local_hash":                s.localHash[:min(8, len(s.localHash))],
+		"catalog_size":              len(s.catalog),
+		"alias_index_size":          len(s.aliasIdx),
+		"catalog_last_loaded_at":    s.lastCatalogLoadAt,
+		"remote_last_check_at":      s.lastRemoteCheckAt,
+		"catalog_load_error_count":  s.catalogLoadErrors,
 	}
 }
 
@@ -1223,7 +985,7 @@ func (s *PricingService) getHashFilePath() string {
 }
 
 // ListModelNamesByProvider returns all model names in the catalog whose
-// LiteLLMProvider matches the given provider string (case-insensitive).
+// Provider matches the given provider string (case-insensitive).
 // The returned slice is sorted alphabetically.
 func (s *PricingService) ListModelNamesByProvider(provider string) []string {
 	s.mu.RLock()
@@ -1231,8 +993,8 @@ func (s *PricingService) ListModelNamesByProvider(provider string) []string {
 
 	provider = strings.ToLower(strings.TrimSpace(provider))
 	names := make([]string, 0)
-	for name, p := range s.pricingData {
-		if strings.ToLower(p.LiteLLMProvider) == provider {
+	for name, entry := range s.catalog {
+		if strings.ToLower(entry.Provider) == provider {
 			names = append(names, name)
 		}
 	}
@@ -1262,33 +1024,12 @@ type ModelInfo struct {
 	DiscountRate                   float64 `json:"discount_rate,omitempty"`
 }
 
-// loadDiscounts 优先从 DB 读取折扣，失败则回退文件
-func (s *PricingService) loadDiscounts() {
-	if s.settingRepo != nil {
-		ctx := context.Background()
-		if val, err := s.settingRepo.GetValue(ctx, "model_discounts"); err == nil && val != "" {
-			s.mu.Lock()
-			_ = json.Unmarshal([]byte(val), &s.discounts)
-			s.mu.Unlock()
-			return
-		}
-	}
-	path := s.cfg.Pricing.DiscountFile
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return
-	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	_ = json.Unmarshal(data, &s.discounts)
-}
-
-// GetDiscount 返回模型折扣率，无折扣返回 1.0
+// GetDiscount 返回模型折扣率。优先读 catalog 中的 DiscountRate，无则返回 1.0。
 func (s *PricingService) GetDiscount(model string) float64 {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	if d, ok := s.discounts[model]; ok && d > 0 {
-		return d
+	if entry, ok := s.catalog[strings.ToLower(model)]; ok && entry.DiscountRate != nil && *entry.DiscountRate > 0 {
+		return *entry.DiscountRate
 	}
 	return 1.0
 }
@@ -1324,27 +1065,43 @@ func (s *PricingService) GetCurrencyMode() string {
 	return "usd"
 }
 
-// ListAllModels 返回全部模型的基本信息和定价（供用户端模型列表页使用）
-func (s *PricingService) ListAllModels() []ModelInfo {
+// ListEnabledCatalogModels 从 catalog（DB 驱动内存快照）返回所有 is_enabled=true 的模型信息。
+// 用于"模型广场"在 generic 账号无 supported_models 白名单时的兜底展示。
+func (s *PricingService) ListEnabledCatalogModels() []ModelInfo {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	result := make([]ModelInfo, 0, len(s.pricingData))
-	for name, p := range s.pricingData {
-		discount := s.discounts[name]
-		if discount <= 0 {
-			discount = 1.0
+	result := make([]ModelInfo, 0, len(s.catalog))
+	for _, entry := range s.catalog {
+		if !entry.IsEnabled {
+			continue
 		}
-		result = append(result, ModelInfo{
-			ID:                             name,
-			LiteLLMProvider:                p.LiteLLMProvider,
-			Mode:                           p.Mode,
-			InputCostPerToken:              p.InputCostPerToken,
-			OutputCostPerToken:             p.OutputCostPerToken,
-			SupportsPromptCaching:          p.SupportsPromptCaching,
-			LongContextInputTokenThreshold: p.LongContextInputTokenThreshold,
-			DiscountRate:                   discount,
-		})
+		info := ModelInfo{
+			ID:              entry.ModelID,
+			LiteLLMProvider: entry.Provider,
+			Mode:            entry.Mode,
+			SupportsPromptCaching: entry.SupportsPromptCaching,
+			DiscountRate:          1.0,
+		}
+		if entry.DiscountRate != nil && *entry.DiscountRate > 0 {
+			info.DiscountRate = *entry.DiscountRate
+		}
+		if entry.InputCostPerToken != nil {
+			info.InputCostPerToken = *entry.InputCostPerToken
+		}
+		if entry.OutputCostPerToken != nil {
+			info.OutputCostPerToken = *entry.OutputCostPerToken
+		}
+		if entry.LongContextInputTokenThreshold != nil {
+			info.LongContextInputTokenThreshold = int(*entry.LongContextInputTokenThreshold)
+		}
+		result = append(result, info)
 	}
 	return result
+}
+
+// ListAllModels 返回全部模型的基本信息和定价（供用户端模型列表页使用）。
+// 委托给 ListEnabledCatalogModels（catalog 作为 SSOT）。
+func (s *PricingService) ListAllModels() []ModelInfo {
+	return s.ListEnabledCatalogModels()
 }

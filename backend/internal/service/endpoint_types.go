@@ -48,4 +48,7 @@ type EndpointRepository interface {
 
 	// FindByStableID 按 (account_id, stable_id) 精确查找；未命中返回 (nil, nil)。
 	FindByStableID(ctx context.Context, accountID int64, stableID string) (*DBEndpoint, error)
+
+	// UpdateSupportedModels 原子更新单条 endpoint 的 supported_models 列表。
+	UpdateSupportedModels(ctx context.Context, id int64, models []string) error
 }

@@ -690,6 +690,7 @@ func TestAPIContracts(t *testing.T) {
 						"smtp_host": "smtp.example.com",
 						"smtp_port": 587,
 						"smtp_username": "user",
+					"subscription_expiry_notify_enabled": true,
 					"smtp_password_configured": true,
 					"smtp_from_email": "no-reply@example.com",
 					"smtp_from_name": "TokenPanel",
@@ -758,6 +759,7 @@ func TestAPIContracts(t *testing.T) {
 						"site_logo": "",
 						"site_subtitle": "Subtitle",
 						"api_base_url": "https://api.example.com",
+					"api_key_acl_trust_forwarded_ip": false,
 					"contact_info": "support",
 					"currency_mode": "",
 					"doc_url": "https://docs.example.com",
@@ -872,6 +874,7 @@ func TestAPIContracts(t *testing.T) {
 					"channel_monitor_default_interval_seconds": 60,
 					"available_channels_enabled": false,
 					"risk_control_enabled": false,
+					"show_overseas_models": true,
 					"affiliate_enabled": false,
 					"wechat_connect_enabled": false,
 					"wechat_connect_app_id": "",
@@ -954,6 +957,7 @@ func TestAPIContracts(t *testing.T) {
 						"smtp_host": "",
 						"smtp_port": 587,
 						"smtp_username": "",
+					"subscription_expiry_notify_enabled": true,
 					"smtp_password_configured": false,
 					"smtp_from_email": "",
 					"smtp_from_name": "",
@@ -1018,6 +1022,7 @@ func TestAPIContracts(t *testing.T) {
 					"site_logo": "",
 					"site_subtitle": "Subscription to API Conversion Platform",
 					"api_base_url": "",
+					"api_key_acl_trust_forwarded_ip": false,
 					"contact_info": "",
 					"currency_mode": "",
 					"doc_url": "",
@@ -1099,6 +1104,7 @@ func TestAPIContracts(t *testing.T) {
 					"channel_monitor_default_interval_seconds": 60,
 					"available_channels_enabled": false,
 					"risk_control_enabled": false,
+					"show_overseas_models": true,
 					"affiliate_enabled": false,
 					"wechat_connect_enabled": true,
 					"wechat_connect_app_id": "wx-open-config",
@@ -1260,10 +1266,10 @@ func newContractDeps(t *testing.T) *contractDeps {
 	settingRepo := newStubSettingRepo()
 	settingService := service.NewSettingService(settingRepo, cfg)
 
-	adminService := service.NewAdminService(userRepo, groupRepo, &accountRepo, proxyRepo, apiKeyRepo, redeemRepo, usageRepo, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+	adminService := service.NewAdminService(userRepo, groupRepo, &accountRepo, proxyRepo, apiKeyRepo, redeemRepo, usageRepo, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 	authHandler := handler.NewAuthHandler(cfg, nil, userService, settingService, nil, redeemService, nil, nil)
 	apiKeyHandler := handler.NewAPIKeyHandler(apiKeyService)
-	usageHandler := handler.NewUsageHandler(usageService, apiKeyService, nil, nil, nil, nil)
+	usageHandler := handler.NewUsageHandler(usageService, apiKeyService, nil, nil, nil, nil, nil)
 	adminSettingHandler := adminhandler.NewSettingHandler(settingService, nil, nil, nil, nil, nil, nil, adminService, nil)
 	adminAccountHandler := adminhandler.NewAccountHandler(adminService, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
@@ -1899,6 +1905,10 @@ func (stubRedeemCodeRepo) ListByUserPaginated(ctx context.Context, userID int64,
 }
 
 func (stubRedeemCodeRepo) SumPositiveBalanceByUser(ctx context.Context, userID int64) (float64, error) {
+	return 0, errors.New("not implemented")
+}
+
+func (stubRedeemCodeRepo) BatchUpdate(ctx context.Context, ids []int64, fields service.RedeemCodeBatchUpdateFields) (int64, error) {
 	return 0, errors.New("not implemented")
 }
 
