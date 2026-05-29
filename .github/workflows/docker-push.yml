@@ -14,9 +14,9 @@ jobs:
 
       - name: Resolve Docker Registry
         env:
-          DOCKER_REGISTRY: ${{ vars.DOCKER_REGISTRY || 'harbor-test.brainwm.com:21143' }}
-          DOCKER_NAMESPACE: ${{ vars.DOCKER_NAMESPACE || 'infra' }}
-          DOCKER_IMAGE: ${{ vars.DOCKER_IMAGE || 'test_uds_backend' }}
+          DOCKER_REGISTRY: ${{ vars.DOCKER_REGISTRY || 'docker.io' }}
+          DOCKER_NAMESPACE: ${{ vars.DOCKER_NAMESPACE || 'ioke' }}
+          DOCKER_IMAGE: ${{ vars.DOCKER_IMAGE || 'myrepo' }}
         run: |
           echo "DOCKER_REGISTRY=${DOCKER_REGISTRY}" >> "$GITHUB_ENV"
           echo "DOCKER_IMAGE_PATH=${DOCKER_REGISTRY}/${DOCKER_NAMESPACE}/${DOCKER_IMAGE}" >> "$GITHUB_ENV"
