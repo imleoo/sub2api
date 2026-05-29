@@ -437,6 +437,10 @@ const (
 	// Currency mode settings
 	SettingKeyCurrencyMode = "currency_mode" // "usd" | "cny" | "" (空=未配置)
 	SettingKeyCNYRate      = "cny_rate"      // 人民币汇率（float64）
+
+	// 万界 MaaS 定价同步配置
+	SettingKeyWanjieURL         = "wanjie_url"          // 万界定价 API URL
+	SettingKeyWanjieAccessToken = "wanjie_access_token" // 万界 x-access-token
 )
 
 // AdminAPIKeyPrefix is the prefix for admin API keys (distinct from user "sk-" keys).

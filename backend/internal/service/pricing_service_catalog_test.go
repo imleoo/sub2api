@@ -50,6 +50,10 @@ func (s *stubModelPricingRepo) BulkUpdateDiscountRates(ctx context.Context, rate
 func (s *stubModelPricingRepo) SeedIfNotExists(ctx context.Context, models []*DBModelPricing) error {
 	return nil
 }
+func (s *stubModelPricingRepo) BulkUpsertWanjie(ctx context.Context, models []*DBModelPricing) error {
+	return nil
+}
+func (s *stubModelPricingRepo) ClearAllDiscountRates(ctx context.Context) error { return nil }
 
 func newCatalogTestService(items []*DBModelPricing) (*PricingService, *stubModelPricingRepo) {
 	repo := &stubModelPricingRepo{items: items}

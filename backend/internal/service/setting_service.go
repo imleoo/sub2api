@@ -614,6 +614,16 @@ func (s *SettingService) LoadAPIKeyACLTrustForwardedIPSetting(ctx context.Contex
 	return nil
 }
 
+// GetMultiple 批量获取指定 key 的设置值。
+func (s *SettingService) GetMultiple(ctx context.Context, keys []string) (map[string]string, error) {
+	return s.settingRepo.GetMultiple(ctx, keys)
+}
+
+// SetMultiple 批量写入设置 key-value。
+func (s *SettingService) SetMultiple(ctx context.Context, updates map[string]string) error {
+	return s.settingRepo.SetMultiple(ctx, updates)
+}
+
 // GetAllSettings 获取所有系统设置
 func (s *SettingService) GetAllSettings(ctx context.Context) (*SystemSettings, error) {
 	settings, err := s.settingRepo.GetAll(ctx)

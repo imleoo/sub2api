@@ -106,6 +106,15 @@ type ModelPricingRepository interface {
 	// BulkUpdateDiscountRates 批量设置折扣率（迁移旧 settings.model_discounts 数据）
 	BulkUpdateDiscountRates(ctx context.Context, rates map[string]float64) error
 
+	// ClearAllDiscountRates 将全表所有记录的 discount_rate 清空（置为 NULL）
+	ClearAllDiscountRates(ctx context.Context) error
+
 	// SeedIfNotExists 如果 model_id 不存在则插入（用于灵境模型 seed）
 	SeedIfNotExists(ctx context.Context, models []*DBModelPricing) error
+
+	// BulkUpsertWanjie 将万界平台定价批量写入：
+	// - is_custom=true 的已有记录：更新 mode、provider（若为空）及全部定价字段
+	// - is_custom=false 的已有记录（LiteLLM 来源）：跳过，保留 USD 定价
+	// - 不存在的记录：新建（is_custom=true，source=wanjie）
+	BulkUpsertWanjie(ctx context.Context, models []*DBModelPricing) error
 }

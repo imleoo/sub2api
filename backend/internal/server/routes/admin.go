@@ -128,6 +128,8 @@ func registerModelPricingRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		mp.DELETE("/:id", h.Admin.ModelPricing.Delete)
 		mp.POST("/sync", h.Admin.ModelPricing.TriggerSync)
 		mp.POST("/sync-from-upstream", h.Admin.ModelPricing.SyncFromUpstream)
+		mp.POST("/sync-from-wanjie", h.Admin.ModelPricing.SyncFromWanjie)
+		mp.POST("/clear-discounts", h.Admin.ModelPricing.ClearAllDiscounts)
 	}
 }
 

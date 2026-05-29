@@ -51,11 +51,29 @@
             </button>
             <button
               class="btn btn-secondary"
+              :disabled="clearingDiscounts"
+              :title="'将全表所有折扣率清空（置为无折扣）'"
+              @click="showClearDiscountsModal = true"
+            >
+              <Icon name="x" size="md" />
+              <span class="ml-1 hidden sm:inline">清空折扣</span>
+            </button>
+            <button
+              class="btn btn-secondary"
               :title="'从上游渠道 /v1/models 拉取模型并入库'"
               @click="openImportModal"
             >
               <Icon name="download" size="md" />
               <span class="ml-1 hidden sm:inline">从上游导入</span>
+            </button>
+            <button
+              class="btn btn-secondary"
+              :disabled="wanjieSyncing"
+              :title="'从万界 MaaS 平台同步定价数据'"
+              @click="openWanjieModal"
+            >
+              <Icon name="refresh" size="md" :class="wanjieSyncing ? 'animate-spin' : ''" />
+              <span class="ml-1 hidden sm:inline">{{ wanjieSyncing ? '同步中...' : '同步万界' }}</span>
             </button>
             <button class="btn btn-primary" @click="openCreateModal">
               <Icon name="plus" size="md" class="mr-1" />
@@ -523,6 +541,18 @@
       </template>
     </BaseDialog>
 
+    <!-- Clear discounts confirmation -->
+    <ConfirmDialog
+      :show="showClearDiscountsModal"
+      title="清空所有折扣率"
+      message="将把全表所有模型的折扣率清空（置为无折扣）。此操作不可撤销，确认继续？"
+      confirm-text="清空"
+      cancel-text="取消"
+      danger
+      @confirm="handleClearDiscounts"
+      @cancel="showClearDiscountsModal = false"
+    />
+
     <!-- Delete Confirmation -->
     <ConfirmDialog
       :show="showDeleteModal"
@@ -534,6 +564,89 @@
       @confirm="confirmDelete"
       @cancel="showDeleteModal = false"
     />
+
+    <!-- Wanjie sync -->
+    <BaseDialog :show="showWanjieModal" title="同步万界定价" width="wide" @close="closeWanjieModal">
+      <form id="wanjie-sync-form" class="space-y-4" @submit.prevent="handleWanjieSync">
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          优先级：上传 JSON 文件 &gt; API URL + Token &gt; 已保存凭证 &gt; 内嵌离线数据。
+        </p>
+
+        <!-- File upload -->
+        <div>
+          <label class="input-label">上传 JSON 文件（最高优先级）</label>
+          <div
+            class="mt-1 flex cursor-pointer items-center gap-3 rounded-lg border-2 border-dashed border-gray-300 px-4 py-3 transition hover:border-primary-400 dark:border-dark-500 dark:hover:border-primary-500"
+            @click="wanjieFileInputRef?.click()"
+          >
+            <Icon name="upload" size="md" class="shrink-0 text-gray-400" />
+            <span class="truncate text-sm text-gray-500 dark:text-gray-400">
+              {{ wanjieFileName || '点击选择 wanjie.json 文件' }}
+            </span>
+            <button
+              v-if="wanjieFileName"
+              type="button"
+              class="ml-auto shrink-0 text-xs text-red-500 hover:text-red-700"
+              @click.stop="clearWanjieFile"
+            >
+              清除
+            </button>
+          </div>
+          <input
+            ref="wanjieFileInputRef"
+            type="file"
+            accept="application/json,.json"
+            class="hidden"
+            @change="onWanjieFileChange"
+          />
+        </div>
+
+        <div class="flex items-center gap-2 text-xs text-gray-400">
+          <div class="h-px flex-1 bg-gray-200 dark:bg-dark-600" />
+          <span>或</span>
+          <div class="h-px flex-1 bg-gray-200 dark:bg-dark-600" />
+        </div>
+
+        <div>
+          <label class="input-label">API URL</label>
+          <input
+            v-model="wanjieForm.url"
+            type="url"
+            class="input mt-1 font-mono"
+            :disabled="!!wanjieFileName"
+            placeholder="https://fangzhou.wanjiedata.com/maas/model/myModelList"
+          />
+        </div>
+        <div>
+          <label class="input-label">x-access-token</label>
+          <input
+            v-model="wanjieForm.access_token"
+            type="password"
+            autocomplete="off"
+            class="input mt-1 font-mono"
+            :disabled="!!wanjieFileName"
+            placeholder="万界 JWT Token"
+          />
+        </div>
+        <div class="flex items-center gap-2">
+          <input id="wanjie-save-creds" v-model="wanjieForm.save_credentials" type="checkbox" class="h-4 w-4 rounded border-gray-300" :disabled="!!wanjieFileName" />
+          <label for="wanjie-save-creds" class="text-sm text-gray-700 dark:text-gray-300" :class="wanjieFileName ? 'opacity-40' : ''">
+            保存凭证到系统设置（下次同步自动使用）
+          </label>
+        </div>
+        <p v-if="!wanjieFileName && !wanjieForm.url && !wanjieForm.access_token" class="text-xs text-amber-500 dark:text-amber-400">
+          未填写任何内容时，将使用已保存的凭证或内嵌离线数据。
+        </p>
+      </form>
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <button type="button" class="btn btn-secondary" @click="closeWanjieModal">取消</button>
+          <button type="submit" form="wanjie-sync-form" :disabled="wanjieSyncing" class="btn btn-primary">
+            {{ wanjieSyncing ? '同步中...' : '开始同步' }}
+          </button>
+        </div>
+      </template>
+    </BaseDialog>
 
     <!-- Import from upstream -->
     <BaseDialog :show="showImportModal" title="从上游导入模型" width="wide" @close="closeImportModal">
@@ -594,6 +707,8 @@ import {
   deleteModelPricing,
   triggerModelPricingSync,
   syncModelPricingsFromUpstream,
+  syncModelPricingsFromWanjie,
+  clearAllModelPricingDiscounts,
   type DBModelPricing,
   type CreateModelPricingRequest,
 } from '@/api/admin/modelPricings'
@@ -605,6 +720,8 @@ const appStore = useAppStore()
 const loading = ref(false)
 const saving = ref(false)
 const syncing = ref(false)
+const clearingDiscounts = ref(false)
+const showClearDiscountsModal = ref(false)
 const togglingId = ref<number | null>(null)
 
 const items = ref<DBModelPricing[]>([])
@@ -786,6 +903,20 @@ const handlePageSizeChange = (pageSize: number) => {
 
 // ==================== Sync ====================
 
+const handleClearDiscounts = async () => {
+  showClearDiscountsModal.value = false
+  clearingDiscounts.value = true
+  try {
+    await clearAllModelPricingDiscounts()
+    appStore.showSuccess('已清空全表折扣率')
+    await load()
+  } catch {
+    appStore.showError('清空折扣率失败')
+  } finally {
+    clearingDiscounts.value = false
+  }
+}
+
 const handleSync = async () => {
   syncing.value = true
   try {
@@ -796,6 +927,67 @@ const handleSync = async () => {
     appStore.showError('同步失败')
   } finally {
     syncing.value = false
+  }
+}
+
+// ==================== Wanjie sync ====================
+
+const showWanjieModal = ref(false)
+const wanjieSyncing = ref(false)
+const wanjieFileInputRef = ref<HTMLInputElement | null>(null)
+const wanjieFileName = ref('')
+const wanjieJsonData = ref('')
+const wanjieForm = reactive({
+  url: '',
+  access_token: '',
+  save_credentials: false,
+})
+
+const onWanjieFileChange = (e: Event) => {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  wanjieFileName.value = file.name
+  const reader = new FileReader()
+  reader.onload = (ev) => {
+    wanjieJsonData.value = (ev.target?.result as string) ?? ''
+  }
+  reader.readAsText(file)
+}
+
+const clearWanjieFile = () => {
+  wanjieFileName.value = ''
+  wanjieJsonData.value = ''
+  if (wanjieFileInputRef.value) wanjieFileInputRef.value.value = ''
+}
+
+const openWanjieModal = () => {
+  showWanjieModal.value = true
+}
+
+const closeWanjieModal = () => {
+  showWanjieModal.value = false
+  clearWanjieFile()
+}
+
+const handleWanjieSync = async () => {
+  wanjieSyncing.value = true
+  try {
+    const { data } = await syncModelPricingsFromWanjie({
+      json_data: wanjieJsonData.value || undefined,
+      url: wanjieJsonData.value ? undefined : (wanjieForm.url.trim() || undefined),
+      access_token: wanjieJsonData.value ? undefined : (wanjieForm.access_token.trim() || undefined),
+      save_credentials: wanjieJsonData.value ? false : wanjieForm.save_credentials,
+    })
+    const srcMap: Record<string, string> = { upload: '上传文件', live: '实时 API', embedded: '内嵌离线数据' }
+    const src = srcMap[data.source] ?? data.source
+    appStore.showSuccess(`万界定价同步完成（来源：${src}），共处理 ${data.total} 个模型`)
+    closeWanjieModal()
+    await load()
+  } catch (err) {
+    const error = err as { response?: { data?: { message?: string; detail?: string } } }
+    appStore.showError(error.response?.data?.message || error.response?.data?.detail || '万界定价同步失败')
+  } finally {
+    wanjieSyncing.value = false
   }
 }
 

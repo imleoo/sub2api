@@ -490,6 +490,11 @@ func (r *modelPricingRepository) BulkUpdateDiscountRates(ctx context.Context, ra
 	return nil
 }
 
+// ClearAllDiscountRates 将全表所有记录的 discount_rate 置为 NULL。
+func (r *modelPricingRepository) ClearAllDiscountRates(ctx context.Context) error {
+	return r.client.ModelPricing.Update().ClearDiscountRate().Exec(ctx)
+}
+
 // SeedIfNotExists 仅在 model_id 不存在时插入（用于灵境模型 seed）。
 func (r *modelPricingRepository) SeedIfNotExists(ctx context.Context, models []*service.DBModelPricing) error {
 	for _, m := range models {
@@ -504,6 +509,90 @@ func (r *modelPricingRepository) SeedIfNotExists(ctx context.Context, models []*
 		}
 		if err := r.Create(ctx, m); err != nil {
 			return fmt.Errorf("seed create %s: %w", m.ModelID, err)
+		}
+	}
+	return nil
+}
+
+// BulkUpsertWanjie 将万界平台定价批量写入：
+//   - is_custom=true 的已有记录：更新 mode、provider（若为空）及全部定价字段
+//   - is_custom=false 的已有记录（LiteLLM/litellm 来源）：跳过，保留 USD 定价
+//   - 不存在的记录：新建（is_custom=true，source=wanjie）
+func (r *modelPricingRepository) BulkUpsertWanjie(ctx context.Context, models []*service.DBModelPricing) error {
+	for _, m := range models {
+		if strings.TrimSpace(m.ModelID) == "" {
+			continue
+		}
+		existing, err := r.client.ModelPricing.Query().
+			Where(modelpricing.ModelIDEQ(m.ModelID)).
+			Only(ctx)
+		if err != nil {
+			if dbent.IsNotFound(err) {
+				// 不存在则新建
+				if createErr := r.Create(ctx, m); createErr != nil {
+					return fmt.Errorf("wanjie create %s: %w", m.ModelID, createErr)
+				}
+				continue
+			}
+			return fmt.Errorf("wanjie query %s: %w", m.ModelID, err)
+		}
+
+		// is_custom=false（LiteLLM 来源）保留不动
+		if !existing.IsCustom {
+			continue
+		}
+
+		// 更新 is_custom=true 的记录
+		builder := r.client.ModelPricing.UpdateOneID(existing.ID).
+			SetMode(m.Mode).
+			SetSupportsPromptCaching(m.SupportsPromptCaching).
+			SetSource(service.ModelPricingSourceWanjie).
+			SetPricingStatus(m.PricingStatus)
+
+		// provider 仅在原记录为空时补全
+		if strings.TrimSpace(existing.Provider) == "" && strings.TrimSpace(m.Provider) != "" {
+			builder.SetProvider(m.Provider)
+		}
+
+		if m.InputCostPerToken != nil {
+			builder.SetInputCostPerToken(*m.InputCostPerToken)
+		} else {
+			builder.ClearInputCostPerToken()
+		}
+		if m.OutputCostPerToken != nil {
+			builder.SetOutputCostPerToken(*m.OutputCostPerToken)
+		} else {
+			builder.ClearOutputCostPerToken()
+		}
+		if m.CacheReadInputTokenCost != nil {
+			builder.SetCacheReadInputTokenCost(*m.CacheReadInputTokenCost)
+		} else {
+			builder.ClearCacheReadInputTokenCost()
+		}
+		if m.CacheCreation5mTokenCost != nil {
+			builder.SetCacheCreation5mTokenCost(*m.CacheCreation5mTokenCost)
+		} else {
+			builder.ClearCacheCreation5mTokenCost()
+		}
+		if m.CacheCreation1hTokenCost != nil {
+			builder.SetCacheCreation1hTokenCost(*m.CacheCreation1hTokenCost)
+		} else {
+			builder.ClearCacheCreation1hTokenCost()
+		}
+		if m.OutputCostPerImage != nil {
+			builder.SetOutputCostPerImage(*m.OutputCostPerImage)
+		} else {
+			builder.ClearOutputCostPerImage()
+		}
+		// 写入折扣率：原价已经过反推，discount_rate 记录万界平台折扣，管理员可覆盖。
+		if m.DiscountRate != nil {
+			builder.SetDiscountRate(*m.DiscountRate)
+		} else {
+			builder.ClearDiscountRate()
+		}
+
+		if _, err := builder.Save(ctx); err != nil {
+			return fmt.Errorf("wanjie update %s: %w", m.ModelID, err)
 		}
 	}
 	return nil

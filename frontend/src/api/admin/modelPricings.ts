@@ -90,3 +90,22 @@ export interface SyncFromUpstreamResponse {
 
 export const syncModelPricingsFromUpstream = (data: SyncFromUpstreamRequest) =>
   apiClient.post<SyncFromUpstreamResponse>('/admin/model-pricings/sync-from-upstream', data)
+
+export interface SyncFromWanjieRequest {
+  url?: string
+  access_token?: string
+  save_credentials?: boolean
+  json_data?: string
+}
+
+export interface SyncFromWanjieResponse {
+  message: string
+  total: number
+  source: string
+}
+
+export const syncModelPricingsFromWanjie = (data: SyncFromWanjieRequest) =>
+  apiClient.post<SyncFromWanjieResponse>('/admin/model-pricings/sync-from-wanjie', data)
+
+export const clearAllModelPricingDiscounts = () =>
+  apiClient.post('/admin/model-pricings/clear-discounts')

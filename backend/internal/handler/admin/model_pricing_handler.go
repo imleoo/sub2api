@@ -443,3 +443,112 @@ func (h *ModelPricingHandler) SyncFromUpstream(c *gin.Context) {
 		"fetched": len(models),
 	})
 }
+
+type syncFromWanjieRequest struct {
+	URL             string `json:"url"`
+	AccessToken     string `json:"access_token"`
+	SaveCredentials bool   `json:"save_credentials"`
+	// JsonData 直接传入万界 API 的 JSON 响应体（优先于 URL+Token 和内嵌数据）。
+	JsonData string `json:"json_data"`
+}
+
+// SyncFromWanjie 从万界 MaaS 定价 API（或上传 JSON / 内嵌 JSON）批量更新 model_pricings 表。
+// 优先级：json_data > url+access_token > 已保存设置 > 内嵌 wanjie.json。
+// POST /api/v1/admin/model-pricings/sync-from-wanjie
+func (h *ModelPricingHandler) SyncFromWanjie(c *gin.Context) {
+	if h.repo == nil {
+		response.BadRequest(c, "model pricing repository not available")
+		return
+	}
+
+	var req syncFromWanjieRequest
+	_ = c.ShouldBindJSON(&req)
+
+	ctx := c.Request.Context()
+	apiURL := strings.TrimSpace(req.URL)
+	token := strings.TrimSpace(req.AccessToken)
+
+	// 若请求中携带凭证且要求保存，写入系统设置
+	if h.settingService != nil && req.SaveCredentials {
+		updates := map[string]string{}
+		if apiURL != "" {
+			updates[service.SettingKeyWanjieURL] = apiURL
+		}
+		if token != "" {
+			updates[service.SettingKeyWanjieAccessToken] = token
+		}
+		if len(updates) > 0 {
+			_ = h.settingService.SetMultiple(ctx, updates)
+		}
+	}
+
+	// 若请求中没有凭证，尝试从已保存设置中读取
+	if (apiURL == "" || token == "") && h.settingService != nil {
+		if saved, err := h.settingService.GetMultiple(ctx, []string{
+			service.SettingKeyWanjieURL,
+			service.SettingKeyWanjieAccessToken,
+		}); err == nil {
+			if apiURL == "" {
+				apiURL = strings.TrimSpace(saved[service.SettingKeyWanjieURL])
+			}
+			if token == "" {
+				token = strings.TrimSpace(saved[service.SettingKeyWanjieAccessToken])
+			}
+		}
+	}
+
+	var (
+		parsed []*service.DBModelPricing
+		err    error
+		source string
+	)
+
+	switch {
+	case strings.TrimSpace(req.JsonData) != "":
+		// 最高优先级：直接使用上传的 JSON 内容
+		parsed, err = service.ParseWanjieFromBytes([]byte(req.JsonData))
+		source = "upload"
+	case apiURL != "" && token != "":
+		parsed, err = service.FetchAndParseWanjieModels(ctx, nil, apiURL, token)
+		source = "live"
+	default:
+		parsed, err = service.ParseWanjieModels()
+		source = "embedded"
+	}
+	if err != nil {
+		response.Error(c, http.StatusBadGateway, "failed to fetch/parse wanjie data: "+err.Error())
+		return
+	}
+
+	if err := h.repo.BulkUpsertWanjie(ctx, parsed); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	if h.pricingService != nil {
+		h.pricingService.ReloadFromDB(ctx)
+	}
+
+	response.Success(c, gin.H{
+		"message": "sync completed",
+		"total":   len(parsed),
+		"source":  source,
+	})
+}
+
+// ClearAllDiscounts 将全表所有 discount_rate 置为 NULL。
+// POST /api/v1/admin/model-pricings/clear-discounts
+func (h *ModelPricingHandler) ClearAllDiscounts(c *gin.Context) {
+	if h.repo == nil {
+		response.BadRequest(c, "model pricing repository not available")
+		return
+	}
+	if err := h.repo.ClearAllDiscountRates(c.Request.Context()); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	if h.pricingService != nil {
+		h.pricingService.ReloadFromDB(c.Request.Context())
+	}
+	response.Success(c, gin.H{"message": "all discount rates cleared"})
+}

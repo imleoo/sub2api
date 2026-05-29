@@ -128,3 +128,5 @@ docs/claude-relay-service/
 frontend/coverage/
 aicodex
 output/
+.claude/scheduled_tasks.lock
+backend/verify_pricing_coverage
