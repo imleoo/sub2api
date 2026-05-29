@@ -2739,6 +2739,11 @@ const baseRpm = ref<number | null>(null)
 const rpmStrategy = ref<'tiered' | 'sticky_exempt'>('tiered')
 const rpmStickyBuffer = ref<number | null>(null)
 const userMsgQueueMode = ref('')
+const umqModeOptions = computed(() => [
+  { value: '', label: t('admin.accounts.quotaControl.rpmLimit.umqModeOff') },
+  { value: 'throttle', label: t('admin.accounts.quotaControl.rpmLimit.umqModeThrottle') },
+  { value: 'serialize', label: t('admin.accounts.quotaControl.rpmLimit.umqModeSerialize') },
+])
 const tlsFingerprintEnabled = ref(false)
 const tlsFingerprintProfileId = ref<number | null>(null)
 const tlsFingerprintProfiles = ref<{ id: number; name: string }[]>([])
@@ -3171,17 +3176,17 @@ const syncFormFromAccount = (newAccount: Account | null) => {
       fallbackEnabledKeys: ['responses_websockets_v2_enabled', 'openai_ws_enabled'],
       defaultMode: OPENAI_WS_MODE_OFF
     })
-    if (newAccount.type === 'oauth') {
-      codexCLIOnlyEnabled.value = extra?.codex_cli_only === true
-      codexCLIOnlyAllowClaudeCodeEnabled.value =
-        Array.isArray(extra?.codex_cli_only_allowed_clients) &&
-        (extra.codex_cli_only_allowed_clients as unknown[]).includes('claude_code')
-    }
     const credentials = newAccount.credentials as Record<string, unknown> | undefined
     const compactMappings = credentials?.compact_model_mapping as Record<string, string> | undefined
     if (compactMappings && typeof compactMappings === 'object') {
       openAICompactModelMappings.value = Object.entries(compactMappings).map(([from, to]) => ({ from, to }))
     }
+  }
+  if (newAccount.platform === 'openai' && newAccount.type === 'oauth') {
+    codexCLIOnlyEnabled.value = extra?.codex_cli_only === true
+    codexCLIOnlyAllowClaudeCodeEnabled.value =
+      Array.isArray(extra?.codex_cli_only_allowed_clients) &&
+      (extra.codex_cli_only_allowed_clients as unknown[]).includes('claude_code')
   }
   if (newAccount.platform === 'anthropic' && newAccount.type === 'apikey') {
     anthropicPassthroughEnabled.value = extra?.anthropic_passthrough === true
