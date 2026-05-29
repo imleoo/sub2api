@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"net/http"
 	"sync"
@@ -27,6 +28,8 @@ import (
 type Application struct {
 	Server  *http.Server
 	Cleanup func()
+	// SQLDB 用于启动健康检查等需要直接读 DB 的运维场景（Phase 2 P2-4 引入）。
+	SQLDB *sql.DB
 }
 
 func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
@@ -55,7 +58,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 		provideCleanup,
 
 		// Application struct
-		wire.Struct(new(Application), "Server", "Cleanup"),
+		wire.Struct(new(Application), "Server", "Cleanup", "SQLDB"),
 	)
 	return nil, nil
 }
@@ -97,6 +100,7 @@ func provideCleanup(
 	paymentOrderExpiry *service.PaymentOrderExpiryService,
 	channelMonitorRunner *service.ChannelMonitorRunner,
 	lingjingPollRunner *service.LingjingPollRunner,
+	quotaFlusher *service.UserPlatformQuotaUsageFlusher,
 ) func() {
 	return func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -232,6 +236,12 @@ func provideCleanup(
 			{"LingjingPollRunner", func() error {
 				if lingjingPollRunner != nil {
 					lingjingPollRunner.Stop()
+				}
+				return nil
+			}},
+			{"UserPlatformQuotaUsageFlusher", func() error {
+				if quotaFlusher != nil {
+					quotaFlusher.Stop()
 				}
 				return nil
 			}},

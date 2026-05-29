@@ -182,6 +182,7 @@ func newOpenAIRecordUsageServiceForTest(usageRepo UsageLogRepository, userRepo U
 		nil,
 		nil,
 		nil, // upstreamCostResolver: Phase 0 P0-5 测试中 9 列保持 NULL（合法两态）
+		nil, // userPlatformQuotaRepo
 	)
 	svc.userGroupRateResolver = newUserGroupRateResolver(
 		rateRepo,
