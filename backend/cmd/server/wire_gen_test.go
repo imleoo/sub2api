@@ -28,7 +28,7 @@ func TestProvideCleanup_WithMinimalDependencies_NoPanic(t *testing.T) {
 	subscriptionExpirySvc := service.NewSubscriptionExpiryService(nil, time.Second)
 	pricingSvc := service.NewPricingService(cfg, nil, nil)
 	emailQueueSvc := service.NewEmailQueueService(nil, 1)
-	billingCacheSvc := service.NewBillingCacheService(nil, nil, nil, nil, nil, nil, cfg)
+	billingCacheSvc := service.NewBillingCacheService(nil, nil, nil, nil, nil, nil, cfg, nil)
 	idempotencyCleanupSvc := service.NewIdempotencyCleanupService(nil, cfg)
 	schedulerSnapshotSvc := service.NewSchedulerSnapshotService(nil, nil, nil, nil, cfg)
 	opsSystemLogSinkSvc := service.NewOpsSystemLogSink(nil)
@@ -59,6 +59,7 @@ func TestProvideCleanup_WithMinimalDependencies_NoPanic(t *testing.T) {
 		nil, // paymentOrderExpiry
 		nil, // channelMonitorRunner
 		nil, // lingjingPollRunner
+		nil, // quotaFlusher
 	)
 
 	require.NotPanics(t, func() {

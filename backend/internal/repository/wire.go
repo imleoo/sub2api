@@ -97,6 +97,9 @@ var ProviderSet = wire.NewSet(
 	NewModelPricingRepository,
 	NewProviderPricingRepository,
 	NewEndpointRepository,
+	NewOpenAIOAuthClient,
+	NewUserPlatformQuotaRepository,     // T14: user × platform quota
+	NewUserPlatformQuotaServiceAdapter, // T14: adapter → service.UserPlatformQuotaRepository
 
 	// Cache implementations
 	NewGatewayCache,

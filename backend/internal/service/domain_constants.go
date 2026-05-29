@@ -1,6 +1,10 @@
 package service
 
-import "github.com/Wei-Shaw/sub2api/internal/domain"
+import (
+	"fmt"
+
+	"github.com/Wei-Shaw/sub2api/internal/domain"
+)
 
 // Status constants
 const (
@@ -40,6 +44,26 @@ const (
 	PlatformLingjing    = domain.PlatformLingjing
 	PlatformGeneric     = domain.PlatformGeneric
 )
+
+// AllowedQuotaPlatforms 是允许设置 user × platform quota 的平台列表（单一权威来源）。
+// ent/schema/user_platform_quota.go 的 Validate 函数独立维护（构建期约束），
+// 若新增平台需同步修改该 schema。
+var AllowedQuotaPlatforms = []string{
+	PlatformAnthropic,
+	PlatformOpenAI,
+	PlatformGemini,
+	PlatformAntigravity,
+}
+
+// IsAllowedQuotaPlatform 报告 s 是否为合法的 quota platform 标识。
+func IsAllowedQuotaPlatform(s string) bool {
+	for _, p := range AllowedQuotaPlatforms {
+		if p == s {
+			return true
+		}
+	}
+	return false
+}
 
 // Account type constants
 const (
@@ -410,6 +434,9 @@ const (
 	// 当客户端 UA 被识别为浏览器（Chrome/Firefox/Safari/Edge 等）时，转发给 OpenAI 上游前会替换为此值，
 	// 用于避免 Cloudflare 对浏览器型 UA 的质询拦截。
 	SettingKeyOpenAICodexUserAgent = "openai_codex_user_agent"
+	// SettingKeyOpenAIAllowClaudeCodeCodexPlugin 全局开关：是否额外放行 Claude Code 的 Codex 插件（默认 false）。
+	// 仅在账号 codex_cli_only 开启时生效；开启后无需逐账号配置 codex_cli_only_allowed_clients。
+	SettingKeyOpenAIAllowClaudeCodeCodexPlugin = "openai_allow_claude_code_codex_plugin"
 
 	// SettingKeyShowOverseasModels 是否在模型广场和折扣页面显示海外模型（默认 true）
 	SettingKeyShowOverseasModels = "show_overseas_models"
@@ -433,6 +460,16 @@ const (
 	SettingKeyCurrencyMode = "currency_mode" // "usd" | "cny" | "" (空=未配置)
 	SettingKeyCNYRate      = "cny_rate"      // 人民币汇率（float64）
 )
+
+// SettingKeyDefaultPlatformQuotas —— 系统全局：每用户 × 平台日/周/月 USD 上限（JSON）。
+// 值为 map[platform]{daily,weekly,monthly}，null/缺省 = 不限制；0 = 禁用；>0 = USD 上限。
+const SettingKeyDefaultPlatformQuotas = "default_platform_quotas"
+
+// SettingKeyAuthSourcePlatformQuotas 返回某 auth source 的 platform quota JSON key。
+// 形如 auth_source_default_{source}_platform_quotas
+func SettingKeyAuthSourcePlatformQuotas(source string) string {
+	return fmt.Sprintf("auth_source_default_%s_platform_quotas", source)
+}
 
 // AdminAPIKeyPrefix is the prefix for admin API keys (distinct from user "sk-" keys).
 const AdminAPIKeyPrefix = "admin-"

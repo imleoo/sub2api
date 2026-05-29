@@ -380,6 +380,18 @@
               }}
             </p>
           </div>
+          <div v-if="poolModeEnabled" class="mt-3">
+            <label class="input-label">{{ t('admin.accounts.poolModeRetryStatusCodes') }}</label>
+            <input
+              v-model="poolModeRetryStatusCodesInput"
+              type="text"
+              class="input"
+              :placeholder="DEFAULT_POOL_MODE_RETRY_STATUS_CODES.join(', ')"
+            />
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {{ t('admin.accounts.poolModeRetryStatusCodesHint', { default: DEFAULT_POOL_MODE_RETRY_STATUS_CODES.join(', ') }) }}
+            </p>
+          </div>
         </div>
 
         <!-- Custom Error Codes Section -->
@@ -1048,6 +1060,18 @@
               }}
             </p>
           </div>
+          <div v-if="poolModeEnabled" class="mt-3">
+            <label class="input-label">{{ t('admin.accounts.poolModeRetryStatusCodes') }}</label>
+            <input
+              v-model="poolModeRetryStatusCodesInput"
+              type="text"
+              class="input"
+              :placeholder="DEFAULT_POOL_MODE_RETRY_STATUS_CODES.join(', ')"
+            />
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {{ t('admin.accounts.poolModeRetryStatusCodesHint', { default: DEFAULT_POOL_MODE_RETRY_STATUS_CODES.join(', ') }) }}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -1490,7 +1514,7 @@
       <!-- OpenAI APIKey Responses API support mode -->
       <div
         v-if="account?.platform === 'openai' && account?.type === 'apikey'"
-        class="border-t border-gray-200 pt-4 dark:border-dark-600 space-y-3"
+        class="space-y-4 border-t border-gray-200 pt-4 dark:border-dark-600"
       >
         <div class="flex items-center justify-between gap-4">
           <div>
@@ -1503,12 +1527,43 @@
             <Select
               v-model="openAIResponsesMode"
               :options="openAIResponsesModeOptions"
+              :disabled="!openAITextGenerationCapabilityEnabled"
               data-testid="openai-responses-mode-select"
             />
           </div>
         </div>
-        <div class="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:bg-dark-700 dark:text-gray-300">
+        <div
+          v-if="openAITextGenerationCapabilityEnabled"
+          class="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:bg-dark-700 dark:text-gray-300"
+        >
           <span class="font-medium">{{ t(openAIResponsesStatusKey) }}</span>
+        </div>
+        <div
+          v-else
+          class="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
+          data-testid="openai-responses-mode-not-applicable"
+        >
+          {{ t('admin.accounts.openai.responsesModeTextDisabledHint') }}
+        </div>
+        <div>
+          <label class="input-label mb-2 block">{{ t('admin.accounts.openai.endpointCapabilities') }}</label>
+          <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <label
+              v-for="option in openAIEndpointCapabilityOptions"
+              :key="option.value"
+              class="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-dark-600"
+            >
+              <input
+                type="checkbox"
+                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-dark-500"
+                :data-testid="`openai-endpoint-capability-${option.value}`"
+                :checked="openAIEndpointCapabilities.includes(option.value)"
+                @change="toggleOpenAIEndpointCapability(option.value, $event)"
+              />
+              <span class="text-gray-700 dark:text-gray-200">{{ option.label }}</span>
+            </label>
+          </div>
+          <p class="input-hint">{{ t('admin.accounts.openai.endpointCapabilitiesDesc') }}</p>
         </div>
       </div>
 
@@ -1695,6 +1750,61 @@
         />
       </div>
 
+      <!-- OpenAI OAuth Codex 官方客户端限制开关 -->
+      <div
+        v-if="account?.platform === 'openai' && account?.type === 'oauth'"
+        class="border-t border-gray-200 pt-4 dark:border-dark-600"
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <label class="input-label mb-0">{{ t('admin.accounts.openai.codexCLIOnly') }}</label>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {{ t('admin.accounts.openai.codexCLIOnlyDesc') }}
+            </p>
+          </div>
+          <button
+            type="button"
+            @click="codexCLIOnlyEnabled = !codexCLIOnlyEnabled"
+            :class="[
+              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+              codexCLIOnlyEnabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+            ]"
+          >
+            <span
+              :class="[
+                'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                codexCLIOnlyEnabled ? 'translate-x-5' : 'translate-x-0'
+              ]"
+            />
+          </button>
+        </div>
+        <div
+          v-if="codexCLIOnlyEnabled"
+          class="mt-4 flex items-center justify-between border-l-2 border-gray-200 pl-4 dark:border-dark-600"
+        >
+          <div>
+            <label class="input-label mb-0">{{ t('admin.accounts.openai.codexCLIOnlyAllowClaudeCode') }}</label>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {{ t('admin.accounts.openai.codexCLIOnlyAllowClaudeCodeDesc') }}
+            </p>
+          </div>
+          <button
+            type="button"
+            @click="codexCLIOnlyAllowClaudeCodeEnabled = !codexCLIOnlyAllowClaudeCodeEnabled"
+            :class="[
+              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+              codexCLIOnlyAllowClaudeCodeEnabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+            ]"
+          >
+            <span
+              :class="[
+                'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                codexCLIOnlyAllowClaudeCodeEnabled ? 'translate-x-5' : 'translate-x-0'
+              ]"
+            />
+          </button>
+        </div>
+      </div>
 
       <div
         v-if="account?.platform === 'openai' && account?.type === 'apikey'"
@@ -1783,6 +1893,466 @@
       </div>
 
 
+
+      <div
+        v-if="account?.platform === 'openai'"
+        class="border-t border-gray-200 pt-4 dark:border-dark-600 space-y-4"
+      >
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="input-label mb-0">{{ t('admin.accounts.autoPause5hDisabled') }}</label>
+            <button
+              type="button"
+              @click="autoPause5hDisabled = !autoPause5hDisabled"
+              :class="[
+                'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+                autoPause5hDisabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+              ]"
+              data-testid="auto-pause-5h-disabled"
+            >
+              <span
+                :class="[
+                  'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                  autoPause5hDisabled ? 'translate-x-5' : 'translate-x-0'
+                ]"
+              />
+            </button>
+          </div>
+          <p class="input-hint">{{ t('admin.accounts.autoPauseDisabledHint') }}</p>
+        </div>
+        <div>
+          <label class="input-label">{{ t('admin.accounts.autoPause5hThreshold') }}</label>
+          <input
+            v-model.number="autoPause5hThreshold"
+            type="number"
+            min="0"
+            max="100"
+            step="0.1"
+            class="input"
+            :disabled="autoPause5hDisabled"
+            data-testid="auto-pause-5h-threshold"
+          />
+          <p class="input-hint">{{ t('admin.accounts.autoPauseThresholdHint') }}</p>
+        </div>
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="input-label mb-0">{{ t('admin.accounts.autoPause7dDisabled') }}</label>
+            <button
+              type="button"
+              @click="autoPause7dDisabled = !autoPause7dDisabled"
+              :class="[
+                'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+                autoPause7dDisabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+              ]"
+              data-testid="auto-pause-7d-disabled"
+            >
+              <span
+                :class="[
+                  'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                  autoPause7dDisabled ? 'translate-x-5' : 'translate-x-0'
+                ]"
+              />
+            </button>
+          </div>
+          <p class="input-hint">{{ t('admin.accounts.autoPauseDisabledHint') }}</p>
+        </div>
+        <div>
+          <label class="input-label">{{ t('admin.accounts.autoPause7dThreshold') }}</label>
+          <input
+            v-model.number="autoPause7dThreshold"
+            type="number"
+            min="0"
+            max="100"
+            step="0.1"
+            class="input"
+            :disabled="autoPause7dDisabled"
+            data-testid="auto-pause-7d-threshold"
+          />
+          <p class="input-hint">{{ t('admin.accounts.autoPauseThresholdHint') }}</p>
+        </div>
+      </div>
+
+      <!-- 配额控制 (Anthropic OAuth/SetupToken: 亲和 + 窗口费用 + 会话 + RPM 等) -->
+      <div
+        v-if="account?.platform === 'anthropic' && (account?.type === 'oauth' || account?.type === 'setup-token')"
+        class="border-t border-gray-200 pt-4 dark:border-dark-600 space-y-4"
+      >
+        <div class="mb-3">
+          <h3 class="input-label mb-0 text-base font-semibold">{{ t('admin.accounts.quotaControl.title') }}</h3>
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            {{ t('admin.accounts.quotaControl.hint') }}
+          </p>
+        </div>
+
+        <!-- Window Cost Limit -->
+        <div class="rounded-lg border border-gray-200 p-4 dark:border-dark-600">
+          <div class="mb-3 flex items-center justify-between">
+            <div>
+              <label class="input-label mb-0">{{ t('admin.accounts.quotaControl.windowCost.label') }}</label>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {{ t('admin.accounts.quotaControl.windowCost.hint') }}
+              </p>
+            </div>
+            <button
+              type="button"
+              @click="windowCostEnabled = !windowCostEnabled"
+              :class="[
+                'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+                windowCostEnabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+              ]"
+            >
+              <span
+                :class="[
+                  'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                  windowCostEnabled ? 'translate-x-5' : 'translate-x-0'
+                ]"
+              />
+            </button>
+          </div>
+
+          <div v-if="windowCostEnabled" class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="input-label">{{ t('admin.accounts.quotaControl.windowCost.limit') }}</label>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">$</span>
+                <input
+                  v-model.number="windowCostLimit"
+                  type="number"
+                  min="0"
+                  step="1"
+                  class="input pl-7"
+                  :placeholder="t('admin.accounts.quotaControl.windowCost.limitPlaceholder')"
+                />
+              </div>
+              <p class="input-hint">{{ t('admin.accounts.quotaControl.windowCost.limitHint') }}</p>
+            </div>
+            <div>
+              <label class="input-label">{{ t('admin.accounts.quotaControl.windowCost.stickyReserve') }}</label>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">$</span>
+                <input
+                  v-model.number="windowCostStickyReserve"
+                  type="number"
+                  min="0"
+                  step="1"
+                  class="input pl-7"
+                  :placeholder="t('admin.accounts.quotaControl.windowCost.stickyReservePlaceholder')"
+                />
+              </div>
+              <p class="input-hint">{{ t('admin.accounts.quotaControl.windowCost.stickyReserveHint') }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Session Limit -->
+        <div class="rounded-lg border border-gray-200 p-4 dark:border-dark-600">
+          <div class="mb-3 flex items-center justify-between">
+            <div>
+              <label class="input-label mb-0">{{ t('admin.accounts.quotaControl.sessionLimit.label') }}</label>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {{ t('admin.accounts.quotaControl.sessionLimit.hint') }}
+              </p>
+            </div>
+            <button
+              type="button"
+              @click="sessionLimitEnabled = !sessionLimitEnabled"
+              :class="[
+                'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+                sessionLimitEnabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+              ]"
+            >
+              <span
+                :class="[
+                  'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                  sessionLimitEnabled ? 'translate-x-5' : 'translate-x-0'
+                ]"
+              />
+            </button>
+          </div>
+
+          <div v-if="sessionLimitEnabled" class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="input-label">{{ t('admin.accounts.quotaControl.sessionLimit.maxSessions') }}</label>
+              <input
+                v-model.number="maxSessions"
+                type="number"
+                min="1"
+                step="1"
+                class="input"
+                :placeholder="t('admin.accounts.quotaControl.sessionLimit.maxSessionsPlaceholder')"
+              />
+              <p class="input-hint">{{ t('admin.accounts.quotaControl.sessionLimit.maxSessionsHint') }}</p>
+            </div>
+            <div>
+              <label class="input-label">{{ t('admin.accounts.quotaControl.sessionLimit.idleTimeout') }}</label>
+              <div class="relative">
+                <input
+                  v-model.number="sessionIdleTimeout"
+                  type="number"
+                  min="1"
+                  step="1"
+                  class="input pr-12"
+                  :placeholder="t('admin.accounts.quotaControl.sessionLimit.idleTimeoutPlaceholder')"
+                />
+                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">{{ t('common.minutes') }}</span>
+              </div>
+              <p class="input-hint">{{ t('admin.accounts.quotaControl.sessionLimit.idleTimeoutHint') }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- RPM Limit -->
+        <div class="rounded-lg border border-gray-200 p-4 dark:border-dark-600">
+          <div class="mb-3 flex items-center justify-between">
+            <div>
+              <label class="input-label mb-0">{{ t('admin.accounts.quotaControl.rpmLimit.label') }}</label>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {{ t('admin.accounts.quotaControl.rpmLimit.hint') }}
+              </p>
+            </div>
+            <button
+              type="button"
+              @click="rpmLimitEnabled = !rpmLimitEnabled"
+              :class="[
+                'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+                rpmLimitEnabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+              ]"
+            >
+              <span
+                :class="[
+                  'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                  rpmLimitEnabled ? 'translate-x-5' : 'translate-x-0'
+                ]"
+              />
+            </button>
+          </div>
+
+          <div v-if="rpmLimitEnabled" class="space-y-4">
+            <div>
+              <label class="input-label">{{ t('admin.accounts.quotaControl.rpmLimit.baseRpm') }}</label>
+              <input
+                v-model.number="baseRpm"
+                type="number"
+                min="1"
+                max="1000"
+                step="1"
+                class="input"
+                :placeholder="t('admin.accounts.quotaControl.rpmLimit.baseRpmPlaceholder')"
+              />
+              <p class="input-hint">{{ t('admin.accounts.quotaControl.rpmLimit.baseRpmHint') }}</p>
+            </div>
+
+            <div>
+              <label class="input-label">{{ t('admin.accounts.quotaControl.rpmLimit.strategy') }}</label>
+              <div class="flex gap-2">
+                <button
+                  type="button"
+                  @click="rpmStrategy = 'tiered'"
+                  :class="[
+                    'flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-all',
+                    rpmStrategy === 'tiered'
+                      ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-dark-600 dark:text-gray-400 dark:hover:bg-dark-500'
+                  ]"
+                >
+                  <div class="text-center">
+                    <div>{{ t('admin.accounts.quotaControl.rpmLimit.strategyTiered') }}</div>
+                    <div class="mt-0.5 text-[10px] opacity-70">{{ t('admin.accounts.quotaControl.rpmLimit.strategyTieredHint') }}</div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  @click="rpmStrategy = 'sticky_exempt'"
+                  :class="[
+                    'flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-all',
+                    rpmStrategy === 'sticky_exempt'
+                      ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-dark-600 dark:text-gray-400 dark:hover:bg-dark-500'
+                  ]"
+                >
+                  <div class="text-center">
+                    <div>{{ t('admin.accounts.quotaControl.rpmLimit.strategyStickyExempt') }}</div>
+                    <div class="mt-0.5 text-[10px] opacity-70">{{ t('admin.accounts.quotaControl.rpmLimit.strategyStickyExemptHint') }}</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <div v-if="rpmStrategy === 'tiered'">
+              <label class="input-label">{{ t('admin.accounts.quotaControl.rpmLimit.stickyBuffer') }}</label>
+              <input
+                v-model.number="rpmStickyBuffer"
+                type="number"
+                min="1"
+                step="1"
+                class="input"
+                :placeholder="t('admin.accounts.quotaControl.rpmLimit.stickyBufferPlaceholder')"
+              />
+              <p class="input-hint">{{ t('admin.accounts.quotaControl.rpmLimit.stickyBufferHint') }}</p>
+            </div>
+
+          </div>
+
+          <!-- 用户消息限速模式（独立于 RPM 开关，始终可见） -->
+          <div class="mt-4">
+            <label class="input-label">{{ t('admin.accounts.quotaControl.rpmLimit.userMsgQueue') }}</label>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 mb-2">
+              {{ t('admin.accounts.quotaControl.rpmLimit.userMsgQueueHint') }}
+            </p>
+            <div class="flex space-x-2">
+              <button type="button" v-for="opt in umqModeOptions" :key="opt.value"
+                @click="userMsgQueueMode = opt.value"
+                :class="[
+                  'px-3 py-1.5 text-sm rounded-md border transition-colors',
+                  userMsgQueueMode === opt.value
+                    ? 'bg-primary-600 text-white border-primary-600'
+                    : 'bg-white dark:bg-dark-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-dark-500 hover:bg-gray-50 dark:hover:bg-dark-600'
+                ]">
+                {{ opt.label }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TLS Fingerprint -->
+        <div class="rounded-lg border border-gray-200 p-4 dark:border-dark-600">
+          <div class="flex items-center justify-between">
+            <div>
+              <label class="input-label mb-0">{{ t('admin.accounts.quotaControl.tlsFingerprint.label') }}</label>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {{ t('admin.accounts.quotaControl.tlsFingerprint.hint') }}
+              </p>
+            </div>
+            <button
+              type="button"
+              @click="tlsFingerprintEnabled = !tlsFingerprintEnabled"
+              :class="[
+                'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+                tlsFingerprintEnabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+              ]"
+            >
+              <span
+                :class="[
+                  'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                  tlsFingerprintEnabled ? 'translate-x-5' : 'translate-x-0'
+                ]"
+              />
+            </button>
+          </div>
+          <!-- Profile selector -->
+          <div v-if="tlsFingerprintEnabled" class="mt-3">
+            <select v-model="tlsFingerprintProfileId" class="input">
+              <option :value="null">{{ t('admin.accounts.quotaControl.tlsFingerprint.defaultProfile') }}</option>
+              <option v-if="tlsFingerprintProfiles.length > 0" :value="-1">{{ t('admin.accounts.quotaControl.tlsFingerprint.randomProfile') }}</option>
+              <option v-for="p in tlsFingerprintProfiles" :key="p.id" :value="p.id">{{ p.name }}</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Session ID Masking -->
+        <div class="rounded-lg border border-gray-200 p-4 dark:border-dark-600">
+          <div class="flex items-center justify-between">
+            <div>
+              <label class="input-label mb-0">{{ t('admin.accounts.quotaControl.sessionIdMasking.label') }}</label>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {{ t('admin.accounts.quotaControl.sessionIdMasking.hint') }}
+              </p>
+            </div>
+            <button
+              type="button"
+              @click="sessionIdMaskingEnabled = !sessionIdMaskingEnabled"
+              :class="[
+                'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+                sessionIdMaskingEnabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+              ]"
+            >
+              <span
+                :class="[
+                  'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                  sessionIdMaskingEnabled ? 'translate-x-5' : 'translate-x-0'
+                ]"
+              />
+            </button>
+          </div>
+        </div>
+
+        <!-- Cache TTL Override -->
+        <div class="rounded-lg border border-gray-200 p-4 dark:border-dark-600">
+          <div class="flex items-center justify-between">
+            <div>
+              <label class="input-label mb-0">{{ t('admin.accounts.quotaControl.cacheTTLOverride.label') }}</label>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {{ t('admin.accounts.quotaControl.cacheTTLOverride.hint') }}
+              </p>
+            </div>
+            <button
+              type="button"
+              @click="cacheTTLOverrideEnabled = !cacheTTLOverrideEnabled"
+              :class="[
+                'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+                cacheTTLOverrideEnabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+              ]"
+            >
+              <span
+                :class="[
+                  'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                  cacheTTLOverrideEnabled ? 'translate-x-5' : 'translate-x-0'
+                ]"
+              />
+            </button>
+          </div>
+          <div v-if="cacheTTLOverrideEnabled" class="mt-3">
+            <label class="input-label text-xs">{{ t('admin.accounts.quotaControl.cacheTTLOverride.target') }}</label>
+            <select
+              v-model="cacheTTLOverrideTarget"
+              class="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-dark-500 dark:bg-dark-700 dark:text-white"
+            >
+              <option value="5m">5m</option>
+              <option value="1h">1h</option>
+            </select>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {{ t('admin.accounts.quotaControl.cacheTTLOverride.targetHint') }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Custom Base URL Relay -->
+        <div class="rounded-lg border border-gray-200 p-4 dark:border-dark-600">
+          <div class="flex items-center justify-between">
+            <div>
+              <label class="input-label mb-0">{{ t('admin.accounts.quotaControl.customBaseUrl.label') }}</label>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {{ t('admin.accounts.quotaControl.customBaseUrl.hint') }}
+              </p>
+            </div>
+            <button
+              type="button"
+              @click="customBaseUrlEnabled = !customBaseUrlEnabled"
+              :class="[
+                'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+                customBaseUrlEnabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+              ]"
+            >
+              <span
+                :class="[
+                  'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                  customBaseUrlEnabled ? 'translate-x-5' : 'translate-x-0'
+                ]"
+              />
+            </button>
+          </div>
+          <div v-if="customBaseUrlEnabled" class="mt-3">
+            <input
+              v-model="customBaseUrl"
+              type="text"
+              class="input"
+              :placeholder="t('admin.accounts.quotaControl.customBaseUrl.urlHint')"
+            />
+          </div>
+        </div>
+      </div>
+
+
       <div class="border-t border-gray-200 pt-4 dark:border-dark-600">
         <div>
           <label class="input-label">{{ t('common.status') }}</label>
@@ -1860,7 +2430,17 @@ import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { adminAPI } from '@/api/admin'
 import { useQuotaNotifyState } from '@/composables/useQuotaNotifyState'
-import type { Account, Proxy, AdminGroup, CheckMixedChannelResponse, OpenAICompactMode, OpenAIResponsesMode, AccountEndpoint, AccountEndpointInput } from '@/types'
+import type {
+  Account,
+  Proxy,
+  AdminGroup,
+  CheckMixedChannelResponse,
+  OpenAICompactMode,
+  OpenAIResponsesMode,
+  AccountEndpoint,
+  AccountEndpointInput,
+  OpenAIEndpointCapability
+} from '@/types'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import Select from '@/components/common/Select.vue'
@@ -1960,13 +2540,51 @@ const modelRestrictionMode = ref<'whitelist' | 'mapping'>('whitelist')
 const allowedModels = ref<string[]>([])
 const DEFAULT_POOL_MODE_RETRY_COUNT = 3
 const MAX_POOL_MODE_RETRY_COUNT = 10
+const DEFAULT_POOL_MODE_RETRY_STATUS_CODES = [401, 403, 429]
 const poolModeEnabled = ref(false)
 const poolModeRetryCount = ref(DEFAULT_POOL_MODE_RETRY_COUNT)
+const poolModeRetryStatusCodesInput = ref('')
+
+function parsePoolModeRetryStatusCodes(input: string): number[] {
+  if (!input || !input.trim()) return []
+  const seen = new Set<number>()
+  const out: number[] = []
+  for (const token of input.split(/[,\s]+/)) {
+    const trimmed = token.trim()
+    if (!trimmed) continue
+    const n = Number(trimmed)
+    if (!Number.isFinite(n) || !Number.isInteger(n)) continue
+    if (n < 100 || n > 599) continue
+    if (seen.has(n)) continue
+    seen.add(n)
+    out.push(n)
+  }
+  return out.sort((a, b) => a - b)
+}
+
+function formatPoolModeRetryStatusCodes(value: unknown): string {
+  if (!Array.isArray(value)) return ''
+  const out: number[] = []
+  const seen = new Set<number>()
+  for (const v of value) {
+    const n = typeof v === 'string' ? Number(v.trim()) : Number(v)
+    if (!Number.isFinite(n) || !Number.isInteger(n)) continue
+    if (n < 100 || n > 599) continue
+    if (seen.has(n)) continue
+    seen.add(n)
+    out.push(n)
+  }
+  return out.sort((a, b) => a - b).join(', ')
+}
 const customErrorCodesEnabled = ref(false)
 const selectedErrorCodes = ref<number[]>([])
 const customErrorCodeInput = ref<number | null>(null)
 const interceptWarmupRequests = ref(false)
 const autoPauseOnExpired = ref(false)
+const autoPause5hThreshold = ref<number | null>(null)
+const autoPause7dThreshold = ref<number | null>(null)
+const autoPause5hDisabled = ref(false)
+const autoPause7dDisabled = ref(false)
 const mixedScheduling = ref(false) // For antigravity accounts: enable mixed scheduling
 const allowOverages = ref(false) // For antigravity accounts: enable AI Credits overages
 const antigravityModelRestrictionMode = ref<'whitelist' | 'mapping'>('whitelist')
@@ -2052,9 +2670,11 @@ const customBaseUrl = ref('')
 const openaiPassthroughEnabled = ref(false)
 const openAICompactMode = ref<OpenAICompactMode>('auto')
 const openAIResponsesMode = ref<OpenAIResponsesMode>('auto')
+const openAIEndpointCapabilities = ref<OpenAIEndpointCapability[]>(['chat_completions', 'embeddings'])
 const openaiOAuthResponsesWebSocketV2Mode = ref<OpenAIWSMode>(OPENAI_WS_MODE_OFF)
 const openaiAPIKeyResponsesWebSocketV2Mode = ref<OpenAIWSMode>(OPENAI_WS_MODE_OFF)
 const codexCLIOnlyEnabled = ref(false)
+const codexCLIOnlyAllowClaudeCodeEnabled = ref(false)
 type CodexImageGenerationBridgeMode = 'inherit' | 'enabled' | 'disabled'
 const codexImageGenerationBridgeMode = ref<CodexImageGenerationBridgeMode>('inherit')
 const anthropicPassthroughEnabled = ref(false)
@@ -2159,6 +2779,85 @@ const openAIResponsesModeOptions = computed(() => [
   { value: 'force_responses', label: t('admin.accounts.openai.responsesModeForceResponses') },
   { value: 'force_chat_completions', label: t('admin.accounts.openai.responsesModeForceChatCompletions') }
 ])
+const openAITextEndpointCapabilityLabel = computed(() => {
+  if (openAIResponsesMode.value === 'force_responses') {
+    return t('admin.accounts.openai.capabilityResponses')
+  }
+  if (openAIResponsesMode.value === 'force_chat_completions') {
+    return t('admin.accounts.openai.capabilityChatCompletions')
+  }
+  const extra = props.account?.extra as Record<string, unknown> | undefined
+  if (extra?.openai_responses_supported === true) {
+    return t('admin.accounts.openai.capabilityResponsesAuto')
+  }
+  if (extra?.openai_responses_supported === false) {
+    return t('admin.accounts.openai.capabilityChatCompletionsAuto')
+  }
+  return t('admin.accounts.openai.capabilityTextAuto')
+})
+const openAIEndpointCapabilityOptions = computed<{ value: OpenAIEndpointCapability; label: string }[]>(() => [
+  { value: 'chat_completions', label: openAITextEndpointCapabilityLabel.value },
+  { value: 'embeddings', label: t('admin.accounts.openai.capabilityEmbeddings') }
+])
+const openAITextGenerationCapabilityEnabled = computed(() =>
+  openAIEndpointCapabilities.value.includes('chat_completions')
+)
+
+const normalizeOpenAIEndpointCapabilities = (values: OpenAIEndpointCapability[]) => {
+  const allowed: OpenAIEndpointCapability[] = ['chat_completions', 'embeddings']
+  const selected = allowed.filter((value) => values.includes(value))
+  return selected.length > 0 ? selected : allowed
+}
+
+const readOpenAIEndpointCapabilities = (credentials?: Record<string, unknown>): OpenAIEndpointCapability[] => {
+  const raw = credentials?.openai_capabilities
+  if (Array.isArray(raw)) {
+    return normalizeOpenAIEndpointCapabilities(
+      raw.filter((value): value is OpenAIEndpointCapability =>
+        value === 'chat_completions' || value === 'embeddings'
+      )
+    )
+  }
+  if (raw !== null && typeof raw === 'object') {
+    const capabilityMap = raw as Record<string, unknown>
+    return normalizeOpenAIEndpointCapabilities(
+      openAIEndpointCapabilityOptions.value
+        .map((option) => option.value)
+        .filter((value) => capabilityMap[value] === true)
+    )
+  }
+  return ['chat_completions', 'embeddings']
+}
+
+const toggleOpenAIEndpointCapability = (capability: OpenAIEndpointCapability, event?: Event) => {
+  if (openAIEndpointCapabilities.value.includes(capability)) {
+    if (openAIEndpointCapabilities.value.length <= 1) {
+      const input = event?.target as HTMLInputElement | null
+      if (input) input.checked = true
+      return
+    }
+    openAIEndpointCapabilities.value = openAIEndpointCapabilities.value.filter(
+      (value) => value !== capability
+    )
+    if (!openAITextGenerationCapabilityEnabled.value) {
+      openAIResponsesMode.value = 'auto'
+    }
+    return
+  }
+  openAIEndpointCapabilities.value = normalizeOpenAIEndpointCapabilities([
+    ...openAIEndpointCapabilities.value,
+    capability
+  ])
+}
+
+const applyOpenAIEndpointCapabilities = (credentials: Record<string, unknown>) => {
+  const capabilities = normalizeOpenAIEndpointCapabilities(openAIEndpointCapabilities.value)
+  if (capabilities.length === 2) {
+    delete credentials.openai_capabilities
+    return
+  }
+  credentials.openai_capabilities = capabilities
+}
 const normalizeOpenAIResponsesMode = (mode: unknown): OpenAIResponsesMode => {
   if (mode === 'force_responses' || mode === 'force_chat_completions') {
     return mode
@@ -2337,18 +3036,24 @@ const syncFormFromAccount = (newAccount: Account | null) => {
   // Load mixed scheduling setting (only for antigravity accounts)
   mixedScheduling.value = false
   allowOverages.value = false
-  const extra = newAccount.extra as Record<string, unknown> | undefined
-  mixedScheduling.value = extra?.mixed_scheduling === true
-  allowOverages.value = extra?.allow_overages === true
+	const extra = newAccount.extra as Record<string, unknown> | undefined
+	mixedScheduling.value = extra?.mixed_scheduling === true
+	allowOverages.value = extra?.allow_overages === true
+	autoPause5hThreshold.value = typeof extra?.auto_pause_5h_threshold === 'number' ? extra.auto_pause_5h_threshold * 100 : null
+	autoPause7dThreshold.value = typeof extra?.auto_pause_7d_threshold === 'number' ? extra.auto_pause_7d_threshold * 100 : null
+	autoPause5hDisabled.value = extra?.auto_pause_5h_disabled === true
+	autoPause7dDisabled.value = extra?.auto_pause_7d_disabled === true
 
   // Load OpenAI passthrough toggle (OpenAI OAuth/API Key)
   openaiPassthroughEnabled.value = false
   openAICompactMode.value = 'auto'
   openAIResponsesMode.value = 'auto'
+  openAIEndpointCapabilities.value = ['chat_completions', 'embeddings']
   openAICompactModelMappings.value = []
   openaiOAuthResponsesWebSocketV2Mode.value = OPENAI_WS_MODE_OFF
   openaiAPIKeyResponsesWebSocketV2Mode.value = OPENAI_WS_MODE_OFF
   codexCLIOnlyEnabled.value = false
+  codexCLIOnlyAllowClaudeCodeEnabled.value = false
   codexImageGenerationBridgeMode.value = 'inherit'
   anthropicPassthroughEnabled.value = false
   webSearchEmulationMode.value = 'default'
@@ -2357,6 +3062,12 @@ const syncFormFromAccount = (newAccount: Account | null) => {
     openAICompactMode.value = (extra?.openai_compact_mode as OpenAICompactMode) || 'auto'
     if (newAccount.type === 'apikey') {
       openAIResponsesMode.value = normalizeOpenAIResponsesMode(extra?.openai_responses_mode)
+      openAIEndpointCapabilities.value = readOpenAIEndpointCapabilities(
+        newAccount.credentials as Record<string, unknown> | undefined
+      )
+      if (!openAITextGenerationCapabilityEnabled.value) {
+        openAIResponsesMode.value = 'auto'
+      }
     }
     const codexImageGenerationBridgeValue = typeof extra?.codex_image_generation_bridge === 'boolean'
       ? extra.codex_image_generation_bridge
@@ -2378,6 +3089,12 @@ const syncFormFromAccount = (newAccount: Account | null) => {
       fallbackEnabledKeys: ['responses_websockets_v2_enabled', 'openai_ws_enabled'],
       defaultMode: OPENAI_WS_MODE_OFF
     })
+    if (newAccount.type === 'oauth') {
+      codexCLIOnlyEnabled.value = extra?.codex_cli_only === true
+      codexCLIOnlyAllowClaudeCodeEnabled.value =
+        Array.isArray(extra?.codex_cli_only_allowed_clients) &&
+        (extra.codex_cli_only_allowed_clients as unknown[]).includes('claude_code')
+    }
     const credentials = newAccount.credentials as Record<string, unknown> | undefined
     const compactMappings = credentials?.compact_model_mapping as Record<string, string> | undefined
     if (compactMappings && typeof compactMappings === 'object') {
@@ -2458,6 +3175,7 @@ const syncFormFromAccount = (newAccount: Account | null) => {
     poolModeRetryCount.value = normalizePoolModeRetryCount(
       Number(credentials.pool_mode_retry_count ?? DEFAULT_POOL_MODE_RETRY_COUNT)
     )
+    poolModeRetryStatusCodesInput.value = formatPoolModeRetryStatusCodes(credentials.pool_mode_retry_status_codes)
 
     // Load custom error codes
     customErrorCodesEnabled.value = credentials.custom_error_codes_enabled === true
@@ -2485,6 +3203,7 @@ const syncFormFromAccount = (newAccount: Account | null) => {
     poolModeEnabled.value = bedrockCreds.pool_mode === true
     const retryCount = bedrockCreds.pool_mode_retry_count
     poolModeRetryCount.value = (typeof retryCount === 'number' && retryCount >= 0) ? retryCount : DEFAULT_POOL_MODE_RETRY_COUNT
+    poolModeRetryStatusCodesInput.value = formatPoolModeRetryStatusCodes(bedrockCreds.pool_mode_retry_status_codes)
 
     // Load quota limits for bedrock
     const bedrockExtra = (newAccount.extra as Record<string, unknown>) || {}
@@ -2527,6 +3246,7 @@ const syncFormFromAccount = (newAccount: Account | null) => {
     }
     poolModeEnabled.value = false
     poolModeRetryCount.value = DEFAULT_POOL_MODE_RETRY_COUNT
+    poolModeRetryStatusCodesInput.value = ''
     customErrorCodesEnabled.value = false
     selectedErrorCodes.value = []
   }
@@ -3022,6 +3742,7 @@ const handleSubmit = async () => {
         newCredentials.model_mapping = currentCredentials.model_mapping
       }
       if (props.account.platform === 'openai') {
+        applyOpenAIEndpointCapabilities(newCredentials)
         const compactModelMapping = buildModelMappingObject('mapping', [], openAICompactModelMappings.value)
         if (compactModelMapping) {
           newCredentials.compact_model_mapping = compactModelMapping
@@ -3034,9 +3755,16 @@ const handleSubmit = async () => {
       if (poolModeEnabled.value) {
         newCredentials.pool_mode = true
         newCredentials.pool_mode_retry_count = normalizePoolModeRetryCount(poolModeRetryCount.value)
+        const parsedRetryStatusCodes = parsePoolModeRetryStatusCodes(poolModeRetryStatusCodesInput.value)
+        if (parsedRetryStatusCodes.length > 0) {
+          newCredentials.pool_mode_retry_status_codes = parsedRetryStatusCodes
+        } else {
+          delete newCredentials.pool_mode_retry_status_codes
+        }
       } else {
         delete newCredentials.pool_mode
         delete newCredentials.pool_mode_retry_count
+        delete newCredentials.pool_mode_retry_status_codes
       }
 
       // Add custom error codes if enabled
@@ -3134,9 +3862,16 @@ const handleSubmit = async () => {
       if (poolModeEnabled.value) {
         newCredentials.pool_mode = true
         newCredentials.pool_mode_retry_count = normalizePoolModeRetryCount(poolModeRetryCount.value)
+        const parsedRetryStatusCodes = parsePoolModeRetryStatusCodes(poolModeRetryStatusCodesInput.value)
+        if (parsedRetryStatusCodes.length > 0) {
+          newCredentials.pool_mode_retry_status_codes = parsedRetryStatusCodes
+        } else {
+          delete newCredentials.pool_mode_retry_status_codes
+        }
       } else {
         delete newCredentials.pool_mode
         delete newCredentials.pool_mode_retry_count
+        delete newCredentials.pool_mode_retry_status_codes
       }
 
       // Model mapping
@@ -3354,12 +4089,18 @@ const handleSubmit = async () => {
       updatePayload.extra = newExtra
     }
 
-    // For OpenAI API Key accounts, handle passthrough mode in extra
-    if (props.account.platform === 'openai' && props.account.type === 'apikey') {
+    // For OpenAI OAuth/API Key accounts, handle passthrough mode in extra
+    if (props.account.platform === 'openai' && (props.account.type === 'oauth' || props.account.type === 'apikey')) {
       const currentExtra = (props.account.extra as Record<string, unknown>) || {}
       const newExtra: Record<string, unknown> = { ...currentExtra }
-      newExtra.openai_apikey_responses_websockets_v2_mode = openaiAPIKeyResponsesWebSocketV2Mode.value
-      newExtra.openai_apikey_responses_websockets_v2_enabled = isOpenAIWSModeEnabled(openaiAPIKeyResponsesWebSocketV2Mode.value)
+      const hadCodexCLIOnlyEnabled = currentExtra.codex_cli_only === true
+      if (props.account.type === 'oauth') {
+        newExtra.openai_oauth_responses_websockets_v2_mode = openaiOAuthResponsesWebSocketV2Mode.value
+        newExtra.openai_oauth_responses_websockets_v2_enabled = isOpenAIWSModeEnabled(openaiOAuthResponsesWebSocketV2Mode.value)
+      } else if (props.account.type === 'apikey') {
+        newExtra.openai_apikey_responses_websockets_v2_mode = openaiAPIKeyResponsesWebSocketV2Mode.value
+        newExtra.openai_apikey_responses_websockets_v2_enabled = isOpenAIWSModeEnabled(openaiAPIKeyResponsesWebSocketV2Mode.value)
+      }
       delete newExtra.responses_websockets_v2_enabled
       delete newExtra.openai_ws_enabled
       if (openaiPassthroughEnabled.value) {
@@ -3373,19 +4114,56 @@ const handleSubmit = async () => {
       } else {
         newExtra.openai_compact_mode = openAICompactMode.value
       }
-      if (props.account.type === 'apikey') {
-        if (openAIResponsesMode.value === 'auto') {
+		if (props.account.type === 'apikey') {
+        if (!openAITextGenerationCapabilityEnabled.value || openAIResponsesMode.value === 'auto') {
           delete newExtra.openai_responses_mode
         } else {
           newExtra.openai_responses_mode = openAIResponsesMode.value
         }
-      }
+		}
+		if (autoPause5hThreshold.value != null && autoPause5hThreshold.value > 0) {
+			newExtra.auto_pause_5h_threshold = autoPause5hThreshold.value / 100
+		} else {
+			delete newExtra.auto_pause_5h_threshold
+		}
+		if (autoPause7dThreshold.value != null && autoPause7dThreshold.value > 0) {
+			newExtra.auto_pause_7d_threshold = autoPause7dThreshold.value / 100
+		} else {
+			delete newExtra.auto_pause_7d_threshold
+		}
+		if (autoPause5hDisabled.value) {
+			newExtra.auto_pause_5h_disabled = true
+		} else {
+			delete newExtra.auto_pause_5h_disabled
+		}
+		if (autoPause7dDisabled.value) {
+			newExtra.auto_pause_7d_disabled = true
+		} else {
+			delete newExtra.auto_pause_7d_disabled
+		}
 
-      delete newExtra.codex_image_generation_bridge_enabled
+		delete newExtra.codex_image_generation_bridge_enabled
       if (codexImageGenerationBridgeMode.value === 'inherit') {
         delete newExtra.codex_image_generation_bridge
       } else {
         newExtra.codex_image_generation_bridge = codexImageGenerationBridgeMode.value === 'enabled'
+      }
+
+      if (props.account.type === 'oauth') {
+        if (codexCLIOnlyEnabled.value) {
+          newExtra.codex_cli_only = true
+        } else if (hadCodexCLIOnlyEnabled) {
+          // 关闭时显式写 false，避免 extra 为空被后端忽略导致旧值无法清除
+          newExtra.codex_cli_only = false
+        } else {
+          delete newExtra.codex_cli_only
+        }
+        // 仅当 codex_cli_only 开启且子开关开启时写入 Claude Code 插件白名单，否则清除避免孤立字段
+        if (codexCLIOnlyEnabled.value && codexCLIOnlyAllowClaudeCodeEnabled.value) {
+          newExtra.codex_cli_only_allowed_clients = ['claude_code']
+        } else {
+          delete newExtra.codex_cli_only_allowed_clients
+        }
       }
 
       updatePayload.extra = newExtra

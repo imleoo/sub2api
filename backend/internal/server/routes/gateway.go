@@ -59,6 +59,7 @@ func RegisterGatewayRoutes(
 		// /v1/messages/count_tokens: OpenAI inbound 不支持 token 计数（与旧行为一致）
 		gateway.POST("/messages/count_tokens", func(c *gin.Context) {
 			if isOpenAIInbound(c) {
+				service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
 				c.JSON(http.StatusNotFound, gin.H{
 					"type": "error",
 					"error": gin.H{
@@ -96,8 +97,22 @@ func RegisterGatewayRoutes(
 			}
 			h.Gateway.ChatCompletions(c)
 		})
+		gateway.POST("/embeddings", func(c *gin.Context) {
+			if getGroupPlatform(c) != service.PlatformOpenAI {
+				service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": gin.H{
+						"type":    "not_found_error",
+						"message": "Embeddings API is not supported for this platform",
+					},
+				})
+				return
+			}
+			h.OpenAIGateway.Embeddings(c)
+		})
 		gateway.POST("/images/generations", func(c *gin.Context) {
 			if !isOpenAIInbound(c) {
+				service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
 				c.JSON(http.StatusNotFound, gin.H{
 					"error": gin.H{
 						"type":    "not_found_error",
@@ -110,6 +125,7 @@ func RegisterGatewayRoutes(
 		})
 		gateway.POST("/images/edits", func(c *gin.Context) {
 			if !isOpenAIInbound(c) {
+				service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
 				c.JSON(http.StatusNotFound, gin.H{
 					"error": gin.H{
 						"type":    "not_found_error",
@@ -164,11 +180,25 @@ func RegisterGatewayRoutes(
 		}
 		h.Gateway.ChatCompletions(c)
 	})
+	r.POST("/embeddings", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, func(c *gin.Context) {
+		if getGroupPlatform(c) != service.PlatformOpenAI {
+			service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": gin.H{
+					"type":    "not_found_error",
+					"message": "Embeddings API is not supported for this platform",
+				},
+			})
+			return
+		}
+		h.OpenAIGateway.Embeddings(c)
+	})
 	r.POST("/images/generations", bodyLimit, clientRequestID, opsErrorLogger, promptAnalytics, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, func(c *gin.Context) {
 		// fork 12 lingjing 警戒：lingjing 平台的 Seedream 同步生图复用此路由
 		// 协议感知判断：OpenAI 入站走 OpenAI handler；非 OpenAI 但 platform=lingjing 也允许
 		platform := getGroupPlatform(c)
 		if !isOpenAIInbound(c) && platform != service.PlatformLingjing {
+			service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": gin.H{
 					"type":    "not_found_error",
@@ -181,6 +211,7 @@ func RegisterGatewayRoutes(
 	})
 	r.POST("/images/edits", bodyLimit, clientRequestID, opsErrorLogger, promptAnalytics, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, func(c *gin.Context) {
 		if !isOpenAIInbound(c) {
+			service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": gin.H{
 					"type":    "not_found_error",
