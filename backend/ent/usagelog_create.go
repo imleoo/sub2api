@@ -651,6 +651,20 @@ func (_c *UsageLogCreate) SetImageSizeBreakdown(v map[string]int) *UsageLogCreat
 	return _c
 }
 
+// SetVideoSeconds sets the "video_seconds" field.
+func (_c *UsageLogCreate) SetVideoSeconds(v float64) *UsageLogCreate {
+	_c.mutation.SetVideoSeconds(v)
+	return _c
+}
+
+// SetNillableVideoSeconds sets the "video_seconds" field if the given value is not nil.
+func (_c *UsageLogCreate) SetNillableVideoSeconds(v *float64) *UsageLogCreate {
+	if v != nil {
+		_c.SetVideoSeconds(*v)
+	}
+	return _c
+}
+
 // SetCacheTTLOverridden sets the "cache_ttl_overridden" field.
 func (_c *UsageLogCreate) SetCacheTTLOverridden(v bool) *UsageLogCreate {
 	_c.mutation.SetCacheTTLOverridden(v)
@@ -831,6 +845,10 @@ func (_c *UsageLogCreate) defaults() {
 		v := usagelog.DefaultImageCount
 		_c.mutation.SetImageCount(v)
 	}
+	if _, ok := _c.mutation.VideoSeconds(); !ok {
+		v := usagelog.DefaultVideoSeconds
+		_c.mutation.SetVideoSeconds(v)
+	}
 	if _, ok := _c.mutation.CacheTTLOverridden(); !ok {
 		v := usagelog.DefaultCacheTTLOverridden
 		_c.mutation.SetCacheTTLOverridden(v)
@@ -985,6 +1003,9 @@ func (_c *UsageLogCreate) check() error {
 		if err := usagelog.ImageSizeSourceValidator(v); err != nil {
 			return &ValidationError{Name: "image_size_source", err: fmt.Errorf(`ent: validator failed for field "UsageLog.image_size_source": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.VideoSeconds(); !ok {
+		return &ValidationError{Name: "video_seconds", err: errors.New(`ent: missing required field "UsageLog.video_seconds"`)}
 	}
 	if _, ok := _c.mutation.CacheTTLOverridden(); !ok {
 		return &ValidationError{Name: "cache_ttl_overridden", err: errors.New(`ent: missing required field "UsageLog.cache_ttl_overridden"`)}
@@ -1209,6 +1230,10 @@ func (_c *UsageLogCreate) createSpec() (*UsageLog, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.ImageSizeBreakdown(); ok {
 		_spec.SetField(usagelog.FieldImageSizeBreakdown, field.TypeJSON, value)
 		_node.ImageSizeBreakdown = value
+	}
+	if value, ok := _c.mutation.VideoSeconds(); ok {
+		_spec.SetField(usagelog.FieldVideoSeconds, field.TypeFloat64, value)
+		_node.VideoSeconds = value
 	}
 	if value, ok := _c.mutation.CacheTTLOverridden(); ok {
 		_spec.SetField(usagelog.FieldCacheTTLOverridden, field.TypeBool, value)
@@ -2242,6 +2267,24 @@ func (u *UsageLogUpsert) UpdateImageSizeBreakdown() *UsageLogUpsert {
 // ClearImageSizeBreakdown clears the value of the "image_size_breakdown" field.
 func (u *UsageLogUpsert) ClearImageSizeBreakdown() *UsageLogUpsert {
 	u.SetNull(usagelog.FieldImageSizeBreakdown)
+	return u
+}
+
+// SetVideoSeconds sets the "video_seconds" field.
+func (u *UsageLogUpsert) SetVideoSeconds(v float64) *UsageLogUpsert {
+	u.Set(usagelog.FieldVideoSeconds, v)
+	return u
+}
+
+// UpdateVideoSeconds sets the "video_seconds" field to the value that was provided on create.
+func (u *UsageLogUpsert) UpdateVideoSeconds() *UsageLogUpsert {
+	u.SetExcluded(usagelog.FieldVideoSeconds)
+	return u
+}
+
+// AddVideoSeconds adds v to the "video_seconds" field.
+func (u *UsageLogUpsert) AddVideoSeconds(v float64) *UsageLogUpsert {
+	u.Add(usagelog.FieldVideoSeconds, v)
 	return u
 }
 
@@ -3364,6 +3407,27 @@ func (u *UsageLogUpsertOne) UpdateImageSizeBreakdown() *UsageLogUpsertOne {
 func (u *UsageLogUpsertOne) ClearImageSizeBreakdown() *UsageLogUpsertOne {
 	return u.Update(func(s *UsageLogUpsert) {
 		s.ClearImageSizeBreakdown()
+	})
+}
+
+// SetVideoSeconds sets the "video_seconds" field.
+func (u *UsageLogUpsertOne) SetVideoSeconds(v float64) *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetVideoSeconds(v)
+	})
+}
+
+// AddVideoSeconds adds v to the "video_seconds" field.
+func (u *UsageLogUpsertOne) AddVideoSeconds(v float64) *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.AddVideoSeconds(v)
+	})
+}
+
+// UpdateVideoSeconds sets the "video_seconds" field to the value that was provided on create.
+func (u *UsageLogUpsertOne) UpdateVideoSeconds() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateVideoSeconds()
 	})
 }
 
@@ -4660,6 +4724,27 @@ func (u *UsageLogUpsertBulk) UpdateImageSizeBreakdown() *UsageLogUpsertBulk {
 func (u *UsageLogUpsertBulk) ClearImageSizeBreakdown() *UsageLogUpsertBulk {
 	return u.Update(func(s *UsageLogUpsert) {
 		s.ClearImageSizeBreakdown()
+	})
+}
+
+// SetVideoSeconds sets the "video_seconds" field.
+func (u *UsageLogUpsertBulk) SetVideoSeconds(v float64) *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetVideoSeconds(v)
+	})
+}
+
+// AddVideoSeconds adds v to the "video_seconds" field.
+func (u *UsageLogUpsertBulk) AddVideoSeconds(v float64) *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.AddVideoSeconds(v)
+	})
+}
+
+// UpdateVideoSeconds sets the "video_seconds" field to the value that was provided on create.
+func (u *UsageLogUpsertBulk) UpdateVideoSeconds() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateVideoSeconds()
 	})
 }
 

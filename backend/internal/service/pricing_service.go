@@ -1048,7 +1048,8 @@ func (s *PricingService) GetCNYRate() float64 {
 	if s.cfg.Pricing.CNYRate > 0 {
 		return s.cfg.Pricing.CNYRate
 	}
-	return 7.2
+	// 与 config.Pricing.CNYRate viper 默认值（7）以及 DefaultWanjieCNYRate 保持一致。
+	return 7.0
 }
 
 // GetCurrencyMode 返回货币模式（优先读 DB settingRepo，fallback "usd"）

@@ -832,7 +832,7 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		balanceLowNotifyThreshold = v
 	}
 
-	var cnyRate float64 = 7.2
+	var cnyRate float64 = 7.0
 	if v, err := strconv.ParseFloat(settings[SettingKeyCNYRate], 64); err == nil && v > 0 {
 		cnyRate = v
 	}
@@ -855,7 +855,7 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		TurnstileSiteKey:                 settings[SettingKeyTurnstileSiteKey],
 		SiteName:                         s.getStringOrDefault(settings, SettingKeySiteName, "TokenPanel"),
 		SiteLogo:                         settings[SettingKeySiteLogo],
-		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, "Subscription to API Conversion Platform"),
+		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, "管理企业多个大模型资源，精细化管理每个用户和模型账单。"),
 		APIBaseURL:                       settings[SettingKeyAPIBaseURL],
 		ContactInfo:                      settings[SettingKeyContactInfo],
 		DocURL:                           settings[SettingKeyDocURL],
@@ -2905,7 +2905,7 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		APIKeyACLTrustForwardedIP:        apiKeyACLTrustForwardedIP,
 		SiteName:                         s.getStringOrDefault(settings, SettingKeySiteName, "TokenPanel"),
 		SiteLogo:                         settings[SettingKeySiteLogo],
-		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, "Subscription to API Conversion Platform"),
+		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, "管理企业多个大模型资源，精细化管理每个用户和模型账单。"),
 		APIBaseURL:                       settings[SettingKeyAPIBaseURL],
 		ContactInfo:                      settings[SettingKeyContactInfo],
 		DocURL:                           settings[SettingKeyDocURL],
@@ -3413,7 +3413,7 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 
 	// Currency mode
 	result.CurrencyMode = strings.TrimSpace(settings[SettingKeyCurrencyMode])
-	result.CNYRate = 7.2
+	result.CNYRate = 7.0
 	if v, err := strconv.ParseFloat(settings[SettingKeyCNYRate], 64); err == nil && v > 0 {
 		result.CNYRate = v
 	}

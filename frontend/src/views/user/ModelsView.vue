@@ -144,7 +144,7 @@
             v-if="model.discount_rate && model.discount_rate < 1"
             class="absolute right-0 top-0 rounded-bl-lg bg-red-500 px-2 py-0.5 text-xs font-bold text-white"
           >
-            {{ Math.round(model.discount_rate * 10) }}折
+            {{ formatDiscountLabel(model.discount_rate) }}
           </div>
 
           <!-- Model name + copy -->
@@ -503,23 +503,30 @@ function isGeminiVersionAtLeast(id: string, minVersion: number): boolean {
 
 
 // ─── Formatters ──────────────────────────
+// discount_rate ∈ (0,1)：0.85 → 8.5 折，0.01 → 0.1 折。
+// 保留 1 位小数避免出现 "0 折"/"9 折" 这类被四舍五入吞掉的折扣。
+function formatDiscountLabel(rate: number): string {
+  const tenths = Math.round(rate * 1000) / 100
+  return Number.isInteger(tenths) ? `${tenths}折` : `${tenths.toFixed(1)}折`
+}
+
 function formatPrice(costPerToken: number): string {
   if (!costPerToken || costPerToken <= 0) return '--'
-  
+
   // costPerToken is the price per single token
   // Convert to price per 1M tokens for display
   const per1m = costPerToken * 1_000_000
-  
-  if (per1m >= 1) {
-    // >= $1/1M tokens: show as $X.XX
+
+  if (per1m >= 0.1) {
+    // ≥ $0.1/1M tokens: 2 位小数足够
     return `$${per1m.toFixed(2)}`
-  } else if (per1m >= 0.1) {
-    // >= $0.1/1M tokens: show as $0.XX
-    return `$${per1m.toFixed(2)}`
-  } else {
-    // < $0.1/1M tokens: show more precision
+  }
+  if (per1m >= 0.01) {
+    // 0.01 ~ 0.1: 给 3 位小数避免被 toFixed(2) 吞掉
     return `$${per1m.toFixed(3)}`
   }
+  // < 0.01：保留至少 2 位有效数字，避免 0.1 折后 $0.0018 被截成 0
+  return `$${per1m.toPrecision(2)}`
 }
 
 // ─── Helpers ────────────────────────────

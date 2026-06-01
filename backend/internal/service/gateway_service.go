@@ -560,6 +560,10 @@ type ForwardResult struct {
 	ImageOutputSizes   []string
 	ImageSizeSource    string
 	ImageSizeBreakdown map[string]int
+
+	// 视频生成计费字段（video_generation 模式使用）
+	// 与 model_pricings.output_cost_per_image (USD/秒) 配合，cost = 单价 × VideoSeconds × multiplier
+	VideoSeconds float64
 }
 
 // UpstreamFailoverError indicates an upstream error that should trigger account failover.
@@ -8951,6 +8955,12 @@ func (s *GatewayService) calculateRecordUsageCost(
 	imageMultiplier float64,
 	opts *recordUsageOpts,
 ) *CostBreakdown {
+	// 视频生成计费：按秒计费，单价取自 model_pricings.output_cost_per_image (USD/秒)。
+	// 优先级高于图片，因为视频请求也可能附带 ImageCount（首帧/预览图等），不应误走图片路径。
+	if result.VideoSeconds > 0 {
+		return s.calculateVideoCost(ctx, result, apiKey, billingModel, imageMultiplier)
+	}
+
 	// 图片生成计费
 	if result.ImageCount > 0 {
 		return s.calculateImageCost(ctx, result, apiKey, billingModel, imageMultiplier)
@@ -8958,6 +8968,41 @@ func (s *GatewayService) calculateRecordUsageCost(
 
 	// Token 计费
 	return s.calculateTokenCost(ctx, result, apiKey, billingModel, multiplier, opts)
+}
+
+// calculateVideoCost 计算视频生成费用：渠道级别 per_request 定价优先，否则按 BillingService.CalculateVideoCost 走"单价 × 秒数"。
+func (s *GatewayService) calculateVideoCost(
+	ctx context.Context,
+	result *ForwardResult,
+	apiKey *APIKey,
+	billingModel string,
+	multiplier float64,
+) *CostBreakdown {
+	// 渠道定价（per_request mode + intervals）兜底优先级仍然存在，方便管理员针对单一渠道做覆盖。
+	if resolved := s.resolveChannelPricing(ctx, billingModel, apiKey); resolved != nil {
+		tokens := UsageTokens{
+			InputTokens:       result.Usage.InputTokens,
+			OutputTokens:      result.Usage.OutputTokens,
+			ImageOutputTokens: result.Usage.ImageOutputTokens,
+		}
+		gid := apiKey.Group.ID
+		cost, err := s.billingService.CalculateCostUnified(CostInput{
+			Ctx:            ctx,
+			Model:          billingModel,
+			GroupID:        &gid,
+			Tokens:         tokens,
+			RequestCount:   1,
+			RateMultiplier: multiplier,
+			Resolver:       s.resolver,
+			Resolved:       resolved,
+		})
+		if err != nil {
+			logger.LegacyPrintf("service.gateway", "Calculate video channel cost failed: %v", err)
+			return &CostBreakdown{ActualCost: 0}
+		}
+		return cost
+	}
+	return s.billingService.CalculateVideoCost(billingModel, result.VideoSeconds, multiplier)
 }
 
 // resolveChannelPricing 检查指定模型是否存在渠道级别定价。
@@ -9134,6 +9179,7 @@ func (s *GatewayService) buildRecordUsageLog(
 		ImageOutputSize:       optionalTrimmedStringPtr(result.ImageOutputSize),
 		ImageSizeSource:       optionalTrimmedStringPtr(result.ImageSizeSource),
 		ImageSizeBreakdown:    result.ImageSizeBreakdown,
+		VideoSeconds:          result.VideoSeconds,
 		CacheTTLOverridden:    cacheTTLOverridden,
 		ChannelID:             optionalInt64Ptr(input.ChannelID),
 		ModelMappingChain:     optionalTrimmedStringPtr(input.ModelMappingChain),

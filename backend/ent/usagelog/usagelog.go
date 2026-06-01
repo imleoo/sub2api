@@ -110,6 +110,8 @@ const (
 	FieldImageSizeSource = "image_size_source"
 	// FieldImageSizeBreakdown holds the string denoting the image_size_breakdown field in the database.
 	FieldImageSizeBreakdown = "image_size_breakdown"
+	// FieldVideoSeconds holds the string denoting the video_seconds field in the database.
+	FieldVideoSeconds = "video_seconds"
 	// FieldCacheTTLOverridden holds the string denoting the cache_ttl_overridden field in the database.
 	FieldCacheTTLOverridden = "cache_ttl_overridden"
 	// FieldEndpointID holds the string denoting the endpoint_id field in the database.
@@ -218,6 +220,7 @@ var Columns = []string{
 	FieldImageOutputSize,
 	FieldImageSizeSource,
 	FieldImageSizeBreakdown,
+	FieldVideoSeconds,
 	FieldCacheTTLOverridden,
 	FieldEndpointID,
 	FieldEndpointProtocol,
@@ -299,6 +302,8 @@ var (
 	ImageOutputSizeValidator func(string) error
 	// ImageSizeSourceValidator is a validator for the "image_size_source" field. It is called by the builders before save.
 	ImageSizeSourceValidator func(string) error
+	// DefaultVideoSeconds holds the default value on creation for the "video_seconds" field.
+	DefaultVideoSeconds float64
 	// DefaultCacheTTLOverridden holds the default value on creation for the "cache_ttl_overridden" field.
 	DefaultCacheTTLOverridden bool
 	// EndpointIDValidator is a validator for the "endpoint_id" field. It is called by the builders before save.
@@ -550,6 +555,11 @@ func ByImageOutputSize(opts ...sql.OrderTermOption) OrderOption {
 // ByImageSizeSource orders the results by the image_size_source field.
 func ByImageSizeSource(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldImageSizeSource, opts...).ToFunc()
+}
+
+// ByVideoSeconds orders the results by the video_seconds field.
+func ByVideoSeconds(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldVideoSeconds, opts...).ToFunc()
 }
 
 // ByCacheTTLOverridden orders the results by the cache_ttl_overridden field.

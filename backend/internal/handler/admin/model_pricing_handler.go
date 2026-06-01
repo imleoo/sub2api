@@ -421,11 +421,13 @@ func (h *ModelPricingHandler) SyncFromUpstream(c *gin.Context) {
 			continue
 		}
 		seeds = append(seeds, &service.DBModelPricing{
-			ModelID:   modelID,
-			Provider:  provider,
-			Mode:      mode,
-			IsCustom:  true,
-			IsEnabled: true,
+			ModelID:       modelID,
+			Provider:      provider,
+			Mode:          mode,
+			IsCustom:      true,
+			// 同步进来的自定义模型尚未配置定价，默认禁用，等待管理员补价格后再启用。
+			IsEnabled:     false,
+			PricingStatus: service.ModelPricingStatusUnpriced,
 		})
 	}
 
@@ -503,16 +505,22 @@ func (h *ModelPricingHandler) SyncFromWanjie(c *gin.Context) {
 		source string
 	)
 
+	// 万界单价为人民币，需要按当前 CNY 汇率换算为 USD（与 schema 字段语义保持一致）。
+	cnyRate := service.DefaultWanjieCNYRate
+	if h.pricingService != nil {
+		cnyRate = h.pricingService.GetCNYRate()
+	}
+
 	switch {
 	case strings.TrimSpace(req.JsonData) != "":
 		// 最高优先级：直接使用上传的 JSON 内容
-		parsed, err = service.ParseWanjieFromBytes([]byte(req.JsonData))
+		parsed, err = service.ParseWanjieFromBytes([]byte(req.JsonData), cnyRate)
 		source = "upload"
 	case apiURL != "" && token != "":
-		parsed, err = service.FetchAndParseWanjieModels(ctx, nil, apiURL, token)
+		parsed, err = service.FetchAndParseWanjieModels(ctx, nil, apiURL, token, cnyRate)
 		source = "live"
 	default:
-		parsed, err = service.ParseWanjieModels()
+		parsed, err = service.ParseWanjieModels(cnyRate)
 		source = "embedded"
 	}
 	if err != nil {
@@ -534,6 +542,24 @@ func (h *ModelPricingHandler) SyncFromWanjie(c *gin.Context) {
 		"total":   len(parsed),
 		"source":  source,
 	})
+}
+
+// ListProviders 返回模型定价表里出现过的全部 provider，供前端筛选下拉框使用。
+// GET /api/v1/admin/model-pricings/providers
+func (h *ModelPricingHandler) ListProviders(c *gin.Context) {
+	if h.repo == nil {
+		response.Success(c, gin.H{"providers": []string{}})
+		return
+	}
+	providers, err := h.repo.ListDistinctProviders(c.Request.Context())
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	if providers == nil {
+		providers = []string{}
+	}
+	response.Success(c, gin.H{"providers": providers})
 }
 
 // ClearAllDiscounts 将全表所有 discount_rate 置为 NULL。

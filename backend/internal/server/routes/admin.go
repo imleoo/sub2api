@@ -123,6 +123,7 @@ func registerModelPricingRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 	mp := admin.Group("/model-pricings")
 	{
 		mp.GET("", h.Admin.ModelPricing.List)
+		mp.GET("/providers", h.Admin.ModelPricing.ListProviders)
 		mp.POST("", h.Admin.ModelPricing.Create)
 		mp.PUT("/:id", h.Admin.ModelPricing.Update)
 		mp.DELETE("/:id", h.Admin.ModelPricing.Delete)

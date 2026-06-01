@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -596,6 +597,20 @@ func (r *modelPricingRepository) BulkUpsertWanjie(ctx context.Context, models []
 		}
 	}
 	return nil
+}
+
+// ListDistinctProviders 返回 model_pricings 表中出现过的全部 provider（去重 + 字母序）。
+// 跳过空字符串 provider，避免下拉框出现空白项。
+func (r *modelPricingRepository) ListDistinctProviders(ctx context.Context) ([]string, error) {
+	providers, err := r.client.ModelPricing.Query().
+		Where(modelpricing.ProviderNEQ("")).
+		GroupBy(modelpricing.FieldProvider).
+		Strings(ctx)
+	if err != nil {
+		return nil, err
+	}
+	sort.Strings(providers)
+	return providers, nil
 }
 
 // --- helpers ---

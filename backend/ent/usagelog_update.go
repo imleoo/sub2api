@@ -1027,6 +1027,27 @@ func (_u *UsageLogUpdate) ClearImageSizeBreakdown() *UsageLogUpdate {
 	return _u
 }
 
+// SetVideoSeconds sets the "video_seconds" field.
+func (_u *UsageLogUpdate) SetVideoSeconds(v float64) *UsageLogUpdate {
+	_u.mutation.ResetVideoSeconds()
+	_u.mutation.SetVideoSeconds(v)
+	return _u
+}
+
+// SetNillableVideoSeconds sets the "video_seconds" field if the given value is not nil.
+func (_u *UsageLogUpdate) SetNillableVideoSeconds(v *float64) *UsageLogUpdate {
+	if v != nil {
+		_u.SetVideoSeconds(*v)
+	}
+	return _u
+}
+
+// AddVideoSeconds adds value to the "video_seconds" field.
+func (_u *UsageLogUpdate) AddVideoSeconds(v float64) *UsageLogUpdate {
+	_u.mutation.AddVideoSeconds(v)
+	return _u
+}
+
 // SetCacheTTLOverridden sets the "cache_ttl_overridden" field.
 func (_u *UsageLogUpdate) SetCacheTTLOverridden(v bool) *UsageLogUpdate {
 	_u.mutation.SetCacheTTLOverridden(v)
@@ -1559,6 +1580,12 @@ func (_u *UsageLogUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.ImageSizeBreakdownCleared() {
 		_spec.ClearField(usagelog.FieldImageSizeBreakdown, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.VideoSeconds(); ok {
+		_spec.SetField(usagelog.FieldVideoSeconds, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedVideoSeconds(); ok {
+		_spec.AddField(usagelog.FieldVideoSeconds, field.TypeFloat64, value)
 	}
 	if value, ok := _u.mutation.CacheTTLOverridden(); ok {
 		_spec.SetField(usagelog.FieldCacheTTLOverridden, field.TypeBool, value)
@@ -2734,6 +2761,27 @@ func (_u *UsageLogUpdateOne) ClearImageSizeBreakdown() *UsageLogUpdateOne {
 	return _u
 }
 
+// SetVideoSeconds sets the "video_seconds" field.
+func (_u *UsageLogUpdateOne) SetVideoSeconds(v float64) *UsageLogUpdateOne {
+	_u.mutation.ResetVideoSeconds()
+	_u.mutation.SetVideoSeconds(v)
+	return _u
+}
+
+// SetNillableVideoSeconds sets the "video_seconds" field if the given value is not nil.
+func (_u *UsageLogUpdateOne) SetNillableVideoSeconds(v *float64) *UsageLogUpdateOne {
+	if v != nil {
+		_u.SetVideoSeconds(*v)
+	}
+	return _u
+}
+
+// AddVideoSeconds adds value to the "video_seconds" field.
+func (_u *UsageLogUpdateOne) AddVideoSeconds(v float64) *UsageLogUpdateOne {
+	_u.mutation.AddVideoSeconds(v)
+	return _u
+}
+
 // SetCacheTTLOverridden sets the "cache_ttl_overridden" field.
 func (_u *UsageLogUpdateOne) SetCacheTTLOverridden(v bool) *UsageLogUpdateOne {
 	_u.mutation.SetCacheTTLOverridden(v)
@@ -3296,6 +3344,12 @@ func (_u *UsageLogUpdateOne) sqlSave(ctx context.Context) (_node *UsageLog, err 
 	}
 	if _u.mutation.ImageSizeBreakdownCleared() {
 		_spec.ClearField(usagelog.FieldImageSizeBreakdown, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.VideoSeconds(); ok {
+		_spec.SetField(usagelog.FieldVideoSeconds, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedVideoSeconds(); ok {
+		_spec.AddField(usagelog.FieldVideoSeconds, field.TypeFloat64, value)
 	}
 	if value, ok := _u.mutation.CacheTTLOverridden(); ok {
 		_spec.SetField(usagelog.FieldCacheTTLOverridden, field.TypeBool, value)

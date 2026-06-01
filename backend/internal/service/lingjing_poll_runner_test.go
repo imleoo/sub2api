@@ -67,7 +67,7 @@ func TestWriteAsyncUsageLog_HitFillsSnapshotAndAsyncFields(t *testing.T) {
 		BillingMode: "per_request",
 	}
 
-	runner.writeAsyncUsageLog(context.Background(), task, "doubao-seedance-1.5-pro-5s", cost)
+	runner.writeAsyncUsageLog(context.Background(), task, "doubao-seedance-1.5-pro-5s", 5, cost)
 
 	require.Len(t, usageStub.created, 1)
 	log := usageStub.created[0]
@@ -117,7 +117,7 @@ func TestWriteAsyncUsageLog_MissKeepsCostNullKeepsAsyncTaskID(t *testing.T) {
 	}
 	cost := &CostBreakdown{ActualCost: 0.5, BillingMode: "per_request"}
 
-	runner.writeAsyncUsageLog(context.Background(), task, "doubao-unknown-model", cost)
+	runner.writeAsyncUsageLog(context.Background(), task, "doubao-unknown-model", 5, cost)
 
 	require.Len(t, usageStub.created, 1)
 	log := usageStub.created[0]
@@ -145,7 +145,7 @@ func TestWriteAsyncUsageLog_NilUsageLogRepoSafe(t *testing.T) {
 	cost := &CostBreakdown{ActualCost: 0.5}
 
 	// 不应 panic
-	runner.writeAsyncUsageLog(context.Background(), task, "any-model", cost)
+	runner.writeAsyncUsageLog(context.Background(), task, "any-model", 5, cost)
 }
 
 // TestWriteAsyncUsageLog_FlagForceOn 异步路径不读 USAGE_UPSTREAM_COST_ENABLED flag。
@@ -172,7 +172,7 @@ func TestWriteAsyncUsageLog_FlagForceOn(t *testing.T) {
 	task := &LingjingTask{GenTaskID: "force-on", UserID: 1, APIKeyID: 2, AccountID: 3}
 
 	start := time.Now()
-	runner.writeAsyncUsageLog(context.Background(), task, "any", &CostBreakdown{ActualCost: 1.0})
+	runner.writeAsyncUsageLog(context.Background(), task, "any", 5, &CostBreakdown{ActualCost: 1.0})
 	elapsed := time.Since(start)
 
 	require.Len(t, usageStub.created, 1)

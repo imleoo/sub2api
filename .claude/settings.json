@@ -1,4 +1,10 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(echo \"---EXIT $?---\")",
+      "Bash(echo \"=== exit:$? \\(0=found,1=none\\) ===\")"
+    ]
+  },
   "hooks": {
     "Stop": [
       {

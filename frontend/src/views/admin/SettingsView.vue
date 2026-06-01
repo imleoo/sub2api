@@ -7045,7 +7045,7 @@ const form = reactive<SettingsForm>({
   default_user_rpm_limit: 0,
   site_name: "TokenPanel",
   site_logo: "",
-  site_subtitle: "Subscription to API Conversion Platform",
+  site_subtitle: "管理企业多个大模型资源，精细化管理每个用户和模型账单。",
   api_base_url: "",
   ui_theme: "teal" as "teal" | "violet" | "orange",
   contact_info: "",

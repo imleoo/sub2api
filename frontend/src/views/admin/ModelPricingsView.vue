@@ -151,12 +151,12 @@
 
                   <!-- Upstream input price -->
                   <td class="text-right font-mono text-xs text-gray-600 dark:text-gray-400">
-                    {{ formatTokenPrice(item.input_cost_per_token) }}
+                    {{ formatUpstreamInputPrice(item) }}
                   </td>
 
                   <!-- Upstream output price -->
                   <td class="text-right font-mono text-xs text-gray-600 dark:text-gray-400">
-                    {{ formatTokenPrice(item.output_cost_per_token) }}
+                    {{ formatUpstreamOutputPrice(item) }}
                   </td>
 
                   <!-- Custom input price -->
@@ -691,7 +691,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import TablePageLayout from '@/components/layout/TablePageLayout.vue'
 import Pagination from '@/components/common/Pagination.vue'
@@ -709,6 +709,7 @@ import {
   syncModelPricingsFromUpstream,
   syncModelPricingsFromWanjie,
   clearAllModelPricingDiscounts,
+  listModelPricingProviders,
   type DBModelPricing,
   type CreateModelPricingRequest,
 } from '@/api/admin/modelPricings'
@@ -801,13 +802,37 @@ const createForm = reactive<{
 
 // ==================== Options ====================
 
-const providerOptions = [
+// 从后端拉取的全部 provider（去重，按字母排序）。
+const availableProviders = ref<string[]>([])
+
+// 已知 provider 的展示名映射，其余按首字母大写兜底，避免显示成 "anthropic"/"openai" 这种小写。
+const PROVIDER_LABEL_OVERRIDES: Record<string, string> = {
+  anthropic: 'Anthropic',
+  openai: 'OpenAI',
+  google: 'Google',
+  custom: 'Custom',
+}
+
+const formatProviderLabel = (provider: string): string => {
+  const key = provider.toLowerCase()
+  if (PROVIDER_LABEL_OVERRIDES[key]) return PROVIDER_LABEL_OVERRIDES[key]
+  if (!provider) return provider
+  return provider.charAt(0).toUpperCase() + provider.slice(1)
+}
+
+const providerOptions = computed(() => [
   { value: '', label: '全部提供商' },
-  { value: 'anthropic', label: 'Anthropic' },
-  { value: 'openai', label: 'OpenAI' },
-  { value: 'google', label: 'Google' },
-  { value: 'custom', label: 'Custom' },
-]
+  ...availableProviders.value.map(p => ({ value: p, label: formatProviderLabel(p) })),
+])
+
+const loadProviders = async () => {
+  try {
+    const { data } = await listModelPricingProviders()
+    availableProviders.value = data.providers ?? []
+  } catch {
+    availableProviders.value = []
+  }
+}
 
 const sourceOptions = [
   { value: '', label: '全部来源' },
@@ -832,7 +857,10 @@ const modeOptions = [
 const formatTokenPrice = (price: number | null | undefined): string => {
   if (price === null || price === undefined) return '—'
   const perMillion = price * 1_000_000
-  return `$${perMillion.toFixed(2)} /M tok`
+  if (perMillion === 0) return '$0.00 /M tok'
+  // ≥ 0.01：2 位小数足够；< 0.01：保留至少 2 位有效数字，避免 0.1 折后 $0.0018 被 toFixed(2) 吞成 0.00
+  const display = perMillion >= 0.01 ? perMillion.toFixed(2) : perMillion.toPrecision(2)
+  return `$${display} /M tok`
 }
 
 const formatDiscountRate = (rate: number | null | undefined): string => {
@@ -840,11 +868,60 @@ const formatDiscountRate = (rate: number | null | undefined): string => {
   return `${rate} (${(rate * 100).toFixed(0)}%)`
 }
 
+// 去掉末尾零、保留至多 6 位小数的 USD 美化输出。
+const formatUsdAmount = (value: number): string => {
+  return `$${value.toFixed(6).replace(/0+$/, '').replace(/\.$/, '')}`
+}
+
+// 图像 / 视频生成模型的价格不在 token 列：
+//   - output_cost_per_image      —— "USD/张"（image）或 "USD/秒"（video）
+//   - output_cost_per_image_token —— 灵境 seedance 这类 "USD/次请求"（已按预设时长预算）
+// 单独走一个 formatter，避免被 formatTokenPrice 乘 1_000_000 显示成 $295,400 /M tok。
+const formatPerUnitPrice = (price: number | null | undefined, mode: string): string => {
+  if (price === null || price === undefined) return ''
+  const unit = mode === 'video_generation' ? '秒' : '张'
+  return `${formatUsdAmount(price)}/${unit}`
+}
+
+const formatPerRequestPrice = (price: number | null | undefined, mode: string): string => {
+  if (price === null || price === undefined) return ''
+  const unit = mode === 'video_generation' ? '视频' : '次'
+  return `${formatUsdAmount(price)}/${unit}`
+}
+
+const formatUpstreamInputPrice = (item: DBModelPricing): string => {
+  if (item.input_cost_per_token !== null && item.input_cost_per_token !== undefined) {
+    return formatTokenPrice(item.input_cost_per_token)
+  }
+  return '—'
+}
+
+const formatUpstreamOutputPrice = (item: DBModelPricing): string => {
+  if (item.output_cost_per_token !== null && item.output_cost_per_token !== undefined) {
+    return formatTokenPrice(item.output_cost_per_token)
+  }
+  const perUnit = formatPerUnitPrice(item.output_cost_per_image, item.mode)
+  if (perUnit) return perUnit
+  // 灵境 seedance 视频：output_cost_per_image_token 实际存的是"一次请求的总价"，不是 per-token 单价。
+  const perRequest = formatPerRequestPrice(item.output_cost_per_image_token, item.mode)
+  if (perRequest) return perRequest
+  return '—'
+}
+
 const formatEffectiveInputPrice = (item: DBModelPricing): string => {
-  const basePrice = item.custom_input_cost ?? item.input_cost_per_token
-  if (basePrice === null || basePrice === undefined) return '—'
   const discount = item.discount_rate ?? 1
-  return formatTokenPrice(basePrice * discount)
+  const tokenBase = item.custom_input_cost ?? item.input_cost_per_token
+  if (tokenBase !== null && tokenBase !== undefined) {
+    return formatTokenPrice(tokenBase * discount)
+  }
+  // image_generation / video_generation：使用 per-unit 价格直接乘以折扣率
+  if (item.output_cost_per_image !== null && item.output_cost_per_image !== undefined) {
+    return formatPerUnitPrice(item.output_cost_per_image * discount, item.mode)
+  }
+  if (item.output_cost_per_image_token !== null && item.output_cost_per_image_token !== undefined) {
+    return formatPerRequestPrice(item.output_cost_per_image_token * discount, item.mode)
+  }
+  return '—'
 }
 
 // ==================== Data loading ====================
@@ -923,6 +1000,7 @@ const handleSync = async () => {
     await triggerModelPricingSync()
     appStore.showSuccess('同步触发成功，后台正在更新价格数据')
     await load()
+    loadProviders()
   } catch {
     appStore.showError('同步失败')
   } finally {
@@ -983,6 +1061,7 @@ const handleWanjieSync = async () => {
     appStore.showSuccess(`万界定价同步完成（来源：${src}），共处理 ${data.total} 个模型`)
     closeWanjieModal()
     await load()
+    loadProviders()
   } catch (err) {
     const error = err as { response?: { data?: { message?: string; detail?: string } } }
     appStore.showError(error.response?.data?.message || error.response?.data?.detail || '万界定价同步失败')
@@ -1033,6 +1112,7 @@ const handleImport = async () => {
     appStore.showSuccess(`已拉取 ${data.fetched ?? (data.models?.length ?? 0)} 个模型并写入定价表`)
     closeImportModal()
     await load()
+    loadProviders()
   } catch (err) {
     const error = err as { response?: { data?: { message?: string; detail?: string } } }
     appStore.showError(error.response?.data?.message || error.response?.data?.detail || '导入失败')
@@ -1157,6 +1237,7 @@ const handleCreate = async () => {
     closeCreateModal()
     pagination.page = 1
     await load()
+    loadProviders()
   } catch {
     appStore.showError('创建失败')
   } finally {
@@ -1186,5 +1267,8 @@ const confirmDelete = async () => {
 
 // ==================== Lifecycle ====================
 
-onMounted(load)
+onMounted(() => {
+  load()
+  loadProviders()
+})
 </script>

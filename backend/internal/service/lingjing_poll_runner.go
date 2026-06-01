@@ -2,8 +2,9 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -174,18 +175,17 @@ func (r *LingjingPollRunner) triggerBilling(ctx context.Context, task *LingjingT
 	if r.billingSvc == nil || r.billingCache == nil {
 		return
 	}
-	dur := task.Duration
-	if dur == "" {
-		dur = "5"
-	}
-	model := fmt.Sprintf("doubao-seedance-1.5-pro-%ss", dur)
+	const model = "doubao-seedance-1.5-pro"
 
-	cost, err := r.billingSvc.CalculateCost(model, UsageTokens{ImageOutputTokens: 1}, 1.0)
-	if err != nil {
-		slog.Warn("lingjing: billing price not found, skipping deduction",
-			"task_id", task.ID, "model", model, "error", err)
-		_ = r.taskRepo.MarkBilled(ctx, task.ID, 0)
-		return
+	// task.Duration 是字符串秒数（lingjing API 输入参数原样存储），fallback 5 秒兜底。
+	seconds, _ := strconv.ParseFloat(strings.TrimSpace(task.Duration), 64)
+	if seconds <= 0 {
+		seconds = 5
+	}
+
+	cost := r.billingSvc.CalculateVideoCost(model, seconds, 1.0)
+	if cost == nil {
+		cost = &CostBreakdown{}
 	}
 
 	if cost.ActualCost > 0 {
@@ -202,7 +202,7 @@ func (r *LingjingPollRunner) triggerBilling(ctx context.Context, task *LingjingT
 
 	// Phase 0 P0-7：UsageLog 第 4 装配点（异步路径，feature flag 强制 ON）
 	// 失败/超时任务不进入此分支（triggerBilling 仅在 success 后调用），符合"超时归待结算超时"语义
-	r.writeAsyncUsageLog(ctx, task, model, cost)
+	r.writeAsyncUsageLog(ctx, task, model, seconds, cost)
 }
 
 // writeAsyncUsageLog 为 lingjing 异步任务写入一行 UsageLog（Phase 0 P0-7）。
@@ -213,37 +213,35 @@ func (r *LingjingPollRunner) triggerBilling(ctx context.Context, task *LingjingT
 //   - CostFinalizedAt = poll_runner 触发计费时刻（不是 created_at）
 //
 // 失败场景：写入失败仅 log warn，不阻塞 MarkBilled 已完成的计费状态。
-func (r *LingjingPollRunner) writeAsyncUsageLog(ctx context.Context, task *LingjingTask, model string, cost *CostBreakdown) {
+func (r *LingjingPollRunner) writeAsyncUsageLog(ctx context.Context, task *LingjingTask, model string, seconds float64, cost *CostBreakdown) {
 	if r.usageLogRepo == nil {
 		return
 	}
 
 	now := time.Now()
 	usageLog := &UsageLog{
-		UserID:    task.UserID,
-		APIKeyID:  task.APIKeyID,
-		AccountID: task.AccountID,
-		RequestID: task.GenTaskID, // 用 gen_task_id 作为 request_id，保证唯一
-		Model:     model,
-		GroupID:   task.GroupID,
-		// 视频任务按 1 张/次计费（与 BillingService.CalculateCost 入参对齐）
-		ImageOutputTokens:     1,
-		InputCost:             cost.InputCost,
-		OutputCost:            cost.OutputCost,
-		ImageOutputCost:       cost.ImageOutputCost,
-		CacheCreationCost:     cost.CacheCreationCost,
-		CacheReadCost:         cost.CacheReadCost,
-		TotalCost:             cost.TotalCost,
-		ActualCost:            cost.ActualCost,
-		BillingType:           BillingTypeBalance,
-		Stream:                false,
-		ImageCount:            1,
-		CreatedAt:             now,
+		UserID:            task.UserID,
+		APIKeyID:          task.APIKeyID,
+		AccountID:         task.AccountID,
+		RequestID:         task.GenTaskID, // 用 gen_task_id 作为 request_id，保证唯一
+		Model:             model,
+		GroupID:           task.GroupID,
+		VideoSeconds:      seconds,
+		InputCost:         cost.InputCost,
+		OutputCost:        cost.OutputCost,
+		ImageOutputCost:   cost.ImageOutputCost,
+		CacheCreationCost: cost.CacheCreationCost,
+		CacheReadCost:     cost.CacheReadCost,
+		TotalCost:         cost.TotalCost,
+		ActualCost:        cost.ActualCost,
+		BillingType:       BillingTypeBalance,
+		Stream:            false,
+		CreatedAt:         now,
 	}
 
 	billingMode := cost.BillingMode
 	if billingMode == "" {
-		billingMode = "per_request"
+		billingMode = string(BillingModeVideo)
 	}
 	usageLog.BillingMode = &billingMode
 

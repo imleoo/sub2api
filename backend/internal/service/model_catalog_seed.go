@@ -189,18 +189,20 @@ func BootstrapPricingSeeds() []*DBModelPricing {
 		Mode:               "image_generation",
 		OutputCostPerImage: bootstrapFloatPtr(lingjingSeedream5LitePricing.OutputCostPerImage),
 	}
-	lingjingSeedance5s := &DBModelPricing{
-		ModelID:                 "doubao-seedance-1.5-pro-5s",
-		Provider:                "lingjing",
-		Mode:                    "video_generation",
-		OutputCostPerImageToken: bootstrapFloatPtr(lingjingSeedance15Pro5sPricing.OutputCostPerImageToken),
+	// 灵境 seedance：按秒计费，单价 $0.02954/秒（= ¥0.01/千 token × 1280×720×24/1024 tokens/秒 ÷ 7 CNY/USD）。
+	// output_cost_per_image 复用承担 per-second 语义（schema 注释），billing 路径 CalculateVideoCost 直接读取。
+	lingjingSeedance := &DBModelPricing{
+		ModelID:            "doubao-seedance-1.5-pro",
+		Provider:           "lingjing",
+		Mode:               "video_generation",
+		OutputCostPerImage: bootstrapFloatPtr(0.02954),
 	}
-	lingjingSeedance10s := &DBModelPricing{
-		ModelID:                 "doubao-seedance-1.5-pro-10s",
-		Provider:                "lingjing",
-		Mode:                    "video_generation",
-		OutputCostPerImageToken: bootstrapFloatPtr(lingjingSeedance15Pro10sPricing.OutputCostPerImageToken),
-	}
+	// 保留历史时长后缀模型作为兼容兜底（旧 usage_log 行 join 时仍可定位到价格），
+	// 单价语义改为 per-second 一致，避免老路径误算。
+	lingjingSeedance5s := *lingjingSeedance
+	lingjingSeedance5s.ModelID = "doubao-seedance-1.5-pro-5s"
+	lingjingSeedance10s := *lingjingSeedance
+	lingjingSeedance10s.ModelID = "doubao-seedance-1.5-pro-10s"
 
 	all := []*DBModelPricing{
 		claudeOpus45, &claudeOpus46, &claudeOpus47,
@@ -209,7 +211,7 @@ func BootstrapPricingSeeds() []*DBModelPricing {
 		gemini31Pro,
 		gpt54, &gpt55, gpt54Mini, gpt54Nano, gpt52, gpt53Codex, &gpt53CodexSpark,
 		lingjingSeedream40, &lingjingSeedream45, lingjingSeedream5Lite,
-		lingjingSeedance5s, lingjingSeedance10s,
+		lingjingSeedance, &lingjingSeedance5s, &lingjingSeedance10s,
 	}
 
 	// 统一打 source 与 pricing_status 标签；灵境保留 source=lingjing 与现状一致。

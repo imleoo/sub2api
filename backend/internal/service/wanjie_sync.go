@@ -54,21 +54,30 @@ type wanjieRelation struct {
 	Unit              string `json:"unit"`
 }
 
+// DefaultWanjieCNYRate 是 cnyRate<=0 时的兜底汇率，与 config.Pricing.CNYRate 默认值一致。
+const DefaultWanjieCNYRate = 7.0
+
 // ParseWanjieModels 解析内嵌的 wanjie.json，返回可写入 model_pricings 表的记录列表。
-// 每条记录对应万界平台一个模型，价格单位为 ¥/token（从 ¥/M token 换算）。
-func ParseWanjieModels() ([]*DBModelPricing, error) {
-	return ParseWanjieFromBytes(wanjieRawJSON)
+// 每条记录对应万界平台一个模型，万界原始单价为 ¥/M token / ¥/张 / ¥/秒，
+// 入库统一按 cnyRate 换算为 USD 单位（1 USD = cnyRate CNY）。
+func ParseWanjieModels(cnyRate float64) ([]*DBModelPricing, error) {
+	return ParseWanjieFromBytes(wanjieRawJSON, cnyRate)
 }
 
 // ParseWanjieFromBytes 解析任意来源的万界 API JSON 响应体。
-func ParseWanjieFromBytes(data []byte) ([]*DBModelPricing, error) {
+// cnyRate<=0 时回退到 defaultWanjieCNYRate，确保字段语义始终是 USD。
+func ParseWanjieFromBytes(data []byte, cnyRate float64) ([]*DBModelPricing, error) {
 	var resp wanjieResponse
 	if err := json.Unmarshal(data, &resp); err != nil {
 		return nil, err
 	}
+	rate := cnyRate
+	if rate <= 0 {
+		rate = DefaultWanjieCNYRate
+	}
 	out := make([]*DBModelPricing, 0, len(resp.Result))
 	for _, m := range resp.Result {
-		p := convertWanjieModel(&m)
+		p := convertWanjieModel(&m, rate)
 		if p != nil {
 			out = append(out, p)
 		}
@@ -77,8 +86,8 @@ func ParseWanjieFromBytes(data []byte) ([]*DBModelPricing, error) {
 }
 
 // FetchAndParseWanjieModels 向万界 MaaS API 发起 GET 请求并解析定价数据。
-// client 可为 nil（使用默认 http.Client），url 和 token 不能为空。
-func FetchAndParseWanjieModels(ctx context.Context, client *http.Client, url, token string) ([]*DBModelPricing, error) {
+// client 可为 nil（使用默认 http.Client），url 和 token 不能为空。cnyRate 同 ParseWanjieModels。
+func FetchAndParseWanjieModels(ctx context.Context, client *http.Client, url, token string, cnyRate float64) ([]*DBModelPricing, error) {
 	if client == nil {
 		client = &http.Client{}
 	}
@@ -104,11 +113,12 @@ func FetchAndParseWanjieModels(ctx context.Context, client *http.Client, url, to
 		return nil, fmt.Errorf("read response body: %w", err)
 	}
 
-	return ParseWanjieFromBytes(body)
+	return ParseWanjieFromBytes(body, cnyRate)
 }
 
 // convertWanjieModel 将单个万界模型转换为 DBModelPricing。
-func convertWanjieModel(m *wanjieModel) *DBModelPricing {
+// cnyRate 用于把万界 ¥ 单价换算为 USD（input/output_cost_per_token 等字段语义为 USD）。
+func convertWanjieModel(m *wanjieModel, cnyRate float64) *DBModelPricing {
 	if strings.TrimSpace(m.ModelName) == "" {
 		return nil
 	}
@@ -136,7 +146,9 @@ func convertWanjieModel(m *wanjieModel) *DBModelPricing {
 					if rawVal == "" {
 						rawVal = strings.TrimSpace(r.ChargeValue)
 					}
-					v, _ := strconv.ParseFloat(rawVal, 64)
+					cnyVal, _ := strconv.ParseFloat(rawVal, 64)
+					// 万界单价为人民币，统一换算为 USD（schema 字段语义全部是 USD）。
+					v := cnyVal / cnyRate
 					switch r.ModalKey {
 					case "1-1-1", "1-1-6": // 输入文本单价 ¥/M token
 						if inputCost == nil && v > 0 {
@@ -180,6 +192,11 @@ func convertWanjieModel(m *wanjieModel) *DBModelPricing {
 							hasImgOut = true
 						}
 					case "2-4-1", "2-4-7": // 视频/音频 ¥/秒
+						// 多档（std/pro/master）按 JSON 顺序，取第一档（通常是最低档）作为基准价；
+						// 复用 output_cost_per_image 字段存储（schema 注释允许 per image / per second 复用）。
+						if imgPerImage == nil && v > 0 {
+							imgPerImage = &v
+						}
 						hasVideoOut = true
 					}
 				}
@@ -216,9 +233,10 @@ func convertWanjieModel(m *wanjieModel) *DBModelPricing {
 		SupportsPromptCaching:    supportsCache,
 		DiscountRate:             discountRate,
 		IsCustom:                 true,
-		IsEnabled:                true,
-		Source:                   ModelPricingSourceWanjie,
-		PricingStatus:            pricingStatus,
+		// 万界平台未给出定价的模型默认禁用，避免被计费链路按 0 元放行。
+		IsEnabled:     pricingStatus == ModelPricingStatusPriced,
+		Source:        ModelPricingSourceWanjie,
+		PricingStatus: pricingStatus,
 	}
 }
 

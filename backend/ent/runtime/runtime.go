@@ -2120,20 +2120,24 @@ func init() {
 	usagelogDescImageSizeSource := usagelogFields[46].Descriptor()
 	// usagelog.ImageSizeSourceValidator is a validator for the "image_size_source" field. It is called by the builders before save.
 	usagelog.ImageSizeSourceValidator = usagelogDescImageSizeSource.Validators[0].(func(string) error)
+	// usagelogDescVideoSeconds is the schema descriptor for video_seconds field.
+	usagelogDescVideoSeconds := usagelogFields[48].Descriptor()
+	// usagelog.DefaultVideoSeconds holds the default value on creation for the video_seconds field.
+	usagelog.DefaultVideoSeconds = usagelogDescVideoSeconds.Default.(float64)
 	// usagelogDescCacheTTLOverridden is the schema descriptor for cache_ttl_overridden field.
-	usagelogDescCacheTTLOverridden := usagelogFields[48].Descriptor()
+	usagelogDescCacheTTLOverridden := usagelogFields[49].Descriptor()
 	// usagelog.DefaultCacheTTLOverridden holds the default value on creation for the cache_ttl_overridden field.
 	usagelog.DefaultCacheTTLOverridden = usagelogDescCacheTTLOverridden.Default.(bool)
 	// usagelogDescEndpointID is the schema descriptor for endpoint_id field.
-	usagelogDescEndpointID := usagelogFields[49].Descriptor()
+	usagelogDescEndpointID := usagelogFields[50].Descriptor()
 	// usagelog.EndpointIDValidator is a validator for the "endpoint_id" field. It is called by the builders before save.
 	usagelog.EndpointIDValidator = usagelogDescEndpointID.Validators[0].(func(string) error)
 	// usagelogDescEndpointProtocol is the schema descriptor for endpoint_protocol field.
-	usagelogDescEndpointProtocol := usagelogFields[50].Descriptor()
+	usagelogDescEndpointProtocol := usagelogFields[51].Descriptor()
 	// usagelog.EndpointProtocolValidator is a validator for the "endpoint_protocol" field. It is called by the builders before save.
 	usagelog.EndpointProtocolValidator = usagelogDescEndpointProtocol.Validators[0].(func(string) error)
 	// usagelogDescCreatedAt is the schema descriptor for created_at field.
-	usagelogDescCreatedAt := usagelogFields[51].Descriptor()
+	usagelogDescCreatedAt := usagelogFields[52].Descriptor()
 	// usagelog.DefaultCreatedAt holds the default value on creation for the created_at field.
 	usagelog.DefaultCreatedAt = usagelogDescCreatedAt.Default.(func() time.Time)
 	userMixin := schema.User{}.Mixin()

@@ -193,6 +193,9 @@ type UsageLog struct {
 	ImageSizeBreakdown map[string]int
 	MediaType          *string
 
+	// 视频生成字段：实际计费时长（秒）。配合 model_pricings.output_cost_per_image（USD/秒）计算 cost。
+	VideoSeconds float64
+
 	CreatedAt time.Time
 
 	User         *User

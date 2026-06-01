@@ -109,3 +109,10 @@ export const syncModelPricingsFromWanjie = (data: SyncFromWanjieRequest) =>
 
 export const clearAllModelPricingDiscounts = () =>
   apiClient.post('/admin/model-pricings/clear-discounts')
+
+export interface ListProvidersResponse {
+  providers: string[]
+}
+
+export const listModelPricingProviders = () =>
+  apiClient.get<ListProvidersResponse>('/admin/model-pricings/providers')

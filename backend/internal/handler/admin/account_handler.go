@@ -2218,12 +2218,14 @@ func (h *AccountHandler) FetchEndpointModels(c *gin.Context) {
 				continue
 			}
 			seeds = append(seeds, &service.DBModelPricing{
-				ModelID:   m,
-				Provider:  provider,
-				Source:    service.ModelPricingSourceUpstreamSync,
-				Mode:      "chat",
-				IsCustom:  true,
-				IsEnabled: true,
+				ModelID:  m,
+				Provider: provider,
+				Source:   service.ModelPricingSourceUpstreamSync,
+				Mode:     "chat",
+				IsCustom: true,
+				// 上游同步拉取的模型尚未带定价，默认禁用，避免未配置价格的模型被计费链路误用。
+				IsEnabled:     false,
+				PricingStatus: service.ModelPricingStatusUnpriced,
 			})
 		}
 		// 优先通过 ModelCatalogService（统一 source 规则 + 自动 ReloadFromDB）；

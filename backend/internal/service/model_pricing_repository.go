@@ -117,4 +117,7 @@ type ModelPricingRepository interface {
 	// - is_custom=false 的已有记录（LiteLLM 来源）：跳过，保留 USD 定价
 	// - 不存在的记录：新建（is_custom=true，source=wanjie）
 	BulkUpsertWanjie(ctx context.Context, models []*DBModelPricing) error
+
+	// ListDistinctProviders 返回当前模型定价表中出现过的全部 provider（去重、按字母排序），供前端筛选下拉框使用。
+	ListDistinctProviders(ctx context.Context) ([]string, error)
 }

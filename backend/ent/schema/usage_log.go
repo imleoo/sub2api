@@ -203,6 +203,10 @@ func (UsageLog) Fields() []ent.Field {
 		field.JSON("image_size_breakdown", map[string]int{}).
 			Optional().
 			SchemaType(map[string]string{dialect.Postgres: "jsonb"}),
+		// 视频生成时长（秒）。仅 video_generation 模式有值；与 model_pricings.output_cost_per_image (USD/秒) 配合计算 cost。
+		field.Float("video_seconds").
+			Default(0).
+			SchemaType(map[string]string{dialect.Postgres: "decimal(10,3)"}),
 		// Cache TTL Override 标记（管理员强制替换了缓存 TTL 计费）
 		field.Bool("cache_ttl_overridden").
 			Default(false),

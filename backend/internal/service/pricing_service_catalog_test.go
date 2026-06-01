@@ -54,6 +54,9 @@ func (s *stubModelPricingRepo) BulkUpsertWanjie(ctx context.Context, models []*D
 	return nil
 }
 func (s *stubModelPricingRepo) ClearAllDiscountRates(ctx context.Context) error { return nil }
+func (s *stubModelPricingRepo) ListDistinctProviders(ctx context.Context) ([]string, error) {
+	return nil, nil
+}
 
 func newCatalogTestService(items []*DBModelPricing) (*PricingService, *stubModelPricingRepo) {
 	repo := &stubModelPricingRepo{items: items}

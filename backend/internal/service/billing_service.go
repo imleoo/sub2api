@@ -756,6 +756,53 @@ type ImagePriceConfig struct {
 	Price4K *float64 // 4K 尺寸价格（nil 表示使用默认值）
 }
 
+// CalculateVideoCost 计算视频生成费用：cost = output_cost_per_image (USD/秒) × seconds × multiplier × discount_rate。
+// 价格语义参见 ent/schema/model_pricing.go 的 output_cost_per_image 注释（image/秒 复用同一字段）。
+// 无定价时返回 ActualCost = 0（不阻塞已经成功生成的视频，但会 log 警告，配合"未定价默认禁用"前置规则使用）。
+func (s *BillingService) CalculateVideoCost(model string, seconds float64, rateMultiplier float64) *CostBreakdown {
+	if seconds <= 0 {
+		return &CostBreakdown{}
+	}
+
+	unitPrice := 0.0
+	var discountRate float64 = 1.0
+	if s.pricingService != nil {
+		if dbEntry := s.pricingService.LookupCatalogWithFuzzy(model); dbEntry != nil {
+			// 自定义价格优先；其次 output_cost_per_image（万界视频统一存这里，USD/秒）
+			switch {
+			case dbEntry.CustomOutputCost != nil && *dbEntry.CustomOutputCost > 0:
+				unitPrice = *dbEntry.CustomOutputCost
+			case dbEntry.OutputCostPerImage != nil && *dbEntry.OutputCostPerImage > 0:
+				unitPrice = *dbEntry.OutputCostPerImage
+			case dbEntry.OutputCostPerImageToken != nil && *dbEntry.OutputCostPerImageToken > 0:
+				// 灵境 seedance 历史兜底：把"一次请求总价"按 5/10 秒摊回 per-second，仅在没有更精确价格时使用
+				unitPrice = *dbEntry.OutputCostPerImageToken
+			}
+			if dbEntry.DiscountRate != nil && *dbEntry.DiscountRate > 0 {
+				discountRate = *dbEntry.DiscountRate
+			}
+		}
+	}
+
+	if unitPrice <= 0 {
+		log.Printf("[Billing] video model %q has no pricing; cost defaulted to 0", model)
+		return &CostBreakdown{BillingMode: string(BillingModeVideo)}
+	}
+
+	if rateMultiplier < 0 {
+		rateMultiplier = 0
+	}
+
+	totalCost := unitPrice * seconds * discountRate
+	actualCost := totalCost * rateMultiplier
+
+	return &CostBreakdown{
+		TotalCost:   totalCost,
+		ActualCost:  actualCost,
+		BillingMode: string(BillingModeVideo),
+	}
+}
+
 // CalculateImageCost 计算图片生成费用
 // model: 请求的模型名称（用于获取 LiteLLM 默认价格）
 // imageSize: 图片尺寸 "1K", "2K", "4K"

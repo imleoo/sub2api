@@ -19,7 +19,7 @@ func TestBootstrapPricingSeeds_HasAllExpectedModels(t *testing.T) {
 		got[s.ModelID] = s
 	}
 
-	// 期望覆盖：16 条 billing fallback + 5 条灵境 = 21 条
+	// 期望覆盖：16 条 billing fallback + 6 条灵境（含 seedance 按秒计费 + 历史 -5s/-10s 兼容）= 22 条
 	expected := []string{
 		// Anthropic Claude
 		"claude-opus-4.5", "claude-opus-4.6", "claude-opus-4.7",
@@ -33,7 +33,7 @@ func TestBootstrapPricingSeeds_HasAllExpectedModels(t *testing.T) {
 		// 灵境豆包
 		"doubao-seedream-4-0-250828", "doubao-seedream-4-5-251128",
 		"Doubao-Seedream-5.0-lite",
-		"doubao-seedance-1.5-pro-5s", "doubao-seedance-1.5-pro-10s",
+		"doubao-seedance-1.5-pro", "doubao-seedance-1.5-pro-5s", "doubao-seedance-1.5-pro-10s",
 	}
 	require.Len(t, seeds, len(expected), "seed 数量必须与 fallbackPrices+灵境 总和一致")
 	for _, modelID := range expected {
@@ -174,7 +174,8 @@ func TestBootstrapPricingSeeds_LingjingFields(t *testing.T) {
 			require.NotNil(t, s.OutputCostPerImage, "灵境 %s image_generation 必须有 image 价格", s.ModelID)
 		}
 		if s.Mode == "video_generation" {
-			require.NotNil(t, s.OutputCostPerImageToken, "灵境 %s video_generation 必须有 image_token 价格", s.ModelID)
+			// seedance 已迁移到按秒计费：单价存 output_cost_per_image（schema 允许 per image / per second 复用）。
+			require.NotNil(t, s.OutputCostPerImage, "灵境 %s video_generation 必须有 per-second 价格", s.ModelID)
 		}
 	}
 }
