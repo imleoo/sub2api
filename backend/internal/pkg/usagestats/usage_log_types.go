@@ -273,7 +273,8 @@ type UsageLogFilters struct {
 	StartTime   *time.Time
 	EndTime     *time.Time
 	// ExactTotal requests exact COUNT(*) for pagination. Default false for fast large-table paging.
-	ExactTotal bool
+	ExactTotal    bool
+	BillRequestID string // 按下游对账标识精确过滤
 }
 
 // UsageStats represents usage statistics

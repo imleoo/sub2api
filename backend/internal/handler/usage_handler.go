@@ -139,6 +139,8 @@ func (h *UsageHandler) List(c *gin.Context) {
 		endTime = &t
 	}
 
+	billRequestID := strings.TrimSpace(c.Query("bill_request_id"))
+
 	params := pagination.PaginationParams{
 		Page:      page,
 		PageSize:  pageSize,
@@ -146,14 +148,15 @@ func (h *UsageHandler) List(c *gin.Context) {
 		SortOrder: c.DefaultQuery("sort_order", "desc"),
 	}
 	filters := usagestats.UsageLogFilters{
-		UserID:      subject.UserID, // Always filter by current user for security
-		APIKeyID:    apiKeyID,
-		Model:       model,
-		RequestType: requestType,
-		Stream:      stream,
-		BillingType: billingType,
-		StartTime:   startTime,
-		EndTime:     endTime,
+		UserID:        subject.UserID, // Always filter by current user for security
+		APIKeyID:      apiKeyID,
+		Model:         model,
+		RequestType:   requestType,
+		Stream:        stream,
+		BillingType:   billingType,
+		StartTime:     startTime,
+		EndTime:       endTime,
+		BillRequestID: billRequestID,
 	}
 
 	records, result, err := h.usageService.ListWithFilters(c.Request.Context(), params, filters)

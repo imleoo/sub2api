@@ -96,8 +96,9 @@ type UsageLog struct {
 	UserID    int64
 	APIKeyID  int64
 	AccountID int64
-	RequestID string
-	Model     string
+	RequestID     string
+	BillRequestID string // 下游对账标识，来自 ctxkey.BillRequestID
+	Model         string
 	// RequestedModel is the client-requested model name recorded for stable user/admin display.
 	// Empty should be treated as Model for backward compatibility with historical rows.
 	RequestedModel string

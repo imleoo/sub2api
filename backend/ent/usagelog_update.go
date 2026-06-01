@@ -1102,6 +1102,26 @@ func (_u *UsageLogUpdate) ClearEndpointProtocol() *UsageLogUpdate {
 	return _u
 }
 
+// SetBillRequestID sets the "bill_request_id" field.
+func (_u *UsageLogUpdate) SetBillRequestID(v string) *UsageLogUpdate {
+	_u.mutation.SetBillRequestID(v)
+	return _u
+}
+
+// SetNillableBillRequestID sets the "bill_request_id" field if the given value is not nil.
+func (_u *UsageLogUpdate) SetNillableBillRequestID(v *string) *UsageLogUpdate {
+	if v != nil {
+		_u.SetBillRequestID(*v)
+	}
+	return _u
+}
+
+// ClearBillRequestID clears the value of the "bill_request_id" field.
+func (_u *UsageLogUpdate) ClearBillRequestID() *UsageLogUpdate {
+	_u.mutation.ClearBillRequestID()
+	return _u
+}
+
 // SetUser sets the "user" edge to the User entity.
 func (_u *UsageLogUpdate) SetUser(v *User) *UsageLogUpdate {
 	return _u.SetUserID(v.ID)
@@ -1279,6 +1299,11 @@ func (_u *UsageLogUpdate) check() error {
 	if v, ok := _u.mutation.EndpointProtocol(); ok {
 		if err := usagelog.EndpointProtocolValidator(v); err != nil {
 			return &ValidationError{Name: "endpoint_protocol", err: fmt.Errorf(`ent: validator failed for field "UsageLog.endpoint_protocol": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.BillRequestID(); ok {
+		if err := usagelog.BillRequestIDValidator(v); err != nil {
+			return &ValidationError{Name: "bill_request_id", err: fmt.Errorf(`ent: validator failed for field "UsageLog.bill_request_id": %w`, err)}
 		}
 	}
 	if _u.mutation.UserCleared() && len(_u.mutation.UserIDs()) > 0 {
@@ -1601,6 +1626,12 @@ func (_u *UsageLogUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.EndpointProtocolCleared() {
 		_spec.ClearField(usagelog.FieldEndpointProtocol, field.TypeString)
+	}
+	if value, ok := _u.mutation.BillRequestID(); ok {
+		_spec.SetField(usagelog.FieldBillRequestID, field.TypeString, value)
+	}
+	if _u.mutation.BillRequestIDCleared() {
+		_spec.ClearField(usagelog.FieldBillRequestID, field.TypeString)
 	}
 	if _u.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -2836,6 +2867,26 @@ func (_u *UsageLogUpdateOne) ClearEndpointProtocol() *UsageLogUpdateOne {
 	return _u
 }
 
+// SetBillRequestID sets the "bill_request_id" field.
+func (_u *UsageLogUpdateOne) SetBillRequestID(v string) *UsageLogUpdateOne {
+	_u.mutation.SetBillRequestID(v)
+	return _u
+}
+
+// SetNillableBillRequestID sets the "bill_request_id" field if the given value is not nil.
+func (_u *UsageLogUpdateOne) SetNillableBillRequestID(v *string) *UsageLogUpdateOne {
+	if v != nil {
+		_u.SetBillRequestID(*v)
+	}
+	return _u
+}
+
+// ClearBillRequestID clears the value of the "bill_request_id" field.
+func (_u *UsageLogUpdateOne) ClearBillRequestID() *UsageLogUpdateOne {
+	_u.mutation.ClearBillRequestID()
+	return _u
+}
+
 // SetUser sets the "user" edge to the User entity.
 func (_u *UsageLogUpdateOne) SetUser(v *User) *UsageLogUpdateOne {
 	return _u.SetUserID(v.ID)
@@ -3026,6 +3077,11 @@ func (_u *UsageLogUpdateOne) check() error {
 	if v, ok := _u.mutation.EndpointProtocol(); ok {
 		if err := usagelog.EndpointProtocolValidator(v); err != nil {
 			return &ValidationError{Name: "endpoint_protocol", err: fmt.Errorf(`ent: validator failed for field "UsageLog.endpoint_protocol": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.BillRequestID(); ok {
+		if err := usagelog.BillRequestIDValidator(v); err != nil {
+			return &ValidationError{Name: "bill_request_id", err: fmt.Errorf(`ent: validator failed for field "UsageLog.bill_request_id": %w`, err)}
 		}
 	}
 	if _u.mutation.UserCleared() && len(_u.mutation.UserIDs()) > 0 {
@@ -3365,6 +3421,12 @@ func (_u *UsageLogUpdateOne) sqlSave(ctx context.Context) (_node *UsageLog, err 
 	}
 	if _u.mutation.EndpointProtocolCleared() {
 		_spec.ClearField(usagelog.FieldEndpointProtocol, field.TypeString)
+	}
+	if value, ok := _u.mutation.BillRequestID(); ok {
+		_spec.SetField(usagelog.FieldBillRequestID, field.TypeString, value)
+	}
+	if _u.mutation.BillRequestIDCleared() {
+		_spec.ClearField(usagelog.FieldBillRequestID, field.TypeString)
 	}
 	if _u.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{

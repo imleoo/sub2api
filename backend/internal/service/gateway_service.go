@@ -9135,6 +9135,7 @@ func (s *GatewayService) buildRecordUsageLog(
 ) *UsageLog {
 	durationMs := int(result.Duration.Milliseconds())
 	requestID := resolveUsageBillingRequestID(ctx, result.RequestID)
+	billRequestID, _ := ctx.Value(ctxkey.BillRequestID).(string)
 	// 功能 25：generic 账号端点归因 — 按入站路径选 anthropic 或 gemini 协议族再解析端点。
 	var genericEndpointStableID *string
 	if account.IsGeneric() {
@@ -9152,6 +9153,7 @@ func (s *GatewayService) buildRecordUsageLog(
 		APIKeyID:              apiKey.ID,
 		AccountID:             account.ID,
 		RequestID:             requestID,
+		BillRequestID:         billRequestID,
 		Model:                 result.Model,
 		RequestedModel:        requestedModel,
 		UpstreamModel:         optionalNonEqualStringPtr(result.UpstreamModel, result.Model),

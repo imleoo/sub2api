@@ -707,6 +707,20 @@ func (_c *UsageLogCreate) SetNillableEndpointProtocol(v *string) *UsageLogCreate
 	return _c
 }
 
+// SetBillRequestID sets the "bill_request_id" field.
+func (_c *UsageLogCreate) SetBillRequestID(v string) *UsageLogCreate {
+	_c.mutation.SetBillRequestID(v)
+	return _c
+}
+
+// SetNillableBillRequestID sets the "bill_request_id" field if the given value is not nil.
+func (_c *UsageLogCreate) SetNillableBillRequestID(v *string) *UsageLogCreate {
+	if v != nil {
+		_c.SetBillRequestID(*v)
+	}
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *UsageLogCreate) SetCreatedAt(v time.Time) *UsageLogCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -1020,6 +1034,11 @@ func (_c *UsageLogCreate) check() error {
 			return &ValidationError{Name: "endpoint_protocol", err: fmt.Errorf(`ent: validator failed for field "UsageLog.endpoint_protocol": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.BillRequestID(); ok {
+		if err := usagelog.BillRequestIDValidator(v); err != nil {
+			return &ValidationError{Name: "bill_request_id", err: fmt.Errorf(`ent: validator failed for field "UsageLog.bill_request_id": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "UsageLog.created_at"`)}
 	}
@@ -1246,6 +1265,10 @@ func (_c *UsageLogCreate) createSpec() (*UsageLog, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.EndpointProtocol(); ok {
 		_spec.SetField(usagelog.FieldEndpointProtocol, field.TypeString, value)
 		_node.EndpointProtocol = &value
+	}
+	if value, ok := _c.mutation.BillRequestID(); ok {
+		_spec.SetField(usagelog.FieldBillRequestID, field.TypeString, value)
+		_node.BillRequestID = &value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(usagelog.FieldCreatedAt, field.TypeTime, value)
@@ -2333,6 +2356,24 @@ func (u *UsageLogUpsert) UpdateEndpointProtocol() *UsageLogUpsert {
 // ClearEndpointProtocol clears the value of the "endpoint_protocol" field.
 func (u *UsageLogUpsert) ClearEndpointProtocol() *UsageLogUpsert {
 	u.SetNull(usagelog.FieldEndpointProtocol)
+	return u
+}
+
+// SetBillRequestID sets the "bill_request_id" field.
+func (u *UsageLogUpsert) SetBillRequestID(v string) *UsageLogUpsert {
+	u.Set(usagelog.FieldBillRequestID, v)
+	return u
+}
+
+// UpdateBillRequestID sets the "bill_request_id" field to the value that was provided on create.
+func (u *UsageLogUpsert) UpdateBillRequestID() *UsageLogUpsert {
+	u.SetExcluded(usagelog.FieldBillRequestID)
+	return u
+}
+
+// ClearBillRequestID clears the value of the "bill_request_id" field.
+func (u *UsageLogUpsert) ClearBillRequestID() *UsageLogUpsert {
+	u.SetNull(usagelog.FieldBillRequestID)
 	return u
 }
 
@@ -3484,6 +3525,27 @@ func (u *UsageLogUpsertOne) UpdateEndpointProtocol() *UsageLogUpsertOne {
 func (u *UsageLogUpsertOne) ClearEndpointProtocol() *UsageLogUpsertOne {
 	return u.Update(func(s *UsageLogUpsert) {
 		s.ClearEndpointProtocol()
+	})
+}
+
+// SetBillRequestID sets the "bill_request_id" field.
+func (u *UsageLogUpsertOne) SetBillRequestID(v string) *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetBillRequestID(v)
+	})
+}
+
+// UpdateBillRequestID sets the "bill_request_id" field to the value that was provided on create.
+func (u *UsageLogUpsertOne) UpdateBillRequestID() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateBillRequestID()
+	})
+}
+
+// ClearBillRequestID clears the value of the "bill_request_id" field.
+func (u *UsageLogUpsertOne) ClearBillRequestID() *UsageLogUpsertOne {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearBillRequestID()
 	})
 }
 
@@ -4801,6 +4863,27 @@ func (u *UsageLogUpsertBulk) UpdateEndpointProtocol() *UsageLogUpsertBulk {
 func (u *UsageLogUpsertBulk) ClearEndpointProtocol() *UsageLogUpsertBulk {
 	return u.Update(func(s *UsageLogUpsert) {
 		s.ClearEndpointProtocol()
+	})
+}
+
+// SetBillRequestID sets the "bill_request_id" field.
+func (u *UsageLogUpsertBulk) SetBillRequestID(v string) *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.SetBillRequestID(v)
+	})
+}
+
+// UpdateBillRequestID sets the "bill_request_id" field to the value that was provided on create.
+func (u *UsageLogUpsertBulk) UpdateBillRequestID() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.UpdateBillRequestID()
+	})
+}
+
+// ClearBillRequestID clears the value of the "bill_request_id" field.
+func (u *UsageLogUpsertBulk) ClearBillRequestID() *UsageLogUpsertBulk {
+	return u.Update(func(s *UsageLogUpsert) {
+		s.ClearBillRequestID()
 	})
 }
 

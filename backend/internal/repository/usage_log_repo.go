@@ -28,7 +28,7 @@ import (
 	gocache "github.com/patrickmn/go-cache"
 )
 
-const usageLogSelectColumns = "id, user_id, api_key_id, account_id, request_id, model, requested_model, upstream_model, group_id, subscription_id, input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens, cache_creation_5m_tokens, cache_creation_1h_tokens, image_output_tokens, image_output_cost, input_cost, output_cost, cache_creation_cost, cache_read_cost, total_cost, actual_cost, rate_multiplier, account_rate_multiplier, billing_type, request_type, stream, openai_ws_mode, duration_ms, first_token_ms, user_agent, ip_address, image_count, image_size, image_input_size, image_output_size, image_size_source, image_size_breakdown, service_tier, reasoning_effort, inbound_endpoint, upstream_endpoint, cache_ttl_overridden, channel_id, model_mapping_chain, billing_tier, billing_mode, account_stats_cost, upstream_unit_price_input, upstream_unit_price_output, upstream_unit_price_cache_creation, upstream_unit_price_cache_read, upstream_total_cost, provider, pricing_source, async_task_id, cost_finalized_at, endpoint_id, video_seconds, created_at"
+const usageLogSelectColumns = "id, user_id, api_key_id, account_id, request_id, model, requested_model, upstream_model, group_id, subscription_id, input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens, cache_creation_5m_tokens, cache_creation_1h_tokens, image_output_tokens, image_output_cost, input_cost, output_cost, cache_creation_cost, cache_read_cost, total_cost, actual_cost, rate_multiplier, account_rate_multiplier, billing_type, request_type, stream, openai_ws_mode, duration_ms, first_token_ms, user_agent, ip_address, image_count, image_size, image_input_size, image_output_size, image_size_source, image_size_breakdown, service_tier, reasoning_effort, inbound_endpoint, upstream_endpoint, cache_ttl_overridden, channel_id, model_mapping_chain, billing_tier, billing_mode, account_stats_cost, upstream_unit_price_input, upstream_unit_price_output, upstream_unit_price_cache_creation, upstream_unit_price_cache_read, upstream_total_cost, provider, pricing_source, async_task_id, cost_finalized_at, endpoint_id, video_seconds, bill_request_id, created_at"
 
 // usageLogInsertArgTypes must stay in the same order as:
 //  1. prepareUsageLogInsert().args
@@ -99,6 +99,7 @@ var usageLogInsertArgTypes = [...]string{
 	"timestamptz", // cost_finalized_at
 	"text",        // endpoint_id (功能 25：generic endpoint 归因)
 	"numeric",     // video_seconds
+	"text",        // bill_request_id
 	"timestamptz", // created_at
 }
 
@@ -427,6 +428,7 @@ func (r *usageLogRepository) createSingle(ctx context.Context, sqlq sqlExecutor,
 			cost_finalized_at,
 			endpoint_id,
 			video_seconds,
+			bill_request_id,
 			created_at
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7,
@@ -435,7 +437,7 @@ func (r *usageLogRepository) createSingle(ctx context.Context, sqlq sqlExecutor,
 			$14, $15, $16, $17,
 			$18, $19, $20, $21, $22, $23,
 			$24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46,
-			$47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61
+			$47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62
 		)
 		ON CONFLICT (request_id, api_key_id) DO NOTHING
 		RETURNING id, created_at
@@ -871,6 +873,7 @@ func buildUsageLogBatchInsertQuery(keys []string, preparedByKey map[string]usage
 			billing_mode,
 			account_stats_cost,
 			video_seconds,
+			bill_request_id,
 			created_at
 		) AS (VALUES `)
 
@@ -963,6 +966,7 @@ func buildUsageLogBatchInsertQuery(keys []string, preparedByKey map[string]usage
 				cost_finalized_at,
 				endpoint_id,
 				video_seconds,
+				bill_request_id,
 				created_at
 			)
 			SELECT
@@ -1026,6 +1030,7 @@ func buildUsageLogBatchInsertQuery(keys []string, preparedByKey map[string]usage
 				cost_finalized_at,
 				endpoint_id,
 				video_seconds,
+				bill_request_id,
 				created_at
 			FROM input
 			ON CONFLICT (request_id, api_key_id) DO NOTHING
@@ -1119,6 +1124,7 @@ func buildUsageLogBestEffortInsertQuery(preparedList []usageLogInsertPrepared) (
 			billing_mode,
 			account_stats_cost,
 			video_seconds,
+			bill_request_id,
 			created_at
 		) AS (VALUES `)
 
@@ -1207,6 +1213,7 @@ func buildUsageLogBestEffortInsertQuery(preparedList []usageLogInsertPrepared) (
 			async_task_id,
 			cost_finalized_at,
 			video_seconds,
+			bill_request_id,
 			created_at
 		)
 		SELECT
@@ -1269,6 +1276,7 @@ func buildUsageLogBestEffortInsertQuery(preparedList []usageLogInsertPrepared) (
 			async_task_id,
 			cost_finalized_at,
 			video_seconds,
+			bill_request_id,
 			created_at
 		FROM input
 		ON CONFLICT (request_id, api_key_id) DO NOTHING
@@ -1340,6 +1348,7 @@ func execUsageLogInsertNoResult(ctx context.Context, sqlq sqlExecutor, prepared 
 			cost_finalized_at,
 			endpoint_id,
 			video_seconds,
+			bill_request_id,
 			created_at
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7,
@@ -1348,7 +1357,7 @@ func execUsageLogInsertNoResult(ctx context.Context, sqlq sqlExecutor, prepared 
 			$14, $15, $16, $17,
 			$18, $19, $20, $21, $22, $23,
 			$24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46,
-			$47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61
+			$47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62
 		)
 		ON CONFLICT (request_id, api_key_id) DO NOTHING
 	`, prepared.args...)
@@ -1399,6 +1408,10 @@ func prepareUsageLogInsert(log *service.UsageLog) usageLogInsertPrepared {
 	asyncTaskID := nullString(log.AsyncTaskID)
 	costFinalizedAt := nullTimePtr(log.CostFinalizedAt)
 	endpointID := nullString(log.EndpointID)
+	var billRequestIDPtr *string
+	if v := strings.TrimSpace(log.BillRequestID); v != "" {
+		billRequestIDPtr = &v
+	}
 
 	var requestIDArg any
 	if requestID != "" {
@@ -1472,6 +1485,7 @@ func prepareUsageLogInsert(log *service.UsageLog) usageLogInsertPrepared {
 			costFinalizedAt,
 			endpointID,
 			log.VideoSeconds,
+			nullString(billRequestIDPtr),
 			createdAt,
 		},
 	}
@@ -2901,6 +2915,10 @@ func (r *usageLogRepository) ListWithFilters(ctx context.Context, params paginat
 	if filters.EndTime != nil {
 		conditions = append(conditions, fmt.Sprintf("created_at < $%d", len(args)+1))
 		args = append(args, *filters.EndTime)
+	}
+	if filters.BillRequestID != "" {
+		conditions = append(conditions, fmt.Sprintf("bill_request_id = $%d", len(args)+1))
+		args = append(args, filters.BillRequestID)
 	}
 
 	whereClause := buildWhere(conditions)
@@ -4412,6 +4430,7 @@ func scanUsageLog(scanner interface{ Scan(...any) error }) (*service.UsageLog, e
 		costFinalizedAt                sql.NullTime
 		endpointID                     sql.NullString
 		videoSeconds                   float64
+		billRequestID                  sql.NullString
 		createdAt                      time.Time
 	)
 
@@ -4478,6 +4497,7 @@ func scanUsageLog(scanner interface{ Scan(...any) error }) (*service.UsageLog, e
 		&costFinalizedAt,
 		&endpointID,
 		&videoSeconds,
+		&billRequestID,
 		&createdAt,
 	); err != nil {
 		return nil, err
@@ -4521,6 +4541,9 @@ func scanUsageLog(scanner interface{ Scan(...any) error }) (*service.UsageLog, e
 
 	if requestID.Valid {
 		log.RequestID = requestID.String
+	}
+	if billRequestID.Valid {
+		log.BillRequestID = billRequestID.String
 	}
 	if groupID.Valid {
 		value := groupID.Int64

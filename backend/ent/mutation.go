@@ -43302,6 +43302,7 @@ type UsageLogMutation struct {
 	cache_ttl_overridden                  *bool
 	endpoint_id                           *string
 	endpoint_protocol                     *string
+	bill_request_id                       *string
 	created_at                            *time.Time
 	clearedFields                         map[string]struct{}
 	user                                  *int64
@@ -46175,6 +46176,55 @@ func (m *UsageLogMutation) ResetEndpointProtocol() {
 	delete(m.clearedFields, usagelog.FieldEndpointProtocol)
 }
 
+// SetBillRequestID sets the "bill_request_id" field.
+func (m *UsageLogMutation) SetBillRequestID(s string) {
+	m.bill_request_id = &s
+}
+
+// BillRequestID returns the value of the "bill_request_id" field in the mutation.
+func (m *UsageLogMutation) BillRequestID() (r string, exists bool) {
+	v := m.bill_request_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBillRequestID returns the old "bill_request_id" field's value of the UsageLog entity.
+// If the UsageLog object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UsageLogMutation) OldBillRequestID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBillRequestID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBillRequestID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBillRequestID: %w", err)
+	}
+	return oldValue.BillRequestID, nil
+}
+
+// ClearBillRequestID clears the value of the "bill_request_id" field.
+func (m *UsageLogMutation) ClearBillRequestID() {
+	m.bill_request_id = nil
+	m.clearedFields[usagelog.FieldBillRequestID] = struct{}{}
+}
+
+// BillRequestIDCleared returns if the "bill_request_id" field was cleared in this mutation.
+func (m *UsageLogMutation) BillRequestIDCleared() bool {
+	_, ok := m.clearedFields[usagelog.FieldBillRequestID]
+	return ok
+}
+
+// ResetBillRequestID resets all changes to the "bill_request_id" field.
+func (m *UsageLogMutation) ResetBillRequestID() {
+	m.bill_request_id = nil
+	delete(m.clearedFields, usagelog.FieldBillRequestID)
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *UsageLogMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -46380,7 +46430,7 @@ func (m *UsageLogMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UsageLogMutation) Fields() []string {
-	fields := make([]string, 0, 53)
+	fields := make([]string, 0, 54)
 	if m.user != nil {
 		fields = append(fields, usagelog.FieldUserID)
 	}
@@ -46537,6 +46587,9 @@ func (m *UsageLogMutation) Fields() []string {
 	if m.endpoint_protocol != nil {
 		fields = append(fields, usagelog.FieldEndpointProtocol)
 	}
+	if m.bill_request_id != nil {
+		fields = append(fields, usagelog.FieldBillRequestID)
+	}
 	if m.created_at != nil {
 		fields = append(fields, usagelog.FieldCreatedAt)
 	}
@@ -46652,6 +46705,8 @@ func (m *UsageLogMutation) Field(name string) (ent.Value, bool) {
 		return m.EndpointID()
 	case usagelog.FieldEndpointProtocol:
 		return m.EndpointProtocol()
+	case usagelog.FieldBillRequestID:
+		return m.BillRequestID()
 	case usagelog.FieldCreatedAt:
 		return m.CreatedAt()
 	}
@@ -46767,6 +46822,8 @@ func (m *UsageLogMutation) OldField(ctx context.Context, name string) (ent.Value
 		return m.OldEndpointID(ctx)
 	case usagelog.FieldEndpointProtocol:
 		return m.OldEndpointProtocol(ctx)
+	case usagelog.FieldBillRequestID:
+		return m.OldBillRequestID(ctx)
 	case usagelog.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	}
@@ -47141,6 +47198,13 @@ func (m *UsageLogMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetEndpointProtocol(v)
+		return nil
+	case usagelog.FieldBillRequestID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBillRequestID(v)
 		return nil
 	case usagelog.FieldCreatedAt:
 		v, ok := value.(time.Time)
@@ -47569,6 +47633,9 @@ func (m *UsageLogMutation) ClearedFields() []string {
 	if m.FieldCleared(usagelog.FieldEndpointProtocol) {
 		fields = append(fields, usagelog.FieldEndpointProtocol)
 	}
+	if m.FieldCleared(usagelog.FieldBillRequestID) {
+		fields = append(fields, usagelog.FieldBillRequestID)
+	}
 	return fields
 }
 
@@ -47669,6 +47736,9 @@ func (m *UsageLogMutation) ClearField(name string) error {
 		return nil
 	case usagelog.FieldEndpointProtocol:
 		m.ClearEndpointProtocol()
+		return nil
+	case usagelog.FieldBillRequestID:
+		m.ClearBillRequestID()
 		return nil
 	}
 	return fmt.Errorf("unknown UsageLog nullable field %s", name)
@@ -47833,6 +47903,9 @@ func (m *UsageLogMutation) ResetField(name string) error {
 		return nil
 	case usagelog.FieldEndpointProtocol:
 		m.ResetEndpointProtocol()
+		return nil
+	case usagelog.FieldBillRequestID:
+		m.ResetBillRequestID()
 		return nil
 	case usagelog.FieldCreatedAt:
 		m.ResetCreatedAt()

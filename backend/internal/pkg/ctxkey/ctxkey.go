@@ -55,4 +55,7 @@ const (
 
 	// ClaudeCodeVersion stores the extracted Claude Code version from User-Agent (e.g. "2.1.22")
 	ClaudeCodeVersion Key = "ctx_claude_code_version"
+
+	// BillRequestID 下游对账标识，由 ClientRequestID 中间件从请求头读取并存入 ctx。
+	BillRequestID Key = "ctx_bill_request_id"
 )

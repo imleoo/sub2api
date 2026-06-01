@@ -310,6 +310,11 @@ func EndpointProtocol(v string) predicate.UsageLog {
 	return predicate.UsageLog(sql.FieldEQ(FieldEndpointProtocol, v))
 }
 
+// BillRequestID applies equality check predicate on the "bill_request_id" field. It's identical to BillRequestIDEQ.
+func BillRequestID(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldEQ(FieldBillRequestID, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.UsageLog {
 	return predicate.UsageLog(sql.FieldEQ(FieldCreatedAt, v))
@@ -2933,6 +2938,81 @@ func EndpointProtocolEqualFold(v string) predicate.UsageLog {
 // EndpointProtocolContainsFold applies the ContainsFold predicate on the "endpoint_protocol" field.
 func EndpointProtocolContainsFold(v string) predicate.UsageLog {
 	return predicate.UsageLog(sql.FieldContainsFold(FieldEndpointProtocol, v))
+}
+
+// BillRequestIDEQ applies the EQ predicate on the "bill_request_id" field.
+func BillRequestIDEQ(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldEQ(FieldBillRequestID, v))
+}
+
+// BillRequestIDNEQ applies the NEQ predicate on the "bill_request_id" field.
+func BillRequestIDNEQ(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldNEQ(FieldBillRequestID, v))
+}
+
+// BillRequestIDIn applies the In predicate on the "bill_request_id" field.
+func BillRequestIDIn(vs ...string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldIn(FieldBillRequestID, vs...))
+}
+
+// BillRequestIDNotIn applies the NotIn predicate on the "bill_request_id" field.
+func BillRequestIDNotIn(vs ...string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldNotIn(FieldBillRequestID, vs...))
+}
+
+// BillRequestIDGT applies the GT predicate on the "bill_request_id" field.
+func BillRequestIDGT(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldGT(FieldBillRequestID, v))
+}
+
+// BillRequestIDGTE applies the GTE predicate on the "bill_request_id" field.
+func BillRequestIDGTE(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldGTE(FieldBillRequestID, v))
+}
+
+// BillRequestIDLT applies the LT predicate on the "bill_request_id" field.
+func BillRequestIDLT(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldLT(FieldBillRequestID, v))
+}
+
+// BillRequestIDLTE applies the LTE predicate on the "bill_request_id" field.
+func BillRequestIDLTE(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldLTE(FieldBillRequestID, v))
+}
+
+// BillRequestIDContains applies the Contains predicate on the "bill_request_id" field.
+func BillRequestIDContains(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldContains(FieldBillRequestID, v))
+}
+
+// BillRequestIDHasPrefix applies the HasPrefix predicate on the "bill_request_id" field.
+func BillRequestIDHasPrefix(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldHasPrefix(FieldBillRequestID, v))
+}
+
+// BillRequestIDHasSuffix applies the HasSuffix predicate on the "bill_request_id" field.
+func BillRequestIDHasSuffix(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldHasSuffix(FieldBillRequestID, v))
+}
+
+// BillRequestIDIsNil applies the IsNil predicate on the "bill_request_id" field.
+func BillRequestIDIsNil() predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldIsNull(FieldBillRequestID))
+}
+
+// BillRequestIDNotNil applies the NotNil predicate on the "bill_request_id" field.
+func BillRequestIDNotNil() predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldNotNull(FieldBillRequestID))
+}
+
+// BillRequestIDEqualFold applies the EqualFold predicate on the "bill_request_id" field.
+func BillRequestIDEqualFold(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldEqualFold(FieldBillRequestID, v))
+}
+
+// BillRequestIDContainsFold applies the ContainsFold predicate on the "bill_request_id" field.
+func BillRequestIDContainsFold(v string) predicate.UsageLog {
+	return predicate.UsageLog(sql.FieldContainsFold(FieldBillRequestID, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

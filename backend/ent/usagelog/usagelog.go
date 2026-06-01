@@ -118,6 +118,8 @@ const (
 	FieldEndpointID = "endpoint_id"
 	// FieldEndpointProtocol holds the string denoting the endpoint_protocol field in the database.
 	FieldEndpointProtocol = "endpoint_protocol"
+	// FieldBillRequestID holds the string denoting the bill_request_id field in the database.
+	FieldBillRequestID = "bill_request_id"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// EdgeUser holds the string denoting the user edge name in mutations.
@@ -224,6 +226,7 @@ var Columns = []string{
 	FieldCacheTTLOverridden,
 	FieldEndpointID,
 	FieldEndpointProtocol,
+	FieldBillRequestID,
 	FieldCreatedAt,
 }
 
@@ -310,6 +313,8 @@ var (
 	EndpointIDValidator func(string) error
 	// EndpointProtocolValidator is a validator for the "endpoint_protocol" field. It is called by the builders before save.
 	EndpointProtocolValidator func(string) error
+	// BillRequestIDValidator is a validator for the "bill_request_id" field. It is called by the builders before save.
+	BillRequestIDValidator func(string) error
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 )
@@ -575,6 +580,11 @@ func ByEndpointID(opts ...sql.OrderTermOption) OrderOption {
 // ByEndpointProtocol orders the results by the endpoint_protocol field.
 func ByEndpointProtocol(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEndpointProtocol, opts...).ToFunc()
+}
+
+// ByBillRequestID orders the results by the bill_request_id field.
+func ByBillRequestID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBillRequestID, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

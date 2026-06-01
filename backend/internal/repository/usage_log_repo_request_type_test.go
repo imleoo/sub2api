@@ -102,6 +102,7 @@ func TestUsageLogRepositoryCreateSyncRequestTypeAndLegacyFields(t *testing.T) {
 			sqlmock.AnyArg(), // cost_finalized_at
 			sqlmock.AnyArg(), // endpoint_id (功能 25)
 			sqlmock.AnyArg(), // video_seconds
+			sqlmock.AnyArg(), // bill_request_id
 			createdAt,
 		).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "created_at"}).AddRow(int64(99), createdAt))
@@ -197,6 +198,7 @@ func TestUsageLogRepositoryCreate_PersistsServiceTier(t *testing.T) {
 			sqlmock.AnyArg(), // cost_finalized_at
 			sqlmock.AnyArg(), // endpoint_id (功能 25)
 			sqlmock.AnyArg(), // video_seconds
+			sqlmock.AnyArg(), // bill_request_id
 			createdAt,
 		).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "created_at"}).AddRow(int64(100), createdAt))
@@ -676,6 +678,7 @@ func TestScanUsageLogRequestTypeAndLegacyFallback(t *testing.T) {
 			sql.NullTime{},    // cost_finalized_at
 			sql.NullString{},  // endpoint_id (功能 25)
 			float64(0),        // video_seconds
+			sql.NullString{},  // bill_request_id
 			now,
 		}})
 		require.NoError(t, err)
@@ -756,6 +759,7 @@ func TestScanUsageLogRequestTypeAndLegacyFallback(t *testing.T) {
 			sql.NullTime{},    // cost_finalized_at
 			sql.NullString{},  // endpoint_id (功能 25)
 			float64(0),        // video_seconds
+			sql.NullString{},  // bill_request_id
 			now,
 		}})
 		require.NoError(t, err)
@@ -820,6 +824,7 @@ func TestScanUsageLogRequestTypeAndLegacyFallback(t *testing.T) {
 			sql.NullTime{},    // cost_finalized_at
 			sql.NullString{},  // endpoint_id (功能 25)
 			float64(0),        // video_seconds
+			sql.NullString{},  // bill_request_id
 			now,
 		}})
 		require.NoError(t, err)
@@ -884,6 +889,7 @@ func TestScanUsageLogRequestTypeAndLegacyFallback(t *testing.T) {
 			sql.NullTime{},    // cost_finalized_at
 			sql.NullString{},  // endpoint_id (功能 25)
 			float64(0),        // video_seconds
+			sql.NullString{},  // bill_request_id
 			now,
 		}})
 		require.NoError(t, err)

@@ -225,6 +225,13 @@ func (UsageLog) Fields() []ent.Field {
 			Nillable().
 			Comment("endpoint 出站协议快照；NULL = 非 generic 账号"),
 
+		// 下游对账标识：下游上传值，缺省时回退 client_request_id
+		field.String("bill_request_id").
+			MaxLen(64).
+			Optional().
+			Nillable().
+			Comment("下游对账标识：下游上传值，缺省时回退 client_request_id"),
+
 		// 时间戳（只有 created_at，日志不可修改）
 		field.Time("created_at").
 			Default(time.Now).

@@ -18,6 +18,7 @@
 8. [用量统计：按天趋势](#8-用量统计按天趋势)
 9. [用量统计：按模型分组](#9-用量统计按模型分组)
 10. [附录：典型对账场景](#附录典型对账场景)
+11. [附录：Bill-Request-ID 下游对账标识](#附录bill-request-id-下游对账标识)
 
 ---
 
@@ -325,6 +326,7 @@ curl -X GET "https://openclaw.zhiguo.fan/api/v1/payment/orders/my?status=COMPLET
 | `timezone` | string | ❌ | 用户时区，如 `Asia/Shanghai` |
 | `model` | string | ❌ | 按模型名过滤，如 `claude-opus-4-6` |
 | `api_key_id` | int64 | ❌ | 按指定 API Key ID 过滤 |
+| `bill_request_id` | string | ❌ | 按下游对账标识精确过滤（见[附录：Bill-Request-ID](#附录bill-request-id-下游对账标识)） |
 | `sort_by` | string | ❌ | 排序字段，默认 `created_at` |
 | `sort_order` | string | ❌ | `asc` / `desc`（默认 `desc`） |
 
@@ -337,6 +339,10 @@ curl -X GET "https://openclaw.zhiguo.fan/api/v1/usage?page=1&page_size=3&sort_or
 
 # 查本月 claude-opus-4-6 的所有用量
 curl -X GET "https://openclaw.zhiguo.fan/api/v1/usage?start_date=2026-04-01&end_date=2026-04-30&model=claude-opus-4-6&timezone=Asia/Shanghai" \
+  -H "Authorization: Bearer <access_token>"
+
+# 按下游对账标识精确反查（用于对账闭环）
+curl -X GET "https://openclaw.zhiguo.fan/api/v1/usage?bill_request_id=my-order-abc123" \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -407,6 +413,7 @@ curl -X GET "https://openclaw.zhiguo.fan/api/v1/usage?start_date=2026-04-01&end_
 | `duration_ms` | 总请求耗时（毫秒） |
 | `first_token_ms` | 首 Token 耗时（毫秒） |
 | `billing_mode` | 计费模式：`token`（按 token）|
+| `bill_request_id` | 下游对账标识（仅在下游上传或由系统兜底时出现），见[附录：Bill-Request-ID](#附录bill-request-id-下游对账标识) |
 
 ---
 
@@ -731,4 +738,99 @@ curl -s "https://openclaw.zhiguo.fan/api/v1/payment/orders/my?status=COMPLETED" 
 # 查本月各模型消费占比
 curl -s "https://openclaw.zhiguo.fan/api/v1/usage/dashboard/models?start_date=2026-04-01&end_date=2026-04-30&timezone=Asia/Shanghai" \
   -H "Authorization: Bearer $TOKEN"
+```
+
+---
+
+## 附录：Bill-Request-ID 下游对账标识
+
+> 本特性从 **v1.1.130**（fork zhiguofan 分支）起可用。
+
+### 设计背景
+
+网关在转发请求时会把响应头 `X-Request-Id` 替换为上游 AI 服务商返回的值，导致下游持有的请求 ID 无法反查账单。`Bill-Request-ID` 是专门为下游对账闭环引入的独立响应头，与 `X-Request-Id` 完全隔离。
+
+### 三个 ID 的区别
+
+| 响应头 | 含义 | 控制方 | 落库字段 |
+|-------|------|-------|---------|
+| `X-Request-Id` | 上游 AI 服务商返回的请求 ID | 上游服务商 | `request_id` |
+| `X-Client-Request-ID` | 网关为每次入站请求生成的 UUID | 网关自动生成 | — |
+| `Bill-Request-ID` | 下游对账标识 | **下游（你）控制** | `bill_request_id` |
+
+### 用法
+
+#### 下游发送请求时携带对账标识
+
+```bash
+curl -X POST "https://openclaw.zhiguo.fan/v1/messages" \
+  -H "Authorization: Bearer sk-..." \
+  -H "Bill-Request-ID: my-order-20260601-001" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"claude-opus-4-6","max_tokens":1024,"messages":[{"role":"user","content":"Hello"}]}'
+```
+
+响应头中将原样回写：
+
+```
+Bill-Request-ID: my-order-20260601-001
+```
+
+#### 兜底行为
+
+| 场景 | Bill-Request-ID 值 |
+|------|-------------------|
+| 下游上传了有效值（≤ 64 字符） | 原样回写 + 落库 |
+| 未携带请求头 | 回退为本次 `X-Client-Request-ID`（UUID） |
+| 值超过 64 字符 | 回退为本次 `X-Client-Request-ID`（UUID） |
+
+#### 通过 bill_request_id 反查用量记录
+
+```bash
+# 精确反查，返回该对账标识关联的所有 usage log 条目
+curl -X GET "https://openclaw.zhiguo.fan/api/v1/usage?bill_request_id=my-order-20260601-001" \
+  -H "Authorization: Bearer <access_token>"
+```
+
+响应中每条 `items` 的 `bill_request_id` 字段将与查询值一致：
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "items": [
+      {
+        "id": 31001,
+        "model": "claude-opus-4-6",
+        "total_cost": 0.023456,
+        "bill_request_id": "my-order-20260601-001",
+        "created_at": "2026-06-01T10:23:45.000000+08:00"
+      }
+    ],
+    "total": 1,
+    "page": 1,
+    "page_size": 20,
+    "pages": 1
+  }
+}
+```
+
+### 对账场景示例
+
+```bash
+# 场景：下游系统发起调用，携带内部订单号，调用结束后反查费用
+
+# Step 1: 发起 AI 调用，携带对账标识
+BILL_ID="order-$(date +%Y%m%d%H%M%S)-001"
+
+curl -X POST "https://openclaw.zhiguo.fan/v1/messages" \
+  -H "Authorization: Bearer sk-..." \
+  -H "Bill-Request-ID: $BILL_ID" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"claude-sonnet-4-6","max_tokens":512,"messages":[{"role":"user","content":"Hi"}]}'
+
+# Step 2: 用同一标识反查费用（调用完成后立即可查）
+curl -s "https://openclaw.zhiguo.fan/api/v1/usage?bill_request_id=$BILL_ID" \
+  -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
 ```

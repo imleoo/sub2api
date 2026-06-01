@@ -2136,8 +2136,12 @@ func init() {
 	usagelogDescEndpointProtocol := usagelogFields[51].Descriptor()
 	// usagelog.EndpointProtocolValidator is a validator for the "endpoint_protocol" field. It is called by the builders before save.
 	usagelog.EndpointProtocolValidator = usagelogDescEndpointProtocol.Validators[0].(func(string) error)
+	// usagelogDescBillRequestID is the schema descriptor for bill_request_id field.
+	usagelogDescBillRequestID := usagelogFields[52].Descriptor()
+	// usagelog.BillRequestIDValidator is a validator for the "bill_request_id" field. It is called by the builders before save.
+	usagelog.BillRequestIDValidator = usagelogDescBillRequestID.Validators[0].(func(string) error)
 	// usagelogDescCreatedAt is the schema descriptor for created_at field.
-	usagelogDescCreatedAt := usagelogFields[52].Descriptor()
+	usagelogDescCreatedAt := usagelogFields[53].Descriptor()
 	// usagelog.DefaultCreatedAt holds the default value on creation for the created_at field.
 	usagelog.DefaultCreatedAt = usagelogDescCreatedAt.Default.(func() time.Time)
 	userMixin := schema.User{}.Mixin()

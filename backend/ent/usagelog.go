@@ -127,6 +127,8 @@ type UsageLog struct {
 	EndpointID *string `json:"endpoint_id,omitempty"`
 	// endpoint 出站协议快照；NULL = 非 generic 账号
 	EndpointProtocol *string `json:"endpoint_protocol,omitempty"`
+	// 下游对账标识：下游上传值，缺省时回退 client_request_id
+	BillRequestID *string `json:"bill_request_id,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -220,7 +222,7 @@ func (*UsageLog) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullFloat64)
 		case usagelog.FieldID, usagelog.FieldUserID, usagelog.FieldAPIKeyID, usagelog.FieldAccountID, usagelog.FieldChannelID, usagelog.FieldGroupID, usagelog.FieldSubscriptionID, usagelog.FieldInputTokens, usagelog.FieldOutputTokens, usagelog.FieldCacheCreationTokens, usagelog.FieldCacheReadTokens, usagelog.FieldCacheCreation5mTokens, usagelog.FieldCacheCreation1hTokens, usagelog.FieldBillingType, usagelog.FieldDurationMs, usagelog.FieldFirstTokenMs, usagelog.FieldImageCount:
 			values[i] = new(sql.NullInt64)
-		case usagelog.FieldRequestID, usagelog.FieldModel, usagelog.FieldRequestedModel, usagelog.FieldUpstreamModel, usagelog.FieldModelMappingChain, usagelog.FieldBillingTier, usagelog.FieldBillingMode, usagelog.FieldProvider, usagelog.FieldPricingSource, usagelog.FieldAsyncTaskID, usagelog.FieldUserAgent, usagelog.FieldIPAddress, usagelog.FieldImageSize, usagelog.FieldImageInputSize, usagelog.FieldImageOutputSize, usagelog.FieldImageSizeSource, usagelog.FieldEndpointID, usagelog.FieldEndpointProtocol:
+		case usagelog.FieldRequestID, usagelog.FieldModel, usagelog.FieldRequestedModel, usagelog.FieldUpstreamModel, usagelog.FieldModelMappingChain, usagelog.FieldBillingTier, usagelog.FieldBillingMode, usagelog.FieldProvider, usagelog.FieldPricingSource, usagelog.FieldAsyncTaskID, usagelog.FieldUserAgent, usagelog.FieldIPAddress, usagelog.FieldImageSize, usagelog.FieldImageInputSize, usagelog.FieldImageOutputSize, usagelog.FieldImageSizeSource, usagelog.FieldEndpointID, usagelog.FieldEndpointProtocol, usagelog.FieldBillRequestID:
 			values[i] = new(sql.NullString)
 		case usagelog.FieldCostFinalizedAt, usagelog.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
@@ -587,6 +589,13 @@ func (_m *UsageLog) assignValues(columns []string, values []any) error {
 				_m.EndpointProtocol = new(string)
 				*_m.EndpointProtocol = value.String
 			}
+		case usagelog.FieldBillRequestID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field bill_request_id", values[i])
+			} else if value.Valid {
+				_m.BillRequestID = new(string)
+				*_m.BillRequestID = value.String
+			}
 		case usagelog.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
@@ -863,6 +872,11 @@ func (_m *UsageLog) String() string {
 	builder.WriteString(", ")
 	if v := _m.EndpointProtocol; v != nil {
 		builder.WriteString("endpoint_protocol=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.BillRequestID; v != nil {
+		builder.WriteString("bill_request_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
