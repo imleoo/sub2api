@@ -11,6 +11,7 @@ import (
 type User struct {
 	ID            int64      `json:"id"`
 	Email         string     `json:"email"`
+	Phone         *string    `json:"phone,omitempty"`
 	Username      string     `json:"username"`
 	Role          string     `json:"role"`
 	Balance       float64    `json:"balance"`

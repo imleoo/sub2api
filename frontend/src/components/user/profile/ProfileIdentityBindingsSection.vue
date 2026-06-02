@@ -216,6 +216,7 @@ type BindableProvider = Exclude<UserAuthProvider, 'email'>
 const props = withDefaults(
   defineProps<{
     user: User | null
+    phoneRegisterEnabled?: boolean
     linuxdoEnabled?: boolean
     dingtalkEnabled?: boolean
     oidcEnabled?: boolean
@@ -227,6 +228,7 @@ const props = withDefaults(
     compact?: boolean
   }>(),
   {
+    phoneRegisterEnabled: false,
     linuxdoEnabled: false,
     dingtalkEnabled: false,
     oidcEnabled: false,
@@ -426,6 +428,14 @@ const providerItems = computed(() => [
     canUnbind: false,
     details: getBindingDetails('email'),
   },
+  ...(props.phoneRegisterEnabled ? [{
+    provider: 'phone' as const,
+    label: t('profile.authBindings.providers.phone'),
+    bound: Boolean(currentUser.value?.phone),
+    canBind: false,
+    canUnbind: false,
+    details: null,
+  }] : []),
   {
     provider: 'linuxdo' as const,
     label: t('profile.authBindings.providers.linuxdo'),
@@ -485,6 +495,9 @@ function providerInitial(provider: UserAuthProvider): string {
   if (provider === 'oidc') {
     return 'O'
   }
+  if (provider === 'phone') {
+    return 'P'
+  }
   return 'E'
 }
 
@@ -501,12 +514,18 @@ function providerIconClass(provider: UserAuthProvider): string {
   if (provider === 'oidc') {
     return 'bg-sky-100 text-sky-600 dark:bg-sky-900/20 dark:text-sky-300'
   }
+  if (provider === 'phone') {
+    return 'bg-violet-100 text-violet-600 dark:bg-violet-900/20 dark:text-violet-300'
+  }
   return 'bg-primary-100 text-primary-600 dark:bg-primary-900/20 dark:text-primary-300'
 }
 
 function providerSummary(provider: UserAuthProvider): string {
   if (provider === 'email') {
     return getDisplayableEmail(currentUser.value)
+  }
+  if (provider === 'phone') {
+    return currentUser.value?.phone ?? ''
   }
   return ''
 }

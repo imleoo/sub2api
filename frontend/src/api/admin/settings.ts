@@ -620,6 +620,7 @@ export interface SystemSettings {
 
   // 手机号注册
   phone_register_enabled: boolean;
+  password_login_enabled: boolean;
   sms_provider: string; // "volcengine" | "tencent" | "aliyun"
   // 火山引擎 SMS
   volcengine_sms_access_key_id: string;
@@ -879,6 +880,7 @@ export interface UpdateSettingsRequest {
 
   // 手机号注册
   phone_register_enabled?: boolean;
+  password_login_enabled?: boolean;
   sms_provider?: string;
   // 火山引擎 SMS
   volcengine_sms_access_key_id?: string;

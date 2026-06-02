@@ -308,6 +308,7 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		CNYRate:      settings.CNYRate,
 
 		PhoneRegisterEnabled:                   settings.PhoneRegisterEnabled,
+		PasswordLoginEnabled:                    settings.PasswordLoginEnabled,
 		SmsProvider:                            settings.SmsProvider,
 		VolcengineSmsAccessKeyID:               settings.VolcengineSmsAccessKeyID,
 		VolcengineSmsAccessKeySecretConfigured: settings.VolcengineSmsAccessKeySecretConfigured,
@@ -695,6 +696,7 @@ type UpdateSettingsRequest struct {
 
 	// 手机号注册
 	PhoneRegisterEnabled *bool   `json:"phone_register_enabled"`
+	PasswordLoginEnabled  *bool   `json:"password_login_enabled"`
 	SmsProvider          *string `json:"sms_provider"`
 	// 火山引擎 SMS
 	VolcengineSmsAccessKeyID     *string `json:"volcengine_sms_access_key_id"`
@@ -1841,6 +1843,12 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 				return *req.PhoneRegisterEnabled
 			}
 			return previousSettings.PhoneRegisterEnabled
+		}(),
+		PasswordLoginEnabled: func() bool {
+			if req.PasswordLoginEnabled != nil {
+				return *req.PasswordLoginEnabled
+			}
+			return previousSettings.PasswordLoginEnabled
 		}(),
 		VolcengineSmsAccessKeyID: func() string {
 			if req.VolcengineSmsAccessKeyID != nil {

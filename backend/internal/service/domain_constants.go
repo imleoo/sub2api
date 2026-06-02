@@ -151,6 +151,7 @@ const (
 
 	// 手机号注册设置
 	SettingKeyPhoneRegisterEnabled      = "phone_register_enabled"          // 是否启用手机号注册模式（与邮箱注册互斥）
+	SettingKeyPasswordLoginEnabled      = "password_login_enabled"          // 是否允许账号密码登录（默认 true；关闭后仅手机号登录）
 	SettingKeySmsFrontend               = "sms_provider"                   // SMS 服务商：volcengine / tencent / aliyun
 	SettingKeyVolcengineAccessKeyID     = "volcengine_sms_access_key_id"    // 火山引擎 SMS Access Key ID
 	SettingKeyVolcengineAccessKeySecret = "volcengine_sms_access_key_secret" // 火山引擎 SMS Access Key Secret（加密存储）

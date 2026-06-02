@@ -506,6 +506,7 @@ export default {
     invalidPhone: 'Please enter a valid phone number',
     smsCodeRequired: 'SMS code is required',
     switchToPasswordLogin: 'Sign in with email and password',
+    switchToPhoneLogin: 'Sign in with phone verification code',
     linuxdo: {
       signIn: 'Continue with Linux.do',
       orContinue: 'or continue with email',
@@ -1329,6 +1330,7 @@ export default {
       },
       providers: {
         email: 'Email',
+        phone: 'Phone',
         linuxdo: 'LinuxDo',
         dingtalk: 'DingTalk',
         oidc: '{providerName}',
@@ -6108,6 +6110,8 @@ export default {
         description: 'Configure SMS for phone registration and login. Supports Volcengine, Tencent Cloud, and Alibaba Cloud.',
         phoneRegisterEnabled: 'Enable Phone Registration',
         phoneRegisterEnabledHint: 'When enabled, email verification will be disabled. Users register and log in with phone + SMS code',
+        passwordLoginEnabled: 'Allow Password Login',
+        passwordLoginEnabledHint: 'When disabled, users can only log in via phone verification code. Email/password login will be blocked',
         providerVolcengine: 'Volcengine',
         providerTencent: 'Tencent Cloud',
         providerAliyun: 'Alibaba Cloud',

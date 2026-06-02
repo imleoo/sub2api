@@ -504,6 +504,7 @@ export default {
     invalidPhone: '请输入有效的手机号',
     smsCodeRequired: '请输入短信验证码',
     switchToPasswordLogin: '使用账号密码登录',
+    switchToPhoneLogin: '使用手机号验证码登录',
     linuxdo: {
       signIn: '使用 Linux.do 登录',
       orContinue: '或使用邮箱密码继续',
@@ -1332,6 +1333,7 @@ export default {
       },
       providers: {
         email: '邮箱',
+        phone: '手机号',
         linuxdo: 'LinuxDo',
         dingtalk: '钉钉',
         oidc: '{providerName}',
@@ -6263,6 +6265,8 @@ export default {
         description: '配置手机号注册和登录所需的短信服务，支持火山引擎、腾讯云、阿里云',
         phoneRegisterEnabled: '启用手机号注册',
         phoneRegisterEnabledHint: '开启后将关闭邮件验证，用户通过手机号+短信验证码注册和登录',
+        passwordLoginEnabled: '允许账号密码登录',
+        passwordLoginEnabledHint: '关闭后用户只能通过手机号验证码登录，邮箱密码登录将被禁用',
         providerVolcengine: '火山引擎',
         providerTencent: '腾讯云',
         providerAliyun: '阿里云',

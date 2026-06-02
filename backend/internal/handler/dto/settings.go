@@ -263,6 +263,7 @@ type SystemSettings struct {
 
 	// 手机号注册
 	PhoneRegisterEnabled bool   `json:"phone_register_enabled"`
+	PasswordLoginEnabled  bool   `json:"password_login_enabled"`
 	SmsProvider          string `json:"sms_provider"` // "volcengine" | "tencent" | "aliyun"
 	// 火山引擎 SMS
 	VolcengineSmsAccessKeyID               string `json:"volcengine_sms_access_key_id"`
@@ -354,6 +355,7 @@ type PublicSettings struct {
 
 	// 手机号注册
 	PhoneRegisterEnabled bool `json:"phone_register_enabled"`
+	PasswordLoginEnabled  bool `json:"password_login_enabled"`
 }
 
 type LoginAgreementDocument struct {

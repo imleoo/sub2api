@@ -138,6 +138,7 @@
         >
           <ProfileIdentityBindingsSection
             :user="user"
+            :phone-register-enabled="phoneRegisterEnabled"
             :linuxdo-enabled="linuxdoEnabled"
             :dingtalk-enabled="dingtalkEnabled"
             :oidc-enabled="oidcEnabled"
@@ -191,6 +192,7 @@ import type { User, UserAuthBindingStatus, UserAuthProvider, UserProfileSourceCo
 
 const props = withDefaults(defineProps<{
   user: User | null
+  phoneRegisterEnabled?: boolean
   linuxdoEnabled?: boolean
   dingtalkEnabled?: boolean
   oidcEnabled?: boolean
@@ -199,6 +201,7 @@ const props = withDefaults(defineProps<{
   wechatOpenEnabled?: boolean
   wechatMpEnabled?: boolean
 }>(), {
+  phoneRegisterEnabled: false,
   linuxdoEnabled: false,
   dingtalkEnabled: false,
   oidcEnabled: false,
@@ -266,6 +269,7 @@ const memberSinceLabel = computed(() => {
 
 const providerLabels = computed<Record<UserAuthProvider, string>>(() => ({
   email: t('profile.authBindings.providers.email'),
+  phone: t('profile.authBindings.providers.phone'),
   linuxdo: t('profile.authBindings.providers.linuxdo'),
   dingtalk: t('profile.authBindings.providers.dingtalk'),
   oidc: t('profile.authBindings.providers.oidc', { providerName: props.oidcProviderName }),

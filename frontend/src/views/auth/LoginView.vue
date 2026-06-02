@@ -133,13 +133,24 @@
         <!-- /Password Input (email mode) -->
 
         <!-- Switch to password login link (phone mode) -->
-        <div v-if="phoneLoginMode && phoneRegisterEnabled" class="text-center">
+        <div v-if="phoneLoginMode && phoneRegisterEnabled && passwordLoginEnabled" class="text-center">
           <button
             type="button"
             class="text-sm font-medium text-primary-600 transition-colors hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
             @click="phoneLoginMode = false"
           >
             {{ t('auth.switchToPasswordLogin') }}
+          </button>
+        </div>
+
+        <!-- Switch to phone login link (email/password mode) -->
+        <div v-if="!phoneLoginMode && phoneRegisterEnabled" class="text-center">
+          <button
+            type="button"
+            class="text-sm font-medium text-primary-600 transition-colors hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
+            @click="phoneLoginMode = true"
+          >
+            {{ t('auth.switchToPhoneLogin') }}
           </button>
         </div>
 
@@ -311,6 +322,7 @@ const githubOAuthEnabled = ref<boolean>(false)
 const googleOAuthEnabled = ref<boolean>(false)
 const passwordResetEnabled = ref<boolean>(false)
 const phoneRegisterEnabled = ref<boolean>(false)
+const passwordLoginEnabled = ref<boolean>(true)
 const phoneLoginMode = ref<boolean>(false) // true = show phone form, false = show email form
 
 // Phone login state
@@ -401,6 +413,7 @@ onMounted(async () => {
     backendModeEnabled.value = settings.backend_mode_enabled
     passwordResetEnabled.value = settings.password_reset_enabled
     phoneRegisterEnabled.value = settings.phone_register_enabled ?? false
+    passwordLoginEnabled.value = settings.password_login_enabled ?? true
     if (phoneRegisterEnabled.value) {
       phoneLoginMode.value = true
     }

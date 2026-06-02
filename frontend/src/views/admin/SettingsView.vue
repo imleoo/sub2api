@@ -1396,6 +1396,21 @@
                 <Toggle v-model="form.phone_register_enabled" @update:model-value="onPhoneRegisterToggle" />
               </div>
 
+              <!-- Password Login -->
+              <div
+                class="flex items-center justify-between border-t border-gray-100 pt-4 dark:border-dark-700"
+              >
+                <div>
+                  <label class="font-medium text-gray-900 dark:text-white">{{
+                    t("admin.settings.sms.passwordLoginEnabled")
+                  }}</label>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">
+                    {{ t("admin.settings.sms.passwordLoginEnabledHint") }}
+                  </p>
+                </div>
+                <Toggle v-model="form.password_login_enabled" />
+              </div>
+
               <!-- Email Verification -->
               <div
                 class="flex items-center justify-between border-t border-gray-100 pt-4 dark:border-dark-700"
@@ -7421,6 +7436,7 @@ const form = reactive<SettingsForm>({
   cny_rate: 7.2,
   // 手机号注册
   phone_register_enabled: false,
+  password_login_enabled: true,
   sms_provider: "volcengine",
   // 火山引擎
   volcengine_sms_access_key_id: "",
@@ -8400,6 +8416,7 @@ async function saveSettings() {
       registration_enabled: form.registration_enabled,
       email_verify_enabled: form.email_verify_enabled,
       phone_register_enabled: form.phone_register_enabled,
+      password_login_enabled: form.password_login_enabled,
       sms_provider: form.sms_provider,
       volcengine_sms_access_key_id: form.volcengine_sms_access_key_id,
       volcengine_sms_access_key_secret: form.volcengine_sms_access_key_secret || undefined,

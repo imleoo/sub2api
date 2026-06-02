@@ -1,6 +1,7 @@
 <template>
   <ProfileIdentityBindingsSection
     :user="user"
+    :phone-register-enabled="phoneRegisterEnabled"
     :linuxdo-enabled="linuxdoEnabled"
     :dingtalk-enabled="dingtalkEnabled"
     :oidc-enabled="oidcEnabled"
@@ -18,6 +19,7 @@ import type { User } from '@/types'
 withDefaults(
   defineProps<{
     user: User | null
+    phoneRegisterEnabled?: boolean
     linuxdoEnabled?: boolean
     dingtalkEnabled?: boolean
     oidcEnabled?: boolean
@@ -27,6 +29,7 @@ withDefaults(
     wechatMpEnabled?: boolean
   }>(),
   {
+    phoneRegisterEnabled: false,
     linuxdoEnabled: false,
     dingtalkEnabled: false,
     oidcEnabled: false,

@@ -34,7 +34,7 @@ export interface NotifyEmailEntry {
 
 // ==================== User & Auth Types ====================
 
-export type UserAuthProvider = 'email' | 'linuxdo' | 'oidc' | 'wechat' | 'github' | 'google' | 'dingtalk'
+export type UserAuthProvider = 'email' | 'phone' | 'linuxdo' | 'oidc' | 'wechat' | 'github' | 'google' | 'dingtalk'
 
 export interface UserAuthBindingStatus {
   bound?: boolean
@@ -67,6 +67,7 @@ export interface User {
   id: number
   username: string
   email: string
+  phone?: string | null
   avatar_url?: string | null
   avatar_source?: string | UserProfileSourceContext | null
   username_source?: string | UserProfileSourceContext | null
@@ -239,6 +240,7 @@ export interface PublicSettings {
   cny_rate?: number
   ui_theme: string
   phone_register_enabled?: boolean
+  password_login_enabled?: boolean
 }
 
 export interface AuthResponse {

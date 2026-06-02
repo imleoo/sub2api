@@ -776,6 +776,7 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeyRiskControlEnabled,
 		SettingKeyShowOverseasModels,
 		SettingKeyPhoneRegisterEnabled,
+		SettingKeyPasswordLoginEnabled,
 	}
 
 	settings, err := s.settingRepo.GetMultiple(ctx, keys)
@@ -895,9 +896,10 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 
 		CurrencyMode:       strings.TrimSpace(settings[SettingKeyCurrencyMode]),
 		CNYRate:            cnyRate,
-		RiskControlEnabled:   settings[SettingKeyRiskControlEnabled] == "true",
-		ShowOverseasModels:   settings[SettingKeyShowOverseasModels] != "false",
-		PhoneRegisterEnabled: settings[SettingKeyPhoneRegisterEnabled] == "true",
+		RiskControlEnabled:    settings[SettingKeyRiskControlEnabled] == "true",
+		ShowOverseasModels:    settings[SettingKeyShowOverseasModels] != "false",
+		PhoneRegisterEnabled:  settings[SettingKeyPhoneRegisterEnabled] == "true",
+		PasswordLoginEnabled:  settings[SettingKeyPasswordLoginEnabled] != "false", // 默认 true
 	}, nil
 }
 
@@ -1210,6 +1212,7 @@ type PublicSettingsInjectionPayload struct {
 
 	// 手机号注册
 	PhoneRegisterEnabled bool `json:"phone_register_enabled"`
+	PasswordLoginEnabled  bool `json:"password_login_enabled"`
 }
 
 // GetPublicSettingsForInjection returns public settings in a format suitable for HTML injection.
@@ -1277,6 +1280,7 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		RiskControlEnabled:                   settings.RiskControlEnabled,
 		ShowOverseasModels:                   settings.ShowOverseasModels,
 		PhoneRegisterEnabled:                 settings.PhoneRegisterEnabled,
+		PasswordLoginEnabled:                  settings.PasswordLoginEnabled,
 	}, nil
 }
 
@@ -1972,6 +1976,7 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 
 	// 手机号注册
 	updates[SettingKeyPhoneRegisterEnabled] = strconv.FormatBool(settings.PhoneRegisterEnabled)
+	updates[SettingKeyPasswordLoginEnabled] = strconv.FormatBool(settings.PasswordLoginEnabled)
 	updates[SettingKeySmsFrontend] = settings.SmsProvider
 	// 火山引擎
 	updates[SettingKeyVolcengineAccessKeyID] = settings.VolcengineSmsAccessKeyID
@@ -3481,6 +3486,7 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 
 	// 手机号注册
 	result.PhoneRegisterEnabled = settings[SettingKeyPhoneRegisterEnabled] == "true"
+	result.PasswordLoginEnabled = settings[SettingKeyPasswordLoginEnabled] != "false" // 默认 true
 	result.SmsProvider = settings[SettingKeySmsFrontend]
 	if result.SmsProvider == "" {
 		result.SmsProvider = "volcengine"
