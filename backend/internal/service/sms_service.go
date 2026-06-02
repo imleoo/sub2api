@@ -68,33 +68,69 @@ func generateSmsCode() (string, error) {
 	return string(code), nil
 }
 
-// loadVolcengineClient 从设置中动态加载火山引擎 SMS 客户端
-func (s *SmsService) loadVolcengineClient(ctx context.Context) (*sms.VolcengineClient, error) {
-	keys := []string{
-		SettingKeyVolcengineAccessKeyID,
-		SettingKeyVolcengineAccessKeySecret,
-		SettingKeyVolcengineSmsAccountID,
-		SettingKeyVolcengineSmsSign,
-		SettingKeyVolcengineSmsTemplateID,
+// smsProvider 是统一的短信发送接口
+type smsProvider interface {
+	SendCode(ctx context.Context, phone, code string) error
+}
+
+// loadSmsClient 根据 sms_provider 设置动态加载对应短信客户端
+func (s *SmsService) loadSmsClient(ctx context.Context) (smsProvider, error) {
+	allKeys := []string{
+		SettingKeySmsFrontend,
+		SettingKeyVolcengineAccessKeyID, SettingKeyVolcengineAccessKeySecret,
+		SettingKeyVolcengineSmsAccountID, SettingKeyVolcengineSmsSign, SettingKeyVolcengineSmsTemplateID,
+		SettingKeyTencentSecretID, SettingKeyTencentSecretKey,
+		SettingKeyTencentSmsSdkAppID, SettingKeyTencentSmsSign, SettingKeyTencentSmsTemplateID,
+		SettingKeyAliyunAccessKeyID, SettingKeyAliyunAccessKeySecret,
+		SettingKeyAliyunSmsSign, SettingKeyAliyunSmsTemplateCode,
 	}
-	settings, err := s.settingRepo.GetMultiple(ctx, keys)
+	settings, err := s.settingRepo.GetMultiple(ctx, allKeys)
 	if err != nil {
 		return nil, fmt.Errorf("load sms settings: %w", err)
 	}
 
-	cfg := sms.VolcengineConfig{
-		AccessKeyID:     settings[SettingKeyVolcengineAccessKeyID],
-		AccessKeySecret: settings[SettingKeyVolcengineAccessKeySecret],
-		AccountID:       settings[SettingKeyVolcengineSmsAccountID],
-		Sign:            settings[SettingKeyVolcengineSmsSign],
-		TemplateID:      settings[SettingKeyVolcengineSmsTemplateID],
+	provider := settings[SettingKeySmsFrontend]
+	if provider == "" {
+		provider = "volcengine" // 向后兼容默认值
 	}
 
-	if cfg.AccessKeyID == "" || cfg.AccessKeySecret == "" {
-		return nil, ErrSmsNotConfigured
+	switch provider {
+	case "tencent":
+		cfg := sms.TencentConfig{
+			SecretID:    settings[SettingKeyTencentSecretID],
+			SecretKey:   settings[SettingKeyTencentSecretKey],
+			SmsSdkAppID: settings[SettingKeyTencentSmsSdkAppID],
+			Sign:        settings[SettingKeyTencentSmsSign],
+			TemplateID:  settings[SettingKeyTencentSmsTemplateID],
+		}
+		if cfg.SecretID == "" || cfg.SecretKey == "" {
+			return nil, ErrSmsNotConfigured
+		}
+		return sms.NewTencentClient(cfg), nil
+	case "aliyun":
+		cfg := sms.AliyunConfig{
+			AccessKeyID:     settings[SettingKeyAliyunAccessKeyID],
+			AccessKeySecret: settings[SettingKeyAliyunAccessKeySecret],
+			Sign:            settings[SettingKeyAliyunSmsSign],
+			TemplateCode:    settings[SettingKeyAliyunSmsTemplateCode],
+		}
+		if cfg.AccessKeyID == "" || cfg.AccessKeySecret == "" {
+			return nil, ErrSmsNotConfigured
+		}
+		return sms.NewAliyunClient(cfg), nil
+	default: // "volcengine"
+		cfg := sms.VolcengineConfig{
+			AccessKeyID:     settings[SettingKeyVolcengineAccessKeyID],
+			AccessKeySecret: settings[SettingKeyVolcengineAccessKeySecret],
+			AccountID:       settings[SettingKeyVolcengineSmsAccountID],
+			Sign:            settings[SettingKeyVolcengineSmsSign],
+			TemplateID:      settings[SettingKeyVolcengineSmsTemplateID],
+		}
+		if cfg.AccessKeyID == "" || cfg.AccessKeySecret == "" {
+			return nil, ErrSmsNotConfigured
+		}
+		return sms.NewVolcengineClient(cfg), nil
 	}
-
-	return sms.NewVolcengineClient(cfg), nil
 }
 
 // SendVerifyCode 生成并发送短信验证码
@@ -126,9 +162,9 @@ func (s *SmsService) SendVerifyCode(ctx context.Context, phone string) (*SendSms
 	}
 
 	// 发送短信
-	client, err := s.loadVolcengineClient(ctx)
+	client, err := s.loadSmsClient(ctx)
 	if err != nil {
-		slog.Error("failed to load volcengine client", "error", err)
+		slog.Error("failed to load sms client", "error", err)
 		return nil, err
 	}
 

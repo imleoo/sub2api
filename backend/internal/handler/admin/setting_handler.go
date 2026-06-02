@@ -308,11 +308,21 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		CNYRate:      settings.CNYRate,
 
 		PhoneRegisterEnabled:                   settings.PhoneRegisterEnabled,
+		SmsProvider:                            settings.SmsProvider,
 		VolcengineSmsAccessKeyID:               settings.VolcengineSmsAccessKeyID,
 		VolcengineSmsAccessKeySecretConfigured: settings.VolcengineSmsAccessKeySecretConfigured,
 		VolcengineSmsAccountID:                 settings.VolcengineSmsAccountID,
 		VolcengineSmsSign:                      settings.VolcengineSmsSign,
 		VolcengineSmsTemplateID:                settings.VolcengineSmsTemplateID,
+		TencentSmsSecretID:              settings.TencentSmsSecretID,
+		TencentSmsSecretKeyConfigured:   settings.TencentSmsSecretKeyConfigured,
+		TencentSmsSdkAppID:              settings.TencentSmsSdkAppID,
+		TencentSmsSign:                  settings.TencentSmsSign,
+		TencentSmsTemplateID:            settings.TencentSmsTemplateID,
+		AliyunSmsAccessKeyID:               settings.AliyunSmsAccessKeyID,
+		AliyunSmsAccessKeySecretConfigured: settings.AliyunSmsAccessKeySecretConfigured,
+		AliyunSmsSign:                      settings.AliyunSmsSign,
+		AliyunSmsTemplateCode:              settings.AliyunSmsTemplateCode,
 	}
 
 	// OpenAI fast policy (stored under a dedicated setting key)
@@ -683,13 +693,26 @@ type UpdateSettingsRequest struct {
 	AuthSourceGooglePlatformQuotas   map[string]*service.DefaultPlatformQuotaSetting `json:"auth_source_default_google_platform_quotas"`
 	AuthSourceDingTalkPlatformQuotas map[string]*service.DefaultPlatformQuotaSetting `json:"auth_source_default_dingtalk_platform_quotas"`
 
-	// 手机号注册（火山引擎 SMS）
-	PhoneRegisterEnabled                   *bool   `json:"phone_register_enabled"`
-	VolcengineSmsAccessKeyID               *string `json:"volcengine_sms_access_key_id"`
-	VolcengineSmsAccessKeySecret           *string `json:"volcengine_sms_access_key_secret"`
-	VolcengineSmsAccountID                 *string `json:"volcengine_sms_account_id"`
-	VolcengineSmsSign                      *string `json:"volcengine_sms_sign"`
-	VolcengineSmsTemplateID                *string `json:"volcengine_sms_template_id"`
+	// 手机号注册
+	PhoneRegisterEnabled *bool   `json:"phone_register_enabled"`
+	SmsProvider          *string `json:"sms_provider"`
+	// 火山引擎 SMS
+	VolcengineSmsAccessKeyID     *string `json:"volcengine_sms_access_key_id"`
+	VolcengineSmsAccessKeySecret *string `json:"volcengine_sms_access_key_secret"`
+	VolcengineSmsAccountID       *string `json:"volcengine_sms_account_id"`
+	VolcengineSmsSign            *string `json:"volcengine_sms_sign"`
+	VolcengineSmsTemplateID      *string `json:"volcengine_sms_template_id"`
+	// 腾讯云 SMS
+	TencentSmsSecretID    *string `json:"tencent_sms_secret_id"`
+	TencentSmsSecretKey   *string `json:"tencent_sms_secret_key"`
+	TencentSmsSdkAppID    *string `json:"tencent_sms_sdk_app_id"`
+	TencentSmsSign        *string `json:"tencent_sms_sign"`
+	TencentSmsTemplateID  *string `json:"tencent_sms_template_id"`
+	// 阿里云 SMS
+	AliyunSmsAccessKeyID     *string `json:"aliyun_sms_access_key_id"`
+	AliyunSmsAccessKeySecret *string `json:"aliyun_sms_access_key_secret"`
+	AliyunSmsSign            *string `json:"aliyun_sms_sign"`
+	AliyunSmsTemplateCode    *string `json:"aliyun_sms_template_code"`
 }
 
 // UpdateSettings 更新系统设置
@@ -1848,6 +1871,66 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 				return strings.TrimSpace(*req.VolcengineSmsTemplateID)
 			}
 			return previousSettings.VolcengineSmsTemplateID
+		}(),
+		SmsProvider: func() string {
+			if req.SmsProvider != nil {
+				return strings.TrimSpace(*req.SmsProvider)
+			}
+			return previousSettings.SmsProvider
+		}(),
+		TencentSmsSecretID: func() string {
+			if req.TencentSmsSecretID != nil {
+				return strings.TrimSpace(*req.TencentSmsSecretID)
+			}
+			return previousSettings.TencentSmsSecretID
+		}(),
+		TencentSmsSecretKey: func() string {
+			if req.TencentSmsSecretKey != nil {
+				return strings.TrimSpace(*req.TencentSmsSecretKey)
+			}
+			return "" // write-only
+		}(),
+		TencentSmsSdkAppID: func() string {
+			if req.TencentSmsSdkAppID != nil {
+				return strings.TrimSpace(*req.TencentSmsSdkAppID)
+			}
+			return previousSettings.TencentSmsSdkAppID
+		}(),
+		TencentSmsSign: func() string {
+			if req.TencentSmsSign != nil {
+				return strings.TrimSpace(*req.TencentSmsSign)
+			}
+			return previousSettings.TencentSmsSign
+		}(),
+		TencentSmsTemplateID: func() string {
+			if req.TencentSmsTemplateID != nil {
+				return strings.TrimSpace(*req.TencentSmsTemplateID)
+			}
+			return previousSettings.TencentSmsTemplateID
+		}(),
+		AliyunSmsAccessKeyID: func() string {
+			if req.AliyunSmsAccessKeyID != nil {
+				return strings.TrimSpace(*req.AliyunSmsAccessKeyID)
+			}
+			return previousSettings.AliyunSmsAccessKeyID
+		}(),
+		AliyunSmsAccessKeySecret: func() string {
+			if req.AliyunSmsAccessKeySecret != nil {
+				return strings.TrimSpace(*req.AliyunSmsAccessKeySecret)
+			}
+			return "" // write-only
+		}(),
+		AliyunSmsSign: func() string {
+			if req.AliyunSmsSign != nil {
+				return strings.TrimSpace(*req.AliyunSmsSign)
+			}
+			return previousSettings.AliyunSmsSign
+		}(),
+		AliyunSmsTemplateCode: func() string {
+			if req.AliyunSmsTemplateCode != nil {
+				return strings.TrimSpace(*req.AliyunSmsTemplateCode)
+			}
+			return previousSettings.AliyunSmsTemplateCode
 		}(),
 	}
 

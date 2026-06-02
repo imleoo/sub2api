@@ -151,11 +151,23 @@ const (
 
 	// 手机号注册设置
 	SettingKeyPhoneRegisterEnabled      = "phone_register_enabled"          // 是否启用手机号注册模式（与邮箱注册互斥）
+	SettingKeySmsFrontend               = "sms_provider"                   // SMS 服务商：volcengine / tencent / aliyun
 	SettingKeyVolcengineAccessKeyID     = "volcengine_sms_access_key_id"    // 火山引擎 SMS Access Key ID
 	SettingKeyVolcengineAccessKeySecret = "volcengine_sms_access_key_secret" // 火山引擎 SMS Access Key Secret（加密存储）
 	SettingKeyVolcengineSmsAccountID    = "volcengine_sms_account_id"       // 火山引擎短信账户 ID
 	SettingKeyVolcengineSmsSign         = "volcengine_sms_sign"             // 短信签名
 	SettingKeyVolcengineSmsTemplateID   = "volcengine_sms_template_id"      // 验证码模板 ID
+	// 腾讯云 SMS
+	SettingKeyTencentSecretID     = "tencent_sms_secret_id"     // 腾讯云 SecretId
+	SettingKeyTencentSecretKey    = "tencent_sms_secret_key"    // 腾讯云 SecretKey（加密存储）
+	SettingKeyTencentSmsSdkAppID  = "tencent_sms_sdk_app_id"   // 腾讯云短信应用 ID
+	SettingKeyTencentSmsSign      = "tencent_sms_sign"          // 短信签名
+	SettingKeyTencentSmsTemplateID = "tencent_sms_template_id"  // 验证码模板 ID
+	// 阿里云 SMS
+	SettingKeyAliyunAccessKeyID     = "aliyun_sms_access_key_id"     // 阿里云 AccessKey ID
+	SettingKeyAliyunAccessKeySecret = "aliyun_sms_access_key_secret" // 阿里云 AccessKey Secret（加密存储）
+	SettingKeyAliyunSmsSign         = "aliyun_sms_sign"              // 短信签名
+	SettingKeyAliyunSmsTemplateCode = "aliyun_sms_template_code"     // 验证码模板 Code
 
 	// 邮件服务设置
 	SettingKeySMTPHost     = "smtp_host"      // SMTP服务器地址

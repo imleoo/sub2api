@@ -1970,15 +1970,31 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 		updates[SettingKeyDefaultPlatformQuotas] = string(blob)
 	}
 
-	// 手机号注册（火山引擎 SMS）
+	// 手机号注册
 	updates[SettingKeyPhoneRegisterEnabled] = strconv.FormatBool(settings.PhoneRegisterEnabled)
+	updates[SettingKeySmsFrontend] = settings.SmsProvider
+	// 火山引擎
 	updates[SettingKeyVolcengineAccessKeyID] = settings.VolcengineSmsAccessKeyID
 	updates[SettingKeyVolcengineSmsAccountID] = settings.VolcengineSmsAccountID
 	updates[SettingKeyVolcengineSmsSign] = settings.VolcengineSmsSign
 	updates[SettingKeyVolcengineSmsTemplateID] = settings.VolcengineSmsTemplateID
-	// Secret 仅在非空时写入（保留已配置值）
 	if settings.VolcengineSmsAccessKeySecret != "" {
 		updates[SettingKeyVolcengineAccessKeySecret] = settings.VolcengineSmsAccessKeySecret
+	}
+	// 腾讯云
+	updates[SettingKeyTencentSmsSdkAppID] = settings.TencentSmsSdkAppID
+	updates[SettingKeyTencentSmsSign] = settings.TencentSmsSign
+	updates[SettingKeyTencentSmsTemplateID] = settings.TencentSmsTemplateID
+	updates[SettingKeyTencentSecretID] = settings.TencentSmsSecretID
+	if settings.TencentSmsSecretKey != "" {
+		updates[SettingKeyTencentSecretKey] = settings.TencentSmsSecretKey
+	}
+	// 阿里云
+	updates[SettingKeyAliyunSmsSign] = settings.AliyunSmsSign
+	updates[SettingKeyAliyunSmsTemplateCode] = settings.AliyunSmsTemplateCode
+	updates[SettingKeyAliyunAccessKeyID] = settings.AliyunSmsAccessKeyID
+	if settings.AliyunSmsAccessKeySecret != "" {
+		updates[SettingKeyAliyunAccessKeySecret] = settings.AliyunSmsAccessKeySecret
 	}
 
 	// 互斥：phone_register 和 email_verify 不能同时启用
@@ -3463,13 +3479,29 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		}
 	}
 
-	// 手机号注册（火山引擎 SMS）
+	// 手机号注册
 	result.PhoneRegisterEnabled = settings[SettingKeyPhoneRegisterEnabled] == "true"
+	result.SmsProvider = settings[SettingKeySmsFrontend]
+	if result.SmsProvider == "" {
+		result.SmsProvider = "volcengine"
+	}
+	// 火山引擎
 	result.VolcengineSmsAccessKeyID = settings[SettingKeyVolcengineAccessKeyID]
 	result.VolcengineSmsAccessKeySecretConfigured = settings[SettingKeyVolcengineAccessKeySecret] != ""
 	result.VolcengineSmsAccountID = settings[SettingKeyVolcengineSmsAccountID]
 	result.VolcengineSmsSign = settings[SettingKeyVolcengineSmsSign]
 	result.VolcengineSmsTemplateID = settings[SettingKeyVolcengineSmsTemplateID]
+	// 腾讯云
+	result.TencentSmsSecretID = settings[SettingKeyTencentSecretID]
+	result.TencentSmsSecretKeyConfigured = settings[SettingKeyTencentSecretKey] != ""
+	result.TencentSmsSdkAppID = settings[SettingKeyTencentSmsSdkAppID]
+	result.TencentSmsSign = settings[SettingKeyTencentSmsSign]
+	result.TencentSmsTemplateID = settings[SettingKeyTencentSmsTemplateID]
+	// 阿里云
+	result.AliyunSmsAccessKeyID = settings[SettingKeyAliyunAccessKeyID]
+	result.AliyunSmsAccessKeySecretConfigured = settings[SettingKeyAliyunAccessKeySecret] != ""
+	result.AliyunSmsSign = settings[SettingKeyAliyunSmsSign]
+	result.AliyunSmsTemplateCode = settings[SettingKeyAliyunSmsTemplateCode]
 
 	return result
 }

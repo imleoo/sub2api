@@ -1574,7 +1574,7 @@
             </div>
           </div>
 
-          <!-- Volcengine SMS Config - Only show when phone registration is enabled -->
+          <!-- SMS Provider Config - Only show when phone registration is enabled -->
           <div v-if="form.phone_register_enabled" class="card">
             <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
               <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
@@ -1584,76 +1584,157 @@
                 {{ t("admin.settings.sms.description") }}
               </p>
             </div>
-            <div class="space-y-6 p-6">
+            <!-- Provider Tab selector -->
+            <div class="border-b border-gray-100 px-6 dark:border-dark-700">
+              <nav class="-mb-px flex gap-4">
+                <button
+                  v-for="p in smsProviders"
+                  :key="p.value"
+                  type="button"
+                  class="border-b-2 px-1 py-3 text-sm font-medium transition-colors"
+                  :class="form.sms_provider === p.value
+                    ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400'"
+                  @click="form.sms_provider = p.value"
+                >
+                  {{ p.label }}
+                </button>
+              </nav>
+            </div>
+            <!-- 火山引擎配置 -->
+            <div v-if="form.sms_provider === 'volcengine'" class="space-y-6 p-6">
               <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
                   <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     {{ t("admin.settings.sms.accessKeyID") }}
                   </label>
-                  <input
-                    v-model="form.volcengine_sms_access_key_id"
-                    type="text"
-                    class="input"
-                    :placeholder="t('admin.settings.sms.accessKeyIDPlaceholder')"
-                  />
+                  <input v-model="form.volcengine_sms_access_key_id" type="text" class="input"
+                    :placeholder="t('admin.settings.sms.accessKeyIDPlaceholder')" />
                 </div>
                 <div>
                   <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     {{ t("admin.settings.sms.accessKeySecret") }}
                   </label>
-                  <input
-                    v-model="form.volcengine_sms_access_key_secret"
-                    type="password"
-                    class="input"
-                    autocomplete="new-password"
-                    autocapitalize="off"
-                    spellcheck="false"
-                    :placeholder="
-                      form.volcengine_sms_access_key_secret_configured
-                        ? t('admin.settings.sms.accessKeySecretConfiguredPlaceholder')
-                        : t('admin.settings.sms.accessKeySecretPlaceholder')
-                    "
-                  />
+                  <input v-model="form.volcengine_sms_access_key_secret" type="password" class="input"
+                    autocomplete="new-password" autocapitalize="off" spellcheck="false"
+                    :placeholder="form.volcengine_sms_access_key_secret_configured
+                      ? t('admin.settings.sms.secretConfiguredPlaceholder')
+                      : t('admin.settings.sms.secretPlaceholder')" />
                   <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                    {{
-                      form.volcengine_sms_access_key_secret_configured
-                        ? t("admin.settings.sms.accessKeySecretConfiguredHint")
-                        : t("admin.settings.sms.accessKeySecretHint")
-                    }}
+                    {{ form.volcengine_sms_access_key_secret_configured
+                      ? t('admin.settings.sms.secretConfiguredHint')
+                      : t('admin.settings.sms.secretHint') }}
                   </p>
                 </div>
                 <div>
                   <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     {{ t("admin.settings.sms.smsAccountID") }}
                   </label>
-                  <input
-                    v-model="form.volcengine_sms_account_id"
-                    type="text"
-                    class="input"
-                    :placeholder="t('admin.settings.sms.smsAccountIDPlaceholder')"
-                  />
+                  <input v-model="form.volcengine_sms_account_id" type="text" class="input"
+                    :placeholder="t('admin.settings.sms.smsAccountIDPlaceholder')" />
                 </div>
                 <div>
                   <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     {{ t("admin.settings.sms.smsSign") }}
                   </label>
-                  <input
-                    v-model="form.volcengine_sms_sign"
-                    type="text"
-                    class="input"
-                    :placeholder="t('admin.settings.sms.smsSignPlaceholder')"
-                  />
+                  <input v-model="form.volcengine_sms_sign" type="text" class="input"
+                    :placeholder="t('admin.settings.sms.smsSignPlaceholder')" />
                 </div>
                 <div>
                   <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     {{ t("admin.settings.sms.smsTemplateID") }}
                   </label>
-                  <input
-                    v-model="form.volcengine_sms_template_id"
-                    type="text"
-                    class="input"
-                    :placeholder="t('admin.settings.sms.smsTemplateIDPlaceholder')"
-                  />
+                  <input v-model="form.volcengine_sms_template_id" type="text" class="input"
+                    :placeholder="t('admin.settings.sms.smsTemplateIDPlaceholder')" />
+                </div>
+              </div>
+            </div>
+            <!-- 腾讯云配置 -->
+            <div v-else-if="form.sms_provider === 'tencent'" class="space-y-6 p-6">
+              <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div>
+                  <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t("admin.settings.sms.tencentSecretID") }}
+                  </label>
+                  <input v-model="form.tencent_sms_secret_id" type="text" class="input"
+                    :placeholder="t('admin.settings.sms.tencentSecretIDPlaceholder')" />
+                </div>
+                <div>
+                  <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t("admin.settings.sms.tencentSecretKey") }}
+                  </label>
+                  <input v-model="form.tencent_sms_secret_key" type="password" class="input"
+                    autocomplete="new-password" autocapitalize="off" spellcheck="false"
+                    :placeholder="form.tencent_sms_secret_key_configured
+                      ? t('admin.settings.sms.secretConfiguredPlaceholder')
+                      : t('admin.settings.sms.secretPlaceholder')" />
+                  <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{ form.tencent_sms_secret_key_configured
+                      ? t('admin.settings.sms.secretConfiguredHint')
+                      : t('admin.settings.sms.secretHint') }}
+                  </p>
+                </div>
+                <div>
+                  <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t("admin.settings.sms.tencentSdkAppID") }}
+                  </label>
+                  <input v-model="form.tencent_sms_sdk_app_id" type="text" class="input"
+                    :placeholder="t('admin.settings.sms.tencentSdkAppIDPlaceholder')" />
+                </div>
+                <div>
+                  <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t("admin.settings.sms.smsSign") }}
+                  </label>
+                  <input v-model="form.tencent_sms_sign" type="text" class="input"
+                    :placeholder="t('admin.settings.sms.smsSignPlaceholder')" />
+                </div>
+                <div>
+                  <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t("admin.settings.sms.smsTemplateID") }}
+                  </label>
+                  <input v-model="form.tencent_sms_template_id" type="text" class="input"
+                    :placeholder="t('admin.settings.sms.smsTemplateIDPlaceholder')" />
+                </div>
+              </div>
+            </div>
+            <!-- 阿里云配置 -->
+            <div v-else-if="form.sms_provider === 'aliyun'" class="space-y-6 p-6">
+              <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div>
+                  <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t("admin.settings.sms.accessKeyID") }}
+                  </label>
+                  <input v-model="form.aliyun_sms_access_key_id" type="text" class="input"
+                    :placeholder="t('admin.settings.sms.accessKeyIDPlaceholder')" />
+                </div>
+                <div>
+                  <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t("admin.settings.sms.accessKeySecret") }}
+                  </label>
+                  <input v-model="form.aliyun_sms_access_key_secret" type="password" class="input"
+                    autocomplete="new-password" autocapitalize="off" spellcheck="false"
+                    :placeholder="form.aliyun_sms_access_key_secret_configured
+                      ? t('admin.settings.sms.secretConfiguredPlaceholder')
+                      : t('admin.settings.sms.secretPlaceholder')" />
+                  <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{ form.aliyun_sms_access_key_secret_configured
+                      ? t('admin.settings.sms.secretConfiguredHint')
+                      : t('admin.settings.sms.secretHint') }}
+                  </p>
+                </div>
+                <div>
+                  <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t("admin.settings.sms.smsSign") }}
+                  </label>
+                  <input v-model="form.aliyun_sms_sign" type="text" class="input"
+                    :placeholder="t('admin.settings.sms.smsSignPlaceholder')" />
+                </div>
+                <div>
+                  <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t("admin.settings.sms.aliyunTemplateCode") }}
+                  </label>
+                  <input v-model="form.aliyun_sms_template_code" type="text" class="input"
+                    :placeholder="t('admin.settings.sms.aliyunTemplateCodePlaceholder')" />
                 </div>
               </div>
             </div>
@@ -7118,6 +7199,8 @@ type SettingsForm = Omit<
   openai_advanced_scheduler_enabled: boolean;
   // 手机号注册（写入专用字段）
   volcengine_sms_access_key_secret: string;
+  tencent_sms_secret_key: string;
+  aliyun_sms_access_key_secret: string;
   // 系统全局平台限额 map；form 内始终归一化为全 4 平台对象（模板非空绑定依赖此不变量）
   default_platform_quotas: DefaultPlatformQuotasMap;
 };
@@ -7336,14 +7419,29 @@ const form = reactive<SettingsForm>({
   // Currency mode
   currency_mode: '',
   cny_rate: 7.2,
-  // 手机号注册 (SMS / Volcengine)
+  // 手机号注册
   phone_register_enabled: false,
+  sms_provider: "volcengine",
+  // 火山引擎
   volcengine_sms_access_key_id: "",
   volcengine_sms_access_key_secret_configured: false,
   volcengine_sms_account_id: "",
   volcengine_sms_sign: "",
   volcengine_sms_template_id: "",
   volcengine_sms_access_key_secret: "",
+  // 腾讯云
+  tencent_sms_secret_id: "",
+  tencent_sms_secret_key_configured: false,
+  tencent_sms_sdk_app_id: "",
+  tencent_sms_sign: "",
+  tencent_sms_template_id: "",
+  tencent_sms_secret_key: "",
+  // 阿里云
+  aliyun_sms_access_key_id: "",
+  aliyun_sms_access_key_secret_configured: false,
+  aliyun_sms_sign: "",
+  aliyun_sms_template_code: "",
+  aliyun_sms_access_key_secret: "",
 });
 
 const authSourceDefaults = reactive<AuthSourceDefaultsState>(
@@ -7625,6 +7723,12 @@ function commitRegistrationEmailSuffixWhitelistDraft() {
   );
   registrationEmailSuffixWhitelistDraft.value = "";
 }
+
+const smsProviders = [
+  { value: 'volcengine', label: t('admin.settings.sms.providerVolcengine') },
+  { value: 'tencent',    label: t('admin.settings.sms.providerTencent') },
+  { value: 'aliyun',     label: t('admin.settings.sms.providerAliyun') },
+]
 
 function onPhoneRegisterToggle(enabled: boolean) {
   if (enabled) {
@@ -8000,6 +8104,8 @@ async function loadSettings() {
     form.wechat_connect_mp_app_secret = "";
     form.wechat_connect_mobile_app_secret = "";
     form.volcengine_sms_access_key_secret = "";
+    form.tencent_sms_secret_key = "";
+    form.aliyun_sms_access_key_secret = "";
     const wechatCapabilities = resolveWeChatConnectModeCapabilities(
       settings.wechat_connect_open_enabled,
       settings.wechat_connect_mp_enabled,
@@ -8294,11 +8400,21 @@ async function saveSettings() {
       registration_enabled: form.registration_enabled,
       email_verify_enabled: form.email_verify_enabled,
       phone_register_enabled: form.phone_register_enabled,
+      sms_provider: form.sms_provider,
       volcengine_sms_access_key_id: form.volcengine_sms_access_key_id,
       volcengine_sms_access_key_secret: form.volcengine_sms_access_key_secret || undefined,
       volcengine_sms_account_id: form.volcengine_sms_account_id,
       volcengine_sms_sign: form.volcengine_sms_sign,
       volcengine_sms_template_id: form.volcengine_sms_template_id,
+      tencent_sms_secret_id: form.tencent_sms_secret_id,
+      tencent_sms_secret_key: form.tencent_sms_secret_key || undefined,
+      tencent_sms_sdk_app_id: form.tencent_sms_sdk_app_id,
+      tencent_sms_sign: form.tencent_sms_sign,
+      tencent_sms_template_id: form.tencent_sms_template_id,
+      aliyun_sms_access_key_id: form.aliyun_sms_access_key_id,
+      aliyun_sms_access_key_secret: form.aliyun_sms_access_key_secret || undefined,
+      aliyun_sms_sign: form.aliyun_sms_sign,
+      aliyun_sms_template_code: form.aliyun_sms_template_code,
       registration_email_suffix_whitelist:
         registrationEmailSuffixWhitelistTags.value.map((suffix) =>
           suffix.startsWith("*.") ? suffix : `@${suffix}`,
@@ -8575,6 +8691,8 @@ async function saveSettings() {
     form.wechat_connect_mp_app_secret = "";
     form.wechat_connect_mobile_app_secret = "";
     form.volcengine_sms_access_key_secret = "";
+    form.tencent_sms_secret_key = "";
+    form.aliyun_sms_access_key_secret = "";
     const updatedWechatCapabilities = resolveWeChatConnectModeCapabilities(
       updated.wechat_connect_open_enabled,
       updated.wechat_connect_mp_enabled,

@@ -141,16 +141,19 @@ func (s *AuthService) createPhoneUser(ctx context.Context, normalizedPhone, user
 
 	syntheticEmail := "phone_" + normalizedPhone + PhoneConnectSyntheticEmailDomain
 	user := &User{
-		Email:        syntheticEmail,
-		PasswordHash: "",
-		Phone:        &normalizedPhone,
-		Username:     username,
+		Email:       syntheticEmail,
+		Phone:       &normalizedPhone,
+		Username:    username,
 		SignupSource: "phone",
-		Role:         RoleUser,
-		Balance:      grantPlan.Balance,
-		Concurrency:  grantPlan.Concurrency,
-		RPMLimit:     defaultRPMLimit,
-		Status:       StatusActive,
+		Role:        RoleUser,
+		Balance:     grantPlan.Balance,
+		Concurrency: grantPlan.Concurrency,
+		RPMLimit:    defaultRPMLimit,
+		Status:      StatusActive,
+	}
+	// 手机号用户不允许密码登录，但 password_hash 字段有最小长度约束，用 bcrypt("") 填充
+	if err := user.SetPassword(""); err != nil {
+		return nil, ErrServiceUnavailable
 	}
 
 	if err := s.userRepo.Create(ctx, user); err != nil {

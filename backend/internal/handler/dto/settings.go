@@ -261,13 +261,26 @@ type SystemSettings struct {
 	// 系统全局默认平台配额（key = platform，nil/缺省 = 不限制）
 	DefaultPlatformQuotas map[string]*service.DefaultPlatformQuotaSetting `json:"default_platform_quotas,omitempty"`
 
-	// 手机号注册（火山引擎 SMS）
-	PhoneRegisterEnabled                   bool   `json:"phone_register_enabled"`
+	// 手机号注册
+	PhoneRegisterEnabled bool   `json:"phone_register_enabled"`
+	SmsProvider          string `json:"sms_provider"` // "volcengine" | "tencent" | "aliyun"
+	// 火山引擎 SMS
 	VolcengineSmsAccessKeyID               string `json:"volcengine_sms_access_key_id"`
 	VolcengineSmsAccessKeySecretConfigured bool   `json:"volcengine_sms_access_key_secret_configured"`
 	VolcengineSmsAccountID                 string `json:"volcengine_sms_account_id"`
 	VolcengineSmsSign                      string `json:"volcengine_sms_sign"`
 	VolcengineSmsTemplateID                string `json:"volcengine_sms_template_id"`
+	// 腾讯云 SMS
+	TencentSmsSecretID            string `json:"tencent_sms_secret_id"`
+	TencentSmsSecretKeyConfigured bool   `json:"tencent_sms_secret_key_configured"`
+	TencentSmsSdkAppID            string `json:"tencent_sms_sdk_app_id"`
+	TencentSmsSign                string `json:"tencent_sms_sign"`
+	TencentSmsTemplateID          string `json:"tencent_sms_template_id"`
+	// 阿里云 SMS
+	AliyunSmsAccessKeyID               string `json:"aliyun_sms_access_key_id"`
+	AliyunSmsAccessKeySecretConfigured bool   `json:"aliyun_sms_access_key_secret_configured"`
+	AliyunSmsSign                      string `json:"aliyun_sms_sign"`
+	AliyunSmsTemplateCode              string `json:"aliyun_sms_template_code"`
 }
 
 type DefaultSubscriptionSetting struct {

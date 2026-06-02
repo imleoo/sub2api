@@ -232,14 +232,29 @@ type SystemSettings struct {
 	// 系统全局默认平台配额（key = platform，nil/缺省 = 不限制）
 	DefaultPlatformQuotas map[string]*DefaultPlatformQuotaSetting `json:"default_platform_quotas"`
 
-	// 手机号注册（火山引擎 SMS）
-	PhoneRegisterEnabled                   bool
+	// 手机号注册
+	PhoneRegisterEnabled bool
+	SmsProvider          string // "volcengine" | "tencent" | "aliyun"
+	// 火山引擎 SMS
 	VolcengineSmsAccessKeyID               string
-	VolcengineSmsAccessKeySecret           string // write-only，仅用于写入，不回显
+	VolcengineSmsAccessKeySecret           string // write-only
 	VolcengineSmsAccessKeySecretConfigured bool
 	VolcengineSmsAccountID                 string
 	VolcengineSmsSign                      string
 	VolcengineSmsTemplateID                string
+	// 腾讯云 SMS
+	TencentSmsSecretID              string
+	TencentSmsSecretKey             string // write-only
+	TencentSmsSecretKeyConfigured   bool
+	TencentSmsSdkAppID              string
+	TencentSmsSign                  string
+	TencentSmsTemplateID            string
+	// 阿里云 SMS
+	AliyunSmsAccessKeyID               string
+	AliyunSmsAccessKeySecret           string // write-only
+	AliyunSmsAccessKeySecretConfigured bool
+	AliyunSmsSign                      string
+	AliyunSmsTemplateCode              string
 }
 
 type DefaultSubscriptionSetting struct {

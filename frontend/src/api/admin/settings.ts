@@ -618,13 +618,26 @@ export interface SystemSettings {
   currency_mode: string;
   cny_rate: number;
 
-  // 手机号注册 (SMS / Volcengine)
+  // 手机号注册
   phone_register_enabled: boolean;
+  sms_provider: string; // "volcengine" | "tencent" | "aliyun"
+  // 火山引擎 SMS
   volcengine_sms_access_key_id: string;
   volcengine_sms_access_key_secret_configured: boolean;
   volcengine_sms_account_id: string;
   volcengine_sms_sign: string;
   volcengine_sms_template_id: string;
+  // 腾讯云 SMS
+  tencent_sms_secret_id: string;
+  tencent_sms_secret_key_configured: boolean;
+  tencent_sms_sdk_app_id: string;
+  tencent_sms_sign: string;
+  tencent_sms_template_id: string;
+  // 阿里云 SMS
+  aliyun_sms_access_key_id: string;
+  aliyun_sms_access_key_secret_configured: boolean;
+  aliyun_sms_sign: string;
+  aliyun_sms_template_code: string;
 
   // OpenAI fast/flex policy
   openai_fast_policy_settings?: OpenAIFastPolicySettings;
@@ -864,13 +877,26 @@ export interface UpdateSettingsRequest {
   currency_mode?: string;
   cny_rate?: number;
 
-  // 手机号注册 (SMS / Volcengine)
+  // 手机号注册
   phone_register_enabled?: boolean;
+  sms_provider?: string;
+  // 火山引擎 SMS
   volcengine_sms_access_key_id?: string;
   volcengine_sms_access_key_secret?: string;
   volcengine_sms_account_id?: string;
   volcengine_sms_sign?: string;
   volcengine_sms_template_id?: string;
+  // 腾讯云 SMS
+  tencent_sms_secret_id?: string;
+  tencent_sms_secret_key?: string;
+  tencent_sms_sdk_app_id?: string;
+  tencent_sms_sign?: string;
+  tencent_sms_template_id?: string;
+  // 阿里云 SMS
+  aliyun_sms_access_key_id?: string;
+  aliyun_sms_access_key_secret?: string;
+  aliyun_sms_sign?: string;
+  aliyun_sms_template_code?: string;
 
   // OpenAI fast/flex policy
   openai_fast_policy_settings?: OpenAIFastPolicySettings;
