@@ -276,6 +276,12 @@ func (r *contentModerationTestUserRepo) EnableTotp(ctx context.Context, userID i
 func (r *contentModerationTestUserRepo) DisableTotp(ctx context.Context, userID int64) error {
 	panic("unexpected DisableTotp call")
 }
+func (r *contentModerationTestUserRepo) GetByPhone(_ context.Context, _ string) (*User, error) {
+	return nil, ErrUserNotFound
+}
+func (r *contentModerationTestUserRepo) ExistsByPhone(_ context.Context, _ string) (bool, error) {
+	return false, nil
+}
 
 type contentModerationTestAuthCacheInvalidator struct {
 	userIDs []int64

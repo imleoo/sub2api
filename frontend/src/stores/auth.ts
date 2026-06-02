@@ -6,6 +6,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed, readonly } from 'vue'
 import { authAPI, isTotp2FARequired, type LoginResponse } from '@/api'
+import { phoneRegister as phoneRegisterApi, phoneLogin as phoneLoginApi } from '@/api/auth'
+import type { PhoneRegisterRequest, PhoneLoginRequest } from '@/api/auth'
 import type { User, LoginRequest, RegisterRequest, AuthResponse } from '@/types'
 
 const AUTH_TOKEN_KEY = 'auth_token'
@@ -332,6 +334,28 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function phoneRegister(payload: PhoneRegisterRequest): Promise<User> {
+    try {
+      const response = await phoneRegisterApi(payload)
+      setAuthFromResponse(response)
+      return user.value!
+    } catch (error) {
+      clearAuth({ preservePendingAuthSession: pendingAuthSession.value !== null })
+      throw error
+    }
+  }
+
+  async function phoneLogin(payload: PhoneLoginRequest): Promise<User> {
+    try {
+      const response = await phoneLoginApi(payload)
+      setAuthFromResponse(response)
+      return user.value!
+    } catch (error) {
+      clearAuth({ preservePendingAuthSession: pendingAuthSession.value !== null })
+      throw error
+    }
+  }
+
   /**
    * 直接设置 token（用于 OAuth/SSO 回调），并加载当前用户信息。
    * 会自动读取 localStorage 中已设置的 refresh_token 和 token_expires_in
@@ -483,6 +507,8 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     login2FA,
     register,
+    phoneRegister,
+    phoneLogin,
     setToken,
     logout,
     checkAuth,

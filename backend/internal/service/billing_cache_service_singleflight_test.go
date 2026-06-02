@@ -121,6 +121,12 @@ func (s *balanceLoadUserRepoStub) ListUserAuthIdentities(context.Context, int64)
 func (s *balanceLoadUserRepoStub) UnbindUserAuthProvider(context.Context, int64, string) error {
 	return nil
 }
+func (s *balanceLoadUserRepoStub) GetByPhone(_ context.Context, _ string) (*User, error) {
+	return nil, ErrUserNotFound
+}
+func (s *balanceLoadUserRepoStub) ExistsByPhone(_ context.Context, _ string) (bool, error) {
+	return false, nil
+}
 
 func TestBillingCacheServiceGetUserBalance_Singleflight(t *testing.T) {
 	cache := &billingCacheMissStub{}

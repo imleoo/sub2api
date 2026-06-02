@@ -27,9 +27,62 @@
       </div>
 
       <!-- Registration Form -->
-      <form v-else @submit.prevent="handleRegister" class="space-y-5">
-        <!-- Email Input -->
-        <div>
+      <form v-else @submit.prevent="phoneRegisterEnabled ? handlePhoneRegister() : handleRegister()" class="space-y-5">
+        <!-- Phone Input (phone mode) -->
+        <div v-if="phoneRegisterEnabled">
+          <label for="phone" class="input-label">
+            {{ t('auth.phoneLabel') }}
+          </label>
+          <div class="flex gap-2">
+            <div class="relative flex-1">
+              <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+                <Icon name="phone" size="md" class="text-gray-400 dark:text-dark-500" />
+              </div>
+              <input
+                id="phone"
+                v-model="phoneForm.phone"
+                type="tel"
+                autofocus
+                autocomplete="tel"
+                :disabled="registrationActionDisabled"
+                class="input pl-11"
+                :placeholder="t('auth.phonePlaceholder')"
+              />
+            </div>
+            <button
+              type="button"
+              :disabled="registrationActionDisabled || smsCountdown > 0"
+              class="btn btn-secondary shrink-0 px-4"
+              @click="handleSendSmsCode"
+            >
+              {{ smsCountdown > 0 ? t('auth.resendSmsCountdown', { countdown: smsCountdown }) : t('auth.sendSmsCode') }}
+            </button>
+          </div>
+        </div>
+
+        <!-- SMS Code Input (phone mode) -->
+        <div v-if="phoneRegisterEnabled">
+          <label for="sms_code" class="input-label">
+            {{ t('auth.smsCodeLabel') }}
+          </label>
+          <div class="relative">
+            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+              <Icon name="shield" size="md" class="text-gray-400 dark:text-dark-500" />
+            </div>
+            <input
+              id="sms_code"
+              v-model="phoneForm.smsCode"
+              type="text"
+              autocomplete="one-time-code"
+              :disabled="registrationActionDisabled"
+              class="input pl-11"
+              :placeholder="t('auth.smsCodeRequired')"
+            />
+          </div>
+        </div>
+
+        <!-- Email Input (email mode) -->
+        <div v-if="!phoneRegisterEnabled">
           <label for="email" class="input-label">
             {{ t('auth.emailLabel') }}
           </label>
@@ -65,7 +118,7 @@
               id="username"
               v-model="formData.username"
               type="text"
-              required
+              :required="!phoneRegisterEnabled"
               autocomplete="username"
               :disabled="registrationActionDisabled"
               class="input pl-11"
@@ -75,8 +128,8 @@
           </div>
         </div>
 
-        <!-- Password Input -->
-        <div>
+        <!-- Password Input (email mode only) -->
+        <div v-if="!phoneRegisterEnabled">
           <label for="password" class="input-label">
             {{ t('auth.passwordLabel') }}
           </label>
@@ -109,6 +162,7 @@
             {{ t('auth.passwordHint') }}
           </p>
         </div>
+        <!-- /Password Input (email mode only) -->
 
         <!-- Invitation Code Input (Required when enabled) -->
         <div v-if="invitationCodeEnabled">
@@ -258,9 +312,11 @@
           {{
             isLoading
               ? t('auth.processing')
-              : emailVerifyEnabled
-                ? t('auth.continue')
-                : t('auth.createAccount')
+              : phoneRegisterEnabled
+                ? t('auth.createAccount')
+                : emailVerifyEnabled
+                  ? t('auth.continue')
+                  : t('auth.createAccount')
           }}
         </button>
 
@@ -337,7 +393,8 @@ import {
   getPublicSettings,
   isWeChatWebOAuthEnabled,
   validatePromoCode,
-  validateInvitationCode
+  validateInvitationCode,
+  sendSmsCode as sendSmsCodeApi,
 } from '@/api/auth'
 import { buildAuthErrorMessage } from '@/utils/authError'
 import {
@@ -372,6 +429,7 @@ const showPassword = ref<boolean>(false)
 // Public settings
 const registrationEnabled = ref<boolean>(true)
 const emailVerifyEnabled = ref<boolean>(false)
+const phoneRegisterEnabled = ref<boolean>(false)
 const promoCodeEnabled = ref<boolean>(true)
 const invitationCodeEnabled = ref<boolean>(false)
 const turnstileEnabled = ref<boolean>(false)
@@ -395,6 +453,11 @@ const showAgreementModal = ref<boolean>(false)
 // Turnstile
 const turnstileRef = ref<InstanceType<typeof TurnstileWidget> | null>(null)
 const turnstileToken = ref<string>('')
+
+// Phone registration
+const phoneForm = reactive({ phone: '', smsCode: '' })
+const smsCountdown = ref<number>(0)
+let smsTimer: ReturnType<typeof setInterval> | null = null
 
 // Promo code validation
 const promoValidating = ref<boolean>(false)
@@ -483,6 +546,7 @@ onMounted(async () => {
     const settings = await getPublicSettings()
     registrationEnabled.value = settings.registration_enabled
     emailVerifyEnabled.value = settings.email_verify_enabled
+    phoneRegisterEnabled.value = settings.phone_register_enabled ?? false
     promoCodeEnabled.value = settings.promo_code_enabled
     invitationCodeEnabled.value = settings.invitation_code_enabled
     turnstileEnabled.value = settings.turnstile_enabled
@@ -531,6 +595,9 @@ onUnmounted(() => {
   }
   if (invitationValidateTimeout) {
     clearTimeout(invitationValidateTimeout)
+  }
+  if (smsTimer) {
+    clearInterval(smsTimer)
   }
 })
 
@@ -945,6 +1012,74 @@ async function handleRegister(): Promise<void> {
     })
 
     // Also show error toast
+    appStore.showError(errorMessage.value)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// ==================== Phone Registration ====================
+
+async function handleSendSmsCode(): Promise<void> {
+  errorMessage.value = ''
+  if (!phoneForm.phone.trim()) {
+    errorMessage.value = t('auth.phoneRequired')
+    return
+  }
+  isLoading.value = true
+  try {
+    const result = await sendSmsCodeApi({
+      phone: phoneForm.phone.trim(),
+      turnstile_token: turnstileEnabled.value ? turnstileToken.value : undefined,
+    })
+    smsCountdown.value = result.countdown
+    if (smsTimer) clearInterval(smsTimer)
+    smsTimer = setInterval(() => {
+      smsCountdown.value--
+      if (smsCountdown.value <= 0) {
+        clearInterval(smsTimer!)
+        smsTimer = null
+      }
+    }, 1000)
+  } catch (error: unknown) {
+    errorMessage.value = buildAuthErrorMessage(error, { fallback: t('auth.sendCodeFailed') })
+    appStore.showError(errorMessage.value)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+async function handlePhoneRegister(): Promise<void> {
+  errorMessage.value = ''
+  if (!phoneForm.phone.trim()) {
+    errorMessage.value = t('auth.phoneRequired')
+    return
+  }
+  if (!phoneForm.smsCode.trim()) {
+    errorMessage.value = t('auth.smsCodeRequired')
+    return
+  }
+  isLoading.value = true
+  try {
+    const affCode = formData.aff_code.trim() || loadAffiliateReferralCode()
+    await authStore.phoneRegister({
+      phone: phoneForm.phone.trim(),
+      code: phoneForm.smsCode.trim(),
+      username: formData.username.trim() || undefined,
+      promo_code: formData.promo_code || undefined,
+      invitation_code: formData.invitation_code || undefined,
+      turnstile_token: turnstileEnabled.value ? turnstileToken.value : undefined,
+      ...(affCode ? { aff_code: affCode } : {}),
+    })
+    clearAffiliateReferralCode()
+    appStore.showSuccess(t('auth.accountCreatedSuccess', { siteName: siteName.value }))
+    await router.push('/dashboard')
+  } catch (error: unknown) {
+    if (turnstileRef.value) {
+      turnstileRef.value.reset()
+      turnstileToken.value = ''
+    }
+    errorMessage.value = buildAuthErrorMessage(error, { fallback: t('auth.registrationFailed') })
     appStore.showError(errorMessage.value)
   } finally {
     isLoading.value = false

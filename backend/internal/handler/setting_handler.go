@@ -101,8 +101,9 @@ func (h *SettingHandler) GetPublicSettings(c *gin.Context) {
 		CurrencyMode: settings.CurrencyMode,
 		CNYRate:      settings.CNYRate,
 
-		RiskControlEnabled: settings.RiskControlEnabled,
-		ShowOverseasModels: settings.ShowOverseasModels,
+		RiskControlEnabled:   settings.RiskControlEnabled,
+		ShowOverseasModels:   settings.ShowOverseasModels,
+		PhoneRegisterEnabled: settings.PhoneRegisterEnabled,
 	})
 }
 

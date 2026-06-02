@@ -306,6 +306,13 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 
 		CurrencyMode: settings.CurrencyMode,
 		CNYRate:      settings.CNYRate,
+
+		PhoneRegisterEnabled:                   settings.PhoneRegisterEnabled,
+		VolcengineSmsAccessKeyID:               settings.VolcengineSmsAccessKeyID,
+		VolcengineSmsAccessKeySecretConfigured: settings.VolcengineSmsAccessKeySecretConfigured,
+		VolcengineSmsAccountID:                 settings.VolcengineSmsAccountID,
+		VolcengineSmsSign:                      settings.VolcengineSmsSign,
+		VolcengineSmsTemplateID:                settings.VolcengineSmsTemplateID,
 	}
 
 	// OpenAI fast policy (stored under a dedicated setting key)
@@ -675,6 +682,14 @@ type UpdateSettingsRequest struct {
 	AuthSourceGitHubPlatformQuotas   map[string]*service.DefaultPlatformQuotaSetting `json:"auth_source_default_github_platform_quotas"`
 	AuthSourceGooglePlatformQuotas   map[string]*service.DefaultPlatformQuotaSetting `json:"auth_source_default_google_platform_quotas"`
 	AuthSourceDingTalkPlatformQuotas map[string]*service.DefaultPlatformQuotaSetting `json:"auth_source_default_dingtalk_platform_quotas"`
+
+	// 手机号注册（火山引擎 SMS）
+	PhoneRegisterEnabled                   *bool   `json:"phone_register_enabled"`
+	VolcengineSmsAccessKeyID               *string `json:"volcengine_sms_access_key_id"`
+	VolcengineSmsAccessKeySecret           *string `json:"volcengine_sms_access_key_secret"`
+	VolcengineSmsAccountID                 *string `json:"volcengine_sms_account_id"`
+	VolcengineSmsSign                      *string `json:"volcengine_sms_sign"`
+	VolcengineSmsTemplateID                *string `json:"volcengine_sms_template_id"`
 }
 
 // UpdateSettings 更新系统设置
@@ -1797,6 +1812,42 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 				return *req.RiskControlEnabled
 			}
 			return previousSettings.RiskControlEnabled
+		}(),
+		PhoneRegisterEnabled: func() bool {
+			if req.PhoneRegisterEnabled != nil {
+				return *req.PhoneRegisterEnabled
+			}
+			return previousSettings.PhoneRegisterEnabled
+		}(),
+		VolcengineSmsAccessKeyID: func() string {
+			if req.VolcengineSmsAccessKeyID != nil {
+				return strings.TrimSpace(*req.VolcengineSmsAccessKeyID)
+			}
+			return previousSettings.VolcengineSmsAccessKeyID
+		}(),
+		VolcengineSmsAccessKeySecret: func() string {
+			if req.VolcengineSmsAccessKeySecret != nil {
+				return strings.TrimSpace(*req.VolcengineSmsAccessKeySecret)
+			}
+			return "" // write-only: empty means keep existing (handled in buildSystemSettingsUpdates)
+		}(),
+		VolcengineSmsAccountID: func() string {
+			if req.VolcengineSmsAccountID != nil {
+				return strings.TrimSpace(*req.VolcengineSmsAccountID)
+			}
+			return previousSettings.VolcengineSmsAccountID
+		}(),
+		VolcengineSmsSign: func() string {
+			if req.VolcengineSmsSign != nil {
+				return strings.TrimSpace(*req.VolcengineSmsSign)
+			}
+			return previousSettings.VolcengineSmsSign
+		}(),
+		VolcengineSmsTemplateID: func() string {
+			if req.VolcengineSmsTemplateID != nil {
+				return strings.TrimSpace(*req.VolcengineSmsTemplateID)
+			}
+			return previousSettings.VolcengineSmsTemplateID
 		}(),
 	}
 

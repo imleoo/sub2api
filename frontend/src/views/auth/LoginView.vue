@@ -11,9 +11,62 @@
         </p>
       </div>
       <!-- Login Form -->
-      <form @submit.prevent="handleLogin" class="space-y-5">
-        <!-- Email Input -->
-        <div>
+      <form @submit.prevent="phoneLoginMode ? handlePhoneLogin() : handleLogin()" class="space-y-5">
+        <!-- Phone Input (phone mode) -->
+        <div v-if="phoneLoginMode">
+          <label for="login-phone" class="input-label">
+            {{ t('auth.phoneLabel') }}
+          </label>
+          <div class="flex gap-2">
+            <div class="relative flex-1">
+              <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+                <Icon name="phone" size="md" class="text-gray-400 dark:text-dark-500" />
+              </div>
+              <input
+                id="login-phone"
+                v-model="phoneLoginForm.phone"
+                type="tel"
+                autofocus
+                autocomplete="tel"
+                :disabled="authActionDisabled"
+                class="input pl-11"
+                :placeholder="t('auth.phonePlaceholder')"
+              />
+            </div>
+            <button
+              type="button"
+              :disabled="authActionDisabled || smsLoginCountdown > 0"
+              class="btn btn-secondary shrink-0 px-4"
+              @click="handleSendLoginSmsCode"
+            >
+              {{ smsLoginCountdown > 0 ? t('auth.resendSmsCountdown', { countdown: smsLoginCountdown }) : t('auth.sendSmsCode') }}
+            </button>
+          </div>
+        </div>
+
+        <!-- SMS Code Input (phone mode) -->
+        <div v-if="phoneLoginMode">
+          <label for="login-sms-code" class="input-label">
+            {{ t('auth.smsCodeLabel') }}
+          </label>
+          <div class="relative">
+            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+              <Icon name="shield" size="md" class="text-gray-400 dark:text-dark-500" />
+            </div>
+            <input
+              id="login-sms-code"
+              v-model="phoneLoginForm.smsCode"
+              type="text"
+              autocomplete="one-time-code"
+              :disabled="authActionDisabled"
+              class="input pl-11"
+              :placeholder="t('auth.smsCodeRequired')"
+            />
+          </div>
+        </div>
+
+        <!-- Email Input (email mode) -->
+        <div v-if="!phoneLoginMode">
           <label for="email" class="input-label">
             {{ t('auth.emailLabel') }}
           </label>
@@ -36,8 +89,8 @@
           </div>
         </div>
 
-        <!-- Password Input -->
-        <div>
+        <!-- Password Input (email mode) -->
+        <div v-if="!phoneLoginMode">
           <label for="password" class="input-label">
             {{ t('auth.passwordLabel') }}
           </label>
@@ -76,6 +129,18 @@
               {{ t('auth.forgotPassword') }}
             </router-link>
           </div>
+        </div>
+        <!-- /Password Input (email mode) -->
+
+        <!-- Switch to password login link (phone mode) -->
+        <div v-if="phoneLoginMode && phoneRegisterEnabled" class="text-center">
+          <button
+            type="button"
+            class="text-sm font-medium text-primary-600 transition-colors hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
+            @click="phoneLoginMode = false"
+          >
+            {{ t('auth.switchToPasswordLogin') }}
+          </button>
         </div>
 
         <!-- Turnstile Widget -->
@@ -198,7 +263,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, reactive, onMounted, watch } from 'vue'
+import { computed, ref, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { AuthLayout } from '@/components/layout'
@@ -212,7 +277,7 @@ import TotpLoginModal from '@/components/auth/TotpLoginModal.vue'
 import Icon from '@/components/icons/Icon.vue'
 import TurnstileWidget from '@/components/TurnstileWidget.vue'
 import { useAuthStore, useAppStore } from '@/stores'
-import { getPublicSettings, isTotp2FARequired, isWeChatWebOAuthEnabled } from '@/api/auth'
+import { getPublicSettings, isTotp2FARequired, isWeChatWebOAuthEnabled, sendSmsCode as sendSmsCodeApi } from '@/api/auth'
 import type { LoginAgreementDocument, TotpLoginResponse } from '@/types'
 import { extractI18nErrorMessage } from '@/utils/apiError'
 import { clearAllAffiliateReferralCodes } from '@/utils/oauthAffiliate'
@@ -245,6 +310,13 @@ const oidcOAuthProviderName = ref<string>('OIDC')
 const githubOAuthEnabled = ref<boolean>(false)
 const googleOAuthEnabled = ref<boolean>(false)
 const passwordResetEnabled = ref<boolean>(false)
+const phoneRegisterEnabled = ref<boolean>(false)
+const phoneLoginMode = ref<boolean>(false) // true = show phone form, false = show email form
+
+// Phone login state
+const phoneLoginForm = reactive({ phone: '', smsCode: '' })
+const smsLoginCountdown = ref<number>(0)
+let smsLoginTimer: ReturnType<typeof setInterval> | null = null
 const loginAgreementEnabled = ref<boolean>(false)
 const loginAgreementMode = ref<'modal' | 'checkbox' | string>('modal')
 const loginAgreementUpdatedAt = ref<string>('')
@@ -328,6 +400,10 @@ onMounted(async () => {
     googleOAuthEnabled.value = settings.google_oauth_enabled
     backendModeEnabled.value = settings.backend_mode_enabled
     passwordResetEnabled.value = settings.password_reset_enabled
+    phoneRegisterEnabled.value = settings.phone_register_enabled ?? false
+    if (phoneRegisterEnabled.value) {
+      phoneLoginMode.value = true
+    }
     applyLoginAgreementSettings(settings)
   } catch (error) {
     console.error('Failed to load public settings:', error)
@@ -549,6 +625,75 @@ function handle2FACancel(): void {
   show2FAModal.value = false
   totpTempToken.value = ''
   totpUserEmailMasked.value = ''
+}
+
+onUnmounted(() => {
+  if (smsLoginTimer) {
+    clearInterval(smsLoginTimer)
+  }
+})
+
+// ==================== Phone Login ====================
+
+async function handleSendLoginSmsCode(): Promise<void> {
+  errorMessage.value = ''
+  if (!phoneLoginForm.phone.trim()) {
+    errorMessage.value = t('auth.phoneRequired')
+    return
+  }
+  isLoading.value = true
+  try {
+    const result = await sendSmsCodeApi({
+      phone: phoneLoginForm.phone.trim(),
+      turnstile_token: turnstileEnabled.value ? turnstileToken.value : undefined,
+    })
+    smsLoginCountdown.value = result.countdown
+    if (smsLoginTimer) clearInterval(smsLoginTimer)
+    smsLoginTimer = setInterval(() => {
+      smsLoginCountdown.value--
+      if (smsLoginCountdown.value <= 0) {
+        clearInterval(smsLoginTimer!)
+        smsLoginTimer = null
+      }
+    }, 1000)
+  } catch (error: unknown) {
+    errorMessage.value = extractI18nErrorMessage(error, t, 'auth.errors', t('auth.sendCodeFailed'))
+    appStore.showError(errorMessage.value)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+async function handlePhoneLogin(): Promise<void> {
+  errorMessage.value = ''
+  if (!phoneLoginForm.phone.trim()) {
+    errorMessage.value = t('auth.phoneRequired')
+    return
+  }
+  if (!phoneLoginForm.smsCode.trim()) {
+    errorMessage.value = t('auth.smsCodeRequired')
+    return
+  }
+  isLoading.value = true
+  try {
+    await authStore.phoneLogin({
+      phone: phoneLoginForm.phone.trim(),
+      code: phoneLoginForm.smsCode.trim(),
+      turnstile_token: turnstileEnabled.value ? turnstileToken.value : undefined,
+    })
+    clearAllAffiliateReferralCodes()
+    appStore.showSuccess(t('auth.loginSuccess'))
+    await router.push('/dashboard')
+  } catch (error: unknown) {
+    if (turnstileRef.value) {
+      turnstileRef.value.reset()
+      turnstileToken.value = ''
+    }
+    errorMessage.value = extractI18nErrorMessage(error, t, 'auth.errors', t('auth.loginFailed'))
+    appStore.showError(errorMessage.value)
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 

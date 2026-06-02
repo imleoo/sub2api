@@ -746,3 +746,133 @@ func (h *AuthHandler) RevokeAllSessions(c *gin.Context) {
 		Message: "All sessions have been revoked. Please log in again.",
 	})
 }
+
+// SendSmsCodeRequest 发送短信验证码请求
+type SendSmsCodeRequest struct {
+	Phone          string `json:"phone"`
+	TurnstileToken string `json:"turnstile_token"`
+}
+
+// SendSmsCodeResponse 发送短信验证码响应
+type SendSmsCodeResponse struct {
+	Message   string `json:"message"`
+	Countdown int    `json:"countdown"`
+}
+
+// PhoneRegisterRequest 手机号注册请求
+type PhoneRegisterRequest struct {
+	Phone          string `json:"phone"`
+	Code           string `json:"code"`
+	Username       string `json:"username"`
+	PromoCode      string `json:"promo_code"`
+	InvitationCode string `json:"invitation_code"`
+	AffCode        string `json:"aff_code"`
+	TurnstileToken string `json:"turnstile_token"`
+}
+
+// PhoneLoginRequest 手机号登录请求
+type PhoneLoginRequest struct {
+	Phone          string `json:"phone"`
+	Code           string `json:"code"`
+	TurnstileToken string `json:"turnstile_token"`
+}
+
+// SendSmsCode 发送短信验证码
+// POST /api/v1/auth/send-sms-code
+func (h *AuthHandler) SendSmsCode(c *gin.Context) {
+	var req SendSmsCodeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+
+	if !h.settingSvc.IsPhoneRegisterEnabled(c.Request.Context()) {
+		response.BadRequest(c, "Phone registration is not enabled")
+		return
+	}
+
+	if err := h.authService.VerifyTurnstile(c.Request.Context(), req.TurnstileToken, ip.GetClientIP(c)); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	result, err := h.authService.SendSmsCodeForAuth(c.Request.Context(), req.Phone)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	response.Success(c, SendSmsCodeResponse{
+		Message:   "SMS code sent successfully",
+		Countdown: result.Countdown,
+	})
+}
+
+// PhoneRegister 手机号注册
+// POST /api/v1/auth/phone-register
+func (h *AuthHandler) PhoneRegister(c *gin.Context) {
+	var req PhoneRegisterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+
+	if !h.settingSvc.IsPhoneRegisterEnabled(c.Request.Context()) {
+		response.BadRequest(c, "Phone registration is not enabled")
+		return
+	}
+
+	if err := h.authService.VerifyTurnstile(c.Request.Context(), req.TurnstileToken, ip.GetClientIP(c)); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	user, err := h.authService.RegisterWithPhone(
+		c.Request.Context(),
+		req.Phone,
+		req.Code,
+		req.Username,
+		req.PromoCode,
+		req.InvitationCode,
+		req.AffCode,
+	)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	h.respondWithTokenPair(c, user)
+}
+
+// PhoneLogin 手机号登录（首次登录自动注册）
+// POST /api/v1/auth/phone-login
+func (h *AuthHandler) PhoneLogin(c *gin.Context) {
+	var req PhoneLoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+
+	if !h.settingSvc.IsPhoneRegisterEnabled(c.Request.Context()) {
+		response.BadRequest(c, "Phone login is not enabled")
+		return
+	}
+
+	if err := h.authService.VerifyTurnstile(c.Request.Context(), req.TurnstileToken, ip.GetClientIP(c)); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	user, err := h.authService.LoginWithPhone(c.Request.Context(), req.Phone, req.Code)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	if err := h.ensureBackendModeAllowsUser(c.Request.Context(), user); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	h.respondWithTokenPair(c, user)
+}

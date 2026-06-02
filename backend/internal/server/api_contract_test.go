@@ -903,7 +903,13 @@ func TestAPIContracts(t *testing.T) {
 					"wechat_connect_mobile_app_secret_configured": false,
 					"wechat_connect_redirect_url": "",
 					"wechat_connect_frontend_redirect_url": "/auth/wechat/callback",
-					"wechat_connect_scopes": "snsapi_login"
+					"wechat_connect_scopes": "snsapi_login",
+					"phone_register_enabled": false,
+					"volcengine_sms_access_key_id": "",
+					"volcengine_sms_access_key_secret_configured": false,
+					"volcengine_sms_account_id": "",
+					"volcengine_sms_sign": "",
+					"volcengine_sms_template_id": ""
 				}
 			}`,
 		},
@@ -1181,7 +1187,13 @@ func TestAPIContracts(t *testing.T) {
 					"auth_source_default_dingtalk_subscriptions": [],
 					"auth_source_default_dingtalk_grant_on_signup": false,
 					"auth_source_default_dingtalk_grant_on_first_bind": false,
-					"force_email_on_third_party_signup": false
+					"force_email_on_third_party_signup": false,
+					"phone_register_enabled": false,
+					"volcengine_sms_access_key_id": "",
+					"volcengine_sms_access_key_secret_configured": false,
+					"volcengine_sms_account_id": "",
+					"volcengine_sms_sign": "",
+					"volcengine_sms_template_id": ""
 				}
 			}`,
 		},
@@ -1504,6 +1516,12 @@ func (r *stubUserRepo) EnableTotp(ctx context.Context, userID int64) error {
 
 func (r *stubUserRepo) DisableTotp(ctx context.Context, userID int64) error {
 	return errors.New("not implemented")
+}
+func (r *stubUserRepo) GetByPhone(context.Context, string) (*service.User, error) {
+	return nil, service.ErrUserNotFound
+}
+func (r *stubUserRepo) ExistsByPhone(context.Context, string) (bool, error) {
+	return false, nil
 }
 
 type stubApiKeyCache struct{}

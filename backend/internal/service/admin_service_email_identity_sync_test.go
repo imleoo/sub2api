@@ -147,6 +147,12 @@ func (s *emailSyncRepoStub) ReplaceEmailAuthIdentity(_ context.Context, userID i
 	})
 	return s.replaceErr
 }
+func (s *emailSyncRepoStub) GetByPhone(_ context.Context, _ string) (*User, error) {
+	return nil, ErrUserNotFound
+}
+func (s *emailSyncRepoStub) ExistsByPhone(_ context.Context, _ string) (bool, error) {
+	return false, nil
+}
 
 func TestAdminService_CreateUser_DoesNotReturnPartialSuccessFromEmailIdentityResync(t *testing.T) {
 	repo := &emailSyncRepoStub{

@@ -77,13 +77,18 @@ func (User) Fields() []ent.Field {
 		field.String("signup_source").
 			Validate(func(value string) error {
 				switch value {
-				case "email", "linuxdo", "wechat", "oidc", "github", "google", "dingtalk":
+				case "email", "phone", "linuxdo", "wechat", "oidc", "github", "google", "dingtalk":
 					return nil
 				default:
-					return fmt.Errorf("must be one of email, linuxdo, wechat, oidc, github, google, dingtalk")
+					return fmt.Errorf("must be one of email, phone, linuxdo, wechat, oidc, github, google, dingtalk")
 				}
 			}).
 			Default("email"),
+		field.String("phone").
+			Optional().
+			Nillable().
+			MaxLen(20).
+			Comment("手机号，归一化格式 +8613812345678"),
 		field.Time("last_login_at").
 			Optional().
 			Nillable().

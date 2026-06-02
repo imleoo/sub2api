@@ -1381,6 +1381,21 @@
                 <Toggle v-model="form.registration_enabled" />
               </div>
 
+              <!-- Phone Registration (SMS) -->
+              <div
+                class="flex items-center justify-between border-t border-gray-100 pt-4 dark:border-dark-700"
+              >
+                <div>
+                  <label class="font-medium text-gray-900 dark:text-white">{{
+                    t("admin.settings.sms.phoneRegisterEnabled")
+                  }}</label>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">
+                    {{ t("admin.settings.sms.phoneRegisterEnabledHint") }}
+                  </p>
+                </div>
+                <Toggle v-model="form.phone_register_enabled" @update:model-value="onPhoneRegisterToggle" />
+              </div>
+
               <!-- Email Verification -->
               <div
                 class="flex items-center justify-between border-t border-gray-100 pt-4 dark:border-dark-700"
@@ -1393,7 +1408,7 @@
                     {{ t("admin.settings.registration.emailVerificationHint") }}
                   </p>
                 </div>
-                <Toggle v-model="form.email_verify_enabled" />
+                <Toggle v-model="form.email_verify_enabled" @update:model-value="onEmailVerifyToggle" />
               </div>
 
               <!-- Email Suffix Whitelist -->
@@ -1555,6 +1570,91 @@
                   v-model="form.totp_enabled"
                   :disabled="!form.totp_encryption_key_configured"
                 />
+              </div>
+            </div>
+          </div>
+
+          <!-- Volcengine SMS Config - Only show when phone registration is enabled -->
+          <div v-if="form.phone_register_enabled" class="card">
+            <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+                {{ t("admin.settings.sms.title") }}
+              </h2>
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {{ t("admin.settings.sms.description") }}
+              </p>
+            </div>
+            <div class="space-y-6 p-6">
+              <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div>
+                  <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t("admin.settings.sms.accessKeyID") }}
+                  </label>
+                  <input
+                    v-model="form.volcengine_sms_access_key_id"
+                    type="text"
+                    class="input"
+                    :placeholder="t('admin.settings.sms.accessKeyIDPlaceholder')"
+                  />
+                </div>
+                <div>
+                  <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t("admin.settings.sms.accessKeySecret") }}
+                  </label>
+                  <input
+                    v-model="form.volcengine_sms_access_key_secret"
+                    type="password"
+                    class="input"
+                    autocomplete="new-password"
+                    autocapitalize="off"
+                    spellcheck="false"
+                    :placeholder="
+                      form.volcengine_sms_access_key_secret_configured
+                        ? t('admin.settings.sms.accessKeySecretConfiguredPlaceholder')
+                        : t('admin.settings.sms.accessKeySecretPlaceholder')
+                    "
+                  />
+                  <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{
+                      form.volcengine_sms_access_key_secret_configured
+                        ? t("admin.settings.sms.accessKeySecretConfiguredHint")
+                        : t("admin.settings.sms.accessKeySecretHint")
+                    }}
+                  </p>
+                </div>
+                <div>
+                  <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t("admin.settings.sms.smsAccountID") }}
+                  </label>
+                  <input
+                    v-model="form.volcengine_sms_account_id"
+                    type="text"
+                    class="input"
+                    :placeholder="t('admin.settings.sms.smsAccountIDPlaceholder')"
+                  />
+                </div>
+                <div>
+                  <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t("admin.settings.sms.smsSign") }}
+                  </label>
+                  <input
+                    v-model="form.volcengine_sms_sign"
+                    type="text"
+                    class="input"
+                    :placeholder="t('admin.settings.sms.smsSignPlaceholder')"
+                  />
+                </div>
+                <div>
+                  <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t("admin.settings.sms.smsTemplateID") }}
+                  </label>
+                  <input
+                    v-model="form.volcengine_sms_template_id"
+                    type="text"
+                    class="input"
+                    :placeholder="t('admin.settings.sms.smsTemplateIDPlaceholder')"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -7016,6 +7116,8 @@ type SettingsForm = Omit<
   google_oauth_client_secret: string;
   force_email_on_third_party_signup: boolean;
   openai_advanced_scheduler_enabled: boolean;
+  // 手机号注册（写入专用字段）
+  volcengine_sms_access_key_secret: string;
   // 系统全局平台限额 map；form 内始终归一化为全 4 平台对象（模板非空绑定依赖此不变量）
   default_platform_quotas: DefaultPlatformQuotasMap;
 };
@@ -7234,6 +7336,14 @@ const form = reactive<SettingsForm>({
   // Currency mode
   currency_mode: '',
   cny_rate: 7.2,
+  // 手机号注册 (SMS / Volcengine)
+  phone_register_enabled: false,
+  volcengine_sms_access_key_id: "",
+  volcengine_sms_access_key_secret_configured: false,
+  volcengine_sms_account_id: "",
+  volcengine_sms_sign: "",
+  volcengine_sms_template_id: "",
+  volcengine_sms_access_key_secret: "",
 });
 
 const authSourceDefaults = reactive<AuthSourceDefaultsState>(
@@ -7514,6 +7624,19 @@ function commitRegistrationEmailSuffixWhitelistDraft() {
     registrationEmailSuffixWhitelistDraft.value,
   );
   registrationEmailSuffixWhitelistDraft.value = "";
+}
+
+function onPhoneRegisterToggle(enabled: boolean) {
+  if (enabled) {
+    form.email_verify_enabled = false;
+    form.password_reset_enabled = false;
+  }
+}
+
+function onEmailVerifyToggle(enabled: boolean) {
+  if (enabled) {
+    form.phone_register_enabled = false;
+  }
 }
 
 function handleRegistrationEmailSuffixWhitelistDraftInput() {
@@ -7876,6 +7999,7 @@ async function loadSettings() {
     form.wechat_connect_open_app_secret = "";
     form.wechat_connect_mp_app_secret = "";
     form.wechat_connect_mobile_app_secret = "";
+    form.volcengine_sms_access_key_secret = "";
     const wechatCapabilities = resolveWeChatConnectModeCapabilities(
       settings.wechat_connect_open_enabled,
       settings.wechat_connect_mp_enabled,
@@ -8169,6 +8293,12 @@ async function saveSettings() {
     const payload: UpdateSettingsRequest = {
       registration_enabled: form.registration_enabled,
       email_verify_enabled: form.email_verify_enabled,
+      phone_register_enabled: form.phone_register_enabled,
+      volcengine_sms_access_key_id: form.volcengine_sms_access_key_id,
+      volcengine_sms_access_key_secret: form.volcengine_sms_access_key_secret || undefined,
+      volcengine_sms_account_id: form.volcengine_sms_account_id,
+      volcengine_sms_sign: form.volcengine_sms_sign,
+      volcengine_sms_template_id: form.volcengine_sms_template_id,
       registration_email_suffix_whitelist:
         registrationEmailSuffixWhitelistTags.value.map((suffix) =>
           suffix.startsWith("*.") ? suffix : `@${suffix}`,
@@ -8444,6 +8574,7 @@ async function saveSettings() {
     form.wechat_connect_open_app_secret = "";
     form.wechat_connect_mp_app_secret = "";
     form.wechat_connect_mobile_app_secret = "";
+    form.volcengine_sms_access_key_secret = "";
     const updatedWechatCapabilities = resolveWeChatConnectModeCapabilities(
       updated.wechat_connect_open_enabled,
       updated.wechat_connect_mp_enabled,

@@ -102,6 +102,12 @@ func (s *userRepoStubForGroupUpdate) UpdateUserLastActiveAt(context.Context, int
 func (s *userRepoStubForGroupUpdate) RemoveGroupFromUserAllowedGroups(context.Context, int64, int64) error {
 	panic("unexpected")
 }
+func (s *userRepoStubForGroupUpdate) GetByPhone(_ context.Context, _ string) (*User, error) {
+	return nil, ErrUserNotFound
+}
+func (s *userRepoStubForGroupUpdate) ExistsByPhone(_ context.Context, _ string) (bool, error) {
+	return false, nil
+}
 
 // apiKeyRepoStubForGroupUpdate implements APIKeyRepository for AdminUpdateAPIKeyGroupID tests.
 type apiKeyRepoStubForGroupUpdate struct {

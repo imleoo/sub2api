@@ -2231,6 +2231,7 @@ CREATE TABLE IF NOT EXISTS user_affiliates (
 		nil,
 		nil,
 		nil,
+		nil,
 		options.defaultSubAssigner,
 		affiliateService,
 		nil,
@@ -2912,6 +2913,12 @@ func (r *oauthPendingFlowUserRepo) DisableTotp(ctx context.Context, userID int64
 		ClearTotpSecretEncrypted().
 		ClearTotpEnabledAt().
 		Exec(ctx)
+}
+func (r *oauthPendingFlowUserRepo) GetByPhone(context.Context, string) (*service.User, error) {
+	return nil, service.ErrUserNotFound
+}
+func (r *oauthPendingFlowUserRepo) ExistsByPhone(context.Context, string) (bool, error) {
+	return false, nil
 }
 
 func oauthPendingFlowServiceUser(entity *dbent.User) *service.User {

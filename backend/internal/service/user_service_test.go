@@ -255,6 +255,12 @@ func (m *mockUserRepo) WithUserProfileIdentityTx(ctx context.Context, fn func(tx
 	m.deleteAvatarIDs = txState.deleteAvatarIDs
 	return nil
 }
+func (m *mockUserRepo) GetByPhone(_ context.Context, _ string) (*User, error) {
+	return nil, ErrUserNotFound
+}
+func (m *mockUserRepo) ExistsByPhone(_ context.Context, _ string) (bool, error) {
+	return false, nil
+}
 
 // --- mock: APIKeyAuthCacheInvalidator ---
 

@@ -123,6 +123,10 @@ const WeChatConnectSyntheticEmailDomain = "@wechat-connect.invalid"
 // DingTalkConnectSyntheticEmailDomain 是 DingTalk Connect 用户的合成邮箱后缀（RFC 保留域名）。
 const DingTalkConnectSyntheticEmailDomain = "@dingtalk-connect.invalid"
 
+// PhoneConnectSyntheticEmailDomain 是手机号注册用户的合成邮箱后缀（RFC 保留域名）。
+// 手机注册用户 email = "phone_+8613812345678@sms-phone.invalid"
+const PhoneConnectSyntheticEmailDomain = "@sms-phone.invalid"
+
 // Setting keys
 const (
 	// 注册设置
@@ -144,6 +148,14 @@ const (
 	SettingKeyLoginAgreementMode               = "login_agreement_mode"                // 条款确认展示模式：modal / checkbox
 	SettingKeyLoginAgreementUpdatedAt          = "login_agreement_updated_at"          // 条款更新日期（展示用）
 	SettingKeyLoginAgreementDocuments          = "login_agreement_documents"           // 条款文档列表（JSON，Markdown 内容）
+
+	// 手机号注册设置
+	SettingKeyPhoneRegisterEnabled      = "phone_register_enabled"          // 是否启用手机号注册模式（与邮箱注册互斥）
+	SettingKeyVolcengineAccessKeyID     = "volcengine_sms_access_key_id"    // 火山引擎 SMS Access Key ID
+	SettingKeyVolcengineAccessKeySecret = "volcengine_sms_access_key_secret" // 火山引擎 SMS Access Key Secret（加密存储）
+	SettingKeyVolcengineSmsAccountID    = "volcengine_sms_account_id"       // 火山引擎短信账户 ID
+	SettingKeyVolcengineSmsSign         = "volcengine_sms_sign"             // 短信签名
+	SettingKeyVolcengineSmsTemplateID   = "volcengine_sms_template_id"      // 验证码模板 ID
 
 	// 邮件服务设置
 	SettingKeySMTPHost     = "smtp_host"      // SMTP服务器地址

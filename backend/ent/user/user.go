@@ -45,6 +45,8 @@ const (
 	FieldTotpEnabledAt = "totp_enabled_at"
 	// FieldSignupSource holds the string denoting the signup_source field in the database.
 	FieldSignupSource = "signup_source"
+	// FieldPhone holds the string denoting the phone field in the database.
+	FieldPhone = "phone"
 	// FieldLastLoginAt holds the string denoting the last_login_at field in the database.
 	FieldLastLoginAt = "last_login_at"
 	// FieldLastActiveAt holds the string denoting the last_active_at field in the database.
@@ -207,6 +209,7 @@ var Columns = []string{
 	FieldTotpEnabled,
 	FieldTotpEnabledAt,
 	FieldSignupSource,
+	FieldPhone,
 	FieldLastLoginAt,
 	FieldLastActiveAt,
 	FieldBalanceNotifyEnabled,
@@ -275,6 +278,8 @@ var (
 	DefaultSignupSource string
 	// SignupSourceValidator is a validator for the "signup_source" field. It is called by the builders before save.
 	SignupSourceValidator func(string) error
+	// PhoneValidator is a validator for the "phone" field. It is called by the builders before save.
+	PhoneValidator func(string) error
 	// DefaultBalanceNotifyEnabled holds the default value on creation for the "balance_notify_enabled" field.
 	DefaultBalanceNotifyEnabled bool
 	// DefaultBalanceNotifyThresholdType holds the default value on creation for the "balance_notify_threshold_type" field.
@@ -368,6 +373,11 @@ func ByTotpEnabledAt(opts ...sql.OrderTermOption) OrderOption {
 // BySignupSource orders the results by the signup_source field.
 func BySignupSource(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSignupSource, opts...).ToFunc()
+}
+
+// ByPhone orders the results by the phone field.
+func ByPhone(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPhone, opts...).ToFunc()
 }
 
 // ByLastLoginAt orders the results by the last_login_at field.

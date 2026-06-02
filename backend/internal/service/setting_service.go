@@ -775,6 +775,7 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeyCNYRate,
 		SettingKeyRiskControlEnabled,
 		SettingKeyShowOverseasModels,
+		SettingKeyPhoneRegisterEnabled,
 	}
 
 	settings, err := s.settingRepo.GetMultiple(ctx, keys)
@@ -894,8 +895,9 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 
 		CurrencyMode:       strings.TrimSpace(settings[SettingKeyCurrencyMode]),
 		CNYRate:            cnyRate,
-		RiskControlEnabled: settings[SettingKeyRiskControlEnabled] == "true",
-		ShowOverseasModels: settings[SettingKeyShowOverseasModels] != "false",
+		RiskControlEnabled:   settings[SettingKeyRiskControlEnabled] == "true",
+		ShowOverseasModels:   settings[SettingKeyShowOverseasModels] != "false",
+		PhoneRegisterEnabled: settings[SettingKeyPhoneRegisterEnabled] == "true",
 	}, nil
 }
 
@@ -1205,6 +1207,9 @@ type PublicSettingsInjectionPayload struct {
 
 	RiskControlEnabled bool `json:"risk_control_enabled"`
 	ShowOverseasModels bool `json:"show_overseas_models"`
+
+	// 手机号注册
+	PhoneRegisterEnabled bool `json:"phone_register_enabled"`
 }
 
 // GetPublicSettingsForInjection returns public settings in a format suitable for HTML injection.
@@ -1271,6 +1276,7 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		CNYRate:                              settings.CNYRate,
 		RiskControlEnabled:                   settings.RiskControlEnabled,
 		ShowOverseasModels:                   settings.ShowOverseasModels,
+		PhoneRegisterEnabled:                 settings.PhoneRegisterEnabled,
 	}, nil
 }
 
@@ -1964,6 +1970,26 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 		updates[SettingKeyDefaultPlatformQuotas] = string(blob)
 	}
 
+	// 手机号注册（火山引擎 SMS）
+	updates[SettingKeyPhoneRegisterEnabled] = strconv.FormatBool(settings.PhoneRegisterEnabled)
+	updates[SettingKeyVolcengineAccessKeyID] = settings.VolcengineSmsAccessKeyID
+	updates[SettingKeyVolcengineSmsAccountID] = settings.VolcengineSmsAccountID
+	updates[SettingKeyVolcengineSmsSign] = settings.VolcengineSmsSign
+	updates[SettingKeyVolcengineSmsTemplateID] = settings.VolcengineSmsTemplateID
+	// Secret 仅在非空时写入（保留已配置值）
+	if settings.VolcengineSmsAccessKeySecret != "" {
+		updates[SettingKeyVolcengineAccessKeySecret] = settings.VolcengineSmsAccessKeySecret
+	}
+
+	// 互斥：phone_register 和 email_verify 不能同时启用
+	if settings.PhoneRegisterEnabled {
+		updates[SettingKeyEmailVerifyEnabled] = "false"
+		updates[SettingKeyPasswordResetEnabled] = "false"
+	}
+	if settings.EmailVerifyEnabled {
+		updates[SettingKeyPhoneRegisterEnabled] = "false"
+	}
+
 	return updates, nil
 }
 
@@ -2363,6 +2389,15 @@ func (s *SettingService) IsAnthropicCacheTTL1hInjectionEnabled(ctx context.Conte
 // IsRewriteMessageCacheControlEnabled 检查是否启用 messages cache_control 改写。
 func (s *SettingService) IsRewriteMessageCacheControlEnabled(ctx context.Context) bool {
 	return s.getGatewayForwardingSettingsCached(ctx).rewriteMessageCacheControl
+}
+
+// IsPhoneRegisterEnabled 检查是否开启手机号注册
+func (s *SettingService) IsPhoneRegisterEnabled(ctx context.Context) bool {
+	value, err := s.settingRepo.GetValue(ctx, SettingKeyPhoneRegisterEnabled)
+	if err != nil {
+		return false
+	}
+	return value == "true"
 }
 
 // IsEmailVerifyEnabled 检查是否开启邮件验证
@@ -3427,6 +3462,14 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 			result.DefaultPlatformQuotas = parsed
 		}
 	}
+
+	// 手机号注册（火山引擎 SMS）
+	result.PhoneRegisterEnabled = settings[SettingKeyPhoneRegisterEnabled] == "true"
+	result.VolcengineSmsAccessKeyID = settings[SettingKeyVolcengineAccessKeyID]
+	result.VolcengineSmsAccessKeySecretConfigured = settings[SettingKeyVolcengineAccessKeySecret] != ""
+	result.VolcengineSmsAccountID = settings[SettingKeyVolcengineSmsAccountID]
+	result.VolcengineSmsSign = settings[SettingKeyVolcengineSmsSign]
+	result.VolcengineSmsTemplateID = settings[SettingKeyVolcengineSmsTemplateID]
 
 	return result
 }

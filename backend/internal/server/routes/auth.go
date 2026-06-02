@@ -208,6 +208,15 @@ func RegisterAuthRoutes(
 			}),
 			h.Auth.CreateDingTalkOAuthAccount,
 		)
+		auth.POST("/send-sms-code", rateLimiter.LimitWithOptions("auth-send-sms-code", 5, time.Minute, middleware.RateLimitOptions{
+			FailureMode: middleware.RateLimitFailClose,
+		}), h.Auth.SendSmsCode)
+		auth.POST("/phone-register", rateLimiter.LimitWithOptions("auth-phone-register", 5, time.Minute, middleware.RateLimitOptions{
+			FailureMode: middleware.RateLimitFailClose,
+		}), h.Auth.PhoneRegister)
+		auth.POST("/phone-login", rateLimiter.LimitWithOptions("auth-phone-login", 20, time.Minute, middleware.RateLimitOptions{
+			FailureMode: middleware.RateLimitFailClose,
+		}), h.Auth.PhoneLogin)
 	}
 
 	// 公开设置（无需认证）

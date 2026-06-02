@@ -172,6 +172,12 @@ func (s *userRepoStub) EnableTotp(ctx context.Context, userID int64) error {
 func (s *userRepoStub) DisableTotp(ctx context.Context, userID int64) error {
 	panic("unexpected DisableTotp call")
 }
+func (s *userRepoStub) GetByPhone(_ context.Context, _ string) (*User, error) {
+	return nil, ErrUserNotFound
+}
+func (s *userRepoStub) ExistsByPhone(_ context.Context, _ string) (bool, error) {
+	return false, nil
+}
 
 type groupRepoStub struct {
 	affectedUserIDs []int64

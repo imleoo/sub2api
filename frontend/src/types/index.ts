@@ -238,6 +238,7 @@ export interface PublicSettings {
   currency_mode?: string
   cny_rate?: number
   ui_theme: string
+  phone_register_enabled?: boolean
 }
 
 export interface AuthResponse {

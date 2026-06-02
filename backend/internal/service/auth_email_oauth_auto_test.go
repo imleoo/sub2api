@@ -38,6 +38,7 @@ func newEmailOAuthAutoAuthService(
 		cfg,
 		settingService,
 		nil, // emailService
+		nil, // smsService
 		nil, // turnstileService
 		nil, // emailQueueService
 		nil, // promoService

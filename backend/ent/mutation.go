@@ -48083,6 +48083,7 @@ type UserMutation struct {
 	totp_enabled                  *bool
 	totp_enabled_at               *time.Time
 	signup_source                 *string
+	phone                         *string
 	last_login_at                 *time.Time
 	last_active_at                *time.Time
 	balance_notify_enabled        *bool
@@ -48854,6 +48855,55 @@ func (m *UserMutation) OldSignupSource(ctx context.Context) (v string, err error
 // ResetSignupSource resets all changes to the "signup_source" field.
 func (m *UserMutation) ResetSignupSource() {
 	m.signup_source = nil
+}
+
+// SetPhone sets the "phone" field.
+func (m *UserMutation) SetPhone(s string) {
+	m.phone = &s
+}
+
+// Phone returns the value of the "phone" field in the mutation.
+func (m *UserMutation) Phone() (r string, exists bool) {
+	v := m.phone
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPhone returns the old "phone" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldPhone(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPhone is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPhone requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPhone: %w", err)
+	}
+	return oldValue.Phone, nil
+}
+
+// ClearPhone clears the value of the "phone" field.
+func (m *UserMutation) ClearPhone() {
+	m.phone = nil
+	m.clearedFields[user.FieldPhone] = struct{}{}
+}
+
+// PhoneCleared returns if the "phone" field was cleared in this mutation.
+func (m *UserMutation) PhoneCleared() bool {
+	_, ok := m.clearedFields[user.FieldPhone]
+	return ok
+}
+
+// ResetPhone resets all changes to the "phone" field.
+func (m *UserMutation) ResetPhone() {
+	m.phone = nil
+	delete(m.clearedFields, user.FieldPhone)
 }
 
 // SetLastLoginAt sets the "last_login_at" field.
@@ -49980,7 +50030,7 @@ func (m *UserMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UserMutation) Fields() []string {
-	fields := make([]string, 0, 23)
+	fields := make([]string, 0, 24)
 	if m.created_at != nil {
 		fields = append(fields, user.FieldCreatedAt)
 	}
@@ -50025,6 +50075,9 @@ func (m *UserMutation) Fields() []string {
 	}
 	if m.signup_source != nil {
 		fields = append(fields, user.FieldSignupSource)
+	}
+	if m.phone != nil {
+		fields = append(fields, user.FieldPhone)
 	}
 	if m.last_login_at != nil {
 		fields = append(fields, user.FieldLastLoginAt)
@@ -50088,6 +50141,8 @@ func (m *UserMutation) Field(name string) (ent.Value, bool) {
 		return m.TotpEnabledAt()
 	case user.FieldSignupSource:
 		return m.SignupSource()
+	case user.FieldPhone:
+		return m.Phone()
 	case user.FieldLastLoginAt:
 		return m.LastLoginAt()
 	case user.FieldLastActiveAt:
@@ -50143,6 +50198,8 @@ func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldTotpEnabledAt(ctx)
 	case user.FieldSignupSource:
 		return m.OldSignupSource(ctx)
+	case user.FieldPhone:
+		return m.OldPhone(ctx)
 	case user.FieldLastLoginAt:
 		return m.OldLastLoginAt(ctx)
 	case user.FieldLastActiveAt:
@@ -50272,6 +50329,13 @@ func (m *UserMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetSignupSource(v)
+		return nil
+	case user.FieldPhone:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPhone(v)
 		return nil
 	case user.FieldLastLoginAt:
 		v, ok := value.(time.Time)
@@ -50431,6 +50495,9 @@ func (m *UserMutation) ClearedFields() []string {
 	if m.FieldCleared(user.FieldTotpEnabledAt) {
 		fields = append(fields, user.FieldTotpEnabledAt)
 	}
+	if m.FieldCleared(user.FieldPhone) {
+		fields = append(fields, user.FieldPhone)
+	}
 	if m.FieldCleared(user.FieldLastLoginAt) {
 		fields = append(fields, user.FieldLastLoginAt)
 	}
@@ -50462,6 +50529,9 @@ func (m *UserMutation) ClearField(name string) error {
 		return nil
 	case user.FieldTotpEnabledAt:
 		m.ClearTotpEnabledAt()
+		return nil
+	case user.FieldPhone:
+		m.ClearPhone()
 		return nil
 	case user.FieldLastLoginAt:
 		m.ClearLastLoginAt()
@@ -50524,6 +50594,9 @@ func (m *UserMutation) ResetField(name string) error {
 		return nil
 	case user.FieldSignupSource:
 		m.ResetSignupSource()
+		return nil
+	case user.FieldPhone:
+		m.ResetPhone()
 		return nil
 	case user.FieldLastLoginAt:
 		m.ResetLastLoginAt()

@@ -231,6 +231,15 @@ type SystemSettings struct {
 
 	// 系统全局默认平台配额（key = platform，nil/缺省 = 不限制）
 	DefaultPlatformQuotas map[string]*DefaultPlatformQuotaSetting `json:"default_platform_quotas"`
+
+	// 手机号注册（火山引擎 SMS）
+	PhoneRegisterEnabled                   bool
+	VolcengineSmsAccessKeyID               string
+	VolcengineSmsAccessKeySecret           string // write-only，仅用于写入，不回显
+	VolcengineSmsAccessKeySecretConfigured bool
+	VolcengineSmsAccountID                 string
+	VolcengineSmsSign                      string
+	VolcengineSmsTemplateID                string
 }
 
 type DefaultSubscriptionSetting struct {
@@ -309,6 +318,9 @@ type PublicSettings struct {
 
 	// 模型可见性
 	ShowOverseasModels bool `json:"show_overseas_models"`
+
+	// 手机号注册
+	PhoneRegisterEnabled bool `json:"phone_register_enabled"`
 }
 
 type LoginAgreementDocument struct {

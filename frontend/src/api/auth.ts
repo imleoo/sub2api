@@ -657,6 +657,47 @@ export async function exchangePendingOAuthCompletion(
   return completePendingOAuthBindLogin(decision)
 }
 
+export interface SendSmsCodeRequest {
+  phone: string
+  turnstile_token?: string
+}
+
+export interface SendSmsCodeResponse {
+  message: string
+  countdown: number
+}
+
+export interface PhoneRegisterRequest {
+  phone: string
+  code: string
+  username?: string
+  promo_code?: string
+  invitation_code?: string
+  aff_code?: string
+  turnstile_token?: string
+}
+
+export interface PhoneLoginRequest {
+  phone: string
+  code: string
+  turnstile_token?: string
+}
+
+export async function sendSmsCode(payload: SendSmsCodeRequest): Promise<SendSmsCodeResponse> {
+  const { data } = await apiClient.post<SendSmsCodeResponse>('/auth/send-sms-code', payload)
+  return data
+}
+
+export async function phoneRegister(payload: PhoneRegisterRequest): Promise<AuthResponse> {
+  const { data } = await apiClient.post<AuthResponse>('/auth/phone-register', payload)
+  return data
+}
+
+export async function phoneLogin(payload: PhoneLoginRequest): Promise<AuthResponse> {
+  const { data } = await apiClient.post<AuthResponse>('/auth/phone-login', payload)
+  return data
+}
+
 export const authAPI = {
   login,
   login2FA,
@@ -692,7 +733,10 @@ export const authAPI = {
   completeLinuxDoOAuthRegistration,
   completeOIDCOAuthRegistration,
   completeWeChatOAuthRegistration,
-  createPendingDingTalkOAuthAccount
+  createPendingDingTalkOAuthAccount,
+  sendSmsCode,
+  phoneRegister,
+  phoneLogin,
 }
 
 export default authAPI

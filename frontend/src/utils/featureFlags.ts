@@ -119,6 +119,11 @@ export const FeatureFlags = {
     mode: 'opt-in',
     label: 'Affiliate',
   }),
+  phoneRegister: defineFlag({
+    key: 'phone_register_enabled',
+    mode: 'opt-in',
+    label: 'Phone Register',
+  }),
 } as const
 
 export type RegisteredFeatureFlag = keyof typeof FeatureFlags

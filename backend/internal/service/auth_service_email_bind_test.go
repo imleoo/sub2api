@@ -110,7 +110,7 @@ CREATE TABLE IF NOT EXISTS user_provider_default_grants (
 		emailSvc = service.NewEmailService(settingRepo, emailCache)
 	}
 
-	svc := service.NewAuthService(client, repo, nil, refreshTokenCache, cfg, settingSvc, emailSvc, nil, nil, nil, defaultSubAssigner, nil, nil)
+	svc := service.NewAuthService(client, repo, nil, refreshTokenCache, cfg, settingSvc, emailSvc, nil, nil, nil, nil, defaultSubAssigner, nil, nil)
 	return svc, repo, client
 }
 
@@ -467,7 +467,7 @@ func TestAuthServiceBindEmailIdentity_RevokesExistingAccessAndRefreshTokens(t *t
 		},
 	}
 	emailService := service.NewEmailService(nil, cache)
-	svc := service.NewAuthService(nil, userRepo, nil, refreshTokenCache, cfg, nil, emailService, nil, nil, nil, nil, nil, nil)
+	svc := service.NewAuthService(nil, userRepo, nil, refreshTokenCache, cfg, nil, emailService, nil, nil, nil, nil, nil, nil, nil)
 
 	oldTokenPair, err := svc.GenerateTokenPair(ctx, &service.User{
 		ID:           41,
@@ -850,6 +850,12 @@ func (s *emailBindUserRepoStub) UnbindUserAuthProvider(context.Context, int64, s
 func (s *emailBindUserRepoStub) UpdateTotpSecret(context.Context, int64, *string) error { return nil }
 func (s *emailBindUserRepoStub) EnableTotp(context.Context, int64) error                { return nil }
 func (s *emailBindUserRepoStub) DisableTotp(context.Context, int64) error               { return nil }
+func (s *emailBindUserRepoStub) GetByPhone(context.Context, string) (*service.User, error) {
+	return nil, service.ErrUserNotFound
+}
+func (s *emailBindUserRepoStub) ExistsByPhone(context.Context, string) (bool, error) {
+	return false, nil
+}
 
 func cloneEmailBindUser(user *service.User) *service.User {
 	if user == nil {

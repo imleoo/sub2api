@@ -618,6 +618,14 @@ export interface SystemSettings {
   currency_mode: string;
   cny_rate: number;
 
+  // 手机号注册 (SMS / Volcengine)
+  phone_register_enabled: boolean;
+  volcengine_sms_access_key_id: string;
+  volcengine_sms_access_key_secret_configured: boolean;
+  volcengine_sms_account_id: string;
+  volcengine_sms_sign: string;
+  volcengine_sms_template_id: string;
+
   // OpenAI fast/flex policy
   openai_fast_policy_settings?: OpenAIFastPolicySettings;
 }
@@ -855,6 +863,14 @@ export interface UpdateSettingsRequest {
   // Currency mode
   currency_mode?: string;
   cny_rate?: number;
+
+  // 手机号注册 (SMS / Volcengine)
+  phone_register_enabled?: boolean;
+  volcengine_sms_access_key_id?: string;
+  volcengine_sms_access_key_secret?: string;
+  volcengine_sms_account_id?: string;
+  volcengine_sms_sign?: string;
+  volcengine_sms_template_id?: string;
 
   // OpenAI fast/flex policy
   openai_fast_policy_settings?: OpenAIFastPolicySettings;

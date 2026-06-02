@@ -69,6 +69,7 @@ type AuthService struct {
 	cfg                   *config.Config
 	settingService        *SettingService
 	emailService          *EmailService
+	smsService            *SmsService
 	turnstileService      *TurnstileService
 	emailQueueService     *EmailQueueService
 	promoService          *PromoService
@@ -97,6 +98,7 @@ func NewAuthService(
 	cfg *config.Config,
 	settingService *SettingService,
 	emailService *EmailService,
+	smsService *SmsService,
 	turnstileService *TurnstileService,
 	emailQueueService *EmailQueueService,
 	promoService *PromoService,
@@ -112,6 +114,7 @@ func NewAuthService(
 		cfg:                   cfg,
 		settingService:        settingService,
 		emailService:          emailService,
+		smsService:            smsService,
 		turnstileService:      turnstileService,
 		emailQueueService:     emailQueueService,
 		promoService:          promoService,

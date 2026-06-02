@@ -138,6 +138,7 @@ func newOAuthEmailFlowAuthService(
 		cfg,
 		settingService,
 		emailService,
+		nil, // smsService
 		nil,
 		nil,
 		nil,

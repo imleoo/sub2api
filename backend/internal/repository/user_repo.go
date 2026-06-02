@@ -773,6 +773,26 @@ func (r *userRepository) ExistsByEmail(ctx context.Context, email string) (bool,
 	return r.client.User.Query().Where(userEmailLookupPredicate(email)).Exist(ctx)
 }
 
+func (r *userRepository) GetByPhone(ctx context.Context, phone string) (*service.User, error) {
+	m, err := r.client.User.Query().Where(dbuser.Phone(phone)).Only(ctx)
+	if err != nil {
+		return nil, translatePersistenceError(err, service.ErrUserNotFound, nil)
+	}
+	out := userEntityToService(m)
+	groups, err := r.loadAllowedGroups(ctx, []int64{m.ID})
+	if err != nil {
+		return nil, err
+	}
+	if v, ok := groups[m.ID]; ok {
+		out.AllowedGroups = v
+	}
+	return out, nil
+}
+
+func (r *userRepository) ExistsByPhone(ctx context.Context, phone string) (bool, error) {
+	return r.client.User.Query().Where(dbuser.Phone(phone)).Exist(ctx)
+}
+
 func ensureNormalizedEmailAvailableWithClient(ctx context.Context, client *dbent.Client, userID int64, email string) error {
 	client = clientFromContext(ctx, client)
 	if client == nil {
@@ -957,7 +977,7 @@ func userSignupSourceOrDefault(signupSource string) string {
 	switch strings.TrimSpace(strings.ToLower(signupSource)) {
 	case "", "email":
 		return "email"
-	case "linuxdo", "wechat", "oidc", "dingtalk":
+	case "phone", "linuxdo", "wechat", "oidc", "github", "google", "dingtalk":
 		return strings.TrimSpace(strings.ToLower(signupSource))
 	default:
 		return "email"
