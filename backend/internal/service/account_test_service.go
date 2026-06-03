@@ -203,6 +203,10 @@ func (s *AccountTestService) TestAccountConnection(c *gin.Context, accountID int
 		return s.testGenericAccountConnection(c, account, modelID, prompt)
 	}
 
+	if account.IsLingjing() {
+		return s.testLingjingAccountConnection(c, account, modelID, prompt)
+	}
+
 	return s.testClaudeAccountConnection(c, account, modelID)
 }
 
@@ -1963,6 +1967,100 @@ func (s *AccountTestService) testOpenAIImageOAuth(c *gin.Context, ctx context.Co
 
 	s.sendEvent(c, TestEvent{Type: "test_complete", Success: true})
 	return nil
+}
+
+const (
+	lingjingVideoTestPollInterval = 5 * time.Second
+	lingjingVideoTestMaxWait      = 8 * time.Minute
+	lingjingVideoDefaultPrompt    = "蓝天白云，微风轻拂"
+)
+
+// testLingjingAccountConnection 测试京东云灵境账号连通性。
+// 提交最小文本生视频任务，轮询等待完成后把视频链接通过 content 事件回传。
+func (s *AccountTestService) testLingjingAccountConnection(c *gin.Context, account *Account, modelID, prompt string) error {
+	apiKey := account.GetLingjingAPIKey()
+	if apiKey == "" {
+		return s.sendErrorAndEnd(c, "Missing api_key credential for lingjing account")
+	}
+
+	testModel := strings.TrimSpace(modelID)
+	if testModel == "" {
+		testModel = "cinema-generate-2.0"
+	}
+	// 视频模型对 prompt 内容敏感（"hi" 等无效 prompt 会被京东云挂起 5min+ 不返回失败），
+	// 视频类账号统一强制使用中文默认 prompt，忽略前端传入值。
+	testPrompt := strings.TrimSpace(prompt)
+	if isLingjingVideoModel(testModel) || testPrompt == "" {
+		testPrompt = lingjingVideoDefaultPrompt
+	}
+
+	c.Writer.Header().Set("Content-Type", "text/event-stream")
+	c.Writer.Header().Set("Cache-Control", "no-cache")
+	c.Writer.Header().Set("Connection", "keep-alive")
+	c.Writer.Header().Set("X-Accel-Buffering", "no")
+	c.Writer.Flush()
+
+	s.sendEvent(c, TestEvent{Type: "test_start", Model: testModel})
+	s.sendEvent(c, TestEvent{Type: "status", Text: "已连接到 API"})
+	s.sendEvent(c, TestEvent{Type: "status", Text: fmt.Sprintf("使用模型：%s", testModel)})
+	s.sendEvent(c, TestEvent{Type: "status", Text: fmt.Sprintf("发送测试消息：\"%s\"", testPrompt)})
+
+	apiID, params := buildLingjingTestSubmitRequest(testModel, testPrompt)
+
+	client := NewLingjingClient()
+	submitResp, err := client.SubmitTask(c.Request.Context(), apiKey, LingjingSubmitRequest{
+		APIID:  apiID,
+		Params: params,
+	})
+	if err != nil {
+		return s.sendErrorAndEnd(c, fmt.Sprintf("任务提交失败：%s", err.Error()))
+	}
+
+	genTaskID := submitResp.Result.Result.GenTaskID
+	s.sendEvent(c, TestEvent{Type: "status", Text: fmt.Sprintf("任务已提交（genTaskId: %s），等待视频生成...", genTaskID)})
+
+	// 轮询任务结果，每 5s 查询一次，最长等待 5 分钟
+	ctx := c.Request.Context()
+	deadline := time.Now().Add(lingjingVideoTestMaxWait)
+	ticker := time.NewTicker(lingjingVideoTestPollInterval)
+	defer ticker.Stop()
+
+	elapsed := 0
+	for {
+		select {
+		case <-ctx.Done():
+			return s.sendErrorAndEnd(c, "请求已取消")
+		case t := <-ticker.C:
+			if t.After(deadline) {
+				return s.sendErrorAndEnd(c, fmt.Sprintf("等待视频生成超时（超过 %v）", lingjingVideoTestMaxWait))
+			}
+			elapsed += int(lingjingVideoTestPollInterval.Seconds())
+
+			queryResp, err := client.QueryTaskResult(ctx, apiKey, genTaskID)
+			if err != nil {
+				return s.sendErrorAndEnd(c, fmt.Sprintf("查询任务状态失败：%s", err.Error()))
+			}
+
+			if queryResp.IsSuccess() {
+				urls := queryResp.SuccessURLs()
+				for _, u := range urls {
+					s.sendEvent(c, TestEvent{Type: "content", Text: u})
+				}
+				s.sendEvent(c, TestEvent{Type: "test_complete", Success: true})
+				return nil
+			}
+
+			if queryResp.IsFailed() {
+				errMsg := queryResp.Result.Result.Error
+				if errMsg == "" {
+					errMsg = "未知错误"
+				}
+				return s.sendErrorAndEnd(c, fmt.Sprintf("视频生成失败：%s", errMsg))
+			}
+
+			s.sendEvent(c, TestEvent{Type: "status", Text: fmt.Sprintf("视频生成中，已等待 %ds...", elapsed)})
+		}
+	}
 }
 
 func (s *AccountTestService) sendEvent(c *gin.Context, event TestEvent) {
