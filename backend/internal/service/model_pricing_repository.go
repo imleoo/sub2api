@@ -66,14 +66,15 @@ const (
 
 // ModelPricingListFilter 列表查询过滤条件
 type ModelPricingListFilter struct {
-	Query            string   // 搜索关键词（model_id/display_name 模糊匹配）
-	Provider         string   // 按提供商过滤
-	ExcludeProviders        []string // 排除这些 provider，空=不排除（保留兼容；新过滤建议用 ExcludeOverseasModels）
-	ExcludeOverseasModels   bool     // 按 model_id 前缀排除海外模型（与 OverseasModelIDPrefixes 同步）
-	IsCustom         *bool    // 按来源过滤，nil=全部
-	IsEnabled        *bool    // 按启用状态过滤，nil=全部
-	Page             int      // 从 1 开始
-	PageSize         int      // 默认 20，最大 200
+	Query                 string   // 搜索关键词（model_id/display_name 模糊匹配）
+	Provider              string   // 按提供商过滤
+	ExcludeProviders      []string // 排除这些 provider，空=不排除（保留兼容；新过滤建议用 ExcludeOverseasModels）
+	ExcludeOverseasModels bool     // 按 model_id 前缀排除海外模型（与 OverseasModelIDPrefixes 同步）
+	IsCustom              *bool    // 按来源过滤，nil=全部
+	IsEnabled             *bool    // 按启用状态过滤，nil=全部
+	VisibleOnly           bool     // 仅返回用户可见模型：启用且出现在至少一个账号 model_mapping key 中
+	Page                  int      // 从 1 开始
+	PageSize              int      // 默认 20，最大 200
 }
 
 // ModelPricingRepository 接口
@@ -120,4 +121,22 @@ type ModelPricingRepository interface {
 
 	// ListDistinctProviders 返回当前模型定价表中出现过的全部 provider（去重、按字母排序），供前端筛选下拉框使用。
 	ListDistinctProviders(ctx context.Context) ([]string, error)
+}
+
+// ModelPricingService contains admin model-pricing business logic.
+type ModelPricingService struct {
+	repo ModelPricingRepository
+}
+
+// NewModelPricingService creates a model-pricing service.
+func NewModelPricingService(repo ModelPricingRepository) *ModelPricingService {
+	return &ModelPricingService{repo: repo}
+}
+
+// List returns model pricing rows using the repository-level filters.
+func (s *ModelPricingService) List(ctx context.Context, filter ModelPricingListFilter) ([]*DBModelPricing, int, error) {
+	if s == nil || s.repo == nil {
+		return []*DBModelPricing{}, 0, nil
+	}
+	return s.repo.List(ctx, filter)
 }

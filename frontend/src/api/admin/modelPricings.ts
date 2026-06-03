@@ -29,6 +29,7 @@ export interface ModelPricingListFilter {
   provider?: string
   is_custom?: boolean
   is_enabled?: boolean
+  visible_only?: boolean
   page?: number
   page_size?: number
 }

@@ -7,8 +7,10 @@ import (
 	"strings"
 	"time"
 
+	entsql "entgo.io/ent/dialect/sql"
 	dbent "github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/ent/modelpricing"
+	"github.com/Wei-Shaw/sub2api/ent/predicate"
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 )
@@ -273,6 +275,26 @@ func (r *modelPricingRepository) List(ctx context.Context, filter service.ModelP
 	}
 	if filter.IsEnabled != nil {
 		q = q.Where(modelpricing.IsEnabledEQ(*filter.IsEnabled))
+	}
+	if filter.VisibleOnly {
+		q = q.Where(modelpricing.IsEnabledEQ(true))
+		q = q.Where(predicate.ModelPricing(func(s *entsql.Selector) {
+			s.Where(entsql.ExprP(
+				`EXISTS (
+					SELECT 1
+					FROM accounts a
+					CROSS JOIN LATERAL jsonb_object_keys(COALESCE(a.credentials->'model_mapping', '{}'::jsonb)) AS mm(model_key)
+					WHERE a.deleted_at IS NULL
+					  AND (
+						mm.model_key = ` + s.C(modelpricing.FieldModelID) + `
+						OR (
+							right(mm.model_key, 1) = '*'
+							AND left(` + s.C(modelpricing.FieldModelID) + `, greatest(length(mm.model_key) - 1, 0)) = left(mm.model_key, length(mm.model_key) - 1)
+						)
+					  )
+				)`,
+			))
+		}))
 	}
 
 	total, err := q.Count(ctx)

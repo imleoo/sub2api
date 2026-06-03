@@ -97,6 +97,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	usageService := service.NewUsageService(usageLogRepository, userRepository, client, apiKeyAuthCacheInvalidator)
 	pricingRemoteClient := repository.ProvidePricingRemoteClient(configConfig)
 	modelPricingRepository := repository.NewModelPricingRepository(client)
+	modelPricingService := service.NewModelPricingService(modelPricingRepository)
 	pricingService, err := service.ProvidePricingService(configConfig, pricingRemoteClient, settingRepository, modelPricingRepository)
 	if err != nil {
 		return nil, err
@@ -240,7 +241,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	contentModerationHandler := admin.NewContentModerationHandler(contentModerationService)
 	paymentHandler := admin.NewPaymentHandler(paymentService, paymentConfigService)
 	affiliateHandler := admin.NewAffiliateHandler(affiliateService, adminService)
-	modelPricingHandler := admin.NewModelPricingHandler(modelPricingRepository, pricingService, settingService, accountTestService)
+	modelPricingHandler := admin.NewModelPricingHandler(modelPricingService, modelPricingRepository, pricingService, settingService, accountTestService)
 	providerPricingHandler := admin.NewProviderPricingHandler(providerPricingRepository)
 	dualBucketStatsHandler := admin.NewDualBucketStatsHandler(schedulerSnapshotService)
 	adminHandlers := handler.ProvideAdminHandlers(dashboardHandler, adminUserHandler, groupHandler, accountHandler, adminAnnouncementHandler, dataManagementHandler, backupHandler, proxyHandler, adminRedeemHandler, promoHandler, settingHandler, opsHandler, systemHandler, adminSubscriptionHandler, adminUsageHandler, userAttributeHandler, errorPassthroughHandler, tlsFingerprintProfileHandler, adminAPIKeyHandler, scheduledTestHandler, channelHandler, channelMonitorHandler, channelMonitorRequestTemplateHandler, contentModerationHandler, paymentHandler, affiliateHandler, modelPricingHandler, providerPricingHandler, dualBucketStatsHandler)

@@ -15,15 +15,16 @@ import (
 
 // ModelPricingHandler handles admin model pricing management.
 type ModelPricingHandler struct {
-	repo               service.ModelPricingRepository
-	pricingService     *service.PricingService
-	settingService     *service.SettingService
-	accountTestService *service.AccountTestService
+	modelPricingService *service.ModelPricingService
+	repo                service.ModelPricingRepository
+	pricingService      *service.PricingService
+	settingService      *service.SettingService
+	accountTestService  *service.AccountTestService
 }
 
 // NewModelPricingHandler creates a new ModelPricingHandler.
-func NewModelPricingHandler(repo service.ModelPricingRepository, ps *service.PricingService, ss *service.SettingService, ats *service.AccountTestService) *ModelPricingHandler {
-	return &ModelPricingHandler{repo: repo, pricingService: ps, settingService: ss, accountTestService: ats}
+func NewModelPricingHandler(modelPricingService *service.ModelPricingService, repo service.ModelPricingRepository, ps *service.PricingService, ss *service.SettingService, ats *service.AccountTestService) *ModelPricingHandler {
+	return &ModelPricingHandler{modelPricingService: modelPricingService, repo: repo, pricingService: ps, settingService: ss, accountTestService: ats}
 }
 
 // listModelPricingResponse is the JSON shape returned per record.
@@ -118,7 +119,7 @@ func dbModelPricingToResponse(m *service.DBModelPricing) *listModelPricingRespon
 // List handles listing model pricings with optional filters.
 // GET /api/v1/admin/model-pricings
 func (h *ModelPricingHandler) List(c *gin.Context) {
-	if h.repo == nil {
+	if h.modelPricingService == nil {
 		response.Success(c, gin.H{"items": []any{}, "total": 0})
 		return
 	}
@@ -136,6 +137,10 @@ func (h *ModelPricingHandler) List(c *gin.Context) {
 		b := v == "true" || v == "1"
 		isEnabled = &b
 	}
+	visibleOnly := true
+	if v := c.Query("visible_only"); v != "" {
+		visibleOnly = v == "true" || v == "1"
+	}
 
 	page := 1
 	if v, err := strconv.Atoi(c.DefaultQuery("page", "1")); err == nil && v > 0 {
@@ -150,12 +155,13 @@ func (h *ModelPricingHandler) List(c *gin.Context) {
 	}
 
 	filter := service.ModelPricingListFilter{
-		Query:     q,
-		Provider:  provider,
-		IsCustom:  isCustom,
-		IsEnabled: isEnabled,
-		Page:      page,
-		PageSize:  pageSize,
+		Query:       q,
+		Provider:    provider,
+		IsCustom:    isCustom,
+		IsEnabled:   isEnabled,
+		VisibleOnly: visibleOnly,
+		Page:        page,
+		PageSize:    pageSize,
 	}
 
 	// show_overseas_models=false 时按 model_id 前缀隐藏海外模型，与模型广场保持一致。
@@ -165,7 +171,7 @@ func (h *ModelPricingHandler) List(c *gin.Context) {
 		}
 	}
 
-	items, total, err := h.repo.List(c.Request.Context(), filter)
+	items, total, err := h.modelPricingService.List(c.Request.Context(), filter)
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return
@@ -421,10 +427,10 @@ func (h *ModelPricingHandler) SyncFromUpstream(c *gin.Context) {
 			continue
 		}
 		seeds = append(seeds, &service.DBModelPricing{
-			ModelID:       modelID,
-			Provider:      provider,
-			Mode:          mode,
-			IsCustom:      true,
+			ModelID:  modelID,
+			Provider: provider,
+			Mode:     mode,
+			IsCustom: true,
 			// 同步进来的自定义模型尚未配置定价，默认禁用，等待管理员补价格后再启用。
 			IsEnabled:     false,
 			PricingStatus: service.ModelPricingStatusUnpriced,

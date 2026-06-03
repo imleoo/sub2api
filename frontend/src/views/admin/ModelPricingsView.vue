@@ -38,6 +38,17 @@
             @change="handleFilterChange"
           />
 
+          <!-- User-visible filter -->
+          <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <input
+              v-model="visibleOnly"
+              type="checkbox"
+              class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              @change="handleFilterChange"
+            />
+            <span>只显示可见模型</span>
+          </label>
+
           <!-- Right: action buttons -->
           <div class="flex flex-1 flex-wrap items-center justify-end gap-2">
             <button
@@ -732,6 +743,7 @@ const searchQuery = ref('')
 const filterProvider = ref('')
 const filterSource = ref('')
 const filterEnabled = ref('')
+const visibleOnly = ref(true)
 
 let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -939,6 +951,7 @@ const load = async () => {
     if (filterSource.value === 'synced') params.is_custom = false
     if (filterEnabled.value === 'true') params.is_enabled = true
     if (filterEnabled.value === 'false') params.is_enabled = false
+    params.visible_only = visibleOnly.value
 
     const { data } = await listModelPricings(params)
     items.value = data.items ?? []
