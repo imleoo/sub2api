@@ -13,6 +13,7 @@ type DBModelPricing struct {
 	Description                 *string
 	Provider                    string
 	Mode                        string
+	PricingUnit                 string
 	InputCostPerToken           *float64
 	OutputCostPerToken          *float64
 	CacheCreationInputTokenCost *float64
@@ -55,6 +56,12 @@ const (
 	ModelPricingSourceManual       = "manual"
 	ModelPricingSourceBootstrap    = "bootstrap"
 	ModelPricingSourceLingjing     = "lingjing"
+)
+
+// PricingUnit 常量。
+const (
+	ModelPricingUnitToken  = "token"
+	ModelPricingUnitSecond = "second"
 )
 
 // PricingStatus 常量。

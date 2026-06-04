@@ -940,6 +940,7 @@ var (
 		{Name: "description", Type: field.TypeString, Nullable: true, Size: 2147483647},
 		{Name: "provider", Type: field.TypeString, Size: 100, Default: ""},
 		{Name: "mode", Type: field.TypeString, Size: 50, Default: "chat"},
+		{Name: "pricing_unit", Type: field.TypeEnum, Enums: []string{"token", "second"}, Default: "token"},
 		{Name: "input_cost_per_token", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
 		{Name: "output_cost_per_token", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
 		{Name: "cache_creation_input_token_cost", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
@@ -989,22 +990,22 @@ var (
 			{
 				Name:    "modelpricing_is_custom",
 				Unique:  false,
-				Columns: []*schema.Column{ModelPricingsColumns[26]},
+				Columns: []*schema.Column{ModelPricingsColumns[27]},
 			},
 			{
 				Name:    "modelpricing_is_enabled",
 				Unique:  false,
-				Columns: []*schema.Column{ModelPricingsColumns[27]},
+				Columns: []*schema.Column{ModelPricingsColumns[28]},
 			},
 			{
 				Name:    "modelpricing_source",
 				Unique:  false,
-				Columns: []*schema.Column{ModelPricingsColumns[28]},
+				Columns: []*schema.Column{ModelPricingsColumns[29]},
 			},
 			{
 				Name:    "modelpricing_pricing_status",
 				Unique:  false,
-				Columns: []*schema.Column{ModelPricingsColumns[31]},
+				Columns: []*schema.Column{ModelPricingsColumns[32]},
 			},
 		},
 	}

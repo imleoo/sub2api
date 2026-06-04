@@ -569,6 +569,26 @@ func ModeContainsFold(v string) predicate.ModelPricing {
 	return predicate.ModelPricing(sql.FieldContainsFold(FieldMode, v))
 }
 
+// PricingUnitEQ applies the EQ predicate on the "pricing_unit" field.
+func PricingUnitEQ(v PricingUnit) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldPricingUnit, v))
+}
+
+// PricingUnitNEQ applies the NEQ predicate on the "pricing_unit" field.
+func PricingUnitNEQ(v PricingUnit) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNEQ(FieldPricingUnit, v))
+}
+
+// PricingUnitIn applies the In predicate on the "pricing_unit" field.
+func PricingUnitIn(vs ...PricingUnit) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIn(FieldPricingUnit, vs...))
+}
+
+// PricingUnitNotIn applies the NotIn predicate on the "pricing_unit" field.
+func PricingUnitNotIn(vs ...PricingUnit) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotIn(FieldPricingUnit, vs...))
+}
+
 // InputCostPerTokenEQ applies the EQ predicate on the "input_cost_per_token" field.
 func InputCostPerTokenEQ(v float64) predicate.ModelPricing {
 	return predicate.ModelPricing(sql.FieldEQ(FieldInputCostPerToken, v))

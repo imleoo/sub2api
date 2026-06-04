@@ -1017,6 +1017,7 @@ type ModelInfo struct {
 	ID                             string  `json:"id"`
 	LiteLLMProvider                string  `json:"provider"`
 	Mode                           string  `json:"mode"`
+	PricingUnit                    string  `json:"pricing_unit"`
 	InputCostPerToken              float64 `json:"input_cost_per_token"`
 	OutputCostPerToken             float64 `json:"output_cost_per_token"`
 	SupportsPromptCaching          bool    `json:"supports_prompt_caching"`
@@ -1078,17 +1079,24 @@ func (s *PricingService) ListEnabledCatalogModels() []ModelInfo {
 			continue
 		}
 		info := ModelInfo{
-			ID:              entry.ModelID,
-			LiteLLMProvider: entry.Provider,
-			Mode:            entry.Mode,
+			ID:                    entry.ModelID,
+			LiteLLMProvider:       entry.Provider,
+			Mode:                  entry.Mode,
+			PricingUnit:           ModelPricingUnitToken,
 			SupportsPromptCaching: entry.SupportsPromptCaching,
 			DiscountRate:          1.0,
+		}
+		if entry.PricingUnit == ModelPricingUnitSecond {
+			info.PricingUnit = ModelPricingUnitSecond
 		}
 		if entry.DiscountRate != nil && *entry.DiscountRate > 0 {
 			info.DiscountRate = *entry.DiscountRate
 		}
 		if entry.InputCostPerToken != nil {
 			info.InputCostPerToken = *entry.InputCostPerToken
+		}
+		if entry.PricingUnit == ModelPricingUnitSecond && entry.CustomInputCost != nil {
+			info.InputCostPerToken = *entry.CustomInputCost
 		}
 		if entry.OutputCostPerToken != nil {
 			info.OutputCostPerToken = *entry.OutputCostPerToken

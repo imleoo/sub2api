@@ -110,6 +110,20 @@ func (_u *ModelPricingUpdate) SetNillableMode(v *string) *ModelPricingUpdate {
 	return _u
 }
 
+// SetPricingUnit sets the "pricing_unit" field.
+func (_u *ModelPricingUpdate) SetPricingUnit(v modelpricing.PricingUnit) *ModelPricingUpdate {
+	_u.mutation.SetPricingUnit(v)
+	return _u
+}
+
+// SetNillablePricingUnit sets the "pricing_unit" field if the given value is not nil.
+func (_u *ModelPricingUpdate) SetNillablePricingUnit(v *modelpricing.PricingUnit) *ModelPricingUpdate {
+	if v != nil {
+		_u.SetPricingUnit(*v)
+	}
+	return _u
+}
+
 // SetInputCostPerToken sets the "input_cost_per_token" field.
 func (_u *ModelPricingUpdate) SetInputCostPerToken(v float64) *ModelPricingUpdate {
 	_u.mutation.ResetInputCostPerToken()
@@ -810,6 +824,11 @@ func (_u *ModelPricingUpdate) check() error {
 			return &ValidationError{Name: "mode", err: fmt.Errorf(`ent: validator failed for field "ModelPricing.mode": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.PricingUnit(); ok {
+		if err := modelpricing.PricingUnitValidator(v); err != nil {
+			return &ValidationError{Name: "pricing_unit", err: fmt.Errorf(`ent: validator failed for field "ModelPricing.pricing_unit": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Source(); ok {
 		if err := modelpricing.SourceValidator(v); err != nil {
 			return &ValidationError{Name: "source", err: fmt.Errorf(`ent: validator failed for field "ModelPricing.source": %w`, err)}
@@ -860,6 +879,9 @@ func (_u *ModelPricingUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if value, ok := _u.mutation.Mode(); ok {
 		_spec.SetField(modelpricing.FieldMode, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.PricingUnit(); ok {
+		_spec.SetField(modelpricing.FieldPricingUnit, field.TypeEnum, value)
 	}
 	if value, ok := _u.mutation.InputCostPerToken(); ok {
 		_spec.SetField(modelpricing.FieldInputCostPerToken, field.TypeFloat64, value)
@@ -1160,6 +1182,20 @@ func (_u *ModelPricingUpdateOne) SetMode(v string) *ModelPricingUpdateOne {
 func (_u *ModelPricingUpdateOne) SetNillableMode(v *string) *ModelPricingUpdateOne {
 	if v != nil {
 		_u.SetMode(*v)
+	}
+	return _u
+}
+
+// SetPricingUnit sets the "pricing_unit" field.
+func (_u *ModelPricingUpdateOne) SetPricingUnit(v modelpricing.PricingUnit) *ModelPricingUpdateOne {
+	_u.mutation.SetPricingUnit(v)
+	return _u
+}
+
+// SetNillablePricingUnit sets the "pricing_unit" field if the given value is not nil.
+func (_u *ModelPricingUpdateOne) SetNillablePricingUnit(v *modelpricing.PricingUnit) *ModelPricingUpdateOne {
+	if v != nil {
+		_u.SetPricingUnit(*v)
 	}
 	return _u
 }
@@ -1877,6 +1913,11 @@ func (_u *ModelPricingUpdateOne) check() error {
 			return &ValidationError{Name: "mode", err: fmt.Errorf(`ent: validator failed for field "ModelPricing.mode": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.PricingUnit(); ok {
+		if err := modelpricing.PricingUnitValidator(v); err != nil {
+			return &ValidationError{Name: "pricing_unit", err: fmt.Errorf(`ent: validator failed for field "ModelPricing.pricing_unit": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Source(); ok {
 		if err := modelpricing.SourceValidator(v); err != nil {
 			return &ValidationError{Name: "source", err: fmt.Errorf(`ent: validator failed for field "ModelPricing.source": %w`, err)}
@@ -1944,6 +1985,9 @@ func (_u *ModelPricingUpdateOne) sqlSave(ctx context.Context) (_node *ModelPrici
 	}
 	if value, ok := _u.mutation.Mode(); ok {
 		_spec.SetField(modelpricing.FieldMode, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.PricingUnit(); ok {
+		_spec.SetField(modelpricing.FieldPricingUnit, field.TypeEnum, value)
 	}
 	if value, ok := _u.mutation.InputCostPerToken(); ok {
 		_spec.SetField(modelpricing.FieldInputCostPerToken, field.TypeFloat64, value)

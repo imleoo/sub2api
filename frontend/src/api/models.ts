@@ -15,6 +15,7 @@ export interface ModelInfo {
   id: string
   provider: string
   mode: string
+  pricing_unit: 'token' | 'second'
   input_cost_per_token: number
   output_cost_per_token: number
   supports_prompt_caching: boolean

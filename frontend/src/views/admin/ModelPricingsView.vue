@@ -172,12 +172,12 @@
 
                   <!-- Custom input price -->
                   <td class="text-right font-mono text-xs text-gray-600 dark:text-gray-400">
-                    {{ formatTokenPrice(item.custom_input_cost) }}
+                    {{ item.pricing_unit === 'second' ? formatSecondPrice(item.custom_input_cost) : formatTokenPrice(item.custom_input_cost) }}
                   </td>
 
                   <!-- Custom output price -->
                   <td class="text-right font-mono text-xs text-gray-600 dark:text-gray-400">
-                    {{ formatTokenPrice(item.custom_output_cost) }}
+                    {{ item.pricing_unit === 'second' ? '—' : formatTokenPrice(item.custom_output_cost) }}
                   </td>
 
                   <!-- Discount rate -->
@@ -307,7 +307,26 @@
           <textarea v-model="editForm.description" rows="2" class="input" placeholder="可选"></textarea>
         </div>
 
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div>
+          <label class="input-label">{{ t('admin.modelPricings.pricingUnitLabel') }}</label>
+          <div class="mt-1 flex overflow-hidden rounded-lg border border-gray-200 dark:border-dark-600">
+            <label
+              v-for="option in pricingUnitOptions"
+              :key="option.value"
+              class="flex-1 cursor-pointer px-3 py-2 text-center text-sm transition-colors"
+              :class="
+                editForm.pricing_unit === option.value
+                  ? 'bg-primary-600 text-white'
+                  : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-dark-700'
+              "
+            >
+              <input v-model="editForm.pricing_unit" type="radio" class="sr-only" :value="option.value" />
+              {{ option.label }}
+            </label>
+          </div>
+        </div>
+
+        <div v-if="editForm.pricing_unit === 'token'" class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div v-if="editingItem?.is_custom">
             <label class="input-label">上游输入价（每 token）</label>
             <input
@@ -332,7 +351,21 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div v-else class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div v-if="editingItem?.is_custom">
+            <label class="input-label">{{ t('admin.modelPricings.upstreamPricePerSecond') }}</label>
+            <input
+              v-model.number="editForm.input_cost_per_token"
+              type="number"
+              step="any"
+              min="0"
+              class="input"
+              placeholder="例: 0.12"
+            />
+          </div>
+        </div>
+
+        <div v-if="editForm.pricing_unit === 'token'" class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label class="input-label">自定义输入价（每 token）</label>
             <input
@@ -348,6 +381,20 @@
             <label class="input-label">自定义输出价（每 token）</label>
             <input
               v-model.number="editForm.custom_output_cost"
+              type="number"
+              step="any"
+              min="0"
+              class="input"
+              placeholder="留空则使用上游价格"
+            />
+          </div>
+        </div>
+
+        <div v-else class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label class="input-label">{{ t('admin.modelPricings.customPricePerSecond') }}</label>
+            <input
+              v-model.number="editForm.custom_input_cost"
               type="number"
               step="any"
               min="0"
@@ -432,7 +479,26 @@
           <textarea v-model="createForm.description" rows="2" class="input" placeholder="可选"></textarea>
         </div>
 
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div>
+          <label class="input-label">{{ t('admin.modelPricings.pricingUnitLabel') }}</label>
+          <div class="mt-1 flex overflow-hidden rounded-lg border border-gray-200 dark:border-dark-600">
+            <label
+              v-for="option in pricingUnitOptions"
+              :key="option.value"
+              class="flex-1 cursor-pointer px-3 py-2 text-center text-sm transition-colors"
+              :class="
+                createForm.pricing_unit === option.value
+                  ? 'bg-primary-600 text-white'
+                  : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-dark-700'
+              "
+            >
+              <input v-model="createForm.pricing_unit" type="radio" class="sr-only" :value="option.value" />
+              {{ option.label }}
+            </label>
+          </div>
+        </div>
+
+        <div v-if="createForm.pricing_unit === 'token'" class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label class="input-label">上游输入价（每 token）</label>
             <input
@@ -457,7 +523,21 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div v-else class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label class="input-label">{{ t('admin.modelPricings.upstreamPricePerSecond') }}</label>
+            <input
+              v-model.number="createForm.input_cost_per_token"
+              type="number"
+              step="any"
+              min="0"
+              class="input"
+              placeholder="例: 0.12"
+            />
+          </div>
+        </div>
+
+        <div v-if="createForm.pricing_unit === 'token'" class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label class="input-label">缓存创建输入价（每 token）</label>
             <input
@@ -482,7 +562,7 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div v-if="createForm.pricing_unit === 'token'" class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label class="input-label">自定义输入价（每 token）</label>
             <input
@@ -498,6 +578,20 @@
             <label class="input-label">自定义输出价（每 token）</label>
             <input
               v-model.number="createForm.custom_output_cost"
+              type="number"
+              step="any"
+              min="0"
+              class="input"
+              placeholder="留空则使用上游价格"
+            />
+          </div>
+        </div>
+
+        <div v-else class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label class="input-label">{{ t('admin.modelPricings.customPricePerSecond') }}</label>
+            <input
+              v-model.number="createForm.custom_input_cost"
               type="number"
               step="any"
               min="0"
@@ -703,6 +797,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import TablePageLayout from '@/components/layout/TablePageLayout.vue'
 import Pagination from '@/components/common/Pagination.vue'
@@ -726,6 +821,7 @@ import {
 } from '@/api/admin/modelPricings'
 
 const appStore = useAppStore()
+const { t } = useI18n()
 
 // ==================== State ====================
 
@@ -762,6 +858,7 @@ const editForm = reactive<{
   description: string
   provider: string
   mode: string
+  pricing_unit: 'token' | 'second'
   input_cost_per_token: number | null
   output_cost_per_token: number | null
   custom_input_cost: number | null
@@ -774,6 +871,7 @@ const editForm = reactive<{
   description: '',
   provider: '',
   mode: 'chat',
+  pricing_unit: 'token',
   input_cost_per_token: null,
   output_cost_per_token: null,
   custom_input_cost: null,
@@ -788,6 +886,7 @@ const createForm = reactive<{
   description: string
   provider: string
   mode: string
+  pricing_unit: 'token' | 'second'
   input_cost_per_token: number | null
   output_cost_per_token: number | null
   cache_creation_input_token_cost: number | null
@@ -802,6 +901,7 @@ const createForm = reactive<{
   description: '',
   provider: 'custom',
   mode: 'chat',
+  pricing_unit: 'token',
   input_cost_per_token: null,
   output_cost_per_token: null,
   cache_creation_input_token_cost: null,
@@ -864,6 +964,11 @@ const modeOptions = [
   { value: 'video_generation', label: 'video_generation' },
 ]
 
+const pricingUnitOptions = [
+  { value: 'token', label: 'Token' },
+  { value: 'second', label: t('admin.modelPricings.pricingUnitSecond') },
+]
+
 // ==================== Formatters ====================
 
 const formatTokenPrice = (price: number | null | undefined): string => {
@@ -873,6 +978,11 @@ const formatTokenPrice = (price: number | null | undefined): string => {
   // ≥ 0.01：2 位小数足够；< 0.01：保留至少 2 位有效数字，避免 0.1 折后 $0.0018 被 toFixed(2) 吞成 0.00
   const display = perMillion >= 0.01 ? perMillion.toFixed(2) : perMillion.toPrecision(2)
   return `$${display} /M tok`
+}
+
+const formatSecondPrice = (price: number | null | undefined): string => {
+  if (price === null || price === undefined) return '—'
+  return `${formatUsdAmount(price)}/${t('admin.modelPricings.secondUnit')}`
 }
 
 const formatDiscountRate = (rate: number | null | undefined): string => {
@@ -902,6 +1012,9 @@ const formatPerRequestPrice = (price: number | null | undefined, mode: string): 
 }
 
 const formatUpstreamInputPrice = (item: DBModelPricing): string => {
+  if (item.pricing_unit === 'second') {
+    return formatSecondPrice(item.input_cost_per_token)
+  }
   if (item.input_cost_per_token !== null && item.input_cost_per_token !== undefined) {
     return formatTokenPrice(item.input_cost_per_token)
   }
@@ -909,6 +1022,9 @@ const formatUpstreamInputPrice = (item: DBModelPricing): string => {
 }
 
 const formatUpstreamOutputPrice = (item: DBModelPricing): string => {
+  if (item.pricing_unit === 'second') {
+    return '—'
+  }
   if (item.output_cost_per_token !== null && item.output_cost_per_token !== undefined) {
     return formatTokenPrice(item.output_cost_per_token)
   }
@@ -923,6 +1039,9 @@ const formatUpstreamOutputPrice = (item: DBModelPricing): string => {
 const formatEffectiveInputPrice = (item: DBModelPricing): string => {
   const discount = item.discount_rate ?? 1
   const tokenBase = item.custom_input_cost ?? item.input_cost_per_token
+  if (item.pricing_unit === 'second') {
+    return formatSecondPrice(tokenBase !== null && tokenBase !== undefined ? tokenBase * discount : null)
+  }
   if (tokenBase !== null && tokenBase !== undefined) {
     return formatTokenPrice(tokenBase * discount)
   }
@@ -1160,6 +1279,7 @@ const openEditModal = (item: DBModelPricing) => {
   editForm.description = item.description ?? ''
   editForm.provider = item.provider
   editForm.mode = item.mode
+  editForm.pricing_unit = item.pricing_unit ?? 'token'
   editForm.input_cost_per_token = item.input_cost_per_token
   editForm.output_cost_per_token = item.output_cost_per_token
   editForm.custom_input_cost = item.custom_input_cost
@@ -1181,8 +1301,9 @@ const handleSave = async () => {
     const payload: Partial<CreateModelPricingRequest> = {
       display_name: editForm.display_name || null,
       description: editForm.description || null,
+      pricing_unit: editForm.pricing_unit,
       custom_input_cost: editForm.custom_input_cost ?? null,
-      custom_output_cost: editForm.custom_output_cost ?? null,
+      custom_output_cost: editForm.pricing_unit === 'token' ? (editForm.custom_output_cost ?? null) : null,
       discount_rate: editForm.discount_rate ?? null,
       is_enabled: editForm.is_enabled,
     }
@@ -1190,7 +1311,7 @@ const handleSave = async () => {
       payload.provider = editForm.provider
       payload.mode = editForm.mode
       payload.input_cost_per_token = editForm.input_cost_per_token ?? null
-      payload.output_cost_per_token = editForm.output_cost_per_token ?? null
+      payload.output_cost_per_token = editForm.pricing_unit === 'token' ? (editForm.output_cost_per_token ?? null) : null
     }
     const { data } = await updateModelPricing(editingItem.value.id, payload)
     const idx = items.value.findIndex(i => i.id === editingItem.value!.id)
@@ -1212,6 +1333,7 @@ const openCreateModal = () => {
   createForm.description = ''
   createForm.provider = 'custom'
   createForm.mode = 'chat'
+  createForm.pricing_unit = 'token'
   createForm.input_cost_per_token = null
   createForm.output_cost_per_token = null
   createForm.cache_creation_input_token_cost = null
@@ -1236,12 +1358,13 @@ const handleCreate = async () => {
       description: createForm.description || null,
       provider: createForm.provider,
       mode: createForm.mode,
+      pricing_unit: createForm.pricing_unit,
       input_cost_per_token: createForm.input_cost_per_token ?? null,
-      output_cost_per_token: createForm.output_cost_per_token ?? null,
-      cache_creation_input_token_cost: createForm.cache_creation_input_token_cost ?? null,
-      cache_read_input_token_cost: createForm.cache_read_input_token_cost ?? null,
+      output_cost_per_token: createForm.pricing_unit === 'token' ? (createForm.output_cost_per_token ?? null) : null,
+      cache_creation_input_token_cost: createForm.pricing_unit === 'token' ? (createForm.cache_creation_input_token_cost ?? null) : null,
+      cache_read_input_token_cost: createForm.pricing_unit === 'token' ? (createForm.cache_read_input_token_cost ?? null) : null,
       custom_input_cost: createForm.custom_input_cost ?? null,
-      custom_output_cost: createForm.custom_output_cost ?? null,
+      custom_output_cost: createForm.pricing_unit === 'token' ? (createForm.custom_output_cost ?? null) : null,
       discount_rate: createForm.discount_rate ?? null,
       is_enabled: createForm.is_enabled,
     }

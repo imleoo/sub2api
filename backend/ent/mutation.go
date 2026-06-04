@@ -23772,6 +23772,7 @@ type ModelPricingMutation struct {
 	description                             *string
 	provider                                *string
 	mode                                    *string
+	pricing_unit                            *modelpricing.PricingUnit
 	input_cost_per_token                    *float64
 	addinput_cost_per_token                 *float64
 	output_cost_per_token                   *float64
@@ -24128,6 +24129,42 @@ func (m *ModelPricingMutation) OldMode(ctx context.Context) (v string, err error
 // ResetMode resets all changes to the "mode" field.
 func (m *ModelPricingMutation) ResetMode() {
 	m.mode = nil
+}
+
+// SetPricingUnit sets the "pricing_unit" field.
+func (m *ModelPricingMutation) SetPricingUnit(mu modelpricing.PricingUnit) {
+	m.pricing_unit = &mu
+}
+
+// PricingUnit returns the value of the "pricing_unit" field in the mutation.
+func (m *ModelPricingMutation) PricingUnit() (r modelpricing.PricingUnit, exists bool) {
+	v := m.pricing_unit
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPricingUnit returns the old "pricing_unit" field's value of the ModelPricing entity.
+// If the ModelPricing object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ModelPricingMutation) OldPricingUnit(ctx context.Context) (v modelpricing.PricingUnit, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPricingUnit is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPricingUnit requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPricingUnit: %w", err)
+	}
+	return oldValue.PricingUnit, nil
+}
+
+// ResetPricingUnit resets all changes to the "pricing_unit" field.
+func (m *ModelPricingMutation) ResetPricingUnit() {
+	m.pricing_unit = nil
 }
 
 // SetInputCostPerToken sets the "input_cost_per_token" field.
@@ -25867,7 +25904,7 @@ func (m *ModelPricingMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ModelPricingMutation) Fields() []string {
-	fields := make([]string, 0, 34)
+	fields := make([]string, 0, 35)
 	if m.model_id != nil {
 		fields = append(fields, modelpricing.FieldModelID)
 	}
@@ -25882,6 +25919,9 @@ func (m *ModelPricingMutation) Fields() []string {
 	}
 	if m.mode != nil {
 		fields = append(fields, modelpricing.FieldMode)
+	}
+	if m.pricing_unit != nil {
+		fields = append(fields, modelpricing.FieldPricingUnit)
 	}
 	if m.input_cost_per_token != nil {
 		fields = append(fields, modelpricing.FieldInputCostPerToken)
@@ -25988,6 +26028,8 @@ func (m *ModelPricingMutation) Field(name string) (ent.Value, bool) {
 		return m.Provider()
 	case modelpricing.FieldMode:
 		return m.Mode()
+	case modelpricing.FieldPricingUnit:
+		return m.PricingUnit()
 	case modelpricing.FieldInputCostPerToken:
 		return m.InputCostPerToken()
 	case modelpricing.FieldOutputCostPerToken:
@@ -26065,6 +26107,8 @@ func (m *ModelPricingMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldProvider(ctx)
 	case modelpricing.FieldMode:
 		return m.OldMode(ctx)
+	case modelpricing.FieldPricingUnit:
+		return m.OldPricingUnit(ctx)
 	case modelpricing.FieldInputCostPerToken:
 		return m.OldInputCostPerToken(ctx)
 	case modelpricing.FieldOutputCostPerToken:
@@ -26166,6 +26210,13 @@ func (m *ModelPricingMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetMode(v)
+		return nil
+	case modelpricing.FieldPricingUnit:
+		v, ok := value.(modelpricing.PricingUnit)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPricingUnit(v)
 		return nil
 	case modelpricing.FieldInputCostPerToken:
 		v, ok := value.(float64)
@@ -26799,6 +26850,9 @@ func (m *ModelPricingMutation) ResetField(name string) error {
 		return nil
 	case modelpricing.FieldMode:
 		m.ResetMode()
+		return nil
+	case modelpricing.FieldPricingUnit:
+		m.ResetPricingUnit()
 		return nil
 	case modelpricing.FieldInputCostPerToken:
 		m.ResetInputCostPerToken()

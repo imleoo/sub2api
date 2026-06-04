@@ -52,6 +52,11 @@ func (ModelPricing) Fields() []ent.Field {
 			MaxLen(50).
 			Default("chat"),
 
+		// 计费单位：token=按 token；second=按秒。
+		field.Enum("pricing_unit").
+			Values("token", "second").
+			Default("token"),
+
 		// 远端同步价格字段（USD per token）
 		field.Float("input_cost_per_token").
 			Optional().

@@ -4,6 +4,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ModelPricingsView from '../ModelPricingsView.vue'
 import { listModelPricings, listModelPricingProviders } from '@/api/admin/modelPricings'
 
+vi.mock('vue-i18n', async importOriginal => ({
+  ...(await importOriginal<typeof import('vue-i18n')>()),
+  useI18n: () => ({
+    t: (key: string) => key,
+  }),
+}))
+
 vi.mock('@/stores/app', () => ({
   useAppStore: () => ({
     showError: vi.fn(),

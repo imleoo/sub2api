@@ -27,6 +27,8 @@ type ModelPricing struct {
 	Provider string `json:"provider,omitempty"`
 	// Mode holds the value of the "mode" field.
 	Mode string `json:"mode,omitempty"`
+	// PricingUnit holds the value of the "pricing_unit" field.
+	PricingUnit modelpricing.PricingUnit `json:"pricing_unit,omitempty"`
 	// InputCostPerToken holds the value of the "input_cost_per_token" field.
 	InputCostPerToken *float64 `json:"input_cost_per_token,omitempty"`
 	// OutputCostPerToken holds the value of the "output_cost_per_token" field.
@@ -99,7 +101,7 @@ func (*ModelPricing) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullFloat64)
 		case modelpricing.FieldID, modelpricing.FieldLongContextInputTokenThreshold, modelpricing.FieldSourceAccountID:
 			values[i] = new(sql.NullInt64)
-		case modelpricing.FieldModelID, modelpricing.FieldDisplayName, modelpricing.FieldDescription, modelpricing.FieldProvider, modelpricing.FieldMode, modelpricing.FieldSource, modelpricing.FieldSourceProvider, modelpricing.FieldPricingStatus:
+		case modelpricing.FieldModelID, modelpricing.FieldDisplayName, modelpricing.FieldDescription, modelpricing.FieldProvider, modelpricing.FieldMode, modelpricing.FieldPricingUnit, modelpricing.FieldSource, modelpricing.FieldSourceProvider, modelpricing.FieldPricingStatus:
 			values[i] = new(sql.NullString)
 		case modelpricing.FieldLastSyncedAt, modelpricing.FieldCreatedAt, modelpricing.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -155,6 +157,12 @@ func (_m *ModelPricing) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field mode", values[i])
 			} else if value.Valid {
 				_m.Mode = value.String
+			}
+		case modelpricing.FieldPricingUnit:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field pricing_unit", values[i])
+			} else if value.Valid {
+				_m.PricingUnit = modelpricing.PricingUnit(value.String)
 			}
 		case modelpricing.FieldInputCostPerToken:
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
@@ -404,6 +412,9 @@ func (_m *ModelPricing) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("mode=")
 	builder.WriteString(_m.Mode)
+	builder.WriteString(", ")
+	builder.WriteString("pricing_unit=")
+	builder.WriteString(fmt.Sprintf("%v", _m.PricingUnit))
 	builder.WriteString(", ")
 	if v := _m.InputCostPerToken; v != nil {
 		builder.WriteString("input_cost_per_token=")

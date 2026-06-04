@@ -186,7 +186,14 @@
 
           <!-- Price section -->
           <div class="border-t border-gray-100 pt-3 dark:border-dark-700">
-            <div class="grid grid-cols-2 gap-2 text-xs">
+            <div v-if="model.pricing_unit === 'second'" class="text-xs">
+              <div class="mb-0.5 text-gray-400">{{ t('models.pricing.secondPrice') }}</div>
+              <div v-if="appStore.currencyMode !== 'cny'" class="font-mono font-medium text-gray-800 dark:text-gray-200">
+                {{ formatSecondUsdPrice(model) }}
+              </div>
+              <div class="text-gray-400">{{ formatSecondCnyPrice(model) }}</div>
+            </div>
+            <div v-else class="grid grid-cols-2 gap-2 text-xs">
               <div>
                 <div class="mb-0.5 text-gray-400">{{ t('models.inputPrice') }}</div>
                 <div v-if="appStore.currencyMode !== 'cny'" class="font-mono font-medium text-gray-800 dark:text-gray-200">
@@ -527,6 +534,19 @@ function formatPrice(costPerToken: number): string {
   }
   // < 0.01：保留至少 2 位有效数字，避免 0.1 折后 $0.0018 被截成 0
   return `$${per1m.toPrecision(2)}`
+}
+
+function formatSecondUsdPrice(model: ModelInfo): string {
+  const price = model.input_cost_per_token * (model.discount_rate ?? 1)
+  if (!price || price <= 0) return '--'
+  const display = price.toFixed(6).replace(/0+$/, '').replace(/\.$/, '')
+  return `$${display}${t('models.pricing.unitPerSecond')}`
+}
+
+function formatSecondCnyPrice(model: ModelInfo): string {
+  const price = model.input_cost_per_token * (model.discount_rate ?? 1) * appStore.cnyRate
+  if (!price || price <= 0) return '--'
+  return `¥${price.toFixed(4)}${t('models.pricing.unitPerSecond')}`
 }
 
 // ─── Helpers ────────────────────────────

@@ -1419,6 +1419,13 @@ export default {
         confirm: '确认',
       }
     },
+    modelPricings: {
+      pricingUnitLabel: '计费单位',
+      pricingUnitSecond: '秒',
+      upstreamPricePerSecond: '上游单价（每秒）',
+      customPricePerSecond: '自定义单价（每秒）',
+      secondUnit: '秒',
+    },
     // Dashboard
     dashboard: {
       title: '管理控制台',
@@ -7459,6 +7466,10 @@ export default {
     testFailed: '测试失败',
     inputPrice: '输入价格（/1K）',
     outputPrice: '输出价格（/1K）',
+    pricing: {
+      secondPrice: '单价',
+      unitPerSecond: '/秒',
+    },
     contextWindow: '上下文窗口',
     features: '能力',
     promptCaching: '缓存',

@@ -3,6 +3,7 @@
 package modelpricing
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -23,6 +24,8 @@ const (
 	FieldProvider = "provider"
 	// FieldMode holds the string denoting the mode field in the database.
 	FieldMode = "mode"
+	// FieldPricingUnit holds the string denoting the pricing_unit field in the database.
+	FieldPricingUnit = "pricing_unit"
 	// FieldInputCostPerToken holds the string denoting the input_cost_per_token field in the database.
 	FieldInputCostPerToken = "input_cost_per_token"
 	// FieldOutputCostPerToken holds the string denoting the output_cost_per_token field in the database.
@@ -93,6 +96,7 @@ var Columns = []string{
 	FieldDescription,
 	FieldProvider,
 	FieldMode,
+	FieldPricingUnit,
 	FieldInputCostPerToken,
 	FieldOutputCostPerToken,
 	FieldCacheCreationInputTokenCost,
@@ -175,6 +179,32 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 )
 
+// PricingUnit defines the type for the "pricing_unit" enum field.
+type PricingUnit string
+
+// PricingUnitToken is the default value of the PricingUnit enum.
+const DefaultPricingUnit = PricingUnitToken
+
+// PricingUnit values.
+const (
+	PricingUnitToken  PricingUnit = "token"
+	PricingUnitSecond PricingUnit = "second"
+)
+
+func (pu PricingUnit) String() string {
+	return string(pu)
+}
+
+// PricingUnitValidator is a validator for the "pricing_unit" field enum values. It is called by the builders before save.
+func PricingUnitValidator(pu PricingUnit) error {
+	switch pu {
+	case PricingUnitToken, PricingUnitSecond:
+		return nil
+	default:
+		return fmt.Errorf("modelpricing: invalid enum value for pricing_unit field: %q", pu)
+	}
+}
+
 // OrderOption defines the ordering options for the ModelPricing queries.
 type OrderOption func(*sql.Selector)
 
@@ -206,6 +236,11 @@ func ByProvider(opts ...sql.OrderTermOption) OrderOption {
 // ByMode orders the results by the mode field.
 func ByMode(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMode, opts...).ToFunc()
+}
+
+// ByPricingUnit orders the results by the pricing_unit field.
+func ByPricingUnit(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPricingUnit, opts...).ToFunc()
 }
 
 // ByInputCostPerToken orders the results by the input_cost_per_token field.

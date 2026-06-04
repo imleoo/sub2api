@@ -19,6 +19,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - [`claudedocs/自定义开发功能列表.md`](claudedocs/自定义开发功能列表.md) — fork 自定义功能、高风险文件、合并清单（**唯一源**）
 - [`DEV_GUIDE.md`](DEV_GUIDE.md) — 仓库自带的开发指南
 
+> **多 AI 助手规则文件的关系**：
+> - `CLAUDE.md`（本文件）—— Claude Code 的唯一规则源
+> - `AGENTS.md` —— 指向 `CLAUDE.md` 的 symlink（其它 agent 框架的默认入口）
+> - `CODEBUDDY.md` —— CodeBuddy Code 的独立规则文件，**不与 CLAUDE.md 自动同步**，内容偏旧（如硬编码 Go 小版本）。修改本文件时不要顺手改 CODEBUDDY.md；除非明确接到 CodeBuddy 相关任务，否则视为只读
+
 ## zhiguofan 分支差异化开发
 
 fork 功能列表、高风险文件、合并检查清单详见 **[`claudedocs/自定义开发功能列表.md`](claudedocs/自定义开发功能列表.md)**，该文档为唯一维护源，本节不再重复。
@@ -26,11 +31,12 @@ fork 功能列表、高风险文件、合并检查清单详见 **[`claudedocs/�
 ### 版本与同步策略
 
 - `main` 对齐上游，版本保持上游 `0.x.y`
-- `zhiguofan` 使用 fork 版本线，`backend/cmd/server/VERSION` 主号固定为 `1`，次/修订号跟随上游（上游 `0.x.y` → 本分支 `1.x.y`）。当前值以仓库内 `backend/cmd/server/VERSION` 为准
+- `zhiguofan` 使用 fork 版本线，`backend/cmd/server/VERSION` 主号固定为 `1`，次/修订号跟随上游（上游 `0.x.y` → 本分支 `1.x.y`）。**实际版本必须以仓库内 `backend/cmd/server/VERSION` 文件为准**（截至本次更新为 `1.1.133`，仅作分支新鲜度参考，不要在其他文档/代码中硬编码该值）
 - 同步上游优先使用 `./script/sync_upstream_to_zhiguofan.sh`，该脚本负责 `upstream/main → main → origin/main → zhiguofan → origin/zhiguofan`
 - 脚本同步到 `zhiguofan` 后会把版本主号改为 `1`；如果手动 merge，必须手动检查 `backend/cmd/server/VERSION`
-- `AGENTS.md` 是指向 `CLAUDE.md` 的 symlink，保留单一规则源，不要复制成两份
+- `AGENTS.md` 是指向 `CLAUDE.md` 的 symlink，保留单一规则源，不要复制成两份。修改前用 `test -L AGENTS.md && readlink AGENTS.md`（应输出 `CLAUDE.md`）确认；若发现它变成了普通文件，恢复方式：`rm AGENTS.md && ln -s CLAUDE.md AGENTS.md`
 - `frontend/package-lock.json` 是历史遗留文件；本项目开发仍以 pnpm 为准，新增依赖时优先维护 `pnpm-lock.yaml`
+- 根目录 `.playwright-mcp/` 是 MCP Playwright 浏览器自动化的运行产物（截图、trace、临时会话等），**已在 `.gitignore` 中忽略**，不属于业务代码。不要在此目录下编辑或新增源文件；需要清理时可整目录删除
 
 ### 合并后最低验证
 
@@ -46,7 +52,9 @@ cd frontend && pnpm run lint:check
 
 ### 根目录
 
-> 当前 `Makefile` 是空文件，没有可用 target。所有构建/测试/生成/开发环境命令请直接进入 `backend/`、`frontend/` 或调用 `script/dev_local.sh`（见下方）。
+> 当前 `Makefile` 是空文件（1 字节占位），没有可用 target。所有构建/测试/生成/开发环境命令请直接进入 `backend/`、`frontend/` 或调用 `script/dev_local.sh`（见下方）。
+>
+> 如未来要新增 Makefile target，**先与 `script/dev_local.sh`、`script/sync_upstream_to_zhiguofan.sh`、`script/push_zhiguofan_to_internal_git.sh` 比对**，避免与脚本入口重复或行为不一致。
 
 ### 后端（Go）
 

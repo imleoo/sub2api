@@ -1416,6 +1416,13 @@ export default {
         confirm: 'Confirm',
       },
     },
+    modelPricings: {
+      pricingUnitLabel: 'Billing Unit',
+      pricingUnitSecond: 'Second',
+      upstreamPricePerSecond: 'Upstream Price (per second)',
+      customPricePerSecond: 'Custom Price (per second)',
+      secondUnit: 'sec',
+    },
     // Dashboard
     dashboard: {
       title: 'Admin Dashboard',
@@ -6964,6 +6971,10 @@ export default {
     testFailed: 'Test Failed',
     inputPrice: 'Input Price (/1K)',
     outputPrice: 'Output Price (/1K)',
+    pricing: {
+      secondPrice: 'Unit Price',
+      unitPerSecond: '/sec',
+    },
     contextWindow: 'Context Window',
     features: 'Features',
     promptCaching: 'Cache',

@@ -140,10 +140,32 @@ func TestListEnabledCatalogModels_DiscountRate(t *testing.T) {
 	require.InDelta(t, 0.8, models[0].DiscountRate, 1e-9)
 }
 
+// TestListEnabledCatalogModels_SecondPricingUnit 验证按秒计费模型向用户端暴露 pricing_unit，并用自定义单价覆盖上游单价。
+func TestListEnabledCatalogModels_SecondPricingUnit(t *testing.T) {
+	upstream := 0.12
+	custom := 0.2
+	ps := &PricingService{
+		catalog: map[string]*DBModelPricing{
+			"video-second-model": {
+				ModelID:           "video-second-model",
+				IsEnabled:         true,
+				PricingUnit:       ModelPricingUnitSecond,
+				InputCostPerToken: &upstream,
+				CustomInputCost:   &custom,
+			},
+		},
+	}
+
+	models := ps.ListEnabledCatalogModels()
+	require.Len(t, models, 1)
+	require.Equal(t, ModelPricingUnitSecond, models[0].PricingUnit)
+	require.InDelta(t, custom, models[0].InputCostPerToken, 1e-12)
+}
+
 // TestListEnabledCatalogModels_EmptyCatalog 空 catalog 返回空切片，不 panic。
 func TestListEnabledCatalogModels_EmptyCatalog(t *testing.T) {
 	ps := &PricingService{
-		catalog:     map[string]*DBModelPricing{},
+		catalog: map[string]*DBModelPricing{},
 	}
 	require.Empty(t, ps.ListEnabledCatalogModels())
 }

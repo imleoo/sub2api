@@ -35,6 +35,7 @@ type listModelPricingResponse struct {
 	Description                 *string  `json:"description,omitempty"`
 	Provider                    string   `json:"provider"`
 	Mode                        string   `json:"mode"`
+	PricingUnit                 string   `json:"pricing_unit"`
 	InputCostPerToken           *float64 `json:"input_cost_per_token,omitempty"`
 	OutputCostPerToken          *float64 `json:"output_cost_per_token,omitempty"`
 	CacheCreationInputTokenCost *float64 `json:"cache_creation_input_token_cost,omitempty"`
@@ -57,6 +58,7 @@ type createModelPricingRequest struct {
 	Description                 *string  `json:"description"`
 	Provider                    string   `json:"provider"`
 	Mode                        string   `json:"mode"`
+	PricingUnit                 string   `json:"pricing_unit"`
 	InputCostPerToken           *float64 `json:"input_cost_per_token"`
 	OutputCostPerToken          *float64 `json:"output_cost_per_token"`
 	CacheCreationInputTokenCost *float64 `json:"cache_creation_input_token_cost"`
@@ -75,6 +77,7 @@ type updateModelPricingRequest struct {
 	Description                 *string  `json:"description"`
 	Provider                    *string  `json:"provider"`
 	Mode                        *string  `json:"mode"`
+	PricingUnit                 *string  `json:"pricing_unit"`
 	InputCostPerToken           *float64 `json:"input_cost_per_token"`
 	OutputCostPerToken          *float64 `json:"output_cost_per_token"`
 	CacheCreationInputTokenCost *float64 `json:"cache_creation_input_token_cost"`
@@ -99,6 +102,7 @@ func dbModelPricingToResponse(m *service.DBModelPricing) *listModelPricingRespon
 		Description:                 m.Description,
 		Provider:                    m.Provider,
 		Mode:                        m.Mode,
+		PricingUnit:                 normalizePricingUnit(m.PricingUnit),
 		InputCostPerToken:           m.InputCostPerToken,
 		OutputCostPerToken:          m.OutputCostPerToken,
 		CacheCreationInputTokenCost: m.CacheCreationInputTokenCost,
@@ -114,6 +118,13 @@ func dbModelPricingToResponse(m *service.DBModelPricing) *listModelPricingRespon
 		CreatedAt:                   m.CreatedAt.Unix(),
 		UpdatedAt:                   m.UpdatedAt.Unix(),
 	}
+}
+
+func normalizePricingUnit(unit string) string {
+	if strings.TrimSpace(unit) == service.ModelPricingUnitSecond {
+		return service.ModelPricingUnitSecond
+	}
+	return service.ModelPricingUnitToken
 }
 
 // List handles listing model pricings with optional filters.
@@ -202,6 +213,7 @@ func (h *ModelPricingHandler) Create(c *gin.Context) {
 	if mode == "" {
 		mode = "chat"
 	}
+	pricingUnit := normalizePricingUnit(req.PricingUnit)
 
 	isEnabled := true
 	if req.IsEnabled != nil {
@@ -214,6 +226,7 @@ func (h *ModelPricingHandler) Create(c *gin.Context) {
 		Description:                 req.Description,
 		Provider:                    req.Provider,
 		Mode:                        mode,
+		PricingUnit:                 pricingUnit,
 		InputCostPerToken:           req.InputCostPerToken,
 		OutputCostPerToken:          req.OutputCostPerToken,
 		CacheCreationInputTokenCost: req.CacheCreationInputTokenCost,
@@ -277,6 +290,9 @@ func (h *ModelPricingHandler) Update(c *gin.Context) {
 	}
 	if req.Mode != nil {
 		existing.Mode = *req.Mode
+	}
+	if req.PricingUnit != nil {
+		existing.PricingUnit = normalizePricingUnit(*req.PricingUnit)
 	}
 	if req.InputCostPerToken != nil {
 		existing.InputCostPerToken = req.InputCostPerToken

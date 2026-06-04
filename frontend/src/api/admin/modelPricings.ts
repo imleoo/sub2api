@@ -7,6 +7,7 @@ export interface DBModelPricing {
   description: string | null
   provider: string
   mode: string
+  pricing_unit: 'token' | 'second'
   input_cost_per_token: number | null
   output_cost_per_token: number | null
   cache_creation_input_token_cost: number | null
@@ -47,6 +48,7 @@ export interface CreateModelPricingRequest {
   description?: string | null
   provider: string
   mode: string
+  pricing_unit?: 'token' | 'second'
   input_cost_per_token?: number | null
   output_cost_per_token?: number | null
   cache_creation_input_token_cost?: number | null

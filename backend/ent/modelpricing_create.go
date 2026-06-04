@@ -84,6 +84,20 @@ func (_c *ModelPricingCreate) SetNillableMode(v *string) *ModelPricingCreate {
 	return _c
 }
 
+// SetPricingUnit sets the "pricing_unit" field.
+func (_c *ModelPricingCreate) SetPricingUnit(v modelpricing.PricingUnit) *ModelPricingCreate {
+	_c.mutation.SetPricingUnit(v)
+	return _c
+}
+
+// SetNillablePricingUnit sets the "pricing_unit" field if the given value is not nil.
+func (_c *ModelPricingCreate) SetNillablePricingUnit(v *modelpricing.PricingUnit) *ModelPricingCreate {
+	if v != nil {
+		_c.SetPricingUnit(*v)
+	}
+	return _c
+}
+
 // SetInputCostPerToken sets the "input_cost_per_token" field.
 func (_c *ModelPricingCreate) SetInputCostPerToken(v float64) *ModelPricingCreate {
 	_c.mutation.SetInputCostPerToken(v)
@@ -533,6 +547,10 @@ func (_c *ModelPricingCreate) defaults() {
 		v := modelpricing.DefaultMode
 		_c.mutation.SetMode(v)
 	}
+	if _, ok := _c.mutation.PricingUnit(); !ok {
+		v := modelpricing.DefaultPricingUnit
+		_c.mutation.SetPricingUnit(v)
+	}
 	if _, ok := _c.mutation.SupportsCacheBreakdown(); !ok {
 		v := modelpricing.DefaultSupportsCacheBreakdown
 		_c.mutation.SetSupportsCacheBreakdown(v)
@@ -600,6 +618,14 @@ func (_c *ModelPricingCreate) check() error {
 	if v, ok := _c.mutation.Mode(); ok {
 		if err := modelpricing.ModeValidator(v); err != nil {
 			return &ValidationError{Name: "mode", err: fmt.Errorf(`ent: validator failed for field "ModelPricing.mode": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.PricingUnit(); !ok {
+		return &ValidationError{Name: "pricing_unit", err: errors.New(`ent: missing required field "ModelPricing.pricing_unit"`)}
+	}
+	if v, ok := _c.mutation.PricingUnit(); ok {
+		if err := modelpricing.PricingUnitValidator(v); err != nil {
+			return &ValidationError{Name: "pricing_unit", err: fmt.Errorf(`ent: validator failed for field "ModelPricing.pricing_unit": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.SupportsCacheBreakdown(); !ok {
@@ -690,6 +716,10 @@ func (_c *ModelPricingCreate) createSpec() (*ModelPricing, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.Mode(); ok {
 		_spec.SetField(modelpricing.FieldMode, field.TypeString, value)
 		_node.Mode = value
+	}
+	if value, ok := _c.mutation.PricingUnit(); ok {
+		_spec.SetField(modelpricing.FieldPricingUnit, field.TypeEnum, value)
+		_node.PricingUnit = value
 	}
 	if value, ok := _c.mutation.InputCostPerToken(); ok {
 		_spec.SetField(modelpricing.FieldInputCostPerToken, field.TypeFloat64, value)
@@ -928,6 +958,18 @@ func (u *ModelPricingUpsert) SetMode(v string) *ModelPricingUpsert {
 // UpdateMode sets the "mode" field to the value that was provided on create.
 func (u *ModelPricingUpsert) UpdateMode() *ModelPricingUpsert {
 	u.SetExcluded(modelpricing.FieldMode)
+	return u
+}
+
+// SetPricingUnit sets the "pricing_unit" field.
+func (u *ModelPricingUpsert) SetPricingUnit(v modelpricing.PricingUnit) *ModelPricingUpsert {
+	u.Set(modelpricing.FieldPricingUnit, v)
+	return u
+}
+
+// UpdatePricingUnit sets the "pricing_unit" field to the value that was provided on create.
+func (u *ModelPricingUpsert) UpdatePricingUnit() *ModelPricingUpsert {
+	u.SetExcluded(modelpricing.FieldPricingUnit)
 	return u
 }
 
@@ -1627,6 +1669,20 @@ func (u *ModelPricingUpsertOne) SetMode(v string) *ModelPricingUpsertOne {
 func (u *ModelPricingUpsertOne) UpdateMode() *ModelPricingUpsertOne {
 	return u.Update(func(s *ModelPricingUpsert) {
 		s.UpdateMode()
+	})
+}
+
+// SetPricingUnit sets the "pricing_unit" field.
+func (u *ModelPricingUpsertOne) SetPricingUnit(v modelpricing.PricingUnit) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetPricingUnit(v)
+	})
+}
+
+// UpdatePricingUnit sets the "pricing_unit" field to the value that was provided on create.
+func (u *ModelPricingUpsertOne) UpdatePricingUnit() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdatePricingUnit()
 	})
 }
 
@@ -2587,6 +2643,20 @@ func (u *ModelPricingUpsertBulk) SetMode(v string) *ModelPricingUpsertBulk {
 func (u *ModelPricingUpsertBulk) UpdateMode() *ModelPricingUpsertBulk {
 	return u.Update(func(s *ModelPricingUpsert) {
 		s.UpdateMode()
+	})
+}
+
+// SetPricingUnit sets the "pricing_unit" field.
+func (u *ModelPricingUpsertBulk) SetPricingUnit(v modelpricing.PricingUnit) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetPricingUnit(v)
+	})
+}
+
+// UpdatePricingUnit sets the "pricing_unit" field to the value that was provided on create.
+func (u *ModelPricingUpsertBulk) UpdatePricingUnit() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdatePricingUnit()
 	})
 }
 

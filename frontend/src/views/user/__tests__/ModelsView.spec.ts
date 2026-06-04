@@ -29,6 +29,8 @@ const messages: Record<string, string> = {
   'models.testFailed': 'Test Failed',
   'models.inputPrice': 'Input Price',
   'models.outputPrice': 'Output Price',
+  'models.pricing.secondPrice': 'Unit Price',
+  'models.pricing.unitPerSecond': '/sec',
   'models.contextWindow': 'Context Window',
   'models.features': 'Features',
   'models.promptCaching': 'Cache',
@@ -52,6 +54,7 @@ function model(overrides: Partial<ModelInfo> = {}): ModelInfo {
     id: 'gpt-5.2',
     provider: 'openai',
     mode: 'chat',
+    pricing_unit: 'token',
     input_cost_per_token: 0.000001,
     output_cost_per_token: 0.000002,
     supports_prompt_caching: false,
@@ -126,5 +129,28 @@ describe('ModelsView', () => {
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('gpt-image-1')
     expect(wrapper.find('button[title="Copied"]').exists()).toBe(true)
+  })
+
+  it('renders per-second prices for second-billed models', async () => {
+    mockedGetModels.mockResolvedValue({
+      total: 1,
+      available_platforms: ['custom'],
+      models: [
+        model({
+          id: 'video-second-model',
+          provider: 'custom',
+          pricing_unit: 'second',
+          input_cost_per_token: 0.2,
+          output_cost_per_token: 0,
+        }),
+      ],
+    })
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Unit Price')
+    expect(wrapper.text()).toContain('$0.2/sec')
+    expect(wrapper.text()).not.toContain('Output Price')
   })
 })

@@ -81,6 +81,7 @@ func (r *modelPricingRepository) upsertBatchSlice(ctx context.Context, models []
 	now := time.Now()
 	builders := make([]*dbent.ModelPricingCreate, 0, len(models))
 	for _, m := range models {
+		pricingUnit := normalizePricingUnit(m.PricingUnit)
 		// SSOT PR-1：远端同步行强制 source=litellm，pricing_status 根据是否有上游价推断。
 		pricingStatus := service.ModelPricingStatusUnpriced
 		if m.InputCostPerToken != nil || m.OutputCostPerToken != nil ||
@@ -91,6 +92,7 @@ func (r *modelPricingRepository) upsertBatchSlice(ctx context.Context, models []
 			SetModelID(m.ModelID).
 			SetProvider(m.Provider).
 			SetMode(m.Mode).
+			SetPricingUnit(pricingUnit).
 			SetSupportsPromptCaching(m.SupportsPromptCaching).
 			SetSupportsCacheBreakdown(m.SupportsCacheBreakdown).
 			SetIsCustom(false).
@@ -124,6 +126,7 @@ func (r *modelPricingRepository) upsertBatchSlice(ctx context.Context, models []
 		Update(func(u *dbent.ModelPricingUpsert) {
 			u.UpdateProvider()
 			u.UpdateMode()
+			u.UpdatePricingUnit()
 			u.UpdateSupportsPromptCaching()
 			u.UpdateSupportsCacheBreakdown()
 			u.UpdateDisplayName()
@@ -174,11 +177,13 @@ func (r *modelPricingRepository) Create(ctx context.Context, m *service.DBModelP
 	}
 	// IsCustom 兼容兜底：source!=litellm 视为 custom。
 	isCustom := m.IsCustom || source != service.ModelPricingSourceLiteLLM
+	pricingUnit := normalizePricingUnit(m.PricingUnit)
 
 	builder := client.ModelPricing.Create().
 		SetModelID(m.ModelID).
 		SetProvider(m.Provider).
 		SetMode(m.Mode).
+		SetPricingUnit(pricingUnit).
 		SetSupportsPromptCaching(m.SupportsPromptCaching).
 		SetSupportsCacheBreakdown(m.SupportsCacheBreakdown).
 		SetIsCustom(isCustom).
@@ -213,6 +218,7 @@ func (r *modelPricingRepository) Create(ctx context.Context, m *service.DBModelP
 	}
 	m.ID = created.ID
 	m.Source = created.Source
+	m.PricingUnit = string(created.PricingUnit)
 	m.PricingStatus = created.PricingStatus
 	m.IsCustom = created.IsCustom
 	m.CreatedAt = created.CreatedAt
@@ -337,6 +343,7 @@ func (r *modelPricingRepository) Update(ctx context.Context, m *service.DBModelP
 	builder := client.ModelPricing.UpdateOneID(m.ID).
 		SetProvider(m.Provider).
 		SetMode(m.Mode).
+		SetPricingUnit(normalizePricingUnit(m.PricingUnit)).
 		SetSupportsPromptCaching(m.SupportsPromptCaching).
 		SetIsEnabled(m.IsEnabled)
 
@@ -568,6 +575,7 @@ func (r *modelPricingRepository) BulkUpsertWanjie(ctx context.Context, models []
 		// 更新 is_custom=true 的记录
 		builder := r.client.ModelPricing.UpdateOneID(existing.ID).
 			SetMode(m.Mode).
+			SetPricingUnit(normalizePricingUnit(m.PricingUnit)).
 			SetSupportsPromptCaching(m.SupportsPromptCaching).
 			SetSource(service.ModelPricingSourceWanjie).
 			SetPricingStatus(m.PricingStatus)
@@ -652,6 +660,7 @@ func modelPricingEntityToService(m *dbent.ModelPricing) *service.DBModelPricing 
 		Description:                 m.Description,
 		Provider:                    m.Provider,
 		Mode:                        m.Mode,
+		PricingUnit:                 string(m.PricingUnit),
 		InputCostPerToken:           m.InputCostPerToken,
 		OutputCostPerToken:          m.OutputCostPerToken,
 		CacheCreationInputTokenCost: m.CacheCreationInputTokenCost,
@@ -684,4 +693,11 @@ func modelPricingEntityToService(m *dbent.ModelPricing) *service.DBModelPricing 
 		CreatedAt: m.CreatedAt,
 		UpdatedAt: m.UpdatedAt,
 	}
+}
+
+func normalizePricingUnit(unit string) modelpricing.PricingUnit {
+	if strings.TrimSpace(unit) == service.ModelPricingUnitSecond {
+		return modelpricing.PricingUnitSecond
+	}
+	return modelpricing.PricingUnitToken
 }
