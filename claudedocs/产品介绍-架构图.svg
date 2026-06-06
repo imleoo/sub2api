@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440" font-family="-apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif">
+  <defs>
+    <linearGradient id="centerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#6a5cf5"/>
+      <stop offset="100%" stop-color="#4f3fd6"/>
+    </linearGradient>
+    <linearGradient id="leftCard" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f4f6fb"/>
+    </linearGradient>
+    <linearGradient id="rightCard" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f4ff"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+      <feOffset dx="0" dy="2" result="offsetblur"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.18"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="centerShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="6"/>
+      <feOffset dx="0" dy="4" result="offsetblur"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.28"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6a5cf5"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="960" height="440" fill="#fafbfd"/>
+
+  <!-- Section labels -->
+  <text x="130" y="40" font-size="13" font-weight="600" fill="#6b7280" letter-spacing="2">你的业务</text>
+  <text x="480" y="40" text-anchor="middle" font-size="13" font-weight="600" fill="#6b7280" letter-spacing="2">统一接入层</text>
+  <text x="830" y="40" text-anchor="middle" font-size="13" font-weight="600" fill="#6b7280" letter-spacing="2">大模型供应商</text>
+
+  <!-- Left: client apps -->
+  <g filter="url(#cardShadow)">
+    <rect x="50" y="70" width="170" height="56" rx="10" fill="url(#leftCard)" stroke="#e5e7eb"/>
+    <circle cx="78" cy="98" r="11" fill="#10b981" opacity="0.15"/>
+    <circle cx="78" cy="98" r="5" fill="#10b981"/>
+    <text x="100" y="94" font-size="14" fill="#111827" font-weight="600">微信小程序</text>
+    <text x="100" y="112" font-size="11" fill="#6b7280">移动端 AI 入口</text>
+
+    <rect x="50" y="146" width="170" height="56" rx="10" fill="url(#leftCard)" stroke="#e5e7eb"/>
+    <circle cx="78" cy="174" r="11" fill="#3b82f6" opacity="0.15"/>
+    <circle cx="78" cy="174" r="5" fill="#3b82f6"/>
+    <text x="100" y="170" font-size="14" fill="#111827" font-weight="600">企业 IM / 协作</text>
+    <text x="100" y="188" font-size="11" fill="#6b7280">钉钉 / 飞书 / 企微</text>
+
+    <rect x="50" y="222" width="170" height="56" rx="10" fill="url(#leftCard)" stroke="#e5e7eb"/>
+    <circle cx="78" cy="250" r="11" fill="#f59e0b" opacity="0.15"/>
+    <circle cx="78" cy="250" r="5" fill="#f59e0b"/>
+    <text x="100" y="246" font-size="14" fill="#111827" font-weight="600">AI 客服系统</text>
+    <text x="100" y="264" font-size="11" fill="#6b7280">7×24 自动应答</text>
+
+    <rect x="50" y="298" width="170" height="56" rx="10" fill="url(#leftCard)" stroke="#e5e7eb"/>
+    <circle cx="78" cy="326" r="11" fill="#ec4899" opacity="0.15"/>
+    <circle cx="78" cy="326" r="5" fill="#ec4899"/>
+    <text x="100" y="322" font-size="14" fill="#111827" font-weight="600">团队 AI 工具</text>
+    <text x="100" y="340" font-size="11" fill="#6b7280">写作 / 编码 / 设计</text>
+  </g>
+
+  <!-- Center: TokenPanel -->
+  <g filter="url(#centerShadow)">
+    <rect x="350" y="100" width="260" height="240" rx="20" fill="url(#centerGrad)"/>
+    <text x="480" y="148" text-anchor="middle" font-size="22" font-weight="700" fill="#ffffff" letter-spacing="2">TokenPanel</text>
+    <line x1="390" y1="170" x2="570" y2="170" stroke="#ffffff" stroke-opacity="0.25" stroke-width="1"/>
+
+    <g font-size="13" fill="#ffffff">
+      <text x="380" y="200">✓</text><text x="400" y="200">统一三大协议接入</text>
+      <text x="380" y="228">✓</text><text x="400" y="228">一套密钥多家上游</text>
+      <text x="380" y="256">✓</text><text x="400" y="256">人民币原生结算</text>
+      <text x="380" y="284">✓</text><text x="400" y="284">毛利逐请求可拆</text>
+      <text x="380" y="312">✓</text><text x="400" y="312">运营 / 财务后台</text>
+    </g>
+  </g>
+
+  <!-- Right: providers -->
+  <g filter="url(#cardShadow)">
+    <rect x="740" y="70" width="180" height="40" rx="8" fill="url(#rightCard)" stroke="#e5e7eb"/>
+    <rect x="752" y="82" width="16" height="16" rx="3" fill="#10a37f"/>
+    <text x="778" y="95" font-size="13" font-weight="600" fill="#111827">OpenAI · GPT-5</text>
+
+    <rect x="740" y="120" width="180" height="40" rx="8" fill="url(#rightCard)" stroke="#e5e7eb"/>
+    <rect x="752" y="132" width="16" height="16" rx="3" fill="#d97757"/>
+    <text x="778" y="145" font-size="13" font-weight="600" fill="#111827">Anthropic · Claude</text>
+
+    <rect x="740" y="170" width="180" height="40" rx="8" fill="url(#rightCard)" stroke="#e5e7eb"/>
+    <rect x="752" y="182" width="16" height="16" rx="3" fill="#4285f4"/>
+    <text x="778" y="195" font-size="13" font-weight="600" fill="#111827">Google · Gemini</text>
+
+    <rect x="740" y="220" width="180" height="40" rx="8" fill="url(#rightCard)" stroke="#e5e7eb"/>
+    <rect x="752" y="232" width="16" height="16" rx="3" fill="#e63946"/>
+    <text x="778" y="245" font-size="13" font-weight="600" fill="#111827">京东云灵境（豆包/可灵）</text>
+
+    <rect x="740" y="270" width="180" height="40" rx="8" fill="url(#rightCard)" stroke="#e5e7eb"/>
+    <rect x="752" y="282" width="16" height="16" rx="3" fill="#1677ff"/>
+    <text x="778" y="295" font-size="13" font-weight="600" fill="#111827">DeepSeek · 通义</text>
+
+    <rect x="740" y="320" width="180" height="40" rx="8" fill="url(#rightCard)" stroke="#e5e7eb"/>
+    <rect x="752" y="332" width="16" height="16" rx="3" fill="#8b5cf6"/>
+    <text x="778" y="345" font-size="13" font-weight="600" fill="#111827">任意 OpenAI 兼容上游</text>
+  </g>
+
+  <!-- Arrows: left → center -->
+  <g stroke="#6a5cf5" stroke-width="1.5" fill="none" opacity="0.55">
+    <path d="M 225 98 C 290 98, 320 180, 348 200" marker-end="url(#arrow)"/>
+    <path d="M 225 174 C 290 174, 320 200, 348 215" marker-end="url(#arrow)"/>
+    <path d="M 225 250 C 290 250, 320 240, 348 230" marker-end="url(#arrow)"/>
+    <path d="M 225 326 C 290 326, 320 280, 348 248" marker-end="url(#arrow)"/>
+  </g>
+
+  <!-- Arrows: center → right -->
+  <g stroke="#6a5cf5" stroke-width="1.5" fill="none" opacity="0.55">
+    <path d="M 612 200 C 660 200, 700 90, 738 90" marker-end="url(#arrow)"/>
+    <path d="M 612 215 C 660 215, 700 140, 738 140" marker-end="url(#arrow)"/>
+    <path d="M 612 222 C 660 222, 700 190, 738 190" marker-end="url(#arrow)"/>
+    <path d="M 612 230 C 660 230, 700 240, 738 240" marker-end="url(#arrow)"/>
+    <path d="M 612 240 C 660 240, 700 290, 738 290" marker-end="url(#arrow)"/>
+    <path d="M 612 250 C 660 250, 700 340, 738 340" marker-end="url(#arrow)"/>
+  </g>
+
+  <!-- Bottom captions -->
+  <text x="135" y="395" text-anchor="middle" font-size="12" fill="#6b7280">一套 API · 一个协议</text>
+  <text x="480" y="395" text-anchor="middle" font-size="12" fill="#6b7280">一处运营 · 一份账单</text>
+  <text x="830" y="395" text-anchor="middle" font-size="12" fill="#6b7280">多家竞合 · 自由切换</text>
+
+  <!-- Bottom divider line -->
+  <line x1="50" y1="412" x2="910" y2="412" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="480" y="430" text-anchor="middle" font-size="11" fill="#9ca3af" letter-spacing="3">接进来一次  ·  之后只面对一个入口</text>
+</svg>

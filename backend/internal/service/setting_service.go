@@ -3469,7 +3469,7 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 
 	// Currency mode
 	result.CurrencyMode = strings.TrimSpace(settings[SettingKeyCurrencyMode])
-	result.CNYRate = 7.0
+	result.CNYRate = 6.8
 	if v, err := strconv.ParseFloat(settings[SettingKeyCNYRate], 64); err == nil && v > 0 {
 		result.CNYRate = v
 	}

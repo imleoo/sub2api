@@ -1771,7 +1771,7 @@ func setDefaults() {
 	viper.SetDefault("pricing.fallback_file", "./resources/model-pricing/model_prices_and_context_window.json")
 	viper.SetDefault("pricing.update_interval_hours", 24)
 	viper.SetDefault("pricing.hash_check_interval_minutes", 10)
-	viper.SetDefault("pricing.cny_rate", 7)
+	viper.SetDefault("pricing.cny_rate", 6.8)
 	viper.SetDefault("pricing.discount_file", "./data/model_discounts.json")
 	viper.SetDefault("pricing.bootstrap_seed_enabled", true)
 	viper.SetDefault("pricing.shadow_compare", true)

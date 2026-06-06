@@ -21,30 +21,31 @@ import (
 
 // Lingjing 灵境豆包模型静态定价（不在 LiteLLM 远端数据中）
 // 价格来源：火山引擎官网 https://www.volcengine.com/pricing?product=ark_bd&tab=1（2026-05）
-// CNY→USD 换算：1 USD = 7.28 CNY
+// CNY→USD 换算统一走系统汇率 DefaultWanjieCNYRate（不再额外硬编码 7.28/7）。
+// 注意：以 RMB 源价 / 汇率推导，单一汇率口径，与万界/豆包导入器保持一致。
 var (
 	// 生图：Seedream 4.0 / 4.5 官网价 ¥0.2/张；Seedream 5.0-lite 暂无独立官方价格，按 4.0 同价
 	lingjingSeedream40Pricing = &LiteLLMModelPricing{
-		OutputCostPerImage: 0.02747, // ¥0.2 / 7.28
+		OutputCostPerImage: 0.2 / DefaultWanjieCNYRate, // ¥0.2/张
 		LiteLLMProvider:    "lingjing",
 		Mode:               "image_generation",
 	}
 	lingjingSeedream5LitePricing = &LiteLLMModelPricing{
-		OutputCostPerImage: 0.02747, // ¥0.2 / 7.28（lite 暂无独立官方价格，按 4.0 估算）
+		OutputCostPerImage: 0.2 / DefaultWanjieCNYRate, // ¥0.2/张（lite 暂无独立官方价格，按 4.0 估算）
 		LiteLLMProvider:    "lingjing",
 		Mode:               "image_generation",
 	}
 	// 视频：Seedance 1.5 pro 按 token 计费，单价 ¥0.01/千token（无声）
 	// 以 720p 24fps 无声为基准：token = duration × 1280 × 720 × 24 / 1024
-	// 5s  → 107520 tokens → ¥1.075 → $0.1477
-	// 10s → 215040 tokens → ¥2.150 → $0.2954
+	// 5s  → 107520 tokens → ¥1.075
+	// 10s → 215040 tokens → ¥2.150
 	lingjingSeedance15Pro5sPricing = &LiteLLMModelPricing{
-		OutputCostPerImageToken: 0.1477,
+		OutputCostPerImageToken: 1.075 / DefaultWanjieCNYRate, // ¥1.075
 		LiteLLMProvider:         "lingjing",
 		Mode:                    "video_generation",
 	}
 	lingjingSeedance15Pro10sPricing = &LiteLLMModelPricing{
-		OutputCostPerImageToken: 0.2954,
+		OutputCostPerImageToken: 2.150 / DefaultWanjieCNYRate, // ¥2.150
 		LiteLLMProvider:         "lingjing",
 		Mode:                    "video_generation",
 	}
@@ -1049,8 +1050,8 @@ func (s *PricingService) GetCNYRate() float64 {
 	if s.cfg.Pricing.CNYRate > 0 {
 		return s.cfg.Pricing.CNYRate
 	}
-	// 与 config.Pricing.CNYRate viper 默认值（7）以及 DefaultWanjieCNYRate 保持一致。
-	return 7.0
+	// 与 config.Pricing.CNYRate viper 默认值（6.8）以及 DefaultWanjieCNYRate 保持一致。
+	return 6.8
 }
 
 // GetCurrencyMode 返回货币模式（优先读 DB settingRepo，fallback "usd"）

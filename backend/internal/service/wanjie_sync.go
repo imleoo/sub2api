@@ -55,7 +55,7 @@ type wanjieRelation struct {
 }
 
 // DefaultWanjieCNYRate 是 cnyRate<=0 时的兜底汇率，与 config.Pricing.CNYRate 默认值一致。
-const DefaultWanjieCNYRate = 7.0
+const DefaultWanjieCNYRate = 6.8
 
 // ParseWanjieModels 解析内嵌的 wanjie.json，返回可写入 model_pricings 表的记录列表。
 // 每条记录对应万界平台一个模型，万界原始单价为 ¥/M token / ¥/张 / ¥/秒，

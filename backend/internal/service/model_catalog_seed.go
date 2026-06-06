@@ -189,13 +189,14 @@ func BootstrapPricingSeeds() []*DBModelPricing {
 		Mode:               "image_generation",
 		OutputCostPerImage: bootstrapFloatPtr(lingjingSeedream5LitePricing.OutputCostPerImage),
 	}
-	// 灵境 seedance：按秒计费，单价 $0.02954/秒（= ¥0.01/千 token × 1280×720×24/1024 tokens/秒 ÷ 7 CNY/USD）。
+	// 灵境 seedance：按秒计费，RMB 源价 ¥0.215/秒（= ¥0.01/千 token × 1280×720×24/1024 tokens/秒），
+	// USD 换算统一走系统汇率 DefaultWanjieCNYRate（不再额外硬编码 7/7.28）。
 	// output_cost_per_image 复用承担 per-second 语义（schema 注释），billing 路径 CalculateVideoCost 直接读取。
 	lingjingSeedance := &DBModelPricing{
 		ModelID:            "doubao-seedance-1.5-pro",
 		Provider:           "lingjing",
 		Mode:               "video_generation",
-		OutputCostPerImage: bootstrapFloatPtr(0.02954),
+		OutputCostPerImage: bootstrapFloatPtr(0.215 / DefaultWanjieCNYRate),
 	}
 	// 保留历史时长后缀模型作为兼容兜底（旧 usage_log 行 join 时仍可定位到价格），
 	// 单价语义改为 per-second 一致，避免老路径误算。
