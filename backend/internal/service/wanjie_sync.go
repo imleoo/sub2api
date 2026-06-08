@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,13 +10,10 @@ import (
 	"strings"
 )
 
-// ModelPricingSourceWanjie 标识来源为万界 MaaS 平台。
+// ModelPricingSourceWanjie 标识来源为万界 MaaS 平台（保留为已知来源标签）。
 const ModelPricingSourceWanjie = "wanjie"
 
-//go:embed wanjie.json
-var wanjieRawJSON []byte
-
-// wanjieResponse 是万界 API 响应的顶层结构。
+// wanjieResponse 是 MaaS 定价 JSON 的顶层结构（万界 API 响应格式，doubao/lingjing 同构）。
 type wanjieResponse struct {
 	Result []wanjieModel `json:"result"`
 }
@@ -57,16 +53,9 @@ type wanjieRelation struct {
 // DefaultWanjieCNYRate 是 cnyRate<=0 时的兜底汇率，与 config.Pricing.CNYRate 默认值一致。
 const DefaultWanjieCNYRate = 6.8
 
-// ParseWanjieModels 解析内嵌的 wanjie.json，返回可写入 model_pricings 表的记录列表。
-// 每条记录对应万界平台一个模型，万界原始单价为 ¥/M token / ¥/张 / ¥/秒，
-// 入库统一按 cnyRate 换算为 USD 单位（1 USD = cnyRate CNY）。
-func ParseWanjieModels(cnyRate float64) ([]*DBModelPricing, error) {
-	return ParseWanjieFromBytes(wanjieRawJSON, cnyRate)
-}
-
-// ParseWanjieFromBytes 解析任意来源的万界 API JSON 响应体。
-// cnyRate<=0 时回退到 defaultWanjieCNYRate，确保字段语义始终是 USD。
-func ParseWanjieFromBytes(data []byte, cnyRate float64) ([]*DBModelPricing, error) {
+// ParseMaasFromBytes 解析 MaaS 定价 JSON（万界 API 响应格式，doubao/lingjing 等同构），
+// 按 source 标记来源（任意字符串）。cnyRate<=0 回退 DefaultWanjieCNYRate，字段语义统一 USD（视频分档存 ¥ 原值）。
+func ParseMaasFromBytes(data []byte, cnyRate float64, source string) ([]*DBModelPricing, error) {
 	var resp wanjieResponse
 	if err := json.Unmarshal(data, &resp); err != nil {
 		return nil, err
@@ -77,7 +66,7 @@ func ParseWanjieFromBytes(data []byte, cnyRate float64) ([]*DBModelPricing, erro
 	}
 	out := make([]*DBModelPricing, 0, len(resp.Result))
 	for _, m := range resp.Result {
-		p := convertWanjieModel(&m, rate)
+		p := convertMaasModel(&m, rate, source)
 		if p != nil {
 			out = append(out, p)
 		}
@@ -87,7 +76,16 @@ func ParseWanjieFromBytes(data []byte, cnyRate float64) ([]*DBModelPricing, erro
 
 // FetchAndParseWanjieModels 向万界 MaaS API 发起 GET 请求并解析定价数据。
 // client 可为 nil（使用默认 http.Client），url 和 token 不能为空。cnyRate 同 ParseWanjieModels。
-func FetchAndParseWanjieModels(ctx context.Context, client *http.Client, url, token string, cnyRate float64) ([]*DBModelPricing, error) {
+func FetchAndParseMaasModels(ctx context.Context, client *http.Client, url, token string, cnyRate float64, source string) ([]*DBModelPricing, error) {
+	body, err := fetchMaasJSON(ctx, client, url, token)
+	if err != nil {
+		return nil, err
+	}
+	return ParseMaasFromBytes(body, cnyRate, source)
+}
+
+// fetchMaasJSON 向万界/豆包 MaaS API 发起 GET 请求并返回原始响应体（两平台同协议）。
+func fetchMaasJSON(ctx context.Context, client *http.Client, url, token string) ([]byte, error) {
 	if client == nil {
 		client = &http.Client{}
 	}
@@ -100,41 +98,42 @@ func FetchAndParseWanjieModels(ctx context.Context, client *http.Client, url, to
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("fetch wanjie api: %w", err)
+		return nil, fmt.Errorf("fetch maas api: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("wanjie api returned status %d", resp.StatusCode)
+		return nil, fmt.Errorf("maas api returned status %d", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("read response body: %w", err)
 	}
-
-	return ParseWanjieFromBytes(body, cnyRate)
+	return body, nil
 }
 
-// convertWanjieModel 将单个万界模型转换为 DBModelPricing。
-// cnyRate 用于把万界 ¥ 单价换算为 USD（input/output_cost_per_token 等字段语义为 USD）。
-func convertWanjieModel(m *wanjieModel, cnyRate float64) *DBModelPricing {
+// convertMaasModel 将单个万界/豆包模型转换为 DBModelPricing（两者 JSON 同构）。
+// cnyRate 用于把 ¥ 单价换算为 USD（字段语义为 USD）；source 标记来源（wanjie/doubao）。
+func convertMaasModel(m *wanjieModel, cnyRate float64, source string) *DBModelPricing {
 	if strings.TrimSpace(m.ModelName) == "" {
 		return nil
 	}
 
 	var (
-		inputCost    *float64
-		outputCost   *float64
-		cacheRead    *float64
-		cache5m      *float64
-		cache1h      *float64
-		imgPerImage  *float64
+		inputCost     *float64
+		outputCost    *float64
+		cacheRead     *float64
+		cache5m       *float64
+		cache1h       *float64
+		imgPerImage   *float64
 		supportsCache bool
 		hasTextIn     bool
 		hasTextOut    bool
 		hasImgOut     bool
 		hasVideoOut   bool
+		videoTiers    []VideoPriceTier // 按 token 计费的视频分档（¥/百万 token 原值）
+		lastVideoSpec string
 	)
 
 	for _, rel := range m.ModelModalRelations {
@@ -191,13 +190,19 @@ func convertWanjieModel(m *wanjieModel, cnyRate float64) *DBModelPricing {
 							imgPerImage = &v
 							hasImgOut = true
 						}
-					case "2-4-1", "2-4-7": // 视频/音频 ¥/秒
-						// 多档（std/pro/master）按 JSON 顺序，取第一档（通常是最低档）作为基准价；
-						// 复用 output_cost_per_image 字段存储（schema 注释允许 per image / per second 复用）。
-						if imgPerImage == nil && v > 0 {
+					case "2-4-spec": // 视频档位规格描述（在线/离线、有声/无声、分辨率）
+						lastVideoSpec = strings.TrimSpace(firstNonEmpty(r.ChargeValue, r.OfficeChargeValue, r.ModalName))
+					case "2-4-1", "2-4-7": // 视频/音频
+						hasVideoOut = true
+						if strings.Contains(r.Unit, "token") {
+							// 按 token 计费（¥/百万 token）：收集为分档，存 ¥ 原值（计费时按汇率折 USD）。
+							if cnyVal > 0 {
+								videoTiers = append(videoTiers, VideoPriceTier{Spec: lastVideoSpec, CNYPerMToken: cnyVal})
+							}
+						} else if imgPerImage == nil && v > 0 {
+							// 按秒计费（¥/秒）：取首档存 output_cost_per_image（USD/秒）。
 							imgPerImage = &v
 						}
-						hasVideoOut = true
 					}
 				}
 			}
@@ -206,6 +211,13 @@ func convertWanjieModel(m *wanjieModel, cnyRate float64) *DBModelPricing {
 
 	mode := wanjieModelTypeToMode(m.ModelType, hasTextIn, hasTextOut, hasImgOut, hasVideoOut)
 	provider := normalizeWanjieProvider(m.OfficialProvider)
+
+	// 按 token 计费的视频：分档存 TierPricing；output_cost_per_image 写「展示用」per-second 价（720p 无声基准）。
+	if len(videoTiers) > 0 && imgPerImage == nil {
+		if perSec := videoTierDisplayPerSecondUSD(videoTiers, cnyRate); perSec > 0 {
+			imgPerImage = &perSec
+		}
+	}
 
 	// 价格字段已直接从 officeChargeValue（官方原价）读取，
 	// 折扣率单独写入 DiscountRate，系统展示实际收费时再乘以折扣率。
@@ -216,26 +228,38 @@ func convertWanjieModel(m *wanjieModel, cnyRate float64) *DBModelPricing {
 	}
 
 	pricingStatus := ModelPricingStatusUnpriced
-	if inputCost != nil || outputCost != nil || imgPerImage != nil {
+	if inputCost != nil || outputCost != nil || imgPerImage != nil || len(videoTiers) > 0 {
 		pricingStatus = ModelPricingStatusPriced
+	}
+
+	// 分列约定的 pricing_unit：图片（按次价存 output_cost_per_image）标 image_generation；
+	// 视频（按秒价复用 output_cost_per_image）标 video_generation；其余按 token。
+	pricingUnit := ModelPricingUnitToken
+	switch {
+	case mode == "image_generation" && imgPerImage != nil:
+		pricingUnit = ModelPricingUnitImage
+	case mode == "video_generation":
+		pricingUnit = ModelPricingUnitVideo
 	}
 
 	return &DBModelPricing{
 		ModelID:                  m.ModelName,
 		Provider:                 provider,
 		Mode:                     mode,
+		PricingUnit:              pricingUnit,
 		InputCostPerToken:        inputCost,
 		OutputCostPerToken:       outputCost,
 		CacheReadInputTokenCost:  cacheRead,
 		CacheCreation5mTokenCost: cache5m,
 		CacheCreation1hTokenCost: cache1h,
 		OutputCostPerImage:       imgPerImage,
+		TierPricing:              videoTiers,
 		SupportsPromptCaching:    supportsCache,
 		DiscountRate:             discountRate,
 		IsCustom:                 true,
-		// 万界平台未给出定价的模型默认禁用，避免被计费链路按 0 元放行。
+		// MaaS 平台未给出定价的模型默认禁用，避免被计费链路按 0 元放行。
 		IsEnabled:     pricingStatus == ModelPricingStatusPriced,
-		Source:        ModelPricingSourceWanjie,
+		Source:        source,
 		PricingStatus: pricingStatus,
 	}
 }
@@ -302,6 +326,8 @@ func normalizeWanjieProvider(officialProvider string) string {
 		return "hunyuan"
 	case "豆包":
 		return "doubao"
+	case "灵境":
+		return "lingjing"
 	default:
 		s := strings.ToLower(strings.TrimSpace(officialProvider))
 		s = strings.ReplaceAll(s, " ", "_")

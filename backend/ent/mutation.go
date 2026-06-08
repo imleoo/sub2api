@@ -23812,6 +23812,7 @@ type ModelPricingMutation struct {
 	discount_rate                           *float64
 	adddiscount_rate                        *float64
 	is_custom                               *bool
+	tier_pricing                            *string
 	is_enabled                              *bool
 	source                                  *string
 	source_provider                         *string
@@ -25535,6 +25536,55 @@ func (m *ModelPricingMutation) ResetIsCustom() {
 	m.is_custom = nil
 }
 
+// SetTierPricing sets the "tier_pricing" field.
+func (m *ModelPricingMutation) SetTierPricing(s string) {
+	m.tier_pricing = &s
+}
+
+// TierPricing returns the value of the "tier_pricing" field in the mutation.
+func (m *ModelPricingMutation) TierPricing() (r string, exists bool) {
+	v := m.tier_pricing
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTierPricing returns the old "tier_pricing" field's value of the ModelPricing entity.
+// If the ModelPricing object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ModelPricingMutation) OldTierPricing(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTierPricing is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTierPricing requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTierPricing: %w", err)
+	}
+	return oldValue.TierPricing, nil
+}
+
+// ClearTierPricing clears the value of the "tier_pricing" field.
+func (m *ModelPricingMutation) ClearTierPricing() {
+	m.tier_pricing = nil
+	m.clearedFields[modelpricing.FieldTierPricing] = struct{}{}
+}
+
+// TierPricingCleared returns if the "tier_pricing" field was cleared in this mutation.
+func (m *ModelPricingMutation) TierPricingCleared() bool {
+	_, ok := m.clearedFields[modelpricing.FieldTierPricing]
+	return ok
+}
+
+// ResetTierPricing resets all changes to the "tier_pricing" field.
+func (m *ModelPricingMutation) ResetTierPricing() {
+	m.tier_pricing = nil
+	delete(m.clearedFields, modelpricing.FieldTierPricing)
+}
+
 // SetIsEnabled sets the "is_enabled" field.
 func (m *ModelPricingMutation) SetIsEnabled(b bool) {
 	m.is_enabled = &b
@@ -25904,7 +25954,7 @@ func (m *ModelPricingMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ModelPricingMutation) Fields() []string {
-	fields := make([]string, 0, 35)
+	fields := make([]string, 0, 36)
 	if m.model_id != nil {
 		fields = append(fields, modelpricing.FieldModelID)
 	}
@@ -25985,6 +26035,9 @@ func (m *ModelPricingMutation) Fields() []string {
 	}
 	if m.is_custom != nil {
 		fields = append(fields, modelpricing.FieldIsCustom)
+	}
+	if m.tier_pricing != nil {
+		fields = append(fields, modelpricing.FieldTierPricing)
 	}
 	if m.is_enabled != nil {
 		fields = append(fields, modelpricing.FieldIsEnabled)
@@ -26072,6 +26125,8 @@ func (m *ModelPricingMutation) Field(name string) (ent.Value, bool) {
 		return m.DiscountRate()
 	case modelpricing.FieldIsCustom:
 		return m.IsCustom()
+	case modelpricing.FieldTierPricing:
+		return m.TierPricing()
 	case modelpricing.FieldIsEnabled:
 		return m.IsEnabled()
 	case modelpricing.FieldSource:
@@ -26151,6 +26206,8 @@ func (m *ModelPricingMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldDiscountRate(ctx)
 	case modelpricing.FieldIsCustom:
 		return m.OldIsCustom(ctx)
+	case modelpricing.FieldTierPricing:
+		return m.OldTierPricing(ctx)
 	case modelpricing.FieldIsEnabled:
 		return m.OldIsEnabled(ctx)
 	case modelpricing.FieldSource:
@@ -26364,6 +26421,13 @@ func (m *ModelPricingMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetIsCustom(v)
+		return nil
+	case modelpricing.FieldTierPricing:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTierPricing(v)
 		return nil
 	case modelpricing.FieldIsEnabled:
 		v, ok := value.(bool)
@@ -26742,6 +26806,9 @@ func (m *ModelPricingMutation) ClearedFields() []string {
 	if m.FieldCleared(modelpricing.FieldDiscountRate) {
 		fields = append(fields, modelpricing.FieldDiscountRate)
 	}
+	if m.FieldCleared(modelpricing.FieldTierPricing) {
+		fields = append(fields, modelpricing.FieldTierPricing)
+	}
 	if m.FieldCleared(modelpricing.FieldSourceAccountID) {
 		fields = append(fields, modelpricing.FieldSourceAccountID)
 	}
@@ -26821,6 +26888,9 @@ func (m *ModelPricingMutation) ClearField(name string) error {
 		return nil
 	case modelpricing.FieldDiscountRate:
 		m.ClearDiscountRate()
+		return nil
+	case modelpricing.FieldTierPricing:
+		m.ClearTierPricing()
 		return nil
 	case modelpricing.FieldSourceAccountID:
 		m.ClearSourceAccountID()
@@ -26916,6 +26986,9 @@ func (m *ModelPricingMutation) ResetField(name string) error {
 		return nil
 	case modelpricing.FieldIsCustom:
 		m.ResetIsCustom()
+		return nil
+	case modelpricing.FieldTierPricing:
+		m.ResetTierPricing()
 		return nil
 	case modelpricing.FieldIsEnabled:
 		m.ResetIsEnabled()

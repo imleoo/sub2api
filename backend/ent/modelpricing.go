@@ -71,6 +71,8 @@ type ModelPricing struct {
 	DiscountRate *float64 `json:"discount_rate,omitempty"`
 	// IsCustom holds the value of the "is_custom" field.
 	IsCustom bool `json:"is_custom,omitempty"`
+	// TierPricing holds the value of the "tier_pricing" field.
+	TierPricing *string `json:"tier_pricing,omitempty"`
 	// IsEnabled holds the value of the "is_enabled" field.
 	IsEnabled bool `json:"is_enabled,omitempty"`
 	// Source holds the value of the "source" field.
@@ -101,7 +103,7 @@ func (*ModelPricing) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullFloat64)
 		case modelpricing.FieldID, modelpricing.FieldLongContextInputTokenThreshold, modelpricing.FieldSourceAccountID:
 			values[i] = new(sql.NullInt64)
-		case modelpricing.FieldModelID, modelpricing.FieldDisplayName, modelpricing.FieldDescription, modelpricing.FieldProvider, modelpricing.FieldMode, modelpricing.FieldPricingUnit, modelpricing.FieldSource, modelpricing.FieldSourceProvider, modelpricing.FieldPricingStatus:
+		case modelpricing.FieldModelID, modelpricing.FieldDisplayName, modelpricing.FieldDescription, modelpricing.FieldProvider, modelpricing.FieldMode, modelpricing.FieldPricingUnit, modelpricing.FieldTierPricing, modelpricing.FieldSource, modelpricing.FieldSourceProvider, modelpricing.FieldPricingStatus:
 			values[i] = new(sql.NullString)
 		case modelpricing.FieldLastSyncedAt, modelpricing.FieldCreatedAt, modelpricing.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -307,6 +309,13 @@ func (_m *ModelPricing) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field is_custom", values[i])
 			} else if value.Valid {
 				_m.IsCustom = value.Bool
+			}
+		case modelpricing.FieldTierPricing:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tier_pricing", values[i])
+			} else if value.Valid {
+				_m.TierPricing = new(string)
+				*_m.TierPricing = value.String
 			}
 		case modelpricing.FieldIsEnabled:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -514,6 +523,11 @@ func (_m *ModelPricing) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("is_custom=")
 	builder.WriteString(fmt.Sprintf("%v", _m.IsCustom))
+	builder.WriteString(", ")
+	if v := _m.TierPricing; v != nil {
+		builder.WriteString("tier_pricing=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("is_enabled=")
 	builder.WriteString(fmt.Sprintf("%v", _m.IsEnabled))

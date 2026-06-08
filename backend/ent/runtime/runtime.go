@@ -1148,33 +1148,33 @@ func init() {
 	// modelpricing.DefaultIsCustom holds the default value on creation for the is_custom field.
 	modelpricing.DefaultIsCustom = modelpricingDescIsCustom.Default.(bool)
 	// modelpricingDescIsEnabled is the schema descriptor for is_enabled field.
-	modelpricingDescIsEnabled := modelpricingFields[27].Descriptor()
+	modelpricingDescIsEnabled := modelpricingFields[28].Descriptor()
 	// modelpricing.DefaultIsEnabled holds the default value on creation for the is_enabled field.
 	modelpricing.DefaultIsEnabled = modelpricingDescIsEnabled.Default.(bool)
 	// modelpricingDescSource is the schema descriptor for source field.
-	modelpricingDescSource := modelpricingFields[28].Descriptor()
+	modelpricingDescSource := modelpricingFields[29].Descriptor()
 	// modelpricing.DefaultSource holds the default value on creation for the source field.
 	modelpricing.DefaultSource = modelpricingDescSource.Default.(string)
 	// modelpricing.SourceValidator is a validator for the "source" field. It is called by the builders before save.
 	modelpricing.SourceValidator = modelpricingDescSource.Validators[0].(func(string) error)
 	// modelpricingDescSourceProvider is the schema descriptor for source_provider field.
-	modelpricingDescSourceProvider := modelpricingFields[29].Descriptor()
+	modelpricingDescSourceProvider := modelpricingFields[30].Descriptor()
 	// modelpricing.DefaultSourceProvider holds the default value on creation for the source_provider field.
 	modelpricing.DefaultSourceProvider = modelpricingDescSourceProvider.Default.(string)
 	// modelpricing.SourceProviderValidator is a validator for the "source_provider" field. It is called by the builders before save.
 	modelpricing.SourceProviderValidator = modelpricingDescSourceProvider.Validators[0].(func(string) error)
 	// modelpricingDescPricingStatus is the schema descriptor for pricing_status field.
-	modelpricingDescPricingStatus := modelpricingFields[31].Descriptor()
+	modelpricingDescPricingStatus := modelpricingFields[32].Descriptor()
 	// modelpricing.DefaultPricingStatus holds the default value on creation for the pricing_status field.
 	modelpricing.DefaultPricingStatus = modelpricingDescPricingStatus.Default.(string)
 	// modelpricing.PricingStatusValidator is a validator for the "pricing_status" field. It is called by the builders before save.
 	modelpricing.PricingStatusValidator = modelpricingDescPricingStatus.Validators[0].(func(string) error)
 	// modelpricingDescCreatedAt is the schema descriptor for created_at field.
-	modelpricingDescCreatedAt := modelpricingFields[33].Descriptor()
+	modelpricingDescCreatedAt := modelpricingFields[34].Descriptor()
 	// modelpricing.DefaultCreatedAt holds the default value on creation for the created_at field.
 	modelpricing.DefaultCreatedAt = modelpricingDescCreatedAt.Default.(func() time.Time)
 	// modelpricingDescUpdatedAt is the schema descriptor for updated_at field.
-	modelpricingDescUpdatedAt := modelpricingFields[34].Descriptor()
+	modelpricingDescUpdatedAt := modelpricingFields[35].Descriptor()
 	// modelpricing.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	modelpricing.DefaultUpdatedAt = modelpricingDescUpdatedAt.Default.(func() time.Time)
 	// modelpricing.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

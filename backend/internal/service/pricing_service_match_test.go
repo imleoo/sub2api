@@ -122,3 +122,22 @@ func TestMatchFamilyInCatalog_Phase1HighVersionFirst(t *testing.T) {
 	require.NotNil(t, got)
 	require.Equal(t, "claude-opus-4-7-20251101", got.ModelID)
 }
+
+// TestBuildAliasIndex_DotDashVariants 验证 A5 点/横杠变体别名：
+// doubao-seedance 点号/横杠拼写互为别名命中同一 canonical，且真实模型不被变体遮蔽。
+func TestBuildAliasIndex_DotDashVariants(t *testing.T) {
+	catalog := map[string]*DBModelPricing{
+		"Doubao-Seedance-1.5-pro": catalogEntry("Doubao-Seedance-1.5-pro", 0, 0),
+		"gpt-4.1":                 catalogEntry("gpt-4.1", 1e-6, 2e-6),
+		"gpt-4-1":                 catalogEntry("gpt-4-1", 3e-6, 4e-6), // 真实横杠形，不应被 gpt-4.1 的变体遮蔽
+	}
+	idx := buildAliasIndex(catalog)
+
+	// 点/横杠变体都归一到 canonical（小写自身形 + 横杠变体）
+	require.Equal(t, "Doubao-Seedance-1.5-pro", idx["doubao-seedance-1.5-pro"])
+	require.Equal(t, "Doubao-Seedance-1.5-pro", idx["doubao-seedance-1-5-pro"])
+
+	// 真实模型保留自身映射，变体守卫生效（不互相遮蔽）
+	require.Equal(t, "gpt-4-1", idx["gpt-4-1"])
+	require.Equal(t, "gpt-4.1", idx["gpt-4.1"])
+}

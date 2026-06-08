@@ -19,7 +19,7 @@ func TestBootstrapPricingSeeds_HasAllExpectedModels(t *testing.T) {
 		got[s.ModelID] = s
 	}
 
-	// 期望覆盖：16 条 billing fallback + 6 条灵境（含 seedance 按秒计费 + 历史 -5s/-10s 兼容）= 22 条
+	// 通用化后：MaaS 平台价（含灵境豆包）不再内置，seed 仅保留 16 条 Claude/GPT/Gemini 基础兜底。
 	expected := []string{
 		// Anthropic Claude
 		"claude-opus-4.5", "claude-opus-4.6", "claude-opus-4.7",
@@ -30,12 +30,8 @@ func TestBootstrapPricingSeeds_HasAllExpectedModels(t *testing.T) {
 		// OpenAI
 		"gpt-5.4", "gpt-5.5", "gpt-5.4-mini", "gpt-5.4-nano",
 		"gpt-5.2", "gpt-5.3-codex", "gpt-5.3-codex-spark",
-		// 灵境豆包
-		"doubao-seedream-4-0-250828", "doubao-seedream-4-5-251128",
-		"Doubao-Seedream-5.0-lite",
-		"doubao-seedance-1.5-pro", "doubao-seedance-1.5-pro-5s", "doubao-seedance-1.5-pro-10s",
 	}
-	require.Len(t, seeds, len(expected), "seed 数量必须与 fallbackPrices+灵境 总和一致")
+	require.Len(t, seeds, len(expected), "seed 数量必须与基础兜底总和一致")
 	for _, modelID := range expected {
 		_, ok := got[modelID]
 		require.True(t, ok, "seed 缺失 model_id=%s", modelID)

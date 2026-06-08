@@ -392,6 +392,20 @@ func (_c *ModelPricingCreate) SetNillableIsCustom(v *bool) *ModelPricingCreate {
 	return _c
 }
 
+// SetTierPricing sets the "tier_pricing" field.
+func (_c *ModelPricingCreate) SetTierPricing(v string) *ModelPricingCreate {
+	_c.mutation.SetTierPricing(v)
+	return _c
+}
+
+// SetNillableTierPricing sets the "tier_pricing" field if the given value is not nil.
+func (_c *ModelPricingCreate) SetNillableTierPricing(v *string) *ModelPricingCreate {
+	if v != nil {
+		_c.SetTierPricing(*v)
+	}
+	return _c
+}
+
 // SetIsEnabled sets the "is_enabled" field.
 func (_c *ModelPricingCreate) SetIsEnabled(v bool) *ModelPricingCreate {
 	_c.mutation.SetIsEnabled(v)
@@ -804,6 +818,10 @@ func (_c *ModelPricingCreate) createSpec() (*ModelPricing, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.IsCustom(); ok {
 		_spec.SetField(modelpricing.FieldIsCustom, field.TypeBool, value)
 		_node.IsCustom = value
+	}
+	if value, ok := _c.mutation.TierPricing(); ok {
+		_spec.SetField(modelpricing.FieldTierPricing, field.TypeString, value)
+		_node.TierPricing = &value
 	}
 	if value, ok := _c.mutation.IsEnabled(); ok {
 		_spec.SetField(modelpricing.FieldIsEnabled, field.TypeBool, value)
@@ -1438,6 +1456,24 @@ func (u *ModelPricingUpsert) SetIsCustom(v bool) *ModelPricingUpsert {
 // UpdateIsCustom sets the "is_custom" field to the value that was provided on create.
 func (u *ModelPricingUpsert) UpdateIsCustom() *ModelPricingUpsert {
 	u.SetExcluded(modelpricing.FieldIsCustom)
+	return u
+}
+
+// SetTierPricing sets the "tier_pricing" field.
+func (u *ModelPricingUpsert) SetTierPricing(v string) *ModelPricingUpsert {
+	u.Set(modelpricing.FieldTierPricing, v)
+	return u
+}
+
+// UpdateTierPricing sets the "tier_pricing" field to the value that was provided on create.
+func (u *ModelPricingUpsert) UpdateTierPricing() *ModelPricingUpsert {
+	u.SetExcluded(modelpricing.FieldTierPricing)
+	return u
+}
+
+// ClearTierPricing clears the value of the "tier_pricing" field.
+func (u *ModelPricingUpsert) ClearTierPricing() *ModelPricingUpsert {
+	u.SetNull(modelpricing.FieldTierPricing)
 	return u
 }
 
@@ -2229,6 +2265,27 @@ func (u *ModelPricingUpsertOne) SetIsCustom(v bool) *ModelPricingUpsertOne {
 func (u *ModelPricingUpsertOne) UpdateIsCustom() *ModelPricingUpsertOne {
 	return u.Update(func(s *ModelPricingUpsert) {
 		s.UpdateIsCustom()
+	})
+}
+
+// SetTierPricing sets the "tier_pricing" field.
+func (u *ModelPricingUpsertOne) SetTierPricing(v string) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetTierPricing(v)
+	})
+}
+
+// UpdateTierPricing sets the "tier_pricing" field to the value that was provided on create.
+func (u *ModelPricingUpsertOne) UpdateTierPricing() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateTierPricing()
+	})
+}
+
+// ClearTierPricing clears the value of the "tier_pricing" field.
+func (u *ModelPricingUpsertOne) ClearTierPricing() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.ClearTierPricing()
 	})
 }
 
@@ -3203,6 +3260,27 @@ func (u *ModelPricingUpsertBulk) SetIsCustom(v bool) *ModelPricingUpsertBulk {
 func (u *ModelPricingUpsertBulk) UpdateIsCustom() *ModelPricingUpsertBulk {
 	return u.Update(func(s *ModelPricingUpsert) {
 		s.UpdateIsCustom()
+	})
+}
+
+// SetTierPricing sets the "tier_pricing" field.
+func (u *ModelPricingUpsertBulk) SetTierPricing(v string) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetTierPricing(v)
+	})
+}
+
+// UpdateTierPricing sets the "tier_pricing" field to the value that was provided on create.
+func (u *ModelPricingUpsertBulk) UpdateTierPricing() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateTierPricing()
+	})
+}
+
+// ClearTierPricing clears the value of the "tier_pricing" field.
+func (u *ModelPricingUpsertBulk) ClearTierPricing() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.ClearTierPricing()
 	})
 }
 

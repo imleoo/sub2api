@@ -19,38 +19,6 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/util/urlvalidator"
 )
 
-// Lingjing 灵境豆包模型静态定价（不在 LiteLLM 远端数据中）
-// 价格来源：火山引擎官网 https://www.volcengine.com/pricing?product=ark_bd&tab=1（2026-05）
-// CNY→USD 换算统一走系统汇率 DefaultWanjieCNYRate（不再额外硬编码 7.28/7）。
-// 注意：以 RMB 源价 / 汇率推导，单一汇率口径，与万界/豆包导入器保持一致。
-var (
-	// 生图：Seedream 4.0 / 4.5 官网价 ¥0.2/张；Seedream 5.0-lite 暂无独立官方价格，按 4.0 同价
-	lingjingSeedream40Pricing = &LiteLLMModelPricing{
-		OutputCostPerImage: 0.2 / DefaultWanjieCNYRate, // ¥0.2/张
-		LiteLLMProvider:    "lingjing",
-		Mode:               "image_generation",
-	}
-	lingjingSeedream5LitePricing = &LiteLLMModelPricing{
-		OutputCostPerImage: 0.2 / DefaultWanjieCNYRate, // ¥0.2/张（lite 暂无独立官方价格，按 4.0 估算）
-		LiteLLMProvider:    "lingjing",
-		Mode:               "image_generation",
-	}
-	// 视频：Seedance 1.5 pro 按 token 计费，单价 ¥0.01/千token（无声）
-	// 以 720p 24fps 无声为基准：token = duration × 1280 × 720 × 24 / 1024
-	// 5s  → 107520 tokens → ¥1.075
-	// 10s → 215040 tokens → ¥2.150
-	lingjingSeedance15Pro5sPricing = &LiteLLMModelPricing{
-		OutputCostPerImageToken: 1.075 / DefaultWanjieCNYRate, // ¥1.075
-		LiteLLMProvider:         "lingjing",
-		Mode:                    "video_generation",
-	}
-	lingjingSeedance15Pro10sPricing = &LiteLLMModelPricing{
-		OutputCostPerImageToken: 2.150 / DefaultWanjieCNYRate, // ¥2.150
-		LiteLLMProvider:         "lingjing",
-		Mode:                    "video_generation",
-	}
-)
-
 
 // LiteLLMModelPricing LiteLLM价格数据结构
 // 只保留我们需要的字段，使用指针来处理可能缺失的值
@@ -180,9 +148,6 @@ func (s *PricingService) TriggerDBSync(ctx context.Context) error {
 	return nil
 }
 
-// pricingFloat64Ptr is a small helper to take the address of a float64 literal.
-func pricingFloat64Ptr(v float64) *float64 { return &v }
-
 // ReloadFromDB 触发一次 DB → catalog + aliasIdx 的同步刷新，供写路径调用后立即可见。
 func (s *PricingService) ReloadFromDB(ctx context.Context) {
 	s.buildCatalogAndAliasIndex(ctx)
@@ -246,6 +211,25 @@ func buildAliasIndex(catalog map[string]*DBModelPricing) map[string]string {
 		normalized := normalizeModelNameForPricing(lower)
 		if normalized != "" && normalized != lower {
 			idx[normalized] = modelID
+		}
+	}
+
+	// A2. 点/横杠变体别名：让 doubao-seedance-1.5-pro ↔ doubao-seedance-1-5-pro 这类
+	//     仅标点不同的拼写都命中同一行（导入器/账号 model_mapping 拼写不一致时仍能查到价）。
+	//     只增不减：A 已注册全部真实模型的 lower 形态，下面的 exists 守卫保证变体绝不遮蔽真实模型或已有别名。
+	for modelID := range catalog {
+		lower := strings.ToLower(modelID)
+		for _, variant := range []string{
+			strings.ReplaceAll(lower, ".", "-"),
+			strings.ReplaceAll(lower, "-", "."),
+		} {
+			if variant == "" || variant == lower {
+				continue
+			}
+			if _, exists := idx[variant]; exists {
+				continue
+			}
+			idx[variant] = modelID
 		}
 	}
 
@@ -614,9 +598,14 @@ func (s *PricingService) parsePricingData(body []byte) (map[string]*LiteLLMModel
 		if entry.CacheReadInputTokenCostPriority != nil {
 			pricing.CacheReadInputTokenCostPriority = *entry.CacheReadInputTokenCostPriority
 		}
-		if entry.OutputCostPerImage != nil {
+		// output_cost_per_image（按张/次的扁平图片价）只对图片/视频模型有意义。
+		// LiteLLM 部分 chat 多模态模型会携带它（实为输入侧多模态计价），按本系统 mode 计价口径属污染，过滤掉，
+		// 与迁移 155 的存量清洗口径保持一致，防止下次 sync 重新写脏。
+		if entry.OutputCostPerImage != nil &&
+			(entry.Mode == "image_generation" || entry.Mode == "video_generation") {
 			pricing.OutputCostPerImage = *entry.OutputCostPerImage
 		}
+		// output_cost_per_image_token（图片输出 token 价）对多模态 chat 也合法，保留。
 		if entry.OutputCostPerImageToken != nil {
 			pricing.OutputCostPerImageToken = *entry.OutputCostPerImageToken
 		}
@@ -792,24 +781,6 @@ func (s *PricingService) validatePricingURL(raw string) (string, error) {
 	return normalized, nil
 }
 
-// matchLingjingModel 灵境豆包模型静态定价匹配。
-// 灵境模型不在 LiteLLM 远端数据中，使用代码内置价格。
-func matchLingjingModel(model string) *LiteLLMModelPricing {
-	lower := strings.ToLower(model)
-	switch {
-	case strings.Contains(lower, "seedream-5") || strings.Contains(lower, "seedream5"):
-		return lingjingSeedream5LitePricing
-	case strings.Contains(lower, "seedream"):
-		return lingjingSeedream40Pricing
-	case strings.Contains(lower, "seedance") && strings.HasSuffix(lower, "10s"):
-		return lingjingSeedance15Pro10sPricing
-	case strings.Contains(lower, "seedance"):
-		return lingjingSeedance15Pro5sPricing
-	}
-	return nil
-}
-
-
 func normalizeModelNameForPricing(model string) string {
 	// Common Gemini/VertexAI forms:
 	// - models/gemini-2.0-flash-exp
@@ -833,14 +804,6 @@ func normalizeModelNameForPricing(model string) string {
 	}
 	return model
 }
-
-func lastSegment(model string) string {
-	if idx := strings.LastIndex(model, "/"); idx != -1 {
-		return model[idx+1:]
-	}
-	return model
-}
-
 
 // matchFamilyInCatalog 在 catalog 上执行 Claude 家族 fuzzy 匹配。
 func (s *PricingService) matchFamilyInCatalog(model string) *DBModelPricing {
@@ -1003,27 +966,19 @@ func (s *PricingService) ListModelNamesByProvider(provider string) []string {
 	return names
 }
 
-// isNumeric 检查字符串是否为纯数字
-func isNumeric(s string) bool {
-	for _, c := range s {
-		if c < '0' || c > '9' {
-			return false
-		}
-	}
-	return true
-}
-
 // ModelInfo 公开的模型信息（用于用户端展示）
 type ModelInfo struct {
-	ID                             string  `json:"id"`
-	LiteLLMProvider                string  `json:"provider"`
-	Mode                           string  `json:"mode"`
-	PricingUnit                    string  `json:"pricing_unit"`
-	InputCostPerToken              float64 `json:"input_cost_per_token"`
-	OutputCostPerToken             float64 `json:"output_cost_per_token"`
-	SupportsPromptCaching          bool    `json:"supports_prompt_caching"`
-	LongContextInputTokenThreshold int     `json:"long_context_input_token_threshold,omitempty"`
-	DiscountRate                   float64 `json:"discount_rate,omitempty"`
+	ID                             string   `json:"id"`
+	LiteLLMProvider                string   `json:"provider"`
+	Mode                           string   `json:"mode"`
+	PricingUnit                    string   `json:"pricing_unit"`
+	InputCostPerToken              float64  `json:"input_cost_per_token"`
+	OutputCostPerToken             float64  `json:"output_cost_per_token"`
+	OutputCostPerImage             *float64 `json:"output_cost_per_image,omitempty"`       // 图片/视频按次价（USD/张 或 USD/秒）
+	OutputCostPerImageToken        *float64 `json:"output_cost_per_image_token,omitempty"` // 图片/视频按 token 价（USD/token）
+	SupportsPromptCaching          bool     `json:"supports_prompt_caching"`
+	LongContextInputTokenThreshold int      `json:"long_context_input_token_threshold,omitempty"`
+	DiscountRate                   float64  `json:"discount_rate,omitempty"`
 }
 
 // GetDiscount 返回模型折扣率。优先读 catalog 中的 DiscountRate，无则返回 1.0。
@@ -1068,6 +1023,18 @@ func (s *PricingService) GetCurrencyMode() string {
 	return "usd"
 }
 
+// GetShowOverseasModels 返回是否在用户广场展示海外模型（优先读 DB settingRepo，默认 true）。
+func (s *PricingService) GetShowOverseasModels() bool {
+	if s.settingRepo != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		if val, err := s.settingRepo.GetValue(ctx, SettingKeyShowOverseasModels); err == nil {
+			return strings.TrimSpace(val) != "false"
+		}
+	}
+	return true
+}
+
 // ListEnabledCatalogModels 从 catalog（DB 驱动内存快照）返回所有 is_enabled=true 的模型信息。
 // 用于"模型广场"在 generic 账号无 supported_models 白名单时的兜底展示。
 func (s *PricingService) ListEnabledCatalogModels() []ModelInfo {
@@ -1087,7 +1054,13 @@ func (s *PricingService) ListEnabledCatalogModels() []ModelInfo {
 			SupportsPromptCaching: entry.SupportsPromptCaching,
 			DiscountRate:          1.0,
 		}
-		if entry.PricingUnit == ModelPricingUnitSecond {
+		// pricing_unit 以 mode 为准（image/video），兼容 second，其余 token。
+		switch {
+		case entry.Mode == "image_generation":
+			info.PricingUnit = ModelPricingUnitImage
+		case entry.Mode == "video_generation":
+			info.PricingUnit = ModelPricingUnitVideo
+		case entry.PricingUnit == ModelPricingUnitSecond:
 			info.PricingUnit = ModelPricingUnitSecond
 		}
 		if entry.DiscountRate != nil && *entry.DiscountRate > 0 {
@@ -1101,6 +1074,12 @@ func (s *PricingService) ListEnabledCatalogModels() []ModelInfo {
 		}
 		if entry.OutputCostPerToken != nil {
 			info.OutputCostPerToken = *entry.OutputCostPerToken
+		}
+		// 图片/视频价格透传（分列：按次价 output_cost_per_image / 按 token 价 output_cost_per_image_token），
+		// 前端据此 + pricing_unit 渲染单张/单视频价，不再坍缩成 ¥0.00。
+		if info.PricingUnit == ModelPricingUnitImage || info.PricingUnit == ModelPricingUnitVideo {
+			info.OutputCostPerImage = entry.OutputCostPerImage
+			info.OutputCostPerImageToken = entry.OutputCostPerImageToken
 		}
 		if entry.LongContextInputTokenThreshold != nil {
 			info.LongContextInputTokenThreshold = int(*entry.LongContextInputTokenThreshold)

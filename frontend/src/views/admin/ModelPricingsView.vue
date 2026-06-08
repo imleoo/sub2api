@@ -38,17 +38,6 @@
             @change="handleFilterChange"
           />
 
-          <!-- User-visible filter -->
-          <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-            <input
-              v-model="visibleOnly"
-              type="checkbox"
-              class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-              @change="handleFilterChange"
-            />
-            <span>只显示可见模型</span>
-          </label>
-
           <!-- Right: action buttons -->
           <div class="flex flex-1 flex-wrap items-center justify-end gap-2">
             <button
@@ -79,12 +68,12 @@
             </button>
             <button
               class="btn btn-secondary"
-              :disabled="wanjieSyncing"
-              :title="'从万界 MaaS 平台同步定价数据'"
-              @click="openWanjieModal"
+              :disabled="maasSyncing"
+              :title="'同步 MaaS 平台定价（上传万界格式 JSON，或填 URL+Token 在线拉取；价格由运营管理，不内置）'"
+              @click="openMaasModal"
             >
-              <Icon name="refresh" size="md" :class="wanjieSyncing ? 'animate-spin' : ''" />
-              <span class="ml-1 hidden sm:inline">{{ wanjieSyncing ? '同步中...' : '同步万界' }}</span>
+              <Icon name="refresh" size="md" :class="maasSyncing ? 'animate-spin' : ''" />
+              <span class="ml-1 hidden sm:inline">{{ maasSyncing ? '同步中...' : '同步 MaaS 定价' }}</span>
             </button>
             <button class="btn btn-primary" @click="openCreateModal">
               <Icon name="plus" size="md" class="mr-1" />
@@ -130,7 +119,7 @@
               </template>
               <template v-else>
                 <tr
-                  v-for="item in items"
+                  v-for="item in displayItems"
                   :key="item.id"
                   class="hover:bg-gray-50 dark:hover:bg-dark-700/50"
                 >
@@ -149,6 +138,13 @@
                         class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-400"
                       >
                         同步
+                      </span>
+                      <span
+                        v-if="item.pricing_health && item.pricing_health !== 'ok'"
+                        class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/40 dark:text-red-300"
+                        :title="healthLabel(item.pricing_health)"
+                      >
+                        {{ healthLabel(item.pricing_health) }}
                       </span>
                     </div>
                     <div v-if="item.display_name" class="mt-0.5 text-xs text-gray-400">{{ item.display_name }}</div>
@@ -351,7 +347,7 @@
           </div>
         </div>
 
-        <div v-else class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div v-else-if="editForm.pricing_unit === 'second'" class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div v-if="editingItem?.is_custom">
             <label class="input-label">{{ t('admin.modelPricings.upstreamPricePerSecond') }}</label>
             <input
@@ -361,6 +357,20 @@
               min="0"
               class="input"
               placeholder="例: 0.12"
+            />
+          </div>
+        </div>
+
+        <div v-else-if="editForm.pricing_unit === 'image_generation'" class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div v-if="editingItem?.is_custom">
+            <label class="input-label">{{ t('admin.modelPricings.upstreamPricePerImage') }}</label>
+            <input
+              v-model.number="editForm.output_cost_per_image"
+              type="number"
+              step="any"
+              min="0"
+              class="input"
+              placeholder="例: 0.3"
             />
           </div>
         </div>
@@ -390,7 +400,7 @@
           </div>
         </div>
 
-        <div v-else class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div v-else-if="editForm.pricing_unit === 'second'" class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label class="input-label">{{ t('admin.modelPricings.customPricePerSecond') }}</label>
             <input
@@ -523,7 +533,7 @@
           </div>
         </div>
 
-        <div v-else class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div v-else-if="createForm.pricing_unit === 'second'" class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label class="input-label">{{ t('admin.modelPricings.upstreamPricePerSecond') }}</label>
             <input
@@ -533,6 +543,20 @@
               min="0"
               class="input"
               placeholder="例: 0.12"
+            />
+          </div>
+        </div>
+
+        <div v-else-if="createForm.pricing_unit === 'image_generation'" class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label class="input-label">{{ t('admin.modelPricings.upstreamPricePerImage') }}</label>
+            <input
+              v-model.number="createForm.output_cost_per_image"
+              type="number"
+              step="any"
+              min="0"
+              class="input"
+              placeholder="例: 0.3"
             />
           </div>
         </div>
@@ -587,7 +611,7 @@
           </div>
         </div>
 
-        <div v-else class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div v-else-if="createForm.pricing_unit === 'second'" class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label class="input-label">{{ t('admin.modelPricings.customPricePerSecond') }}</label>
             <input
@@ -670,39 +694,59 @@
       @cancel="showDeleteModal = false"
     />
 
-    <!-- Wanjie sync -->
-    <BaseDialog :show="showWanjieModal" title="同步万界定价" width="wide" @close="closeWanjieModal">
-      <form id="wanjie-sync-form" class="space-y-4" @submit.prevent="handleWanjieSync">
+    <!-- MaaS 定价同步（通用：万界/豆包/灵境/未来厂商；价格由运营管理，不内置） -->
+    <BaseDialog :show="showMaasModal" title="同步 MaaS 定价" width="wide" @close="closeMaasModal">
+      <form id="maas-sync-form" class="space-y-4" @submit.prevent="handleMaasSync">
         <p class="text-sm text-gray-500 dark:text-gray-400">
-          优先级：上传 JSON 文件 &gt; API URL + Token &gt; 已保存凭证 &gt; 内嵌离线数据。
+          价格完全由运营管理，系统不内置任何厂商价。二选一：上传万界格式 JSON 文件，或填写 URL + Token 在线拉取。凭证按来源保存，下次自动复用。
         </p>
+
+        <div>
+          <label class="input-label">来源标识 <span class="text-red-500">*</span></label>
+          <input
+            v-model="maasForm.source"
+            type="text"
+            required
+            class="input mt-1 font-mono"
+            placeholder="wanjie / doubao / lingjing / minimax / glm …"
+            list="maas-source-suggestions"
+          />
+          <datalist id="maas-source-suggestions">
+            <option value="wanjie" />
+            <option value="doubao" />
+            <option value="lingjing" />
+            <option value="minimax" />
+            <option value="glm" />
+          </datalist>
+          <p class="mt-1 text-xs text-gray-400">来源用于标记定价行、按来源保存 URL/Token；自定义任意厂商名即可。</p>
+        </div>
 
         <!-- File upload -->
         <div>
-          <label class="input-label">上传 JSON 文件（最高优先级）</label>
+          <label class="input-label">上传 JSON 文件（万界 API 响应格式）</label>
           <div
             class="mt-1 flex cursor-pointer items-center gap-3 rounded-lg border-2 border-dashed border-gray-300 px-4 py-3 transition hover:border-primary-400 dark:border-dark-500 dark:hover:border-primary-500"
-            @click="wanjieFileInputRef?.click()"
+            @click="maasFileInputRef?.click()"
           >
             <Icon name="upload" size="md" class="shrink-0 text-gray-400" />
             <span class="truncate text-sm text-gray-500 dark:text-gray-400">
-              {{ wanjieFileName || '点击选择 wanjie.json 文件' }}
+              {{ maasFileName || '点击选择 JSON 文件' }}
             </span>
             <button
-              v-if="wanjieFileName"
+              v-if="maasFileName"
               type="button"
               class="ml-auto shrink-0 text-xs text-red-500 hover:text-red-700"
-              @click.stop="clearWanjieFile"
+              @click.stop="clearMaasFile"
             >
               清除
             </button>
           </div>
           <input
-            ref="wanjieFileInputRef"
+            ref="maasFileInputRef"
             type="file"
             accept="application/json,.json"
             class="hidden"
-            @change="onWanjieFileChange"
+            @change="onMaasFileChange"
           />
         </div>
 
@@ -715,39 +759,39 @@
         <div>
           <label class="input-label">API URL</label>
           <input
-            v-model="wanjieForm.url"
+            v-model="maasForm.url"
             type="url"
             class="input mt-1 font-mono"
-            :disabled="!!wanjieFileName"
+            :disabled="!!maasFileName"
             placeholder="https://fangzhou.wanjiedata.com/maas/model/myModelList"
           />
         </div>
         <div>
           <label class="input-label">x-access-token</label>
           <input
-            v-model="wanjieForm.access_token"
+            v-model="maasForm.access_token"
             type="password"
             autocomplete="off"
             class="input mt-1 font-mono"
-            :disabled="!!wanjieFileName"
-            placeholder="万界 JWT Token"
+            :disabled="!!maasFileName"
+            placeholder="JWT Token"
           />
         </div>
         <div class="flex items-center gap-2">
-          <input id="wanjie-save-creds" v-model="wanjieForm.save_credentials" type="checkbox" class="h-4 w-4 rounded border-gray-300" :disabled="!!wanjieFileName" />
-          <label for="wanjie-save-creds" class="text-sm text-gray-700 dark:text-gray-300" :class="wanjieFileName ? 'opacity-40' : ''">
-            保存凭证到系统设置（下次同步自动使用）
+          <input id="maas-save-creds" v-model="maasForm.save_credentials" type="checkbox" class="h-4 w-4 rounded border-gray-300" :disabled="!!maasFileName" />
+          <label for="maas-save-creds" class="text-sm text-gray-700 dark:text-gray-300" :class="maasFileName ? 'opacity-40' : ''">
+            保存该来源的 URL/Token 到系统设置（下次同步自动使用）
           </label>
         </div>
-        <p v-if="!wanjieFileName && !wanjieForm.url && !wanjieForm.access_token" class="text-xs text-amber-500 dark:text-amber-400">
-          未填写任何内容时，将使用已保存的凭证或内嵌离线数据。
+        <p v-if="!maasFileName && !maasForm.url && !maasForm.access_token" class="text-xs text-amber-500 dark:text-amber-400">
+          未上传文件且未填 URL/Token 时，将尝试使用该来源已保存的凭证。
         </p>
       </form>
       <template #footer>
         <div class="flex justify-end gap-3">
-          <button type="button" class="btn btn-secondary" @click="closeWanjieModal">取消</button>
-          <button type="submit" form="wanjie-sync-form" :disabled="wanjieSyncing" class="btn btn-primary">
-            {{ wanjieSyncing ? '同步中...' : '开始同步' }}
+          <button type="button" class="btn btn-secondary" @click="closeMaasModal">取消</button>
+          <button type="submit" form="maas-sync-form" :disabled="maasSyncing" class="btn btn-primary">
+            {{ maasSyncing ? '同步中...' : '开始同步' }}
           </button>
         </div>
       </template>
@@ -796,7 +840,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import TablePageLayout from '@/components/layout/TablePageLayout.vue'
@@ -813,10 +857,11 @@ import {
   deleteModelPricing,
   triggerModelPricingSync,
   syncModelPricingsFromUpstream,
-  syncModelPricingsFromWanjie,
+  syncModelPricingsFromMaas,
   clearAllModelPricingDiscounts,
   listModelPricingProviders,
   type DBModelPricing,
+  type PricingHealth,
   type CreateModelPricingRequest,
 } from '@/api/admin/modelPricings'
 
@@ -833,13 +878,29 @@ const showClearDiscountsModal = ref(false)
 const togglingId = ref<number | null>(null)
 
 const items = ref<DBModelPricing[]>([])
+
+// pricing_health 异常行置顶（保持原相对顺序），便于运营优先处理。
+const HEALTH_LABELS: Record<string, string> = {
+  missing_pricing: '未配价',
+  unit_contamination: '单位异常',
+  orphan_no_active_account: '无活跃账号',
+}
+const healthLabel = (h?: PricingHealth): string => (h && HEALTH_LABELS[h]) || ''
+const displayItems = computed(() => {
+  const abnormal: DBModelPricing[] = []
+  const normal: DBModelPricing[] = []
+  for (const it of items.value) {
+    if (it.pricing_health && it.pricing_health !== 'ok') abnormal.push(it)
+    else normal.push(it)
+  }
+  return [...abnormal, ...normal]
+})
 const pagination = reactive({ page: 1, page_size: 20, total: 0 })
 
 const searchQuery = ref('')
 const filterProvider = ref('')
 const filterSource = ref('')
 const filterEnabled = ref('')
-const visibleOnly = ref(true)
 
 let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -858,9 +919,10 @@ const editForm = reactive<{
   description: string
   provider: string
   mode: string
-  pricing_unit: 'token' | 'second'
+  pricing_unit: 'token' | 'second' | 'image_generation' | 'video_generation'
   input_cost_per_token: number | null
   output_cost_per_token: number | null
+  output_cost_per_image: number | null
   custom_input_cost: number | null
   custom_output_cost: number | null
   discount_rate: number | null
@@ -874,6 +936,7 @@ const editForm = reactive<{
   pricing_unit: 'token',
   input_cost_per_token: null,
   output_cost_per_token: null,
+  output_cost_per_image: null,
   custom_input_cost: null,
   custom_output_cost: null,
   discount_rate: null,
@@ -886,11 +949,12 @@ const createForm = reactive<{
   description: string
   provider: string
   mode: string
-  pricing_unit: 'token' | 'second'
+  pricing_unit: 'token' | 'second' | 'image_generation' | 'video_generation'
   input_cost_per_token: number | null
   output_cost_per_token: number | null
   cache_creation_input_token_cost: number | null
   cache_read_input_token_cost: number | null
+  output_cost_per_image: number | null
   custom_input_cost: number | null
   custom_output_cost: number | null
   discount_rate: number | null
@@ -906,11 +970,23 @@ const createForm = reactive<{
   output_cost_per_token: null,
   cache_creation_input_token_cost: null,
   cache_read_input_token_cost: null,
+  output_cost_per_image: null,
   custom_input_cost: null,
   custom_output_cost: null,
   discount_rate: null,
   is_enabled: true,
 })
+
+// 选「图片（按张）」计价单位时联动 mode=image_generation，避免 pricing_unit 与 mode 不一致
+// 导致 List 健康度/广场渲染按 mode 走时口径错位（运营仍可在 mode 下拉手动覆盖）。
+watch(
+  () => createForm.pricing_unit,
+  unit => {
+    if (unit === 'image_generation' && createForm.mode === 'chat') {
+      createForm.mode = 'image_generation'
+    }
+  },
+)
 
 // ==================== Options ====================
 
@@ -967,6 +1043,7 @@ const modeOptions = [
 const pricingUnitOptions = [
   { value: 'token', label: 'Token' },
   { value: 'second', label: t('admin.modelPricings.pricingUnitSecond') },
+  { value: 'image_generation', label: t('admin.modelPricings.pricingUnitImage') },
 ]
 
 // ==================== Formatters ====================
@@ -1070,7 +1147,7 @@ const load = async () => {
     if (filterSource.value === 'synced') params.is_custom = false
     if (filterEnabled.value === 'true') params.is_enabled = true
     if (filterEnabled.value === 'false') params.is_enabled = false
-    params.visible_only = visibleOnly.value
+    // 后台默认即「用户模型广场」口径（后端按海外开关+版本下限+可路由过滤），无需前端传 visible_only。
 
     const { data } = await listModelPricings(params)
     items.value = data.items ?? []
@@ -1140,65 +1217,72 @@ const handleSync = async () => {
   }
 }
 
-// ==================== Wanjie sync ====================
+// ==================== MaaS 定价同步（通用：任意厂商，价格由运营管理，不内置） ====================
 
-const showWanjieModal = ref(false)
-const wanjieSyncing = ref(false)
-const wanjieFileInputRef = ref<HTMLInputElement | null>(null)
-const wanjieFileName = ref('')
-const wanjieJsonData = ref('')
-const wanjieForm = reactive({
+const showMaasModal = ref(false)
+const maasSyncing = ref(false)
+const maasFileName = ref('')
+const maasJsonData = ref('')
+const maasFileInputRef = ref<HTMLInputElement | null>(null)
+const maasForm = reactive({
+  source: '',
   url: '',
   access_token: '',
   save_credentials: false,
 })
 
-const onWanjieFileChange = (e: Event) => {
+const clearMaasFile = () => {
+  maasFileName.value = ''
+  maasJsonData.value = ''
+  if (maasFileInputRef.value) maasFileInputRef.value.value = ''
+}
+
+const onMaasFileChange = (e: Event) => {
   const file = (e.target as HTMLInputElement).files?.[0]
   if (!file) return
-  wanjieFileName.value = file.name
+  maasFileName.value = file.name
   const reader = new FileReader()
-  reader.onload = (ev) => {
-    wanjieJsonData.value = (ev.target?.result as string) ?? ''
+  reader.onload = ev => {
+    maasJsonData.value = (ev.target?.result as string) ?? ''
   }
   reader.readAsText(file)
 }
 
-const clearWanjieFile = () => {
-  wanjieFileName.value = ''
-  wanjieJsonData.value = ''
-  if (wanjieFileInputRef.value) wanjieFileInputRef.value.value = ''
+const openMaasModal = () => {
+  showMaasModal.value = true
 }
 
-const openWanjieModal = () => {
-  showWanjieModal.value = true
+const closeMaasModal = () => {
+  showMaasModal.value = false
+  clearMaasFile()
 }
 
-const closeWanjieModal = () => {
-  showWanjieModal.value = false
-  clearWanjieFile()
-}
-
-const handleWanjieSync = async () => {
-  wanjieSyncing.value = true
+const handleMaasSync = async () => {
+  const source = maasForm.source.trim()
+  if (!source) {
+    appStore.showError('请填写来源标识')
+    return
+  }
+  maasSyncing.value = true
   try {
-    const { data } = await syncModelPricingsFromWanjie({
-      json_data: wanjieJsonData.value || undefined,
-      url: wanjieJsonData.value ? undefined : (wanjieForm.url.trim() || undefined),
-      access_token: wanjieJsonData.value ? undefined : (wanjieForm.access_token.trim() || undefined),
-      save_credentials: wanjieJsonData.value ? false : wanjieForm.save_credentials,
+    const { data } = await syncModelPricingsFromMaas({
+      source,
+      json_data: maasJsonData.value || undefined,
+      url: maasJsonData.value ? undefined : (maasForm.url.trim() || undefined),
+      access_token: maasJsonData.value ? undefined : (maasForm.access_token.trim() || undefined),
+      save_credentials: maasJsonData.value ? false : maasForm.save_credentials,
     })
-    const srcMap: Record<string, string> = { upload: '上传文件', live: '实时 API', embedded: '内嵌离线数据' }
-    const src = srcMap[data.source] ?? data.source
-    appStore.showSuccess(`万界定价同步完成（来源：${src}），共处理 ${data.total} 个模型`)
-    closeWanjieModal()
+    const srcMap: Record<string, string> = { upload: '上传文件', live: '实时 API' }
+    const mode = srcMap[data.mode] ?? data.mode
+    appStore.showSuccess(`${data.source} 定价同步完成（来源：${mode}），共处理 ${data.total} 个模型`)
+    closeMaasModal()
     await load()
     loadProviders()
   } catch (err) {
     const error = err as { response?: { data?: { message?: string; detail?: string } } }
-    appStore.showError(error.response?.data?.message || error.response?.data?.detail || '万界定价同步失败')
+    appStore.showError(error.response?.data?.message || error.response?.data?.detail || '定价同步失败')
   } finally {
-    wanjieSyncing.value = false
+    maasSyncing.value = false
   }
 }
 
@@ -1282,6 +1366,7 @@ const openEditModal = (item: DBModelPricing) => {
   editForm.pricing_unit = item.pricing_unit ?? 'token'
   editForm.input_cost_per_token = item.input_cost_per_token
   editForm.output_cost_per_token = item.output_cost_per_token
+  editForm.output_cost_per_image = item.output_cost_per_image ?? null
   editForm.custom_input_cost = item.custom_input_cost
   editForm.custom_output_cost = item.custom_output_cost
   editForm.discount_rate = item.discount_rate
@@ -1302,7 +1387,7 @@ const handleSave = async () => {
       display_name: editForm.display_name || null,
       description: editForm.description || null,
       pricing_unit: editForm.pricing_unit,
-      custom_input_cost: editForm.custom_input_cost ?? null,
+      custom_input_cost: editForm.pricing_unit === 'image_generation' ? null : (editForm.custom_input_cost ?? null),
       custom_output_cost: editForm.pricing_unit === 'token' ? (editForm.custom_output_cost ?? null) : null,
       discount_rate: editForm.discount_rate ?? null,
       is_enabled: editForm.is_enabled,
@@ -1310,8 +1395,11 @@ const handleSave = async () => {
     if (editingItem.value.is_custom) {
       payload.provider = editForm.provider
       payload.mode = editForm.mode
-      payload.input_cost_per_token = editForm.input_cost_per_token ?? null
+      const isImage = editForm.pricing_unit === 'image_generation'
+      // 图片按张计费写 output_cost_per_image，不占用 input_cost_per_token
+      payload.input_cost_per_token = isImage ? null : (editForm.input_cost_per_token ?? null)
       payload.output_cost_per_token = editForm.pricing_unit === 'token' ? (editForm.output_cost_per_token ?? null) : null
+      payload.output_cost_per_image = isImage ? (editForm.output_cost_per_image ?? null) : null
     }
     const { data } = await updateModelPricing(editingItem.value.id, payload)
     const idx = items.value.findIndex(i => i.id === editingItem.value!.id)
@@ -1359,11 +1447,13 @@ const handleCreate = async () => {
       provider: createForm.provider,
       mode: createForm.mode,
       pricing_unit: createForm.pricing_unit,
-      input_cost_per_token: createForm.input_cost_per_token ?? null,
       output_cost_per_token: createForm.pricing_unit === 'token' ? (createForm.output_cost_per_token ?? null) : null,
       cache_creation_input_token_cost: createForm.pricing_unit === 'token' ? (createForm.cache_creation_input_token_cost ?? null) : null,
       cache_read_input_token_cost: createForm.pricing_unit === 'token' ? (createForm.cache_read_input_token_cost ?? null) : null,
-      custom_input_cost: createForm.custom_input_cost ?? null,
+      output_cost_per_image: createForm.pricing_unit === 'image_generation' ? (createForm.output_cost_per_image ?? null) : null,
+      // 图片按张计费不走 input_cost_per_token；避免把上游每秒价占位带入
+      input_cost_per_token: createForm.pricing_unit === 'image_generation' ? null : (createForm.input_cost_per_token ?? null),
+      custom_input_cost: createForm.pricing_unit === 'image_generation' ? null : (createForm.custom_input_cost ?? null),
       custom_output_cost: createForm.pricing_unit === 'token' ? (createForm.custom_output_cost ?? null) : null,
       discount_rate: createForm.discount_rate ?? null,
       is_enabled: createForm.is_enabled,

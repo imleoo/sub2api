@@ -52,9 +52,9 @@ func (ModelPricing) Fields() []ent.Field {
 			MaxLen(50).
 			Default("chat"),
 
-		// 计费单位：token=按 token；second=按秒。
+		// 计费单位：token=按 token；second=按秒；image_generation=按张/次；video_generation=按视频/秒。
 		field.Enum("pricing_unit").
-			Values("token", "second").
+			Values("token", "second", "image_generation", "video_generation").
 			Default("token"),
 
 		// 远端同步价格字段（USD per token）
@@ -168,6 +168,12 @@ func (ModelPricing) Fields() []ent.Field {
 		// SSOT 重构后已被 source 字段语义覆盖，保留兼容老查询。
 		field.Bool("is_custom").
 			Default(false),
+
+		// 视频按 token 计费的分档单价（JSON 文本，[]VideoPriceTier，¥/百万 token 原值）。
+		// 通用化后视频分档不再内置，由上传的定价 JSON 解析后存入。
+		field.Text("tier_pricing").
+			Optional().
+			Nillable(),
 
 		// 是否启用（影响用户侧可见性和账号白名单选择器）
 		field.Bool("is_enabled").

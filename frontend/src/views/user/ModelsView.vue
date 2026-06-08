@@ -193,6 +193,13 @@
               </div>
               <div class="text-gray-400">{{ formatSecondCnyPrice(model) }}</div>
             </div>
+            <div v-else-if="model.pricing_unit === 'image_generation' || model.pricing_unit === 'video_generation'" class="text-xs">
+              <div class="mb-0.5 text-gray-400">{{ visualPriceLabel(model) }}</div>
+              <div v-if="appStore.currencyMode !== 'cny'" class="font-mono font-medium text-gray-800 dark:text-gray-200">
+                {{ formatVisualUsdPrice(model) }}
+              </div>
+              <div class="text-gray-400">{{ formatVisualCnyPrice(model) }}</div>
+            </div>
             <div v-else class="grid grid-cols-2 gap-2 text-xs">
               <div>
                 <div class="mb-0.5 text-gray-400">{{ t('models.inputPrice') }}</div>
@@ -231,35 +238,8 @@ import { getModels, type ModelInfo } from '@/api/models'
 const { t } = useI18n()
 const appStore = useAppStore()
 
-// 海外模型 ID 前缀黑名单（按 model_id 而非 provider 判定，便于经第三方中转使用海外模型时仍能正确分类）。
-// 必须与后端 service.OverseasModelIDPrefixes 保持同步。
-const OVERSEAS_MODEL_ID_PREFIXES = [
-  'claude-', 'claude.', 'anthropic.',
-  'gpt-', 'gpt.', 'chatgpt-', 'chatgpt.',
-  'gemini-', 'gemini.',
-  'dall-e', 'whisper-', 'tts-',
-  'text-davinci', 'text-embedding-ada', 'davinci-', 'curie-', 'babbage-',
-  'mistral-', 'mistral.', 'mixtral-', 'ministral-', 'codestral-',
-  'llama-', 'llama2', 'llama3', 'llama4', 'meta-llama',
-  'command-r', 'command-light', 'command.',
-  'grok-', 'grok.',
-  'nova-', 'amazon.nova', 'titan-',
-  'palm-', 'palm2-', 'bison',
-  'veo',
-]
-
-const OVERSEAS_REASONING_MODEL_RE = /^o[1-5](-|\.|$)/
-
-const isOverseasModelID = (id: string | undefined): boolean => {
-  const lower = (id || '').toLowerCase().trim()
-  if (!lower) return false
-  if (OVERSEAS_REASONING_MODEL_RE.test(lower)) return true
-  return OVERSEAS_MODEL_ID_PREFIXES.some(p => lower.startsWith(p))
-}
-
-const showOverseasModels = computed(
-  () => appStore.cachedPublicSettings?.show_overseas_models !== false
-)
+// 海外开关 + 版本下限过滤已下沉到后端 /api/v1/models（service.FilterVisibleModels），
+// 前端不再重复过滤，getModels 返回的即为用户应见集合。
 
 // ─── State ────────────────────────────────
 const loading = ref(false)
@@ -271,13 +251,8 @@ const selectedMode = ref<string>('all')
 const copiedModelId = ref<string | null>(null)
 
 // ─── Computed ─────────────────────────────
-// 先应用 showOverseasModels 过滤，作为所有后续过滤的基础
-const baseModels = computed(() => {
-  if (!showOverseasModels.value) {
-    return allModels.value.filter(m => !isOverseasModelID(m.id))
-  }
-  return allModels.value
-})
+// 可见性已由后端过滤，baseModels 直接取全部返回模型。
+const baseModels = computed(() => allModels.value)
 
 const total = computed(() => baseModels.value.length)
 
@@ -342,8 +317,8 @@ async function loadData() {
   try {
     const res = await getModels()
     cnyRate.value = res.cny_rate ?? 7.2
-    // Filter models based on version requirements
-    allModels.value = (res.models ?? []).filter(shouldShowModel)
+    // 可见性（海外开关 + 版本下限）已由后端过滤，前端直接采用返回集合。
+    allModels.value = res.models ?? []
   } catch (err) {
     console.error('[ModelsView] Failed to load models:', err)
     allModels.value = []
@@ -381,133 +356,6 @@ function copyTextFallback(text: string) {
   document.execCommand('copy')
   document.body.removeChild(textarea)
 }
-
-/**
- * Determine if a model should be shown to users based on version requirements:
- * - Claude: 4.5+
- * - GPT: 5.2+
- * - Gemini: 3+
- * - GLM: 5+
- * - Others: hidden
- * - Unavailable models: hidden
- */
-function shouldShowModel(model: ModelInfo): boolean {
-  // Hide unavailable models
-  if (!model.is_available) {
-    return false
-  }
-
-  if (isImageModel(model)) {
-    return true
-  }
-
-  const id = model.id.toLowerCase()
-  const provider = model.provider?.toLowerCase() || ''
-
-  // Non-overseas models (domestic providers): always show
-  if (!isOverseasModelID(model.id)) {
-    return true
-  }
-
-  // Overseas models: apply minimum version restrictions to hide legacy models
-  // Claude models (anthropic provider or model id starts with claude)
-  if (provider === 'anthropic' || id.startsWith('claude-')) {
-    return isClaudeVersionAtLeast(id, 4.5)
-  }
-
-  // GPT models (openai provider or model id starts with gpt-/o1/o3/o4)
-  if (provider === 'openai' || id.startsWith('gpt-') || id.match(/^o[1-4]/)) {
-    return isGPTVersionAtLeast(id, 5.2)
-  }
-
-  // Gemini models (google provider or model id starts with gemini)
-  if (provider === 'google' || id.startsWith('gemini-')) {
-    return isGeminiVersionAtLeast(id, 3)
-  }
-
-  // Other overseas providers: hidden
-  return false
-}
-
-/**
- * Parse Claude model version from id
- * Returns version number (e.g., 4.5, 4.6, 3.5) or 0 if cannot parse
- */
-function parseClaudeVersion(id: string): number {
-  // claude-sonnet-4-5-20250929 -> 4.5
-  // claude-sonnet-4-6 -> 4.6
-  // claude-opus-4-6 -> 4.6
-  // claude-3-5-sonnet-20241022 -> 3.5
-  // claude-3-opus-20240229 -> 3.0
-
-  // Match pattern: claude-{major}-{minor}-{...} or claude-{family}-{major}-{minor}
-  const match = id.match(/claude-(?:\w+-)?(\d+)(?:[-.](\d+))?/)
-  if (match) {
-    const major = parseInt(match[1], 10)
-    const minor = match[2] ? parseInt(match[2], 10) : 0
-    return major + minor / 10
-  }
-  return 0
-}
-
-function isClaudeVersionAtLeast(id: string, minVersion: number): boolean {
-  return parseClaudeVersion(id) >= minVersion
-}
-
-/**
- * Parse GPT model version from id
- * Returns version number (e.g., 5.2, 5.4) or 0 if cannot parse
- */
-function parseGPTVersion(id: string): number {
-  // gpt-5.2 -> 5.2
-  // gpt-5.4 -> 5.4
-  // gpt-5 -> 5.0
-  // gpt-4o -> 4.0 (o series counted as 4.x)
-  // o1, o3, o4-mini -> treat as legacy/o-series, return 0
-
-  // Match gpt-{major}.{minor} or gpt-{major}
-  const gptMatch = id.match(/gpt-(\d+)(?:\.(\d+))?/)
-  if (gptMatch) {
-    const major = parseInt(gptMatch[1], 10)
-    const minor = gptMatch[2] ? parseInt(gptMatch[2], 10) : 0
-    return major + minor / 10
-  }
-
-  // o-series (o1, o3, o4-mini) are below 5.2 threshold
-  if (id.match(/^o[1-4]/)) {
-    return 0
-  }
-
-  return 0
-}
-
-function isGPTVersionAtLeast(id: string, minVersion: number): boolean {
-  return parseGPTVersion(id) >= minVersion
-}
-
-/**
- * Parse Gemini model version from id
- * Returns version number (e.g., 3.0, 3.1, 2.5) or 0 if cannot parse
- */
-function parseGeminiVersion(id: string): number {
-  // gemini-3-flash -> 3.0
-  // gemini-3.1-flash-image -> 3.1
-  // gemini-2.5-flash -> 2.5
-  // gemini-3-pro-preview -> 3.0
-
-  const match = id.match(/gemini-(\d+)(?:\.(\d+))?/)
-  if (match) {
-    const major = parseInt(match[1], 10)
-    const minor = match[2] ? parseInt(match[2], 10) : 0
-    return major + minor / 10
-  }
-  return 0
-}
-
-function isGeminiVersionAtLeast(id: string, minVersion: number): boolean {
-  return parseGeminiVersion(id) >= minVersion
-}
-
 
 // ─── Formatters ──────────────────────────
 // discount_rate ∈ (0,1)：0.85 → 8.5 折，0.01 → 0.1 折。
@@ -547,6 +395,34 @@ function formatSecondCnyPrice(model: ModelInfo): string {
   const price = model.input_cost_per_token * (model.discount_rate ?? 1) * appStore.cnyRate
   if (!price || price <= 0) return '--'
   return `¥${price.toFixed(4)}${t('models.pricing.unitPerSecond')}`
+}
+
+// 图片/视频：分列价（按次 output_cost_per_image / 按 token output_cost_per_image_token），含折扣。
+function visualUnitUsd(model: ModelInfo): number {
+  const d = model.discount_rate ?? 1
+  if (model.output_cost_per_image != null && model.output_cost_per_image > 0) return model.output_cost_per_image * d
+  if (model.output_cost_per_image_token != null && model.output_cost_per_image_token > 0) return model.output_cost_per_image_token * d
+  return 0
+}
+function visualUnitSuffix(model: ModelInfo): string {
+  if (model.output_cost_per_image != null && model.output_cost_per_image > 0) {
+    return model.pricing_unit === 'video_generation' ? t('models.pricing.unitPerSecond') : t('models.pricing.unitPerImage')
+  }
+  return t('models.pricing.unitPerToken')
+}
+function visualPriceLabel(model: ModelInfo): string {
+  return model.pricing_unit === 'video_generation' ? t('models.pricing.videoPrice') : t('models.pricing.imagePrice')
+}
+function formatVisualUsdPrice(model: ModelInfo): string {
+  const v = visualUnitUsd(model)
+  if (!v) return '--'
+  const display = v.toFixed(6).replace(/0+$/, '').replace(/\.$/, '')
+  return `$${display}${visualUnitSuffix(model)}`
+}
+function formatVisualCnyPrice(model: ModelInfo): string {
+  const v = visualUnitUsd(model)
+  if (!v) return '--'
+  return `¥${(v * appStore.cnyRate).toFixed(4)}${visualUnitSuffix(model)}`
 }
 
 // ─── Helpers ────────────────────────────

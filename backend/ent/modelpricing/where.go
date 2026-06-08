@@ -184,6 +184,11 @@ func IsCustom(v bool) predicate.ModelPricing {
 	return predicate.ModelPricing(sql.FieldEQ(FieldIsCustom, v))
 }
 
+// TierPricing applies equality check predicate on the "tier_pricing" field. It's identical to TierPricingEQ.
+func TierPricing(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldTierPricing, v))
+}
+
 // IsEnabled applies equality check predicate on the "is_enabled" field. It's identical to IsEnabledEQ.
 func IsEnabled(v bool) predicate.ModelPricing {
 	return predicate.ModelPricing(sql.FieldEQ(FieldIsEnabled, v))
@@ -1517,6 +1522,81 @@ func IsCustomEQ(v bool) predicate.ModelPricing {
 // IsCustomNEQ applies the NEQ predicate on the "is_custom" field.
 func IsCustomNEQ(v bool) predicate.ModelPricing {
 	return predicate.ModelPricing(sql.FieldNEQ(FieldIsCustom, v))
+}
+
+// TierPricingEQ applies the EQ predicate on the "tier_pricing" field.
+func TierPricingEQ(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldTierPricing, v))
+}
+
+// TierPricingNEQ applies the NEQ predicate on the "tier_pricing" field.
+func TierPricingNEQ(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNEQ(FieldTierPricing, v))
+}
+
+// TierPricingIn applies the In predicate on the "tier_pricing" field.
+func TierPricingIn(vs ...string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIn(FieldTierPricing, vs...))
+}
+
+// TierPricingNotIn applies the NotIn predicate on the "tier_pricing" field.
+func TierPricingNotIn(vs ...string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotIn(FieldTierPricing, vs...))
+}
+
+// TierPricingGT applies the GT predicate on the "tier_pricing" field.
+func TierPricingGT(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGT(FieldTierPricing, v))
+}
+
+// TierPricingGTE applies the GTE predicate on the "tier_pricing" field.
+func TierPricingGTE(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGTE(FieldTierPricing, v))
+}
+
+// TierPricingLT applies the LT predicate on the "tier_pricing" field.
+func TierPricingLT(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLT(FieldTierPricing, v))
+}
+
+// TierPricingLTE applies the LTE predicate on the "tier_pricing" field.
+func TierPricingLTE(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLTE(FieldTierPricing, v))
+}
+
+// TierPricingContains applies the Contains predicate on the "tier_pricing" field.
+func TierPricingContains(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldContains(FieldTierPricing, v))
+}
+
+// TierPricingHasPrefix applies the HasPrefix predicate on the "tier_pricing" field.
+func TierPricingHasPrefix(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldHasPrefix(FieldTierPricing, v))
+}
+
+// TierPricingHasSuffix applies the HasSuffix predicate on the "tier_pricing" field.
+func TierPricingHasSuffix(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldHasSuffix(FieldTierPricing, v))
+}
+
+// TierPricingIsNil applies the IsNil predicate on the "tier_pricing" field.
+func TierPricingIsNil() predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIsNull(FieldTierPricing))
+}
+
+// TierPricingNotNil applies the NotNil predicate on the "tier_pricing" field.
+func TierPricingNotNil() predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotNull(FieldTierPricing))
+}
+
+// TierPricingEqualFold applies the EqualFold predicate on the "tier_pricing" field.
+func TierPricingEqualFold(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEqualFold(FieldTierPricing, v))
+}
+
+// TierPricingContainsFold applies the ContainsFold predicate on the "tier_pricing" field.
+func TierPricingContainsFold(v string) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldContainsFold(FieldTierPricing, v))
 }
 
 // IsEnabledEQ applies the EQ predicate on the "is_enabled" field.

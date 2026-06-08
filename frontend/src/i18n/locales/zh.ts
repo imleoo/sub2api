@@ -1422,7 +1422,9 @@ export default {
     modelPricings: {
       pricingUnitLabel: '计费单位',
       pricingUnitSecond: '秒',
+      pricingUnitImage: '图片（按张）',
       upstreamPricePerSecond: '上游单价（每秒）',
+      upstreamPricePerImage: '上游单价（每张）',
       customPricePerSecond: '自定义单价（每秒）',
       secondUnit: '秒',
     },
@@ -7469,6 +7471,10 @@ export default {
     pricing: {
       secondPrice: '单价',
       unitPerSecond: '/秒',
+      imagePrice: '单张价',
+      videoPrice: '单价',
+      unitPerImage: '/张',
+      unitPerToken: '/token',
     },
     contextWindow: '上下文窗口',
     features: '能力',

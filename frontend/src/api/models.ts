@@ -15,9 +15,11 @@ export interface ModelInfo {
   id: string
   provider: string
   mode: string
-  pricing_unit: 'token' | 'second'
+  pricing_unit: 'token' | 'second' | 'image_generation' | 'video_generation'
   input_cost_per_token: number
   output_cost_per_token: number
+  output_cost_per_image?: number | null
+  output_cost_per_image_token?: number | null
   supports_prompt_caching: boolean
   long_context_input_token_threshold?: number
   is_available: boolean

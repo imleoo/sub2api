@@ -53,6 +53,9 @@ func (s *stubModelPricingRepo) SeedIfNotExists(ctx context.Context, models []*DB
 func (s *stubModelPricingRepo) BulkUpsertWanjie(ctx context.Context, models []*DBModelPricing) error {
 	return nil
 }
+func (s *stubModelPricingRepo) BulkUpsertMaas(ctx context.Context, models []*DBModelPricing) error {
+	return nil
+}
 func (s *stubModelPricingRepo) ClearAllDiscountRates(ctx context.Context) error { return nil }
 func (s *stubModelPricingRepo) ListDistinctProviders(ctx context.Context) ([]string, error) {
 	return nil, nil
@@ -201,4 +204,38 @@ func TestCodexAliasPairs_NonEmpty(t *testing.T) {
 	require.Equal(t, "gpt-5.4", seen["gpt-5.1"])
 	require.Equal(t, "gpt-5.3-codex", seen["codex-mini-latest"])
 	require.Equal(t, "gpt-5.2", seen["gpt-5.2-codex"])
+}
+
+// TestListEnabledCatalogModels_ImageVideoUnit 验证 Phase C：image/video 模型不再坍缩成 token，
+// pricing_unit 按 mode 透传，且 output_cost_per_image[_token] 下发（修复广场 ¥0.00）。
+func TestListEnabledCatalogModels_ImageVideoUnit(t *testing.T) {
+	imgPrice := 0.0294
+	vidPrice := 0.0316
+	items := []*DBModelPricing{
+		{ModelID: "doubao-seedream-4-0", Mode: "image_generation", PricingUnit: ModelPricingUnitImage, OutputCostPerImage: &imgPrice, IsEnabled: true},
+		{ModelID: "doubao-seedance", Mode: "video_generation", PricingUnit: ModelPricingUnitVideo, OutputCostPerImage: &vidPrice, IsEnabled: true},
+		{ModelID: "gpt-x", Mode: "chat", PricingUnit: ModelPricingUnitToken, InputCostPerToken: &imgPrice, IsEnabled: true},
+	}
+	svc, _ := newCatalogTestService(items)
+	got := map[string]ModelInfo{}
+	for _, m := range svc.ListEnabledCatalogModels() {
+		got[m.ID] = m
+	}
+
+	if got["doubao-seedream-4-0"].PricingUnit != ModelPricingUnitImage {
+		t.Errorf("seedream pricing_unit=%q, want image_generation", got["doubao-seedream-4-0"].PricingUnit)
+	}
+	if got["doubao-seedream-4-0"].OutputCostPerImage == nil || *got["doubao-seedream-4-0"].OutputCostPerImage != imgPrice {
+		t.Errorf("seedream OutputCostPerImage not transmitted: %v", got["doubao-seedream-4-0"].OutputCostPerImage)
+	}
+	if got["doubao-seedance"].PricingUnit != ModelPricingUnitVideo {
+		t.Errorf("seedance pricing_unit=%q, want video_generation", got["doubao-seedance"].PricingUnit)
+	}
+	if got["gpt-x"].PricingUnit != ModelPricingUnitToken {
+		t.Errorf("chat pricing_unit=%q, want token", got["gpt-x"].PricingUnit)
+	}
+	// chat 模型不应下发图片价
+	if got["gpt-x"].OutputCostPerImage != nil {
+		t.Errorf("chat model should not carry OutputCostPerImage")
+	}
 }

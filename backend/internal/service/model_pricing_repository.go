@@ -40,13 +40,23 @@ type DBModelPricing struct {
 	LongContextInputCostMultiplier  *float64
 	LongContextOutputCostMultiplier *float64
 	// SSOT 元数据
-	Source          string // litellm / upstream_sync / manual / bootstrap / lingjing
+	Source          string // 定价来源标签（任意字符串：litellm / 上传的 MaaS source 名 / manual ...）
 	SourceProvider  string // upstream_sync 时记录账号 name
 	SourceAccountID *int64 // 触发入库的账号 id（仅 upstream_sync）
 	PricingStatus   string // priced / unpriced / disabled
 
+	// 视频按 token 计费的分档单价（来自上传的定价 JSON；¥/百万 token 原值，计费时按汇率折 USD）。
+	// 通用化后视频分档不再内置，统一从此字段读取。
+	TierPricing []VideoPriceTier
+
 	CreatedAt time.Time
 	UpdatedAt time.Time
+}
+
+// VideoPriceTier 视频按 token 计费的一个档位（来自上传的定价 JSON）。
+type VideoPriceTier struct {
+	Spec         string  `json:"spec"`            // 规格描述，如 "在线推理-无声视频" / "在线推理-1080p-输入包含视频"
+	CNYPerMToken float64 `json:"cny_per_m_token"` // ¥/百万 token 原值
 }
 
 // Source 常量（用于 DBModelPricing.Source 字段）。
@@ -62,6 +72,8 @@ const (
 const (
 	ModelPricingUnitToken  = "token"
 	ModelPricingUnitSecond = "second"
+	ModelPricingUnitImage  = "image_generation"
+	ModelPricingUnitVideo  = "video_generation"
 )
 
 // PricingStatus 常量。
@@ -79,7 +91,8 @@ type ModelPricingListFilter struct {
 	ExcludeOverseasModels bool     // 按 model_id 前缀排除海外模型（与 OverseasModelIDPrefixes 同步）
 	IsCustom              *bool    // 按来源过滤，nil=全部
 	IsEnabled             *bool    // 按启用状态过滤，nil=全部
-	VisibleOnly           bool     // 仅返回用户可见模型：启用且出现在至少一个账号 model_mapping key 中
+	VisibleOnly           bool     // 仅返回可路由模型（启用 + 在 RoutableModelIDs 内）
+	RoutableModelIDs      []string // VisibleOnly=true 时的 allowlist（由 ModelRoutingService 计算，与模型广场同口径）
 	Page                  int      // 从 1 开始
 	PageSize              int      // 默认 20，最大 200
 }
@@ -120,11 +133,14 @@ type ModelPricingRepository interface {
 	// SeedIfNotExists 如果 model_id 不存在则插入（用于灵境模型 seed）
 	SeedIfNotExists(ctx context.Context, models []*DBModelPricing) error
 
-	// BulkUpsertWanjie 将万界平台定价批量写入：
+	// BulkUpsertWanjie 是 BulkUpsertMaas 的兼容包装（万界来源）。
+	BulkUpsertWanjie(ctx context.Context, models []*DBModelPricing) error
+
+	// BulkUpsertMaas 将万界/豆包 MaaS 平台定价批量写入（source 由各记录 m.Source 决定）：
 	// - is_custom=true 的已有记录：更新 mode、provider（若为空）及全部定价字段
 	// - is_custom=false 的已有记录（LiteLLM 来源）：跳过，保留 USD 定价
-	// - 不存在的记录：新建（is_custom=true，source=wanjie）
-	BulkUpsertWanjie(ctx context.Context, models []*DBModelPricing) error
+	// - 不存在的记录：新建（is_custom=true，source 取 m.Source）
+	BulkUpsertMaas(ctx context.Context, models []*DBModelPricing) error
 
 	// ListDistinctProviders 返回当前模型定价表中出现过的全部 provider（去重、按字母排序），供前端筛选下拉框使用。
 	ListDistinctProviders(ctx context.Context) ([]string, error)

@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"context"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -25,8 +23,7 @@ type UsageHandler struct {
 	pricingService *service.PricingService
 	testResultRepo service.ScheduledTestResultRepository
 	groupRepo      service.GroupRepository
-	accountRepo    service.AccountRepository
-	endpointRepo   service.EndpointRepository // 功能 25：generic 账号端点查询
+	modelRouting   *service.ModelRoutingService // 模型广场可路由模型计算（与后台「可见模型」同口径）
 }
 
 // NewUsageHandler creates a new UsageHandler
@@ -36,8 +33,7 @@ func NewUsageHandler(
 	pricingService *service.PricingService,
 	testResultRepo service.ScheduledTestResultRepository,
 	groupRepo service.GroupRepository,
-	accountRepo service.AccountRepository,
-	endpointRepo service.EndpointRepository,
+	modelRouting *service.ModelRoutingService,
 ) *UsageHandler {
 	return &UsageHandler{
 		usageService:   usageService,
@@ -45,8 +41,7 @@ func NewUsageHandler(
 		pricingService: pricingService,
 		testResultRepo: testResultRepo,
 		groupRepo:      groupRepo,
-		accountRepo:    accountRepo,
-		endpointRepo:   endpointRepo,
+		modelRouting:   modelRouting,
 	}
 }
 
@@ -552,13 +547,13 @@ func (h *UsageHandler) ListModels(c *gin.Context) {
 		testStatusMap, _ = h.testResultRepo.GetLatestResultsByAccountIDs(c.Request.Context(), accountIDs)
 	}
 
-	models := h.pricingService.ListAllModels()
-	modelsByID := make(map[string]service.ModelInfo, len(models))
-	for _, m := range models {
-		modelsByID[m.ID] = m
-	}
+	allowedModels := h.modelRouting.RoutableModelInfos(c.Request.Context(), accountIDs)
 
-	allowedModels := h.collectWhitelistedModelsForAccounts(c.Request.Context(), accountIDs, modelsByID)
+	// 广场可见性过滤下沉到后端（海外开关 + 版本下限），使后端口径 = 用户实际所见，
+	// 前端不再各算一套（见 service.FilterVisibleModels / 旧 ModelsView.shouldShowModel）。
+	if h.pricingService != nil {
+		allowedModels = service.FilterVisibleModels(allowedModels, h.pricingService.GetShowOverseasModels())
+	}
 
 	// Enrich each model with availability and test status
 	type ModelWithAvailability struct {
@@ -599,137 +594,4 @@ func accountIDsFromGroups(groupRepo service.GroupRepository, c *gin.Context, gro
 		return nil
 	}
 	return accountIDs
-}
-
-func (h *UsageHandler) collectWhitelistedModelsForAccounts(ctx context.Context, accountIDs []int64, modelsByID map[string]service.ModelInfo) []service.ModelInfo {
-	if h.accountRepo == nil || len(accountIDs) == 0 || len(modelsByID) == 0 {
-		return []service.ModelInfo{}
-	}
-
-	accounts, err := h.accountRepo.GetByIDs(ctx, accountIDs)
-	if err != nil || len(accounts) == 0 {
-		return []service.ModelInfo{}
-	}
-
-	allowed := make(map[string]service.ModelInfo)
-	for _, account := range accounts {
-		if account == nil || !account.IsActive() {
-			continue
-		}
-		// 功能 25：generic 账号取各 endpoint 的 supported_models 并集（identity 映射）。
-		// PR-7：若某个 endpoint 的 supported_models 为空，则以 catalog 中所有 is_enabled 模型兜底，
-		// 避免新配置的 generic endpoint 因未显式配置白名单而导致模型广场显示为空。
-		if account.Platform == service.PlatformGeneric && h.endpointRepo != nil {
-			eps, _ := h.endpointRepo.ListByAccountID(ctx, account.ID)
-			for _, ep := range eps {
-				if len(ep.SupportedModels) == 0 {
-					// 空白名单 → 显示全部 catalog 启用模型
-					if h.pricingService != nil {
-						for _, m := range h.pricingService.ListEnabledCatalogModels() {
-							allowed[m.ID] = m
-						}
-					}
-				} else {
-					for _, m := range ep.SupportedModels {
-						m = strings.TrimSpace(m)
-						if m == "" {
-							continue
-						}
-						addWhitelistedModel(allowed, modelsByID, m, m)
-					}
-				}
-			}
-			continue
-		}
-		for modelID, mappedModelID := range configuredModelWhitelist(account) {
-			addWhitelistedModel(allowed, modelsByID, modelID, mappedModelID)
-		}
-	}
-
-	out := make([]service.ModelInfo, 0, len(allowed))
-	for _, model := range allowed {
-		out = append(out, model)
-	}
-	sort.Slice(out, func(i, j int) bool {
-		if out[i].LiteLLMProvider != out[j].LiteLLMProvider {
-			return out[i].LiteLLMProvider < out[j].LiteLLMProvider
-		}
-		return out[i].ID < out[j].ID
-	})
-	return out
-}
-
-func configuredModelWhitelist(account *service.Account) map[string]string {
-	if account == nil || account.Credentials == nil {
-		return nil
-	}
-
-	switch raw := account.Credentials["model_mapping"].(type) {
-	case map[string]any:
-		return cleanModelMapping(raw)
-	case map[string]string:
-		result := make(map[string]string, len(raw))
-		for key, value := range raw {
-			if key = strings.TrimSpace(key); key != "" {
-				result[key] = strings.TrimSpace(value)
-			}
-		}
-		return result
-	default:
-		return nil
-	}
-}
-
-func cleanModelMapping(raw map[string]any) map[string]string {
-	if len(raw) == 0 {
-		return nil
-	}
-	result := make(map[string]string, len(raw))
-	for key, value := range raw {
-		key = strings.TrimSpace(key)
-		if key == "" {
-			continue
-		}
-		if s, ok := value.(string); ok {
-			result[key] = strings.TrimSpace(s)
-		}
-	}
-	return result
-}
-
-func addWhitelistedModel(allowed map[string]service.ModelInfo, modelsByID map[string]service.ModelInfo, modelID, mappedModelID string) {
-	modelID = strings.TrimSpace(modelID)
-	if modelID == "" {
-		return
-	}
-
-	if strings.HasSuffix(modelID, "*") {
-		for candidateID, candidate := range modelsByID {
-			if matchModelWhitelistPattern(modelID, candidateID) {
-				allowed[candidateID] = candidate
-			}
-		}
-		return
-	}
-
-	if model, ok := modelsByID[modelID]; ok {
-		allowed[modelID] = model
-		return
-	}
-
-	mappedModelID = strings.TrimSpace(mappedModelID)
-	if mappedModelID == "" {
-		return
-	}
-	if model, ok := modelsByID[mappedModelID]; ok {
-		model.ID = modelID
-		allowed[modelID] = model
-	}
-}
-
-func matchModelWhitelistPattern(pattern, modelID string) bool {
-	if strings.HasSuffix(pattern, "*") {
-		return strings.HasPrefix(modelID, strings.TrimSuffix(pattern, "*"))
-	}
-	return pattern == modelID
 }

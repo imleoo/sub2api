@@ -68,6 +68,8 @@ const (
 	FieldDiscountRate = "discount_rate"
 	// FieldIsCustom holds the string denoting the is_custom field in the database.
 	FieldIsCustom = "is_custom"
+	// FieldTierPricing holds the string denoting the tier_pricing field in the database.
+	FieldTierPricing = "tier_pricing"
 	// FieldIsEnabled holds the string denoting the is_enabled field in the database.
 	FieldIsEnabled = "is_enabled"
 	// FieldSource holds the string denoting the source field in the database.
@@ -118,6 +120,7 @@ var Columns = []string{
 	FieldCustomOutputCost,
 	FieldDiscountRate,
 	FieldIsCustom,
+	FieldTierPricing,
 	FieldIsEnabled,
 	FieldSource,
 	FieldSourceProvider,
@@ -187,8 +190,10 @@ const DefaultPricingUnit = PricingUnitToken
 
 // PricingUnit values.
 const (
-	PricingUnitToken  PricingUnit = "token"
-	PricingUnitSecond PricingUnit = "second"
+	PricingUnitToken           PricingUnit = "token"
+	PricingUnitSecond          PricingUnit = "second"
+	PricingUnitImageGeneration PricingUnit = "image_generation"
+	PricingUnitVideoGeneration PricingUnit = "video_generation"
 )
 
 func (pu PricingUnit) String() string {
@@ -198,7 +203,7 @@ func (pu PricingUnit) String() string {
 // PricingUnitValidator is a validator for the "pricing_unit" field enum values. It is called by the builders before save.
 func PricingUnitValidator(pu PricingUnit) error {
 	switch pu {
-	case PricingUnitToken, PricingUnitSecond:
+	case PricingUnitToken, PricingUnitSecond, PricingUnitImageGeneration, PricingUnitVideoGeneration:
 		return nil
 	default:
 		return fmt.Errorf("modelpricing: invalid enum value for pricing_unit field: %q", pu)
@@ -346,6 +351,11 @@ func ByDiscountRate(opts ...sql.OrderTermOption) OrderOption {
 // ByIsCustom orders the results by the is_custom field.
 func ByIsCustom(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIsCustom, opts...).ToFunc()
+}
+
+// ByTierPricing orders the results by the tier_pricing field.
+func ByTierPricing(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTierPricing, opts...).ToFunc()
 }
 
 // ByIsEnabled orders the results by the is_enabled field.

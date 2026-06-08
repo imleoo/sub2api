@@ -20,11 +20,12 @@ type ModelPricingHandler struct {
 	pricingService      *service.PricingService
 	settingService      *service.SettingService
 	accountTestService  *service.AccountTestService
+	modelRouting        *service.ModelRoutingService // 可路由模型计算（与模型广场同口径）
 }
 
 // NewModelPricingHandler creates a new ModelPricingHandler.
-func NewModelPricingHandler(modelPricingService *service.ModelPricingService, repo service.ModelPricingRepository, ps *service.PricingService, ss *service.SettingService, ats *service.AccountTestService) *ModelPricingHandler {
-	return &ModelPricingHandler{modelPricingService: modelPricingService, repo: repo, pricingService: ps, settingService: ss, accountTestService: ats}
+func NewModelPricingHandler(modelPricingService *service.ModelPricingService, repo service.ModelPricingRepository, ps *service.PricingService, ss *service.SettingService, ats *service.AccountTestService, mr *service.ModelRoutingService) *ModelPricingHandler {
+	return &ModelPricingHandler{modelPricingService: modelPricingService, repo: repo, pricingService: ps, settingService: ss, accountTestService: ats, modelRouting: mr}
 }
 
 // listModelPricingResponse is the JSON shape returned per record.
@@ -48,8 +49,49 @@ type listModelPricingResponse struct {
 	DiscountRate                *float64 `json:"discount_rate,omitempty"`
 	IsCustom                    bool     `json:"is_custom"`
 	IsEnabled                   bool     `json:"is_enabled"`
+	PricingHealth               string   `json:"pricing_health"`
 	CreatedAt                   int64    `json:"created_at"`
 	UpdatedAt                   int64    `json:"updated_at"`
+}
+
+// pricing_health 派生状态（mode-aware），供后台置顶高亮异常行。
+const (
+	pricingHealthOK               = "ok"
+	pricingHealthMissingPricing   = "missing_pricing"
+	pricingHealthUnitContaminated = "unit_contamination"
+	pricingHealthOrphan           = "orphan_no_active_account"
+)
+
+func nilOrZero(v *float64) bool { return v == nil || *v == 0 }
+
+// computePricingHealth 计算单行健康度。routable 为「active 账号可路由」的 model_id 集合（一次性物化）。
+// 优先级：单位污染 > 未配价 > 孤儿 > ok。
+func computePricingHealth(m *service.DBModelPricing, routable map[string]struct{}) string {
+	if m == nil {
+		return pricingHealthOK
+	}
+	isVisual := m.Mode == "image_generation" || m.Mode == "video_generation"
+	// 单位污染：非图片/视频模型却带扁平图片价
+	if !isVisual && m.OutputCostPerImage != nil {
+		return pricingHealthUnitContaminated
+	}
+	// 未配价（mode-aware）
+	var missing bool
+	if isVisual {
+		missing = nilOrZero(m.OutputCostPerImage) && nilOrZero(m.OutputCostPerImageToken) && nilOrZero(m.CustomOutputCost)
+	} else {
+		missing = nilOrZero(m.InputCostPerToken) && nilOrZero(m.OutputCostPerToken) && nilOrZero(m.CustomInputCost) && nilOrZero(m.CustomOutputCost)
+	}
+	if missing {
+		return pricingHealthMissingPricing
+	}
+	// 孤儿：启用但无任何 active 账号可路由
+	if m.IsEnabled {
+		if _, ok := routable[m.ModelID]; !ok {
+			return pricingHealthOrphan
+		}
+	}
+	return pricingHealthOK
 }
 
 type createModelPricingRequest struct {
@@ -121,10 +163,16 @@ func dbModelPricingToResponse(m *service.DBModelPricing) *listModelPricingRespon
 }
 
 func normalizePricingUnit(unit string) string {
-	if strings.TrimSpace(unit) == service.ModelPricingUnitSecond {
+	switch strings.TrimSpace(unit) {
+	case service.ModelPricingUnitSecond:
 		return service.ModelPricingUnitSecond
+	case service.ModelPricingUnitImage:
+		return service.ModelPricingUnitImage
+	case service.ModelPricingUnitVideo:
+		return service.ModelPricingUnitVideo
+	default:
+		return service.ModelPricingUnitToken
 	}
-	return service.ModelPricingUnitToken
 }
 
 // List handles listing model pricings with optional filters.
@@ -148,11 +196,6 @@ func (h *ModelPricingHandler) List(c *gin.Context) {
 		b := v == "true" || v == "1"
 		isEnabled = &b
 	}
-	visibleOnly := true
-	if v := c.Query("visible_only"); v != "" {
-		visibleOnly = v == "true" || v == "1"
-	}
-
 	page := 1
 	if v, err := strconv.Atoi(c.DefaultQuery("page", "1")); err == nil && v > 0 {
 		page = v
@@ -165,20 +208,48 @@ func (h *ModelPricingHandler) List(c *gin.Context) {
 		pageSize = v
 	}
 
-	filter := service.ModelPricingListFilter{
-		Query:       q,
-		Provider:    provider,
-		IsCustom:    isCustom,
-		IsEnabled:   isEnabled,
-		VisibleOnly: visibleOnly,
-		Page:        page,
-		PageSize:    pageSize,
+	// 后台「模型折扣」默认 = 用户模型广场口径，使运营所见 = 用户所见（不再提供「只看可见」手工开关）。
+	// 一次性物化「active 账号可路由」的 ModelInfo（与广场同口径，ModelRoutingService），防 N+1，派生：
+	//   - routable：原始可路由 model_id 集，供 pricing_health orphan 判定（不受海外开关影响，
+	//     海外但可路由的模型不算孤儿）。
+	//   - visible：叠加 FilterVisibleModels（海外开关+版本下限）后的广场可见集，作为列表过滤 allowlist。
+	var (
+		routable   map[string]struct{}
+		visible    map[string]struct{}
+		hasRouting bool
+	)
+	if h.modelRouting != nil {
+		if infos, rErr := h.modelRouting.OperatorRoutableModelInfos(c.Request.Context()); rErr == nil {
+			hasRouting = true
+			routable = make(map[string]struct{}, len(infos))
+			for _, m := range infos {
+				routable[m.ID] = struct{}{}
+			}
+			showOverseas := true
+			if h.pricingService != nil {
+				showOverseas = h.pricingService.GetShowOverseasModels()
+			}
+			visible = make(map[string]struct{})
+			for _, m := range service.FilterVisibleModels(infos, showOverseas) {
+				visible[m.ID] = struct{}{}
+			}
+		}
 	}
 
-	// show_overseas_models=false 时按 model_id 前缀隐藏海外模型，与模型广场保持一致。
-	if h.settingService != nil {
-		if ps, err := h.settingService.GetPublicSettings(c.Request.Context()); err == nil && ps != nil && !ps.ShowOverseasModels {
-			filter.ExcludeOverseasModels = true
+	filter := service.ModelPricingListFilter{
+		Query:     q,
+		Provider:  provider,
+		IsCustom:  isCustom,
+		IsEnabled: isEnabled,
+		Page:      page,
+		PageSize:  pageSize,
+	}
+	// 默认始终按广场可见集过滤（= 用户所见）。路由信息不可用时（理论上不会发生）退回全集，避免后台空白。
+	if hasRouting {
+		filter.VisibleOnly = true
+		filter.RoutableModelIDs = make([]string, 0, len(visible))
+		for id := range visible {
+			filter.RoutableModelIDs = append(filter.RoutableModelIDs, id)
 		}
 	}
 
@@ -190,7 +261,9 @@ func (h *ModelPricingHandler) List(c *gin.Context) {
 
 	out := make([]*listModelPricingResponse, 0, len(items))
 	for _, item := range items {
-		out = append(out, dbModelPricingToResponse(item))
+		resp := dbModelPricingToResponse(item)
+		resp.PricingHealth = computePricingHealth(item, routable)
+		out = append(out, resp)
 	}
 	response.Paginated(c, out, int64(total), page, pageSize)
 }
@@ -468,102 +541,92 @@ func (h *ModelPricingHandler) SyncFromUpstream(c *gin.Context) {
 	})
 }
 
-type syncFromWanjieRequest struct {
+type syncMaasRequest struct {
+	Source          string `json:"source"`
 	URL             string `json:"url"`
 	AccessToken     string `json:"access_token"`
 	SaveCredentials bool   `json:"save_credentials"`
-	// JsonData 直接传入万界 API 的 JSON 响应体（优先于 URL+Token 和内嵌数据）。
-	JsonData string `json:"json_data"`
+	JsonData        string `json:"json_data"`
 }
 
-// SyncFromWanjie 从万界 MaaS 定价 API（或上传 JSON / 内嵌 JSON）批量更新 model_pricings 表。
-// 优先级：json_data > url+access_token > 已保存设置 > 内嵌 wanjie.json。
-// POST /api/v1/admin/model-pricings/sync-from-wanjie
-func (h *ModelPricingHandler) SyncFromWanjie(c *gin.Context) {
+// SyncMaas 通用 MaaS 定价同步：运营自管的任意来源（wanjie/doubao/lingjing/minimax/glm/...）。
+// 价格不内置——必须提供 json_data（上传）或 url+access_token（在线拉取）。
+// POST /api/v1/admin/model-pricings/sync-maas
+func (h *ModelPricingHandler) SyncMaas(c *gin.Context) {
 	if h.repo == nil {
 		response.BadRequest(c, "model pricing repository not available")
 		return
 	}
-
-	var req syncFromWanjieRequest
+	var req syncMaasRequest
 	_ = c.ShouldBindJSON(&req)
+	source := strings.TrimSpace(req.Source)
+	if source == "" {
+		response.BadRequest(c, "source is required")
+		return
+	}
 
 	ctx := c.Request.Context()
 	apiURL := strings.TrimSpace(req.URL)
 	token := strings.TrimSpace(req.AccessToken)
+	urlKey := "maas_url:" + source
+	tokenKey := "maas_token:" + source
 
-	// 若请求中携带凭证且要求保存，写入系统设置
 	if h.settingService != nil && req.SaveCredentials {
 		updates := map[string]string{}
 		if apiURL != "" {
-			updates[service.SettingKeyWanjieURL] = apiURL
+			updates[urlKey] = apiURL
 		}
 		if token != "" {
-			updates[service.SettingKeyWanjieAccessToken] = token
+			updates[tokenKey] = token
 		}
 		if len(updates) > 0 {
 			_ = h.settingService.SetMultiple(ctx, updates)
 		}
 	}
-
-	// 若请求中没有凭证，尝试从已保存设置中读取
 	if (apiURL == "" || token == "") && h.settingService != nil {
-		if saved, err := h.settingService.GetMultiple(ctx, []string{
-			service.SettingKeyWanjieURL,
-			service.SettingKeyWanjieAccessToken,
-		}); err == nil {
+		if saved, err := h.settingService.GetMultiple(ctx, []string{urlKey, tokenKey}); err == nil {
 			if apiURL == "" {
-				apiURL = strings.TrimSpace(saved[service.SettingKeyWanjieURL])
+				apiURL = strings.TrimSpace(saved[urlKey])
 			}
 			if token == "" {
-				token = strings.TrimSpace(saved[service.SettingKeyWanjieAccessToken])
+				token = strings.TrimSpace(saved[tokenKey])
 			}
 		}
 	}
 
-	var (
-		parsed []*service.DBModelPricing
-		err    error
-		source string
-	)
-
-	// 万界单价为人民币，需要按当前 CNY 汇率换算为 USD（与 schema 字段语义保持一致）。
 	cnyRate := service.DefaultWanjieCNYRate
 	if h.pricingService != nil {
 		cnyRate = h.pricingService.GetCNYRate()
 	}
 
+	var (
+		parsed []*service.DBModelPricing
+		err    error
+		mode   string
+	)
 	switch {
 	case strings.TrimSpace(req.JsonData) != "":
-		// 最高优先级：直接使用上传的 JSON 内容
-		parsed, err = service.ParseWanjieFromBytes([]byte(req.JsonData), cnyRate)
-		source = "upload"
+		parsed, err = service.ParseMaasFromBytes([]byte(req.JsonData), cnyRate, source)
+		mode = "upload"
 	case apiURL != "" && token != "":
-		parsed, err = service.FetchAndParseWanjieModels(ctx, nil, apiURL, token, cnyRate)
-		source = "live"
+		parsed, err = service.FetchAndParseMaasModels(ctx, nil, apiURL, token, cnyRate, source)
+		mode = "live"
 	default:
-		parsed, err = service.ParseWanjieModels(cnyRate)
-		source = "embedded"
-	}
-	if err != nil {
-		response.Error(c, http.StatusBadGateway, "failed to fetch/parse wanjie data: "+err.Error())
+		response.BadRequest(c, "provide json_data or url+access_token (no built-in pricing)")
 		return
 	}
-
-	if err := h.repo.BulkUpsertWanjie(ctx, parsed); err != nil {
+	if err != nil {
+		response.Error(c, http.StatusBadGateway, "failed to fetch/parse maas data: "+err.Error())
+		return
+	}
+	if err := h.repo.BulkUpsertMaas(ctx, parsed); err != nil {
 		response.ErrorFrom(c, err)
 		return
 	}
-
 	if h.pricingService != nil {
 		h.pricingService.ReloadFromDB(ctx)
 	}
-
-	response.Success(c, gin.H{
-		"message": "sync completed",
-		"total":   len(parsed),
-		"source":  source,
-	})
+	response.Success(c, gin.H{"message": "sync completed", "total": len(parsed), "source": source, "mode": mode})
 }
 
 // ListProviders 返回模型定价表里出现过的全部 provider，供前端筛选下拉框使用。

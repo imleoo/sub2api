@@ -652,6 +652,26 @@ func (_u *ModelPricingUpdate) SetNillableIsCustom(v *bool) *ModelPricingUpdate {
 	return _u
 }
 
+// SetTierPricing sets the "tier_pricing" field.
+func (_u *ModelPricingUpdate) SetTierPricing(v string) *ModelPricingUpdate {
+	_u.mutation.SetTierPricing(v)
+	return _u
+}
+
+// SetNillableTierPricing sets the "tier_pricing" field if the given value is not nil.
+func (_u *ModelPricingUpdate) SetNillableTierPricing(v *string) *ModelPricingUpdate {
+	if v != nil {
+		_u.SetTierPricing(*v)
+	}
+	return _u
+}
+
+// ClearTierPricing clears the value of the "tier_pricing" field.
+func (_u *ModelPricingUpdate) ClearTierPricing() *ModelPricingUpdate {
+	_u.mutation.ClearTierPricing()
+	return _u
+}
+
 // SetIsEnabled sets the "is_enabled" field.
 func (_u *ModelPricingUpdate) SetIsEnabled(v bool) *ModelPricingUpdate {
 	_u.mutation.SetIsEnabled(v)
@@ -1053,6 +1073,12 @@ func (_u *ModelPricingUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if value, ok := _u.mutation.IsCustom(); ok {
 		_spec.SetField(modelpricing.FieldIsCustom, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.TierPricing(); ok {
+		_spec.SetField(modelpricing.FieldTierPricing, field.TypeString, value)
+	}
+	if _u.mutation.TierPricingCleared() {
+		_spec.ClearField(modelpricing.FieldTierPricing, field.TypeString)
 	}
 	if value, ok := _u.mutation.IsEnabled(); ok {
 		_spec.SetField(modelpricing.FieldIsEnabled, field.TypeBool, value)
@@ -1728,6 +1754,26 @@ func (_u *ModelPricingUpdateOne) SetNillableIsCustom(v *bool) *ModelPricingUpdat
 	return _u
 }
 
+// SetTierPricing sets the "tier_pricing" field.
+func (_u *ModelPricingUpdateOne) SetTierPricing(v string) *ModelPricingUpdateOne {
+	_u.mutation.SetTierPricing(v)
+	return _u
+}
+
+// SetNillableTierPricing sets the "tier_pricing" field if the given value is not nil.
+func (_u *ModelPricingUpdateOne) SetNillableTierPricing(v *string) *ModelPricingUpdateOne {
+	if v != nil {
+		_u.SetTierPricing(*v)
+	}
+	return _u
+}
+
+// ClearTierPricing clears the value of the "tier_pricing" field.
+func (_u *ModelPricingUpdateOne) ClearTierPricing() *ModelPricingUpdateOne {
+	_u.mutation.ClearTierPricing()
+	return _u
+}
+
 // SetIsEnabled sets the "is_enabled" field.
 func (_u *ModelPricingUpdateOne) SetIsEnabled(v bool) *ModelPricingUpdateOne {
 	_u.mutation.SetIsEnabled(v)
@@ -2159,6 +2205,12 @@ func (_u *ModelPricingUpdateOne) sqlSave(ctx context.Context) (_node *ModelPrici
 	}
 	if value, ok := _u.mutation.IsCustom(); ok {
 		_spec.SetField(modelpricing.FieldIsCustom, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.TierPricing(); ok {
+		_spec.SetField(modelpricing.FieldTierPricing, field.TypeString, value)
+	}
+	if _u.mutation.TierPricingCleared() {
+		_spec.ClearField(modelpricing.FieldTierPricing, field.TypeString)
 	}
 	if value, ok := _u.mutation.IsEnabled(); ok {
 		_spec.SetField(modelpricing.FieldIsEnabled, field.TypeBool, value)

@@ -940,7 +940,7 @@ var (
 		{Name: "description", Type: field.TypeString, Nullable: true, Size: 2147483647},
 		{Name: "provider", Type: field.TypeString, Size: 100, Default: ""},
 		{Name: "mode", Type: field.TypeString, Size: 50, Default: "chat"},
-		{Name: "pricing_unit", Type: field.TypeEnum, Enums: []string{"token", "second"}, Default: "token"},
+		{Name: "pricing_unit", Type: field.TypeEnum, Enums: []string{"token", "second", "image_generation", "video_generation"}, Default: "token"},
 		{Name: "input_cost_per_token", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
 		{Name: "output_cost_per_token", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
 		{Name: "cache_creation_input_token_cost", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
@@ -962,6 +962,7 @@ var (
 		{Name: "custom_output_cost", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
 		{Name: "discount_rate", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(10,4)"}},
 		{Name: "is_custom", Type: field.TypeBool, Default: false},
+		{Name: "tier_pricing", Type: field.TypeString, Nullable: true, Size: 2147483647},
 		{Name: "is_enabled", Type: field.TypeBool, Default: true},
 		{Name: "source", Type: field.TypeString, Size: 20, Default: "manual"},
 		{Name: "source_provider", Type: field.TypeString, Size: 100, Default: ""},
@@ -995,17 +996,17 @@ var (
 			{
 				Name:    "modelpricing_is_enabled",
 				Unique:  false,
-				Columns: []*schema.Column{ModelPricingsColumns[28]},
+				Columns: []*schema.Column{ModelPricingsColumns[29]},
 			},
 			{
 				Name:    "modelpricing_source",
 				Unique:  false,
-				Columns: []*schema.Column{ModelPricingsColumns[29]},
+				Columns: []*schema.Column{ModelPricingsColumns[30]},
 			},
 			{
 				Name:    "modelpricing_pricing_status",
 				Unique:  false,
-				Columns: []*schema.Column{ModelPricingsColumns[32]},
+				Columns: []*schema.Column{ModelPricingsColumns[33]},
 			},
 		},
 	}

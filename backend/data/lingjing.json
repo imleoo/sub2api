@@ -1,0 +1,739 @@
+{
+  "success": true,
+  "message": "",
+  "code": 0,
+  "result": [
+    {
+      "id": "3000000000000100019",
+      "createBy": "system",
+      "createTime": "2026-05-28 11:40:17",
+      "updateBy": "system",
+      "updateTime": "2026-05-28 11:40:17",
+      "authModelTime": "2026-05-28 11:40:17",
+      "officialProvider": "灵境",
+      "delFlag": 0,
+      "userId": "2041799846083432448",
+      "modelId": "3000000000000000019",
+      "modelInstanceId": "",
+      "modelName": "Doubao-Seedance-1.5-pro",
+      "modelSummary": "doubao-seedance-1.5-pro 视频生成模型，按 token 用量计费。",
+      "deployCode": 1000,
+      "interactionType": 0,
+      "modelType": 0,
+      "isDeploy": 2,
+      "modelIdStr": "3000000000000000019",
+      "userName": "",
+      "authModelStr": "",
+      "firstType": "",
+      "secondType": "",
+      "inputTokenMultiplier": 0.1,
+      "outputTokenMultiplier": 0.1,
+      "modelImagePath": "https://portal.volccdn.com/obj/volcfe/misc/favicon.png",
+      "contextLength": 0,
+      "discountRate": 0.85,
+      "modelModalRelations": [
+        {
+          "modalClass": 2,
+          "modalClassName": "输出",
+          "typeGroups": [
+            {
+              "modalType": 4,
+              "modalTypeName": "视频",
+              "detailGroups": [
+                {
+                  "groupNumber": 1,
+                  "relations": [
+                    {
+                      "id": "100141",
+                      "modelId": "3000000000000000019",
+                      "modalId": "1980000000000100141",
+                      "chargeValue": "在线推理-有声视频",
+                      "officeChargeValue": "",
+                      "modalName": "计费规格",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 1,
+                      "unit": "",
+                      "sort": 1,
+                      "stepRange": "",
+                      "modalKey": "2-4-spec"
+                    },
+                    {
+                      "id": "100142",
+                      "modelId": "3000000000000000019",
+                      "modalId": "1980000000000100142",
+                      "chargeValue": "13.600",
+                      "officeChargeValue": "16.000",
+                      "modalName": "单价",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 1,
+                      "unit": "¥/M token (s)",
+                      "sort": 2,
+                      "stepRange": "",
+                      "modalKey": "2-4-1"
+                    }
+                  ]
+                },
+                {
+                  "groupNumber": 2,
+                  "relations": [
+                    {
+                      "id": "100143",
+                      "modelId": "3000000000000000019",
+                      "modalId": "1980000000000100143",
+                      "chargeValue": "在线推理-无声视频",
+                      "officeChargeValue": "",
+                      "modalName": "计费规格",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 2,
+                      "unit": "",
+                      "sort": 1,
+                      "stepRange": "",
+                      "modalKey": "2-4-spec"
+                    },
+                    {
+                      "id": "100144",
+                      "modelId": "3000000000000000019",
+                      "modalId": "1980000000000100144",
+                      "chargeValue": "6.800",
+                      "officeChargeValue": "8.000",
+                      "modalName": "单价",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 2,
+                      "unit": "¥/M token (s)",
+                      "sort": 2,
+                      "stepRange": "",
+                      "modalKey": "2-4-1"
+                    }
+                  ]
+                },
+                {
+                  "groupNumber": 3,
+                  "relations": [
+                    {
+                      "id": "100145",
+                      "modelId": "3000000000000000019",
+                      "modalId": "1980000000000100145",
+                      "chargeValue": "离线推理-有声视频",
+                      "officeChargeValue": "",
+                      "modalName": "计费规格",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 3,
+                      "unit": "",
+                      "sort": 1,
+                      "stepRange": "",
+                      "modalKey": "2-4-spec"
+                    },
+                    {
+                      "id": "100146",
+                      "modelId": "3000000000000000019",
+                      "modalId": "1980000000000100146",
+                      "chargeValue": "6.800",
+                      "officeChargeValue": "8.000",
+                      "modalName": "单价",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 3,
+                      "unit": "¥/M token (s)",
+                      "sort": 2,
+                      "stepRange": "",
+                      "modalKey": "2-4-1"
+                    }
+                  ]
+                },
+                {
+                  "groupNumber": 4,
+                  "relations": [
+                    {
+                      "id": "100147",
+                      "modelId": "3000000000000000019",
+                      "modalId": "1980000000000100147",
+                      "chargeValue": "离线推理-无声视频",
+                      "officeChargeValue": "",
+                      "modalName": "计费规格",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 4,
+                      "unit": "",
+                      "sort": 1,
+                      "stepRange": "",
+                      "modalKey": "2-4-spec"
+                    },
+                    {
+                      "id": "100148",
+                      "modelId": "3000000000000000019",
+                      "modalId": "1980000000000100148",
+                      "chargeValue": "3.400",
+                      "officeChargeValue": "4.000",
+                      "modalName": "单价",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 4,
+                      "unit": "¥/M token (s)",
+                      "sort": 2,
+                      "stepRange": "",
+                      "modalKey": "2-4-1"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "3000000000000100019",
+      "createBy": "system",
+      "createTime": "2026-05-28 11:40:17",
+      "updateBy": "system",
+      "updateTime": "2026-05-28 11:40:17",
+      "authModelTime": "2026-05-28 11:40:17",
+      "officialProvider": "灵境",
+      "delFlag": 0,
+      "userId": "2041799846083432448",
+      "modelId": "3000000000000000019",
+      "modelInstanceId": "",
+      "modelName": "doubao-seedance-1.5-pro-5s",
+      "modelSummary": "doubao-seedance-1.5-pro 视频生成模型，按 token 用量计费。",
+      "deployCode": 1000,
+      "interactionType": 0,
+      "modelType": 0,
+      "isDeploy": 2,
+      "modelIdStr": "3000000000000000019",
+      "userName": "",
+      "authModelStr": "",
+      "firstType": "",
+      "secondType": "",
+      "inputTokenMultiplier": 0.1,
+      "outputTokenMultiplier": 0.1,
+      "modelImagePath": "https://portal.volccdn.com/obj/volcfe/misc/favicon.png",
+      "contextLength": 0,
+      "discountRate": 0.85,
+      "modelModalRelations": [
+        {
+          "modalClass": 2,
+          "modalClassName": "输出",
+          "typeGroups": [
+            {
+              "modalType": 4,
+              "modalTypeName": "视频",
+              "detailGroups": [
+                {
+                  "groupNumber": 1,
+                  "relations": [
+                    {
+                      "id": "100141",
+                      "modelId": "3000000000000000019",
+                      "modalId": "1980000000000100141",
+                      "chargeValue": "在线推理-有声视频",
+                      "officeChargeValue": "",
+                      "modalName": "计费规格",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 1,
+                      "unit": "",
+                      "sort": 1,
+                      "stepRange": "",
+                      "modalKey": "2-4-spec"
+                    },
+                    {
+                      "id": "100142",
+                      "modelId": "3000000000000000019",
+                      "modalId": "1980000000000100142",
+                      "chargeValue": "13.600",
+                      "officeChargeValue": "16.000",
+                      "modalName": "单价",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 1,
+                      "unit": "¥/M token (s)",
+                      "sort": 2,
+                      "stepRange": "",
+                      "modalKey": "2-4-1"
+                    }
+                  ]
+                },
+                {
+                  "groupNumber": 2,
+                  "relations": [
+                    {
+                      "id": "100143",
+                      "modelId": "3000000000000000019",
+                      "modalId": "1980000000000100143",
+                      "chargeValue": "在线推理-无声视频",
+                      "officeChargeValue": "",
+                      "modalName": "计费规格",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 2,
+                      "unit": "",
+                      "sort": 1,
+                      "stepRange": "",
+                      "modalKey": "2-4-spec"
+                    },
+                    {
+                      "id": "100144",
+                      "modelId": "3000000000000000019",
+                      "modalId": "1980000000000100144",
+                      "chargeValue": "6.800",
+                      "officeChargeValue": "8.000",
+                      "modalName": "单价",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 2,
+                      "unit": "¥/M token (s)",
+                      "sort": 2,
+                      "stepRange": "",
+                      "modalKey": "2-4-1"
+                    }
+                  ]
+                },
+                {
+                  "groupNumber": 3,
+                  "relations": [
+                    {
+                      "id": "100145",
+                      "modelId": "3000000000000000019",
+                      "modalId": "1980000000000100145",
+                      "chargeValue": "离线推理-有声视频",
+                      "officeChargeValue": "",
+                      "modalName": "计费规格",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 3,
+                      "unit": "",
+                      "sort": 1,
+                      "stepRange": "",
+                      "modalKey": "2-4-spec"
+                    },
+                    {
+                      "id": "100146",
+                      "modelId": "3000000000000000019",
+                      "modalId": "1980000000000100146",
+                      "chargeValue": "6.800",
+                      "officeChargeValue": "8.000",
+                      "modalName": "单价",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 3,
+                      "unit": "¥/M token (s)",
+                      "sort": 2,
+                      "stepRange": "",
+                      "modalKey": "2-4-1"
+                    }
+                  ]
+                },
+                {
+                  "groupNumber": 4,
+                  "relations": [
+                    {
+                      "id": "100147",
+                      "modelId": "3000000000000000019",
+                      "modalId": "1980000000000100147",
+                      "chargeValue": "离线推理-无声视频",
+                      "officeChargeValue": "",
+                      "modalName": "计费规格",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 4,
+                      "unit": "",
+                      "sort": 1,
+                      "stepRange": "",
+                      "modalKey": "2-4-spec"
+                    },
+                    {
+                      "id": "100148",
+                      "modelId": "3000000000000000019",
+                      "modalId": "1980000000000100148",
+                      "chargeValue": "3.400",
+                      "officeChargeValue": "4.000",
+                      "modalName": "单价",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 4,
+                      "unit": "¥/M token (s)",
+                      "sort": 2,
+                      "stepRange": "",
+                      "modalKey": "2-4-1"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "3000000000000100019",
+      "createBy": "system",
+      "createTime": "2026-05-28 11:40:17",
+      "updateBy": "system",
+      "updateTime": "2026-05-28 11:40:17",
+      "authModelTime": "2026-05-28 11:40:17",
+      "officialProvider": "灵境",
+      "delFlag": 0,
+      "userId": "2041799846083432448",
+      "modelId": "3000000000000000019",
+      "modelInstanceId": "",
+      "modelName": "doubao-seedance-1.5-pro-10s",
+      "modelSummary": "doubao-seedance-1.5-pro 视频生成模型，按 token 用量计费。",
+      "deployCode": 1000,
+      "interactionType": 0,
+      "modelType": 0,
+      "isDeploy": 2,
+      "modelIdStr": "3000000000000000019",
+      "userName": "",
+      "authModelStr": "",
+      "firstType": "",
+      "secondType": "",
+      "inputTokenMultiplier": 0.1,
+      "outputTokenMultiplier": 0.1,
+      "modelImagePath": "https://portal.volccdn.com/obj/volcfe/misc/favicon.png",
+      "contextLength": 0,
+      "discountRate": 0.85,
+      "modelModalRelations": [
+        {
+          "modalClass": 2,
+          "modalClassName": "输出",
+          "typeGroups": [
+            {
+              "modalType": 4,
+              "modalTypeName": "视频",
+              "detailGroups": [
+                {
+                  "groupNumber": 1,
+                  "relations": [
+                    {
+                      "id": "100141",
+                      "modelId": "3000000000000000019",
+                      "modalId": "1980000000000100141",
+                      "chargeValue": "在线推理-有声视频",
+                      "officeChargeValue": "",
+                      "modalName": "计费规格",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 1,
+                      "unit": "",
+                      "sort": 1,
+                      "stepRange": "",
+                      "modalKey": "2-4-spec"
+                    },
+                    {
+                      "id": "100142",
+                      "modelId": "3000000000000000019",
+                      "modalId": "1980000000000100142",
+                      "chargeValue": "13.600",
+                      "officeChargeValue": "16.000",
+                      "modalName": "单价",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 1,
+                      "unit": "¥/M token (s)",
+                      "sort": 2,
+                      "stepRange": "",
+                      "modalKey": "2-4-1"
+                    }
+                  ]
+                },
+                {
+                  "groupNumber": 2,
+                  "relations": [
+                    {
+                      "id": "100143",
+                      "modelId": "3000000000000000019",
+                      "modalId": "1980000000000100143",
+                      "chargeValue": "在线推理-无声视频",
+                      "officeChargeValue": "",
+                      "modalName": "计费规格",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 2,
+                      "unit": "",
+                      "sort": 1,
+                      "stepRange": "",
+                      "modalKey": "2-4-spec"
+                    },
+                    {
+                      "id": "100144",
+                      "modelId": "3000000000000000019",
+                      "modalId": "1980000000000100144",
+                      "chargeValue": "6.800",
+                      "officeChargeValue": "8.000",
+                      "modalName": "单价",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 2,
+                      "unit": "¥/M token (s)",
+                      "sort": 2,
+                      "stepRange": "",
+                      "modalKey": "2-4-1"
+                    }
+                  ]
+                },
+                {
+                  "groupNumber": 3,
+                  "relations": [
+                    {
+                      "id": "100145",
+                      "modelId": "3000000000000000019",
+                      "modalId": "1980000000000100145",
+                      "chargeValue": "离线推理-有声视频",
+                      "officeChargeValue": "",
+                      "modalName": "计费规格",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 3,
+                      "unit": "",
+                      "sort": 1,
+                      "stepRange": "",
+                      "modalKey": "2-4-spec"
+                    },
+                    {
+                      "id": "100146",
+                      "modelId": "3000000000000000019",
+                      "modalId": "1980000000000100146",
+                      "chargeValue": "6.800",
+                      "officeChargeValue": "8.000",
+                      "modalName": "单价",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 3,
+                      "unit": "¥/M token (s)",
+                      "sort": 2,
+                      "stepRange": "",
+                      "modalKey": "2-4-1"
+                    }
+                  ]
+                },
+                {
+                  "groupNumber": 4,
+                  "relations": [
+                    {
+                      "id": "100147",
+                      "modelId": "3000000000000000019",
+                      "modalId": "1980000000000100147",
+                      "chargeValue": "离线推理-无声视频",
+                      "officeChargeValue": "",
+                      "modalName": "计费规格",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 4,
+                      "unit": "",
+                      "sort": 1,
+                      "stepRange": "",
+                      "modalKey": "2-4-spec"
+                    },
+                    {
+                      "id": "100148",
+                      "modelId": "3000000000000000019",
+                      "modalId": "1980000000000100148",
+                      "chargeValue": "3.400",
+                      "officeChargeValue": "4.000",
+                      "modalName": "单价",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 4,
+                      "unit": "¥/M token (s)",
+                      "sort": 2,
+                      "stepRange": "",
+                      "modalKey": "2-4-1"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "3000000000000100017",
+      "createBy": "system",
+      "createTime": "2026-05-28 11:40:17",
+      "updateBy": "system",
+      "updateTime": "2026-05-28 11:40:17",
+      "authModelTime": "2026-05-28 11:40:17",
+      "officialProvider": "灵境",
+      "delFlag": 0,
+      "userId": "2041799846083432448",
+      "modelId": "3000000000000000017",
+      "modelInstanceId": "",
+      "modelName": "cinema-generate-2.0",
+      "modelSummary": "doubao-seedance-2.0 视频生成模型，按 token 用量计费。",
+      "deployCode": 1000,
+      "interactionType": 0,
+      "modelType": 0,
+      "isDeploy": 2,
+      "modelIdStr": "3000000000000000017",
+      "userName": "",
+      "authModelStr": "",
+      "firstType": "",
+      "secondType": "",
+      "inputTokenMultiplier": 0.1,
+      "outputTokenMultiplier": 0.1,
+      "modelImagePath": "https://portal.volccdn.com/obj/volcfe/misc/favicon.png",
+      "contextLength": 0,
+      "discountRate": 0.85,
+      "modelModalRelations": [
+        {
+          "modalClass": 2,
+          "modalClassName": "输出",
+          "typeGroups": [
+            {
+              "modalType": 4,
+              "modalTypeName": "视频",
+              "detailGroups": [
+                {
+                  "groupNumber": 1,
+                  "relations": [
+                    {
+                      "id": "100129",
+                      "modelId": "3000000000000000017",
+                      "modalId": "1980000000000100129",
+                      "chargeValue": "在线推理-480p/720p-输入不含视频",
+                      "officeChargeValue": "",
+                      "modalName": "计费规格",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 1,
+                      "unit": "",
+                      "sort": 1,
+                      "stepRange": "",
+                      "modalKey": "2-4-spec"
+                    },
+                    {
+                      "id": "100130",
+                      "modelId": "3000000000000000017",
+                      "modalId": "1980000000000100130",
+                      "chargeValue": "39.100",
+                      "officeChargeValue": "46.000",
+                      "modalName": "单价",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 1,
+                      "unit": "¥/M token (s)",
+                      "sort": 2,
+                      "stepRange": "",
+                      "modalKey": "2-4-1"
+                    }
+                  ]
+                },
+                {
+                  "groupNumber": 2,
+                  "relations": [
+                    {
+                      "id": "100131",
+                      "modelId": "3000000000000000017",
+                      "modalId": "1980000000000100131",
+                      "chargeValue": "在线推理-480p/720p-输入包含视频",
+                      "officeChargeValue": "",
+                      "modalName": "计费规格",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 2,
+                      "unit": "",
+                      "sort": 1,
+                      "stepRange": "",
+                      "modalKey": "2-4-spec"
+                    },
+                    {
+                      "id": "100132",
+                      "modelId": "3000000000000000017",
+                      "modalId": "1980000000000100132",
+                      "chargeValue": "23.800",
+                      "officeChargeValue": "28.000",
+                      "modalName": "单价",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 2,
+                      "unit": "¥/M token (s)",
+                      "sort": 2,
+                      "stepRange": "",
+                      "modalKey": "2-4-1"
+                    }
+                  ]
+                },
+                {
+                  "groupNumber": 3,
+                  "relations": [
+                    {
+                      "id": "100133",
+                      "modelId": "3000000000000000017",
+                      "modalId": "1980000000000100133",
+                      "chargeValue": "在线推理-1080p-输入不含视频",
+                      "officeChargeValue": "",
+                      "modalName": "计费规格",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 3,
+                      "unit": "",
+                      "sort": 1,
+                      "stepRange": "",
+                      "modalKey": "2-4-spec"
+                    },
+                    {
+                      "id": "100134",
+                      "modelId": "3000000000000000017",
+                      "modalId": "1980000000000100134",
+                      "chargeValue": "43.350",
+                      "officeChargeValue": "51.000",
+                      "modalName": "单价",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 3,
+                      "unit": "¥/M token (s)",
+                      "sort": 2,
+                      "stepRange": "",
+                      "modalKey": "2-4-1"
+                    }
+                  ]
+                },
+                {
+                  "groupNumber": 4,
+                  "relations": [
+                    {
+                      "id": "100135",
+                      "modelId": "3000000000000000017",
+                      "modalId": "1980000000000100135",
+                      "chargeValue": "在线推理-1080p-输入包含视频",
+                      "officeChargeValue": "",
+                      "modalName": "计费规格",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 4,
+                      "unit": "",
+                      "sort": 1,
+                      "stepRange": "",
+                      "modalKey": "2-4-spec"
+                    },
+                    {
+                      "id": "100136",
+                      "modelId": "3000000000000000017",
+                      "modalId": "1980000000000100136",
+                      "chargeValue": "26.350",
+                      "officeChargeValue": "31.000",
+                      "modalName": "单价",
+                      "modalClass": 2,
+                      "modalType": 4,
+                      "groupNumber": 4,
+                      "unit": "¥/M token (s)",
+                      "sort": 2,
+                      "stepRange": "",
+                      "modalKey": "2-4-1"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

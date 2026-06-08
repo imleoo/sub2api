@@ -765,7 +765,7 @@ func (s *BillingService) CalculateVideoCost(model string, seconds float64, rateM
 	}
 
 	unitPrice := 0.0
-	var discountRate float64 = 1.0
+	discountRate := 1.0
 	if s.pricingService != nil {
 		if dbEntry := s.pricingService.LookupCatalogWithFuzzy(model); dbEntry != nil {
 			// 自定义价格优先；其次 output_cost_per_image（万界视频统一存这里，USD/秒）
@@ -799,6 +799,42 @@ func (s *BillingService) CalculateVideoCost(model string, seconds float64, rateM
 	return &CostBreakdown{
 		TotalCost:   totalCost,
 		ActualCost:  actualCost,
+		BillingMode: string(BillingModeVideo),
+	}
+}
+
+// CalculateSeedanceVideoCost 按官方 token 公式 + 模型自身的 tier_pricing 分档单价计算视频成本。
+// 区别于 CalculateVideoCost（per-second 单价 × 秒数）：此路径按 token 计费——
+// tokens = 分辨率档每帧 token × 帧率 × 秒数，再乘选档单价（¥/百万 token，来自上传定价 JSON）。
+// mode 为分辨率档（480p/720p/1080p），generateAudio 选有声/无声档。
+func (s *BillingService) CalculateSeedanceVideoCost(model, mode string, seconds float64, generateAudio bool, rateMultiplier float64) *CostBreakdown {
+	if seconds <= 0 {
+		return &CostBreakdown{}
+	}
+	cnyRate := DefaultWanjieCNYRate
+	discountRate := 1.0
+	var tiers []VideoPriceTier
+	if s.pricingService != nil {
+		cnyRate = s.pricingService.GetCNYRate()
+		if entry := s.pricingService.LookupCatalogWithFuzzy(model); entry != nil {
+			tiers = entry.TierPricing
+			if entry.DiscountRate != nil && *entry.DiscountRate > 0 {
+				discountRate = *entry.DiscountRate
+			}
+		}
+	}
+	usd := CalculateVideoTokenCostUSD(tiers, mode, seconds, generateAudio, cnyRate)
+	if usd <= 0 {
+		log.Printf("[Billing] video model %q has no tier pricing; cost defaulted to 0", model)
+		return &CostBreakdown{BillingMode: string(BillingModeVideo)}
+	}
+	if rateMultiplier < 0 {
+		rateMultiplier = 0
+	}
+	totalCost := usd * discountRate
+	return &CostBreakdown{
+		TotalCost:   totalCost,
+		ActualCost:  totalCost * rateMultiplier,
 		BillingMode: string(BillingModeVideo),
 	}
 }

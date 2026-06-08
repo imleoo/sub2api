@@ -175,7 +175,11 @@ func (r *LingjingPollRunner) triggerBilling(ctx context.Context, task *LingjingT
 	if r.billingSvc == nil || r.billingCache == nil {
 		return
 	}
-	const model = "doubao-seedance-1.5-pro"
+	// 按任务实际模型计费（不再硬编码 1.5-pro），使 cinema-generate-2.0 等各按自己的 lingjing.json 档计价。
+	model := strings.TrimSpace(task.Model)
+	if model == "" {
+		model = "doubao-seedance-1.5-pro"
+	}
 
 	// task.Duration 是字符串秒数（lingjing API 输入参数原样存储），fallback 5 秒兜底。
 	seconds, _ := strconv.ParseFloat(strings.TrimSpace(task.Duration), 64)
@@ -183,7 +187,16 @@ func (r *LingjingPollRunner) triggerBilling(ctx context.Context, task *LingjingT
 		seconds = 5
 	}
 
-	cost := r.billingSvc.CalculateVideoCost(model, seconds, 1.0)
+	// 灵境视频按火山官方 token 公式计费（tokens=分辨率档×帧率×秒数 × lingjing.json 选档单价），
+	// mode 取请求分辨率档，generateAudio 取请求音频开关。
+	mode := strings.TrimSpace(task.Mode)
+	generateAudio := false
+	if task.RequestBody != nil {
+		if v, ok := task.RequestBody["generate_audio"].(bool); ok {
+			generateAudio = v
+		}
+	}
+	cost := r.billingSvc.CalculateSeedanceVideoCost(model, mode, seconds, generateAudio, 1.0)
 	if cost == nil {
 		cost = &CostBreakdown{}
 	}

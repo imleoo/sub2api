@@ -1419,7 +1419,9 @@ export default {
     modelPricings: {
       pricingUnitLabel: 'Billing Unit',
       pricingUnitSecond: 'Second',
+      pricingUnitImage: 'Image (per image)',
       upstreamPricePerSecond: 'Upstream Price (per second)',
+      upstreamPricePerImage: 'Upstream Price (per image)',
       customPricePerSecond: 'Custom Price (per second)',
       secondUnit: 'sec',
     },
@@ -6974,6 +6976,10 @@ export default {
     pricing: {
       secondPrice: 'Unit Price',
       unitPerSecond: '/sec',
+      imagePrice: 'Per Image',
+      videoPrice: 'Unit Price',
+      unitPerImage: '/image',
+      unitPerToken: '/token',
     },
     contextWindow: 'Context Window',
     features: 'Features',

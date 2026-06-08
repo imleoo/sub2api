@@ -7,7 +7,7 @@ export interface DBModelPricing {
   description: string | null
   provider: string
   mode: string
-  pricing_unit: 'token' | 'second'
+  pricing_unit: 'token' | 'second' | 'image_generation' | 'video_generation'
   input_cost_per_token: number | null
   output_cost_per_token: number | null
   cache_creation_input_token_cost: number | null
@@ -20,10 +20,18 @@ export interface DBModelPricing {
   discount_rate: number | null
   is_custom: boolean
   is_enabled: boolean
+  pricing_health?: PricingHealth
   last_synced_at: string | null
   created_at: string
   updated_at: string
 }
+
+// pricing_health 派生状态（后端 mode-aware 计算），ok 以外置顶高亮。
+export type PricingHealth =
+  | 'ok'
+  | 'missing_pricing'
+  | 'unit_contamination'
+  | 'orphan_no_active_account'
 
 export interface ModelPricingListFilter {
   q?: string
@@ -48,7 +56,7 @@ export interface CreateModelPricingRequest {
   description?: string | null
   provider: string
   mode: string
-  pricing_unit?: 'token' | 'second'
+  pricing_unit?: 'token' | 'second' | 'image_generation' | 'video_generation'
   input_cost_per_token?: number | null
   output_cost_per_token?: number | null
   cache_creation_input_token_cost?: number | null
@@ -94,21 +102,26 @@ export interface SyncFromUpstreamResponse {
 export const syncModelPricingsFromUpstream = (data: SyncFromUpstreamRequest) =>
   apiClient.post<SyncFromUpstreamResponse>('/admin/model-pricings/sync-from-upstream', data)
 
-export interface SyncFromWanjieRequest {
+// 通用 MaaS 定价同步：价格完全由运营管理，不内置任何厂商价。
+// source 任意标识（wanjie/doubao/lingjing/minimax/glm…），凭证按 source 维度保存。
+// 二选一：上传 json_data（万界 API 响应格式），或填 url+access_token 在线拉取。
+export interface SyncMaasRequest {
+  source: string
   url?: string
   access_token?: string
   save_credentials?: boolean
   json_data?: string
 }
 
-export interface SyncFromWanjieResponse {
+export interface SyncMaasResponse {
   message: string
   total: number
   source: string
+  mode: string
 }
 
-export const syncModelPricingsFromWanjie = (data: SyncFromWanjieRequest) =>
-  apiClient.post<SyncFromWanjieResponse>('/admin/model-pricings/sync-from-wanjie', data)
+export const syncModelPricingsFromMaas = (data: SyncMaasRequest) =>
+  apiClient.post<SyncMaasResponse>('/admin/model-pricings/sync-maas', data)
 
 export const clearAllModelPricingDiscounts = () =>
   apiClient.post('/admin/model-pricings/clear-discounts')

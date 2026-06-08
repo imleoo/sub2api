@@ -490,6 +490,14 @@ const (
 	// 万界 MaaS 定价同步配置
 	SettingKeyWanjieURL         = "wanjie_url"          // 万界定价 API URL
 	SettingKeyWanjieAccessToken = "wanjie_access_token" // 万界 x-access-token
+
+	// 豆包（火山引擎）MaaS 定价同步配置（与万界同协议）
+	SettingKeyDoubaoURL         = "doubao_url"          // 豆包定价 API URL
+	SettingKeyDoubaoAccessToken = "doubao_access_token" // 豆包 x-access-token
+
+	// 灵境 MaaS 定价同步配置（与万界同协议，独立 lingjing.json）
+	SettingKeyLingjingURL         = "lingjing_url"          // 灵境定价 API URL
+	SettingKeyLingjingAccessToken = "lingjing_access_token" // 灵境 x-access-token
 )
 
 // SettingKeyDefaultPlatformQuotas —— 系统全局：每用户 × 平台日/周/月 USD 上限（JSON）。
@@ -521,6 +529,7 @@ var OverseasModelIDPrefixes = []string{
 	"grok-", "grok.",
 	"nova-", "amazon.nova", "titan-",
 	"palm-", "palm2-", "bison",
+	"veo",
 }
 
 // overseasReasoningModelRE 匹配 o 系列推理模型（o1 / o1-mini / o3 / o3-mini / o4-mini ...）。

@@ -31,6 +31,10 @@ const messages: Record<string, string> = {
   'models.outputPrice': 'Output Price',
   'models.pricing.secondPrice': 'Unit Price',
   'models.pricing.unitPerSecond': '/sec',
+  'models.pricing.imagePrice': 'Per Image',
+  'models.pricing.videoPrice': 'Unit Price',
+  'models.pricing.unitPerImage': '/image',
+  'models.pricing.unitPerToken': '/token',
   'models.contextWindow': 'Context Window',
   'models.features': 'Features',
   'models.promptCaching': 'Cache',
@@ -86,15 +90,16 @@ describe('ModelsView', () => {
     })
   })
 
-  it('shows whitelisted image models returned with image_generation mode', async () => {
+  // 可见性（海外/版本下限）过滤已下沉后端：前端不再过滤，getModels 返回什么就显示什么。
+  // 前端仍负责 mode 按钮筛选（Image）。
+  it('renders returned models as-is and filters by Image mode button', async () => {
     mockedGetModels.mockResolvedValue({
-      total: 4,
+      total: 3,
       available_platforms: ['openai', 'google'],
       models: [
         model({ id: 'gpt-image-1', mode: 'image_generation' }),
         model({ id: 'gemini-2.5-flash-image', provider: 'google', mode: 'image_generation' }),
         model({ id: 'gpt-5.2' }),
-        model({ id: 'gpt-4o' }),
       ],
     })
 
@@ -104,7 +109,6 @@ describe('ModelsView', () => {
     expect(wrapper.text()).toContain('gpt-image-1')
     expect(wrapper.text()).toContain('gemini-2.5-flash-image')
     expect(wrapper.text()).toContain('gpt-5.2')
-    expect(wrapper.text()).not.toContain('gpt-4o')
 
     await wrapper.findAll('button').find(button => button.text() === 'Image')?.trigger('click')
 
@@ -151,6 +155,31 @@ describe('ModelsView', () => {
 
     expect(wrapper.text()).toContain('Unit Price')
     expect(wrapper.text()).toContain('$0.2/sec')
+    expect(wrapper.text()).not.toContain('Output Price')
+  })
+
+  it('renders per-image price for image_generation models (no ¥0.00 collapse)', async () => {
+    mockedGetModels.mockResolvedValue({
+      total: 1,
+      available_platforms: ['lingjing'],
+      models: [
+        model({
+          id: 'doubao-seedream-4-0',
+          provider: 'lingjing',
+          mode: 'image_generation',
+          pricing_unit: 'image_generation',
+          input_cost_per_token: 0,
+          output_cost_per_token: 0,
+          output_cost_per_image: 0.0294,
+        }),
+      ],
+    } as never)
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Per Image')
+    expect(wrapper.text()).toContain('$0.0294/image')
     expect(wrapper.text()).not.toContain('Output Price')
   })
 })

@@ -2,15 +2,14 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
 	"time"
 
-	entsql "entgo.io/ent/dialect/sql"
 	dbent "github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/ent/modelpricing"
-	"github.com/Wei-Shaw/sub2api/ent/predicate"
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 )
@@ -211,6 +210,7 @@ func (r *modelPricingRepository) Create(ctx context.Context, m *service.DBModelP
 		SetNillableLongContextInputTokenThreshold(m.LongContextInputTokenThreshold).
 		SetNillableLongContextInputCostMultiplier(m.LongContextInputCostMultiplier).
 		SetNillableLongContextOutputCostMultiplier(m.LongContextOutputCostMultiplier).
+		SetNillableTierPricing(marshalTierPricing(m.TierPricing)).
 		SetNillableSourceAccountID(m.SourceAccountID)
 	created, err := builder.Save(ctx)
 	if err != nil {
@@ -283,24 +283,10 @@ func (r *modelPricingRepository) List(ctx context.Context, filter service.ModelP
 		q = q.Where(modelpricing.IsEnabledEQ(*filter.IsEnabled))
 	}
 	if filter.VisibleOnly {
+		// 可路由集合由 ModelRoutingService 计算（与模型广场同口径），此处仅按 allowlist 过滤。
+		// 空 allowlist → ModelIDIn() 匹配为空 → 无可见模型（语义正确）。
 		q = q.Where(modelpricing.IsEnabledEQ(true))
-		q = q.Where(predicate.ModelPricing(func(s *entsql.Selector) {
-			s.Where(entsql.ExprP(
-				`EXISTS (
-					SELECT 1
-					FROM accounts a
-					CROSS JOIN LATERAL jsonb_object_keys(COALESCE(a.credentials->'model_mapping', '{}'::jsonb)) AS mm(model_key)
-					WHERE a.deleted_at IS NULL
-					  AND (
-						mm.model_key = ` + s.C(modelpricing.FieldModelID) + `
-						OR (
-							right(mm.model_key, 1) = '*'
-							AND left(` + s.C(modelpricing.FieldModelID) + `, greatest(length(mm.model_key) - 1, 0)) = left(mm.model_key, length(mm.model_key) - 1)
-						)
-					  )
-				)`,
-			))
-		}))
+		q = q.Where(modelpricing.ModelIDIn(filter.RoutableModelIDs...))
 	}
 
 	total, err := q.Count(ctx)
@@ -544,11 +530,16 @@ func (r *modelPricingRepository) SeedIfNotExists(ctx context.Context, models []*
 	return nil
 }
 
-// BulkUpsertWanjie 将万界平台定价批量写入：
+// BulkUpsertWanjie 是 BulkUpsertMaas 的兼容包装（万界来源）。
+func (r *modelPricingRepository) BulkUpsertWanjie(ctx context.Context, models []*service.DBModelPricing) error {
+	return r.BulkUpsertMaas(ctx, models)
+}
+
+// BulkUpsertMaas 将万界/豆包 MaaS 平台定价批量写入（source 由各记录 m.Source 决定）：
 //   - is_custom=true 的已有记录：更新 mode、provider（若为空）及全部定价字段
 //   - is_custom=false 的已有记录（LiteLLM/litellm 来源）：跳过，保留 USD 定价
-//   - 不存在的记录：新建（is_custom=true，source=wanjie）
-func (r *modelPricingRepository) BulkUpsertWanjie(ctx context.Context, models []*service.DBModelPricing) error {
+//   - 不存在的记录：新建（is_custom=true，source 取 m.Source）
+func (r *modelPricingRepository) BulkUpsertMaas(ctx context.Context, models []*service.DBModelPricing) error {
 	for _, m := range models {
 		if strings.TrimSpace(m.ModelID) == "" {
 			continue
@@ -577,7 +568,7 @@ func (r *modelPricingRepository) BulkUpsertWanjie(ctx context.Context, models []
 			SetMode(m.Mode).
 			SetPricingUnit(normalizePricingUnit(m.PricingUnit)).
 			SetSupportsPromptCaching(m.SupportsPromptCaching).
-			SetSource(service.ModelPricingSourceWanjie).
+			SetSource(m.Source).
 			SetPricingStatus(m.PricingStatus)
 
 		// provider 仅在原记录为空时补全
@@ -621,9 +612,15 @@ func (r *modelPricingRepository) BulkUpsertWanjie(ctx context.Context, models []
 		} else {
 			builder.ClearDiscountRate()
 		}
+		// 视频分档单价（tier_pricing）：有则写、无则清。
+		if tp := marshalTierPricing(m.TierPricing); tp != nil {
+			builder.SetTierPricing(*tp)
+		} else {
+			builder.ClearTierPricing()
+		}
 
 		if _, err := builder.Save(ctx); err != nil {
-			return fmt.Errorf("wanjie update %s: %w", m.ModelID, err)
+			return fmt.Errorf("maas update %s: %w", m.ModelID, err)
 		}
 	}
 	return nil
@@ -689,15 +686,45 @@ func modelPricingEntityToService(m *dbent.ModelPricing) *service.DBModelPricing 
 		SourceProvider:                  m.SourceProvider,
 		SourceAccountID:                 m.SourceAccountID,
 		PricingStatus:                   m.PricingStatus,
+		TierPricing:                     unmarshalTierPricing(m.TierPricing),
 
 		CreatedAt: m.CreatedAt,
 		UpdatedAt: m.UpdatedAt,
 	}
 }
 
-func normalizePricingUnit(unit string) modelpricing.PricingUnit {
-	if strings.TrimSpace(unit) == service.ModelPricingUnitSecond {
-		return modelpricing.PricingUnitSecond
+func unmarshalTierPricing(s *string) []service.VideoPriceTier {
+	if s == nil || strings.TrimSpace(*s) == "" {
+		return nil
 	}
-	return modelpricing.PricingUnitToken
+	var tiers []service.VideoPriceTier
+	if err := json.Unmarshal([]byte(*s), &tiers); err != nil {
+		return nil
+	}
+	return tiers
+}
+
+func marshalTierPricing(tiers []service.VideoPriceTier) *string {
+	if len(tiers) == 0 {
+		return nil
+	}
+	b, err := json.Marshal(tiers)
+	if err != nil {
+		return nil
+	}
+	s := string(b)
+	return &s
+}
+
+func normalizePricingUnit(unit string) modelpricing.PricingUnit {
+	switch strings.TrimSpace(unit) {
+	case service.ModelPricingUnitSecond:
+		return modelpricing.PricingUnitSecond
+	case service.ModelPricingUnitImage:
+		return modelpricing.PricingUnitImageGeneration
+	case service.ModelPricingUnitVideo:
+		return modelpricing.PricingUnitVideoGeneration
+	default:
+		return modelpricing.PricingUnitToken
+	}
 }

@@ -174,36 +174,8 @@ func BootstrapPricingSeeds() []*DBModelPricing {
 	gpt53CodexSpark := *gpt53Codex // Spark 变体使用与 codex 相同定价
 	gpt53CodexSpark.ModelID = "gpt-5.3-codex-spark"
 
-	// ---- 灵境豆包（迁自 pricing_service.go:280-329） ----
-	lingjingSeedream40 := &DBModelPricing{
-		ModelID:            "doubao-seedream-4-0-250828",
-		Provider:           "lingjing",
-		Mode:               "image_generation",
-		OutputCostPerImage: bootstrapFloatPtr(lingjingSeedream40Pricing.OutputCostPerImage),
-	}
-	lingjingSeedream45 := *lingjingSeedream40
-	lingjingSeedream45.ModelID = "doubao-seedream-4-5-251128"
-	lingjingSeedream5Lite := &DBModelPricing{
-		ModelID:            "Doubao-Seedream-5.0-lite",
-		Provider:           "lingjing",
-		Mode:               "image_generation",
-		OutputCostPerImage: bootstrapFloatPtr(lingjingSeedream5LitePricing.OutputCostPerImage),
-	}
-	// 灵境 seedance：按秒计费，RMB 源价 ¥0.215/秒（= ¥0.01/千 token × 1280×720×24/1024 tokens/秒），
-	// USD 换算统一走系统汇率 DefaultWanjieCNYRate（不再额外硬编码 7/7.28）。
-	// output_cost_per_image 复用承担 per-second 语义（schema 注释），billing 路径 CalculateVideoCost 直接读取。
-	lingjingSeedance := &DBModelPricing{
-		ModelID:            "doubao-seedance-1.5-pro",
-		Provider:           "lingjing",
-		Mode:               "video_generation",
-		OutputCostPerImage: bootstrapFloatPtr(0.215 / DefaultWanjieCNYRate),
-	}
-	// 保留历史时长后缀模型作为兼容兜底（旧 usage_log 行 join 时仍可定位到价格），
-	// 单价语义改为 per-second 一致，避免老路径误算。
-	lingjingSeedance5s := *lingjingSeedance
-	lingjingSeedance5s.ModelID = "doubao-seedance-1.5-pro-5s"
-	lingjingSeedance10s := *lingjingSeedance
-	lingjingSeedance10s.ModelID = "doubao-seedance-1.5-pro-10s"
+	// 通用化后：灵境/豆包等 MaaS 平台定价不再内置，由运营上传 JSON（sync-maas）管理。
+	// 此处仅保留 Claude/GPT/Gemini 基础 catalog 兜底（非 MaaS 平台价）。
 
 	all := []*DBModelPricing{
 		claudeOpus45, &claudeOpus46, &claudeOpus47,
@@ -211,8 +183,6 @@ func BootstrapPricingSeeds() []*DBModelPricing {
 		claude35Haiku, claude3Opus, claude3Haiku,
 		gemini31Pro,
 		gpt54, &gpt55, gpt54Mini, gpt54Nano, gpt52, gpt53Codex, &gpt53CodexSpark,
-		lingjingSeedream40, &lingjingSeedream45, lingjingSeedream5Lite,
-		lingjingSeedance, &lingjingSeedance5s, &lingjingSeedance10s,
 	}
 
 	// 统一打 source 与 pricing_status 标签；灵境保留 source=lingjing 与现状一致。
