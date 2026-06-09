@@ -180,8 +180,7 @@ pnpm test:coverage  # 测试覆盖率
 
 ### 插件架构（`internal/plugin/`）
 
-zhiguofan 分支独有的可插拔功能目录，每个插件自包含 handler/repository/middleware/wire：
-- `plugin/promptanalytics/`：从网关请求体实时提取关键词，生成月度词云和 Top-N 排行。通过 `gateway.go` 中间件挂载，Schema 在 `ent/schema/keyword_stat.go`
+zhiguofan 分支独有的可插拔功能目录，每个插件自包含 handler/repository/middleware/wire。当前该目录为空（原 `promptanalytics` 词云插件已于 2026-06-08 整体移除，见迁移 `159_drop_keyword_stats.sql`）；新增 fork 插件时沿用「自包含 + 独立 wire ProviderSet」约定。
 
 ### 支付集成（`internal/payment/`）
 

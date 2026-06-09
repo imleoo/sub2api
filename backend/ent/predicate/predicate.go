@@ -54,9 +54,6 @@ type IdempotencyRecord func(*sql.Selector)
 // IdentityAdoptionDecision is the predicate function for identityadoptiondecision builders.
 type IdentityAdoptionDecision func(*sql.Selector)
 
-// KeywordStat is the predicate function for keywordstat builders.
-type KeywordStat func(*sql.Selector)
-
 // LingjingTask is the predicate function for lingjingtask builders.
 type LingjingTask func(*sql.Selector)
 

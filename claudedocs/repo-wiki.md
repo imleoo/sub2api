@@ -107,7 +107,7 @@ SubPanel/
 │   │   ├── repository/       # 数据访问层（Ent + Redis）
 │   │   ├── server/           # HTTP 服务器、路由、中间件
 │   │   ├── payment/          # 支付提供商抽象层
-│   │   ├── plugin/           # 可插拔功能（promptanalytics）
+│   │   ├── plugin/           # 可插拔功能（当前为空，promptanalytics 已移除）
 │   │   ├── pkg/              # 通用工具库（各平台 SDK 适配）
 │   │   ├── setup/            # 首次安装向导
 │   │   ├── integration/      # E2E 集成测试
@@ -181,28 +181,27 @@ SubPanel/
 |------|------|---------|
 | **① 用户端模型广场** | 用户查看白名单内可用模型、折后价、CNY 价格 | `views/user/ModelsView.vue`、`handler/usage_handler.go` |
 | **② 管理员用户使用统计** | 管理员查看单用户汇总/日历史/模型/端点分布 | `admin/UserStatsModal.vue`、`admin_service.go` |
-| **③ 词云分析（Prompt Analytics）** | 网关实时提取关键词，生成月度词云和 Top-N 排行 | `plugin/promptanalytics/`、`ent/schema/keyword_stat.go` |
-| **④ 模型折扣与 CNY 定价** | 管理员设置折扣率，计费自动应用，用户端展示人民币价 | `service/pricing_service.go`、`service/billing_service.go` |
-| **⑤ UI 主题扩展** | 新增 violet、orange 两套主题 | `style.css`、`stores/app.ts` |
-| **⑥ 语言切换 Cookie 持久化** | 刷新后保持用户语言偏好 | `main.ts` |
-| **⑦ 网关响应遮蔽（Masking）** | 拦截"你是什么模型"类问题，返回固定身份回答 | `service/gateway_response_masking.go` |
-| **⑧ 移除 OAuth 账号创建 UI** | 账号创建弹窗只保留 API Key / Setup Token | `CreateAccountModal.vue`、`EditAccountModal.vue` |
-| **⑨ 京东云灵境接入** | Doubao Seedream 生图（同步）+ Seedance 视频（异步 + 后台 Runner） | `service/lingjing_*.go`、`handler/lingjing_handler.go` |
-| **⑩ GitHub Actions 禁用自动触发** | 所有 workflow 改为 `workflow_dispatch:` 手动触发 | `.github/workflows/*.yml` |
-| **⑪ 邀请返佣系统（Affiliates）** | 用户邀请码生成、返佣比例配置、邀请/返利/转账记录管理 | `handler/admin/affiliate_handler.go`、`user.go`（aff 字段） |
-| **⑫ 渠道管理** | 自定义计费渠道，覆盖模型默认价格 | `handler/admin/channel_handler.go`、`ent/schema/`（无独立表，依赖 Group） |
-| **⑬ 渠道监控** | 定时探测账号健康，支持自定义监控模板 | `ent/schema/channel_monitor*.go`（4 张表）、`channel_monitor_handler.go` |
-| **⑭ MAAS Phase 0：上游成本追踪** | 按 provider 快照真实上游单价，写入 `UsageLog.upstream_total_cost` | `ent/schema/provider_pricing.go`、`provider_pricing_handler.go` |
-| **⑮ MAAS Phase 2-3：协议桥接** | Group 声明 `InboundProtocol`，`/v1/responses` 端点上线 | `openai_gateway_handler.go`、`ent/schema/group.go`（protocol 字段） |
-| **⑯ MAAS Phase 4：Generic Endpoint** | 账号支持多 endpoint 轮询，`endpoint.go` 独立 Schema | `ent/schema/endpoint.go`、`/admin/accounts/:id/endpoints` |
-| **⑰ MAAS Phase 5：协议桶调度** | 双桶分歧统计，调度器按 outbound_protocol 分桶 | `scheduler_handler.go`、`/admin/scheduler/dual-bucket-stats` |
-| **⑱ 文档精简与 Release 安装说明增强** | goreleaser footer 增加完整安装/配置/升级指南；README 去除无关内容 | `.goreleaser.yaml`、`README*.md` |
+| **③ 模型折扣与 CNY 定价** | 管理员设置折扣率，计费自动应用，用户端展示人民币价 | `service/pricing_service.go`、`service/billing_service.go` |
+| **④ UI 主题扩展** | 新增 violet、orange 两套主题 | `style.css`、`stores/app.ts` |
+| **⑤ 语言切换 Cookie 持久化** | 刷新后保持用户语言偏好 | `main.ts` |
+| **⑥ 网关响应遮蔽（Masking）** | 拦截"你是什么模型"类问题，返回固定身份回答 | `service/gateway_response_masking.go` |
+| **⑦ 移除 OAuth 账号创建 UI** | 账号创建弹窗只保留 API Key / Setup Token | `CreateAccountModal.vue`、`EditAccountModal.vue` |
+| **⑧ 京东云灵境接入** | Doubao Seedream 生图（同步）+ Seedance 视频（异步 + 后台 Runner） | `service/lingjing_*.go`、`handler/lingjing_handler.go` |
+| **⑨ GitHub Actions 禁用自动触发** | 所有 workflow 改为 `workflow_dispatch:` 手动触发 | `.github/workflows/*.yml` |
+| **⑩ 邀请返佣系统（Affiliates）** | 用户邀请码生成、返佣比例配置、邀请/返利/转账记录管理 | `handler/admin/affiliate_handler.go`、`user.go`（aff 字段） |
+| **⑪ 渠道管理** | 自定义计费渠道，覆盖模型默认价格 | `handler/admin/channel_handler.go`、`ent/schema/`（无独立表，依赖 Group） |
+| **⑫ 渠道监控** | 定时探测账号健康，支持自定义监控模板 | `ent/schema/channel_monitor*.go`（4 张表）、`channel_monitor_handler.go` |
+| **⑬ MAAS Phase 0：上游成本追踪** | 按 provider 快照真实上游单价，写入 `UsageLog.upstream_total_cost` | `ent/schema/provider_pricing.go`、`provider_pricing_handler.go` |
+| **⑭ MAAS Phase 2-3：协议桥接** | Group 声明 `InboundProtocol`，`/v1/responses` 端点上线 | `openai_gateway_handler.go`、`ent/schema/group.go`（protocol 字段） |
+| **⑮ MAAS Phase 4：Generic Endpoint** | 账号支持多 endpoint 轮询，`endpoint.go` 独立 Schema | `ent/schema/endpoint.go`、`/admin/accounts/:id/endpoints` |
+| **⑯ MAAS Phase 5：协议桶调度** | 双桶分歧统计，调度器按 outbound_protocol 分桶 | `scheduler_handler.go`、`/admin/scheduler/dual-bucket-stats` |
+| **⑰ 文档精简与 Release 安装说明增强** | goreleaser footer 增加完整安装/配置/升级指南；README 去除无关内容 | `.goreleaser.yaml`、`README*.md` |
 
 ### 4.2 版本历史
 
 | fork 版本 | 上游版本 | 主要新增 |
 |----------|---------|---------|
-| 1.1.108 | 0.1.108 | 模型广场、用户使用统计、词云 |
+| 1.1.108 | 0.1.108 | 模型广场、用户使用统计（词云已于 2026-06-08 移除） |
 | 1.1.121 | 0.1.121 | 模型折扣、CNY 定价、UI 主题、语言 Cookie |
 | 1.1.123 | 0.1.123 | 响应遮蔽、货币模式设置 |
 | 1.1.123+ | 0.1.123 | 移除 OAuth UI |
@@ -217,15 +216,15 @@ SubPanel/
 
 | 风险 | 文件 | 检查要点 |
 |------|------|---------|
-| 🔴 高 | `backend/cmd/server/wire_gen.go` | promptAnalytics、lingjing 初始化链、NewSettingHandler 参数数量 |
-| 🔴 高 | `backend/internal/server/routes/admin.go` | model-discounts、prompt-analytics、affiliates、channels、scheduler 路由 |
-| 🔴 高 | `backend/internal/server/routes/gateway.go` | promptAnalytics 中间件、masking 逻辑、lingjing 路由组、isOpenAIInbound 分支 |
-| 🔴 高 | `frontend/src/router/index.ts` | `/models`、`/admin/prompt-analytics`、`/admin/model-discounts`、`/admin/affiliates/*` |
+| 🔴 高 | `backend/cmd/server/wire_gen.go` | lingjing 初始化链、NewSettingHandler 参数数量 |
+| 🔴 高 | `backend/internal/server/routes/admin.go` | model-discounts、affiliates、channels、scheduler 路由 |
+| 🔴 高 | `backend/internal/server/routes/gateway.go` | masking 逻辑、lingjing 路由组、isOpenAIInbound 分支 |
+| 🔴 高 | `frontend/src/router/index.ts` | `/models`、`/admin/model-discounts`、`/admin/affiliates/*` |
 | 🔴 高 | `backend/internal/service/billing_service.go` | `applyDiscount()` 调用 |
 | 🔴 高 | `.github/workflows/*.yml` | `on:` 必须为 `workflow_dispatch:` |
 | 🟡 中 | `backend/internal/service/scheduler_snapshot_service.go` | 平台列表含 `PlatformLingjing`；`ProtocolBucketEnabled` 分支 |
 | 🟡 中 | `frontend/src/views/user/ModelsView.vue` | 白名单过滤、折扣展示 |
-| 🟡 中 | `frontend/src/i18n/locales/zh.ts` & `en.ts` | `models.*`、`admin.promptAnalytics.*`、`admin.affiliates.*` 键 |
+| 🟡 中 | `frontend/src/i18n/locales/zh.ts` & `en.ts` | `models.*`、`admin.affiliates.*` 键 |
 | 🟡 中 | `backend/ent/schema/endpoint.go` | MAAS Generic Endpoint schema，上游同步可能丢失 |
 | 🟢 低 | `README*.md` | 上游同步后需确认无 Sponsor/Demo 节再次混入 |
 | 🟢 低 | `.goreleaser.yaml` | footer 安装说明不能被上游覆盖 |
@@ -293,17 +292,12 @@ backend/cmd/server/
 | `internal/handler/wire.go` | `HandlerSet` |
 | `internal/server/middleware/wire.go` | `MiddlewareSet` |
 | `internal/payment/wire.go` | `PaymentSet` |
-| `internal/plugin/promptanalytics/wire.go` | `PromptAnalyticsSet` |
 
 **变更流程**：修改 `wire.go` 的 Provider 声明 → 运行 `go generate ./cmd/server` → 提交 `wire_gen.go`。
 
 **fork 注入点**（wire_gen.go 中不能丢失的手动片段）：
 
 ```go
-// 词云插件
-promptAnalyticsPlugin := promptanalytics.NewPlugin(cfg.PromptAnalytics)
-promptAnalyticsHandler := promptanalytics.NewHandler(promptAnalyticsRepo)
-
 // 灵境（Lingjing）完整初始化链
 lingjingClient := service.NewLingjingClient()
 lingjingTaskRepository := repository.NewLingjingTaskRepository(client)
@@ -376,7 +370,6 @@ lingjingPollRunner := service.ProvideLingjingPollRunner(...)
 | **Setting** | `setting.go` | key, value(JSON)，系统全局配置 KV 表 |
 | **IdempotencyRecord** | `idempotency_record.go` | request_hash, TTL，防重 |
 | **IdentityAdoptionDecision** | `identity_adoption_decision.go` | OAuth 身份合并决策 |
-| **KeywordStat** | `keyword_stat.go` | keyword, period(YYYY-MM), count，词云数据 |
 | **LingjingTask** | `lingjing_task.go` | gen_task_id, status, result_url，视频异步任务 |
 
 **Schema Mixin**（所有 Entity 均使用）：
@@ -457,7 +450,6 @@ lingjingPollRunner := service.ProvideLingjingPollRunner(...)
 | 数据备份 | `GET/POST /admin/backups` | PostgreSQL/S3 备份恢复 |
 | 数据管理 | `GET/PUT /admin/data-management` | 多数据源配置 + S3 profiles + 备份 job |
 | Ops 监控 | `GET /admin/ops/concurrency` | 实时并发、流量、告警、Email 通知、运行时日志配置 |
-| 词云分析 | `GET /admin/prompt-analytics/top-keywords` | 关键词 Top-N（fork 功能） |
 | 邀请返佣 | `GET /admin/affiliates/invites,rebates,transfers` | 邀请/返利/转账记录；用户返佣配置 |
 | 模型定价 | `GET/POST/PUT /admin/model-pricings` | 客户售价管理（fork 功能） |
 | 上游成本 | `GET/POST/PUT /admin/provider-pricings` | 上游真实成本快照（MAAS Phase 0） |
@@ -548,8 +540,6 @@ lingjingPollRunner := service.ProvideLingjingPollRunner(...)
 用户请求 POST /anthropic/v1/messages
     ↓
 api_key_auth 中间件（验证 API Key，加载用户/分组信息）
-    ↓
-promptAnalytics 中间件（异步提取关键词，非阻塞）
     ↓
 GatewayHandler.HandleMessages()
     ↓
@@ -714,19 +704,7 @@ Ops Dashboard 位于管理员面板 `/admin/ops`，提供：
 
 插件目录：`backend/internal/plugin/`，每个插件自包含 handler/repository/middleware/wire，不侵入主业务代码。
 
-#### Prompt Analytics 插件（fork 功能）
-
-```
-网关请求经过 promptAnalytics 中间件
-    ↓（异步，不阻塞请求）
-keyword_extractor.go（正则/分词提取关键词）
-    ↓
-repository.go（KeywordStat 按 YYYY-MM 聚合计数）
-    ↓
-handler.go 暴露 GET /admin/prompt-analytics/top-keywords
-    ↓
-前端 PromptAnalyticsView.vue（词云可视化）
-```
+> 当前目录为空：原 Prompt Analytics（词云分析）插件已于 2026-06-08 整体移除（含 `keyword_stat` schema、`/admin/prompt-analytics` 路由、前端页面、网关中间件、wire 注入），数据表由迁移 `159_drop_keyword_stats.sql` 清理。
 
 ---
 
@@ -817,8 +795,7 @@ api/
     ├── settings.ts    # 系统设置（含 model-discounts）
     ├── ops.ts         # 运维数据
     ├── payment.ts     # 支付管理
-    ├── promptAnalytics.ts  # 词云分析（fork）
-    └── ...（共 31 个文件）
+    └── ...（共 30 个文件）
 ```
 
 ### 7.4 组件体系
@@ -876,7 +853,7 @@ components/
 - 框架：Vue I18n 9.x
 - 语言：中文（`locales/zh.ts`）、英文（`locales/en.ts`）
 - 默认语言：系统设置 `default_language`，用户可通过 Cookie 覆盖（fork 功能）
-- fork 新增键：`models.*`（模型广场）、`admin.promptAnalytics.*`（词云）、`nav.models` 等
+- fork 新增键：`models.*`（模型广场）、`nav.models` 等
 
 ---
 
@@ -1114,22 +1091,22 @@ docker compose -f docker-compose.yml -f docker-compose.production.yml up -d
 cat backend/cmd/server/VERSION
 
 # 2. 高风险路由是否存在
-grep -r "model-discounts\|prompt-analytics\|/models" \
+grep -r "model-discounts\|/models" \
     backend/internal/server/routes/
 
 # 3. wire_gen.go 关键注入点
-grep -A2 "promptAnalyticsPlugin\|promptAnalyticsHandler\|lingjingGatewayService\|lingjingPollRunner" \
+grep -A2 "lingjingGatewayService\|lingjingPollRunner" \
     backend/cmd/server/wire_gen.go
 
 # 4. billing_service 折扣调用
 grep "applyDiscount" backend/internal/service/billing_service.go
 
 # 5. 前端路由完整性
-grep -E "'/models'|prompt-analytics|model-discounts" \
+grep -E "'/models'|model-discounts" \
     frontend/src/router/index.ts
 
 # 6. i18n 键完整性
-grep -E "nav\.models|promptAnalytics|models\." \
+grep -E "nav\.models|models\." \
     frontend/src/i18n/locales/zh.ts | head -5
 
 # 7. Workflows 触发条件（必须是 workflow_dispatch）
@@ -1177,7 +1154,7 @@ grep -A3 "^on:" .github/workflows/*.yml
 
 ### fork 注入点被覆盖
 
-`wire_gen.go` 中 lingjing 和 promptAnalytics 的初始化片段（约 10 行）在上游同步时可能丢失，因为上游会重新生成该文件。  
+`wire_gen.go` 中 lingjing 的初始化片段在上游同步时可能丢失，因为上游会重新生成该文件。
 **规则**：同步后手动核对 `wire_gen.go` 中的 fork 注入点（见第 4 章速查表）。
 
 ---

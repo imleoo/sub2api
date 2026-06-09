@@ -190,12 +190,11 @@
 |---|---|---|
 | `PlatformLingjing` | `backend/internal/domain/constants.go:25` | fork 12 第 5 个 platform 常量 |
 | `applyDiscount` | `backend/internal/service/billing_service.go` | fork 5 客户售价折扣链，Phase 0 **不动**，与 `upstream_total_cost` 正交 |
-| `loadDiscounts` / `GetDiscount` / `GetCNYRate` / `ListAllModels` | `backend/internal/service/pricing_service.go` | fork 5 折扣/汇率/全量模型表 |
+| `GetDiscount` / `GetCNYRate` / `ListAllModels` / `ReloadFromDB` | `backend/internal/service/pricing_service.go` | fork 5 折扣/汇率/全量模型表（「定价通用化」后折扣并入 catalog，由 `GetDiscount` 取数） |
 | `IsResponseMaskingEnabled` | `backend/internal/service/account.go` | fork 8 masking 开关 |
 | `isIdentityQuestion` | `backend/internal/service/gateway_response_masking.go` | fork 8 短路计费触发点 |
 | `LingjingPollRunner` | `backend/internal/service/lingjing_poll_runner.go` | fork 12 异步计费 Runner（5s ticker / 10 workers / max 240 次） |
 | `lingjingGatewayService.SubmitVideoTask` | `backend/internal/service/lingjing_gateway_service.go` | fork 12 视频任务计费起点 |
-| `promptAnalytics middleware` | `backend/internal/plugin/promptanalytics/middleware.go` + `routes/gateway.go:31,45,129,148-179,214,230`（共 **7 处挂载**） | fork 4 中间件，Phase 2 P2-3 **必须保留** |
 | `getEntityUsageStats` | `backend/internal/repository/usage_log_repo.go`（私有方法） | fork 3 跨实体聚合范式，Phase 1 P1-2 **必须复用** |
 | `/lingjing/v1/video/*` 路由组 | `backend/internal/server/routes/gateway.go:193-203` | fork 12 lingjing 异步任务专用路由（含 ForcePlatform middleware L198，**第 4 处 ForcePlatform**） |
 

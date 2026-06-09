@@ -500,7 +500,7 @@ func GetOpsRequestBody(c *gin.Context) ([]byte, bool) {
 // - Streaming errors after the response has started (SSE) may still need explicit logging.
 func OpsErrorLoggerMiddleware(ops *service.OpsService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Pre-read request body and store in context for downstream plugins (e.g., promptanalytics).
+		// Pre-read request body and store in context so downstream consumers can access it.
 		// This must happen BEFORE c.Next() so the body is available even if the request is aborted.
 		var bodyBytes []byte
 		if c.Request != nil && c.Request.Body != nil {

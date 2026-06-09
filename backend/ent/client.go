@@ -31,7 +31,6 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/group"
 	"github.com/Wei-Shaw/sub2api/ent/idempotencyrecord"
 	"github.com/Wei-Shaw/sub2api/ent/identityadoptiondecision"
-	"github.com/Wei-Shaw/sub2api/ent/keywordstat"
 	"github.com/Wei-Shaw/sub2api/ent/lingjingtask"
 	"github.com/Wei-Shaw/sub2api/ent/modelpricing"
 	"github.com/Wei-Shaw/sub2api/ent/paymentauditlog"
@@ -97,8 +96,6 @@ type Client struct {
 	IdempotencyRecord *IdempotencyRecordClient
 	// IdentityAdoptionDecision is the client for interacting with the IdentityAdoptionDecision builders.
 	IdentityAdoptionDecision *IdentityAdoptionDecisionClient
-	// KeywordStat is the client for interacting with the KeywordStat builders.
-	KeywordStat *KeywordStatClient
 	// LingjingTask is the client for interacting with the LingjingTask builders.
 	LingjingTask *LingjingTaskClient
 	// ModelPricing is the client for interacting with the ModelPricing builders.
@@ -174,7 +171,6 @@ func (c *Client) init() {
 	c.Group = NewGroupClient(c.config)
 	c.IdempotencyRecord = NewIdempotencyRecordClient(c.config)
 	c.IdentityAdoptionDecision = NewIdentityAdoptionDecisionClient(c.config)
-	c.KeywordStat = NewKeywordStatClient(c.config)
 	c.LingjingTask = NewLingjingTaskClient(c.config)
 	c.ModelPricing = NewModelPricingClient(c.config)
 	c.PaymentAuditLog = NewPaymentAuditLogClient(c.config)
@@ -307,7 +303,6 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Group:                         NewGroupClient(cfg),
 		IdempotencyRecord:             NewIdempotencyRecordClient(cfg),
 		IdentityAdoptionDecision:      NewIdentityAdoptionDecisionClient(cfg),
-		KeywordStat:                   NewKeywordStatClient(cfg),
 		LingjingTask:                  NewLingjingTaskClient(cfg),
 		ModelPricing:                  NewModelPricingClient(cfg),
 		PaymentAuditLog:               NewPaymentAuditLogClient(cfg),
@@ -367,7 +362,6 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Group:                         NewGroupClient(cfg),
 		IdempotencyRecord:             NewIdempotencyRecordClient(cfg),
 		IdentityAdoptionDecision:      NewIdentityAdoptionDecisionClient(cfg),
-		KeywordStat:                   NewKeywordStatClient(cfg),
 		LingjingTask:                  NewLingjingTaskClient(cfg),
 		ModelPricing:                  NewModelPricingClient(cfg),
 		PaymentAuditLog:               NewPaymentAuditLogClient(cfg),
@@ -425,7 +419,7 @@ func (c *Client) Use(hooks ...Hook) {
 		c.AuthIdentity, c.AuthIdentityChannel, c.ChannelMonitor,
 		c.ChannelMonitorDailyRollup, c.ChannelMonitorHistory,
 		c.ChannelMonitorRequestTemplate, c.Endpoint, c.ErrorPassthroughRule, c.Group,
-		c.IdempotencyRecord, c.IdentityAdoptionDecision, c.KeywordStat, c.LingjingTask,
+		c.IdempotencyRecord, c.IdentityAdoptionDecision, c.LingjingTask,
 		c.ModelPricing, c.PaymentAuditLog, c.PaymentOrder, c.PaymentProviderInstance,
 		c.PendingAuthSession, c.PricingDriftLog, c.PromoCode, c.PromoCodeUsage,
 		c.ProviderPricing, c.Proxy, c.RedeemCode, c.SecuritySecret, c.Setting,
@@ -445,7 +439,7 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.AuthIdentity, c.AuthIdentityChannel, c.ChannelMonitor,
 		c.ChannelMonitorDailyRollup, c.ChannelMonitorHistory,
 		c.ChannelMonitorRequestTemplate, c.Endpoint, c.ErrorPassthroughRule, c.Group,
-		c.IdempotencyRecord, c.IdentityAdoptionDecision, c.KeywordStat, c.LingjingTask,
+		c.IdempotencyRecord, c.IdentityAdoptionDecision, c.LingjingTask,
 		c.ModelPricing, c.PaymentAuditLog, c.PaymentOrder, c.PaymentProviderInstance,
 		c.PendingAuthSession, c.PricingDriftLog, c.PromoCode, c.PromoCodeUsage,
 		c.ProviderPricing, c.Proxy, c.RedeemCode, c.SecuritySecret, c.Setting,
@@ -492,8 +486,6 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.IdempotencyRecord.mutate(ctx, m)
 	case *IdentityAdoptionDecisionMutation:
 		return c.IdentityAdoptionDecision.mutate(ctx, m)
-	case *KeywordStatMutation:
-		return c.KeywordStat.mutate(ctx, m)
 	case *LingjingTaskMutation:
 		return c.LingjingTask.mutate(ctx, m)
 	case *ModelPricingMutation:
@@ -3173,139 +3165,6 @@ func (c *IdentityAdoptionDecisionClient) mutate(ctx context.Context, m *Identity
 		return (&IdentityAdoptionDecisionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown IdentityAdoptionDecision mutation op: %q", m.Op())
-	}
-}
-
-// KeywordStatClient is a client for the KeywordStat schema.
-type KeywordStatClient struct {
-	config
-}
-
-// NewKeywordStatClient returns a client for the KeywordStat from the given config.
-func NewKeywordStatClient(c config) *KeywordStatClient {
-	return &KeywordStatClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `keywordstat.Hooks(f(g(h())))`.
-func (c *KeywordStatClient) Use(hooks ...Hook) {
-	c.hooks.KeywordStat = append(c.hooks.KeywordStat, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `keywordstat.Intercept(f(g(h())))`.
-func (c *KeywordStatClient) Intercept(interceptors ...Interceptor) {
-	c.inters.KeywordStat = append(c.inters.KeywordStat, interceptors...)
-}
-
-// Create returns a builder for creating a KeywordStat entity.
-func (c *KeywordStatClient) Create() *KeywordStatCreate {
-	mutation := newKeywordStatMutation(c.config, OpCreate)
-	return &KeywordStatCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of KeywordStat entities.
-func (c *KeywordStatClient) CreateBulk(builders ...*KeywordStatCreate) *KeywordStatCreateBulk {
-	return &KeywordStatCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *KeywordStatClient) MapCreateBulk(slice any, setFunc func(*KeywordStatCreate, int)) *KeywordStatCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &KeywordStatCreateBulk{err: fmt.Errorf("calling to KeywordStatClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*KeywordStatCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &KeywordStatCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for KeywordStat.
-func (c *KeywordStatClient) Update() *KeywordStatUpdate {
-	mutation := newKeywordStatMutation(c.config, OpUpdate)
-	return &KeywordStatUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *KeywordStatClient) UpdateOne(_m *KeywordStat) *KeywordStatUpdateOne {
-	mutation := newKeywordStatMutation(c.config, OpUpdateOne, withKeywordStat(_m))
-	return &KeywordStatUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *KeywordStatClient) UpdateOneID(id int64) *KeywordStatUpdateOne {
-	mutation := newKeywordStatMutation(c.config, OpUpdateOne, withKeywordStatID(id))
-	return &KeywordStatUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for KeywordStat.
-func (c *KeywordStatClient) Delete() *KeywordStatDelete {
-	mutation := newKeywordStatMutation(c.config, OpDelete)
-	return &KeywordStatDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *KeywordStatClient) DeleteOne(_m *KeywordStat) *KeywordStatDeleteOne {
-	return c.DeleteOneID(_m.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *KeywordStatClient) DeleteOneID(id int64) *KeywordStatDeleteOne {
-	builder := c.Delete().Where(keywordstat.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &KeywordStatDeleteOne{builder}
-}
-
-// Query returns a query builder for KeywordStat.
-func (c *KeywordStatClient) Query() *KeywordStatQuery {
-	return &KeywordStatQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeKeywordStat},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a KeywordStat entity by its id.
-func (c *KeywordStatClient) Get(ctx context.Context, id int64) (*KeywordStat, error) {
-	return c.Query().Where(keywordstat.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *KeywordStatClient) GetX(ctx context.Context, id int64) *KeywordStat {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// Hooks returns the client hooks.
-func (c *KeywordStatClient) Hooks() []Hook {
-	return c.hooks.KeywordStat
-}
-
-// Interceptors returns the client interceptors.
-func (c *KeywordStatClient) Interceptors() []Interceptor {
-	return c.inters.KeywordStat
-}
-
-func (c *KeywordStatClient) mutate(ctx context.Context, m *KeywordStatMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&KeywordStatCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&KeywordStatUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&KeywordStatUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&KeywordStatDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown KeywordStat mutation op: %q", m.Op())
 	}
 }
 
@@ -7077,7 +6936,7 @@ type (
 		AuthIdentityChannel, ChannelMonitor, ChannelMonitorDailyRollup,
 		ChannelMonitorHistory, ChannelMonitorRequestTemplate, Endpoint,
 		ErrorPassthroughRule, Group, IdempotencyRecord, IdentityAdoptionDecision,
-		KeywordStat, LingjingTask, ModelPricing, PaymentAuditLog, PaymentOrder,
+		LingjingTask, ModelPricing, PaymentAuditLog, PaymentOrder,
 		PaymentProviderInstance, PendingAuthSession, PricingDriftLog, PromoCode,
 		PromoCodeUsage, ProviderPricing, Proxy, RedeemCode, SecuritySecret, Setting,
 		SubscriptionPlan, TLSFingerprintProfile, UsageCleanupTask, UsageLog, User,
@@ -7089,7 +6948,7 @@ type (
 		AuthIdentityChannel, ChannelMonitor, ChannelMonitorDailyRollup,
 		ChannelMonitorHistory, ChannelMonitorRequestTemplate, Endpoint,
 		ErrorPassthroughRule, Group, IdempotencyRecord, IdentityAdoptionDecision,
-		KeywordStat, LingjingTask, ModelPricing, PaymentAuditLog, PaymentOrder,
+		LingjingTask, ModelPricing, PaymentAuditLog, PaymentOrder,
 		PaymentProviderInstance, PendingAuthSession, PricingDriftLog, PromoCode,
 		PromoCodeUsage, ProviderPricing, Proxy, RedeemCode, SecuritySecret, Setting,
 		SubscriptionPlan, TLSFingerprintProfile, UsageCleanupTask, UsageLog, User,

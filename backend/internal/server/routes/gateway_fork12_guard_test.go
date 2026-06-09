@@ -14,7 +14,6 @@ import (
 // Go 单测随 `go test ./...` 跑（与代码同步审计）。
 //
 // 守护规则（docs/sprint-plan.md P2-6 + glossary.md §5 fork 锚点）：
-//   - routes/gateway.go 必须保留 promptAnalytics 中间件挂载（fork 4，≥7 处）
 //   - routes/gateway.go 必须保留 /lingjing/v1/video 路由组（fork 12）
 //   - routes/gateway.go 必须保留 ForcePlatform middleware 至少 3 处
 
@@ -23,18 +22,6 @@ func loadGatewayRouteSource(t *testing.T) string {
 	bytes, err := os.ReadFile("gateway.go")
 	require.NoError(t, err, "routes/gateway.go must be readable")
 	return string(bytes)
-}
-
-// TestGatewayRoutes_PromptAnalyticsPreserved 守护 fork 4 promptAnalytics 中间件至少 7 处挂载。
-//
-// glossary §5 fork 锚点描述 7 处挂载（行 31,45,129,148-179,214,230）；
-// 当前实际更多（含 fork 12 lingjing 后扩展）。本测试要求 >= 7 作为下限守护。
-func TestGatewayRoutes_PromptAnalyticsPreserved(t *testing.T) {
-	src := loadGatewayRouteSource(t)
-	count := strings.Count(src, "promptAnalytics")
-	require.GreaterOrEqual(t, count, 7,
-		"fork 4 promptAnalytics middleware mounts must be preserved (found %d, expected >= 7); "+
-			"check routes/gateway.go for accidental removal during P2-3 / upstream sync", count)
 }
 
 // TestGatewayRoutes_LingjingVideoRouteGroup 守护 fork 12 /lingjing/v1/video 路由组完整。

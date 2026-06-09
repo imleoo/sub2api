@@ -72,7 +72,9 @@
 | **P2-5** | 6 入口路径端到端回归集 | 6 入口路径 × **5 平台**（含 lingjing） × 流式/非流式 测试用例（强内聚不可再切：同一套 fixture 与断言库） | 4 | P2-4 | 全集通过；新增任意桥时复用该回归集 |
 | **P2-6** | fork 12 项功能回归测试集（**合并守护**） | 5 个 platform 路由 × promptAnalytics 中间件采集 × masking 短路 × lingjing 视频任务 202+poll × 折扣 + 人民币换算 × 模型广场白名单 | 1 | P2-5 | 全集通过；CI 增加 `grep -q 'promptAnalytics\|/lingjing/v1/video' backend/internal/server/routes/gateway.go` 守护检查；fork 12 项功能列表（`claudedocs/自定义开发功能列表.md`）逐项扫描 |
 
-**回滚**：drop 新字段 + 还原 routes/gateway.go 即可（但需手动恢复 fork 12 项功能的 7 处 promptAnalytics 挂载和 lingjing 路由组——通过 P2-6 守护检查）。
+**回滚**：drop 新字段 + 还原 routes/gateway.go 即可（但需手动恢复 fork 12 项功能的 lingjing 路由组——通过 P2-6 守护检查）。
+
+> **更新（2026-06-08）**：fork 4 `promptAnalytics` 词云中间件已整体移除，本节及下方风险表中「必须保留 promptAnalytics 挂载」相关守护项均已撤销（`check_fork12_guards.sh` 与 `gateway_fork12_guard_test.go` 已删除该规则）。以上 P2-3/P2-6 计划原文保留作历史记录，lingjing 路由组守护仍然有效。
 
 ---
 
@@ -161,7 +163,7 @@ grep -E "^\| \*\*P[0-9]-[0-9]\*\*" docs/sprint-plan.md | grep -c "merged"
 | 上游单价维护脱节 | Phase 0 起 | P0-6 对账 job + LiteLLM 同步 |
 | 前端类型滞后 | Phase 1 | P1-3 强制与后端同 sprint |
 | **platform 漏算 lingjing 导致 Phase 2 / Phase 5 改造遗漏**（fork 12） | Phase 2/5 | `glossary.md §1.2` platform 表 + `generic-channel-design.md §10` 排除条款 + P5-1 验收 `WHERE platform != 'lingjing'` 过滤三重守护 |
-| **Phase 2 改 routes/gateway.go 时不小心移除 promptAnalytics middleware 或 lingjing 路由组**（fork 4 / 12） | Phase 2 P2-3 | P2-6 fork 12 项回归 PR + CI `grep -q 'promptAnalytics\|/lingjing/v1/video'` 守护检查 |
+| **Phase 2 改 routes/gateway.go 时不小心移除 lingjing 路由组**（fork 12）<br>（注：fork 4 promptAnalytics 已于 2026-06-08 移除，对应守护项撤销） | Phase 2 P2-3 | P2-6 fork 12 项回归 PR + CI `grep -q '/lingjing/v1/video'` 守护检查 |
 | **`setting_handler.go` 同时被 fork 5（pricingService/adminService）和 Phase 0 改签名导致 wire_gen 双向 merge 冲突** | Phase 0 P0-3 | P0-3 注入 `ProviderPricingRepo` 时新建独立 `admin/provider_pricing_handler.go`，**不挤进** 已经膨胀的 SettingHandler |
 | **Lingjing 240×5s=20 分钟超时窗口内 UsageLog 行级查询缓存不一致**（fork 12） | Phase 0 P0-7 | 统计查询加 `WHERE cost_finalized_at IS NOT NULL` 过滤实时毛利视图；BI 按 `cost_finalized_at` 而非 `created_at` 聚合 |
 | **Masking 短路计费被误归为"无快照异常"**（fork 8） | Phase 0 起 | `upstream-cost-snapshot.md §6` 验收用例 9 + 运营页"无快照异常"列表 SQL 加 `AND async_task_id IS NULL` 以区分四态 |

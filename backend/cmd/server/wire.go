@@ -15,7 +15,6 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/handler"
 	"github.com/Wei-Shaw/sub2api/internal/payment"
-	"github.com/Wei-Shaw/sub2api/internal/plugin/promptanalytics"
 	"github.com/Wei-Shaw/sub2api/internal/repository"
 	"github.com/Wei-Shaw/sub2api/internal/server"
 	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
@@ -43,7 +42,6 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 		payment.ProviderSet,
 		middleware.ProviderSet,
 		handler.ProviderSet,
-		promptanalytics.ProviderSet,
 
 		// Server layer ProviderSet
 		server.ProviderSet,

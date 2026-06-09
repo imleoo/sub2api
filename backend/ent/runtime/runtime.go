@@ -21,7 +21,6 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/group"
 	"github.com/Wei-Shaw/sub2api/ent/idempotencyrecord"
 	"github.com/Wei-Shaw/sub2api/ent/identityadoptiondecision"
-	"github.com/Wei-Shaw/sub2api/ent/keywordstat"
 	"github.com/Wei-Shaw/sub2api/ent/lingjingtask"
 	"github.com/Wei-Shaw/sub2api/ent/modelpricing"
 	"github.com/Wei-Shaw/sub2api/ent/paymentauditlog"
@@ -1000,24 +999,6 @@ func init() {
 	identityadoptiondecisionDescDecidedAt := identityadoptiondecisionFields[4].Descriptor()
 	// identityadoptiondecision.DefaultDecidedAt holds the default value on creation for the decided_at field.
 	identityadoptiondecision.DefaultDecidedAt = identityadoptiondecisionDescDecidedAt.Default.(func() time.Time)
-	keywordstatFields := schema.KeywordStat{}.Fields()
-	_ = keywordstatFields
-	// keywordstatDescKeyword is the schema descriptor for keyword field.
-	keywordstatDescKeyword := keywordstatFields[3].Descriptor()
-	// keywordstat.KeywordValidator is a validator for the "keyword" field. It is called by the builders before save.
-	keywordstat.KeywordValidator = keywordstatDescKeyword.Validators[0].(func(string) error)
-	// keywordstatDescCount is the schema descriptor for count field.
-	keywordstatDescCount := keywordstatFields[4].Descriptor()
-	// keywordstat.DefaultCount holds the default value on creation for the count field.
-	keywordstat.DefaultCount = keywordstatDescCount.Default.(int)
-	// keywordstatDescPeriod is the schema descriptor for period field.
-	keywordstatDescPeriod := keywordstatFields[5].Descriptor()
-	// keywordstat.PeriodValidator is a validator for the "period" field. It is called by the builders before save.
-	keywordstat.PeriodValidator = keywordstatDescPeriod.Validators[0].(func(string) error)
-	// keywordstatDescCreatedAt is the schema descriptor for created_at field.
-	keywordstatDescCreatedAt := keywordstatFields[6].Descriptor()
-	// keywordstat.DefaultCreatedAt holds the default value on creation for the created_at field.
-	keywordstat.DefaultCreatedAt = keywordstatDescCreatedAt.Default.(func() time.Time)
 	lingjingtaskMixin := schema.LingjingTask{}.Mixin()
 	lingjingtaskMixinFields0 := lingjingtaskMixin[0].Fields()
 	_ = lingjingtaskMixinFields0
