@@ -780,11 +780,7 @@ func (s *AccountUsageService) getAntigravityUsage(ctx context.Context, account *
 		if cache, ok := cached.(*antigravityUsageCache); ok {
 			ttl := antigravityCacheTTL(cache.usageInfo)
 			if time.Since(cache.timestamp) < ttl {
-				usage := cache.usageInfo
-				if usage.FiveHour != nil && usage.FiveHour.ResetsAt != nil {
-					usage.FiveHour.RemainingSeconds = int(time.Until(*usage.FiveHour.ResetsAt).Seconds())
-				}
-				return usage, nil
+				return cloneAntigravityUsageWithRemaining(cache.usageInfo), nil
 			}
 		}
 	}
@@ -797,10 +793,8 @@ func (s *AccountUsageService) getAntigravityUsage(ctx context.Context, account *
 			if cache, ok := cached.(*antigravityUsageCache); ok {
 				ttl := antigravityCacheTTL(cache.usageInfo)
 				if time.Since(cache.timestamp) < ttl {
-					usage := cache.usageInfo
-					// 重新计算 RemainingSeconds，避免返回过时的剩余秒数
-					recalcAntigravityRemainingSeconds(usage)
-					return usage, nil
+					// 返回缓存对象的副本并重算 RemainingSeconds，避免原地写共享缓存。
+					return cloneAntigravityUsageWithRemaining(cache.usageInfo), nil
 				}
 			}
 		}
@@ -840,19 +834,27 @@ func (s *AccountUsageService) getAntigravityUsage(ctx context.Context, account *
 	return usage, nil
 }
 
-// recalcAntigravityRemainingSeconds 重新计算 Antigravity UsageInfo 中各窗口的 RemainingSeconds
-// 用于从缓存取出时更新倒计时，避免返回过时的剩余秒数
-func recalcAntigravityRemainingSeconds(info *UsageInfo) {
+// cloneAntigravityUsageWithRemaining 返回 info 的浅拷贝（含 FiveHour 副本），
+// 并在副本上重算 RemainingSeconds。缓存命中路径用它替代原地写，避免对存放在
+// 共享 sync.Map 里的 *UsageInfo 原地修改而与并发读/JSON 序列化构成 data race。
+// 其余内嵌指针（SevenDay 等）下游只读，无需深拷贝。
+func cloneAntigravityUsageWithRemaining(info *UsageInfo) *UsageInfo {
 	if info == nil {
-		return
+		return nil
 	}
-	if info.FiveHour != nil && info.FiveHour.ResetsAt != nil {
-		remaining := int(time.Until(*info.FiveHour.ResetsAt).Seconds())
-		if remaining < 0 {
-			remaining = 0
+	cp := *info
+	if info.FiveHour != nil {
+		fh := *info.FiveHour
+		if fh.ResetsAt != nil {
+			remaining := int(time.Until(*fh.ResetsAt).Seconds())
+			if remaining < 0 {
+				remaining = 0
+			}
+			fh.RemainingSeconds = remaining
 		}
-		info.FiveHour.RemainingSeconds = remaining
+		cp.FiveHour = &fh
 	}
+	return &cp
 }
 
 // antigravityCacheTTL 根据 UsageInfo 内容决定缓存 TTL
