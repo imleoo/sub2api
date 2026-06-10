@@ -856,6 +856,9 @@ func (s *emailBindUserRepoStub) GetByPhone(context.Context, string) (*service.Us
 func (s *emailBindUserRepoStub) ExistsByPhone(context.Context, string) (bool, error) {
 	return false, nil
 }
+func (s *emailBindUserRepoStub) GetByIDIncludeDeleted(ctx context.Context, id int64) (*service.User, error) {
+	return s.GetByID(ctx, id)
+}
 
 func cloneEmailBindUser(user *service.User) *service.User {
 	if user == nil {

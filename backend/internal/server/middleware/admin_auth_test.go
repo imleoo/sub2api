@@ -242,3 +242,7 @@ func (s *stubUserRepo) GetByPhone(context.Context, string) (*service.User, error
 func (s *stubUserRepo) ExistsByPhone(context.Context, string) (bool, error) {
 	return false, nil
 }
+
+func (s *stubUserRepo) GetByIDIncludeDeleted(ctx context.Context, id int64) (*service.User, error) {
+	panic("unexpected GetByIDIncludeDeleted call")
+}

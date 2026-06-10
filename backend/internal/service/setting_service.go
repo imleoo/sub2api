@@ -777,6 +777,7 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeyShowOverseasModels,
 		SettingKeyPhoneRegisterEnabled,
 		SettingKeyPasswordLoginEnabled,
+		SettingKeyAllowUserViewErrorRequests,
 	}
 
 	settings, err := s.settingRepo.GetMultiple(ctx, keys)
@@ -900,6 +901,8 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		ShowOverseasModels:    settings[SettingKeyShowOverseasModels] != "false",
 		PhoneRegisterEnabled:  settings[SettingKeyPhoneRegisterEnabled] == "true",
 		PasswordLoginEnabled:  settings[SettingKeyPasswordLoginEnabled] != "false", // 默认 true
+
+		AllowUserViewErrorRequests: settings[SettingKeyAllowUserViewErrorRequests] == "true",
 	}, nil
 }
 
@@ -975,6 +978,17 @@ func (s *SettingService) GetAvailableChannelsRuntime(ctx context.Context) Availa
 	return AvailableChannelsRuntime{
 		Enabled: vals[SettingKeyAvailableChannelsEnabled] == "true",
 	}
+}
+
+// IsUserErrorViewAllowed reads the user-facing error-requests visibility switch
+// directly from the settings store. Fail-closed: on error returns false (opt-in default).
+func (s *SettingService) IsUserErrorViewAllowed(ctx context.Context) bool {
+	vals, err := s.settingRepo.GetMultiple(ctx, []string{SettingKeyAllowUserViewErrorRequests})
+	if err != nil {
+		slog.Warn("failed to get allow_user_view_error_requests setting, defaulting to false", "error", err)
+		return false
+	}
+	return vals[SettingKeyAllowUserViewErrorRequests] == "true"
 }
 
 // GetAntigravityUserAgentVersion 返回 Antigravity 上游请求使用的版本号。
@@ -1213,6 +1227,9 @@ type PublicSettingsInjectionPayload struct {
 	// 手机号注册
 	PhoneRegisterEnabled bool `json:"phone_register_enabled"`
 	PasswordLoginEnabled  bool `json:"password_login_enabled"`
+
+	// 允许终端用户在用量页查看自己的失败请求
+	AllowUserViewErrorRequests bool `json:"allow_user_view_error_requests"`
 }
 
 // GetPublicSettingsForInjection returns public settings in a format suitable for HTML injection.
@@ -1281,6 +1298,7 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		ShowOverseasModels:                   settings.ShowOverseasModels,
 		PhoneRegisterEnabled:                 settings.PhoneRegisterEnabled,
 		PasswordLoginEnabled:                  settings.PasswordLoginEnabled,
+		AllowUserViewErrorRequests:           settings.AllowUserViewErrorRequests,
 	}, nil
 }
 
@@ -2010,6 +2028,8 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	if settings.EmailVerifyEnabled {
 		updates[SettingKeyPhoneRegisterEnabled] = "false"
 	}
+
+	updates[SettingKeyAllowUserViewErrorRequests] = strconv.FormatBool(settings.AllowUserViewErrorRequests)
 
 	return updates, nil
 }
@@ -2908,6 +2928,8 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingPaymentVisibleMethodWxpayEnabled:      "false",
 		openAIAdvancedSchedulerSettingKey:            "false",
 		SettingKeyShowOverseasModels:                 "true",
+
+		SettingKeyAllowUserViewErrorRequests: "false",
 	}
 
 	missing := make(map[string]string, len(defaults))
@@ -3508,6 +3530,8 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	result.AliyunSmsAccessKeySecretConfigured = settings[SettingKeyAliyunAccessKeySecret] != ""
 	result.AliyunSmsSign = settings[SettingKeyAliyunSmsSign]
 	result.AliyunSmsTemplateCode = settings[SettingKeyAliyunSmsTemplateCode]
+
+	result.AllowUserViewErrorRequests = settings[SettingKeyAllowUserViewErrorRequests] == "true" // default false
 
 	return result
 }

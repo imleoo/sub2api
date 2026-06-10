@@ -263,7 +263,7 @@ type SystemSettings struct {
 
 	// 手机号注册
 	PhoneRegisterEnabled bool   `json:"phone_register_enabled"`
-	PasswordLoginEnabled  bool   `json:"password_login_enabled"`
+	PasswordLoginEnabled bool   `json:"password_login_enabled"`
 	SmsProvider          string `json:"sms_provider"` // "volcengine" | "tencent" | "aliyun"
 	// 火山引擎 SMS
 	VolcengineSmsAccessKeyID               string `json:"volcengine_sms_access_key_id"`
@@ -282,6 +282,9 @@ type SystemSettings struct {
 	AliyunSmsAccessKeySecretConfigured bool   `json:"aliyun_sms_access_key_secret_configured"`
 	AliyunSmsSign                      string `json:"aliyun_sms_sign"`
 	AliyunSmsTemplateCode              string `json:"aliyun_sms_template_code"`
+
+	// 允许终端用户在用量页查看自己的失败请求
+	AllowUserViewErrorRequests bool `json:"allow_user_view_error_requests"`
 }
 
 type DefaultSubscriptionSetting struct {
@@ -355,7 +358,9 @@ type PublicSettings struct {
 
 	// 手机号注册
 	PhoneRegisterEnabled bool `json:"phone_register_enabled"`
-	PasswordLoginEnabled  bool `json:"password_login_enabled"`
+	PasswordLoginEnabled bool `json:"password_login_enabled"`
+
+	AllowUserViewErrorRequests bool `json:"allow_user_view_error_requests"`
 }
 
 type LoginAgreementDocument struct {

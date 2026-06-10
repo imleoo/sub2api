@@ -104,7 +104,9 @@ func (h *SettingHandler) GetPublicSettings(c *gin.Context) {
 		RiskControlEnabled:   settings.RiskControlEnabled,
 		ShowOverseasModels:   settings.ShowOverseasModels,
 		PhoneRegisterEnabled: settings.PhoneRegisterEnabled,
-		PasswordLoginEnabled:  settings.PasswordLoginEnabled,
+		PasswordLoginEnabled: settings.PasswordLoginEnabled,
+
+		AllowUserViewErrorRequests: settings.AllowUserViewErrorRequests,
 	})
 }
 

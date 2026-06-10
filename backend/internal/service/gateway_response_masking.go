@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -9,6 +10,20 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
+
+// extractLastUserTextFromRaw 解析 messages 原始 JSON（上游重构后 ParsedRequest
+// 不再保留 []any 形态的 Messages，改为 MessagesRaw() []byte），再复用
+// extractLastUserText 提取最后一条 user 文本。解析失败时返回空串（不触发遮蔽）。
+func extractLastUserTextFromRaw(raw []byte) string {
+	if len(raw) == 0 {
+		return ""
+	}
+	var messages []any
+	if err := json.Unmarshal(raw, &messages); err != nil {
+		return ""
+	}
+	return extractLastUserText(messages)
+}
 
 // 身份/模型/工具类问题正则（中英文，全面覆盖）
 var identityQuestionRe = regexp.MustCompile(`(?i)` +

@@ -36,6 +36,7 @@ type AdminHandlers struct {
 	ModelPricing           *admin.ModelPricingHandler
 	ProviderPricing        *admin.ProviderPricingHandler
 	DualBucketStats        *admin.DualBucketStatsHandler
+	Compliance             *admin.ComplianceHandler
 }
 
 // Handlers contains all HTTP handlers
