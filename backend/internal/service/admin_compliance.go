@@ -90,8 +90,11 @@ func adminComplianceAcknowledgementKey(adminUserID int64) string {
 }
 
 func (s *SettingService) GetAdminComplianceStatus(ctx context.Context, adminUserID int64) (*AdminComplianceStatus, error) {
+	// fork 定制：禁用管理员部署合规承诺门控。Required 恒为 false，
+	// 使 AdminComplianceGuard 始终放行、前端不弹合规确认弹窗。
+	// 保留 AcceptAdminCompliance 与 DB 读取逻辑（如有历史确认记录仍回填 Acknowledgement 供审计展示）。
 	status := &AdminComplianceStatus{
-		Required:       true,
+		Required:       false,
 		Version:        AdminComplianceVersion,
 		DocumentPathZH: AdminComplianceDocumentPathZH,
 		DocumentPathEN: AdminComplianceDocumentPathEN,
