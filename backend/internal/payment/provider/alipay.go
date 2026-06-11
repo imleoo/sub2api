@@ -58,7 +58,7 @@ func NewAlipay(instanceID string, config map[string]string) (*Alipay, error) {
 	}
 	return &Alipay{
 		instanceID: instanceID,
-		config:     config,
+		config:     cloneStringMap(config),
 	}, nil
 }
 

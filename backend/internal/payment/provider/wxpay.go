@@ -110,7 +110,7 @@ func NewWxpay(instanceID string, config map[string]string) (*Wxpay, error) {
 		return nil, infraerrors.BadRequest("WXPAY_CONFIG_INVALID_KEY", "invalid_key").
 			WithMetadata(map[string]string{"key": "publicKey"})
 	}
-	return &Wxpay{instanceID: instanceID, config: config}, nil
+	return &Wxpay{instanceID: instanceID, config: cloneStringMap(config)}, nil
 }
 
 func (w *Wxpay) Name() string        { return "Wxpay" }

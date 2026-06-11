@@ -177,6 +177,11 @@ func createAccountStatsModelPricingTx(ctx context.Context, tx *sql.Tx, ruleID in
 		billingMode = service.BillingModeToken
 	}
 	platform := pricing.Platform
+	if platform == "" {
+		// 与主路径 createModelPricingExec 对齐：platform 空时兜底 anthropic，
+		// 避免空 platform 落库导致下游按平台分发定价时错配。
+		platform = "anthropic"
+	}
 	err = tx.QueryRowContext(ctx,
 		`INSERT INTO channel_account_stats_model_pricing (rule_id, platform, models, billing_mode, input_price, output_price, cache_write_price, cache_read_price, image_output_price, per_request_price)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, created_at, updated_at`,
