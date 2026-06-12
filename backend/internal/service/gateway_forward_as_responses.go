@@ -238,7 +238,9 @@ func (s *GatewayService) handleResponsesBufferedStreamingResponse(
 	if s.cfg != nil && s.cfg.Gateway.MaxLineSize > 0 {
 		maxLineSize = s.cfg.Gateway.MaxLineSize
 	}
-	scanner.Buffer(make([]byte, 0, 64*1024), maxLineSize)
+	scanBuf := getSSEScannerBuf64K()
+	defer putSSEScannerBuf64K(scanBuf)
+	scanner.Buffer(scanBuf[:0], maxLineSize)
 
 	// Accumulate the final Anthropic response from streaming events
 	var finalResp *apicompat.AnthropicResponse
@@ -393,7 +395,9 @@ func (s *GatewayService) handleResponsesStreamingResponse(
 	if s.cfg != nil && s.cfg.Gateway.MaxLineSize > 0 {
 		maxLineSize = s.cfg.Gateway.MaxLineSize
 	}
-	scanner.Buffer(make([]byte, 0, 64*1024), maxLineSize)
+	scanBuf := getSSEScannerBuf64K()
+	defer putSSEScannerBuf64K(scanBuf)
+	scanner.Buffer(scanBuf[:0], maxLineSize)
 
 	resultWithUsage := func() *ForwardResult {
 		return &ForwardResult{

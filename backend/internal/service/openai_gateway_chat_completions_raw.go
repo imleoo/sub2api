@@ -271,7 +271,9 @@ func (s *OpenAIGatewayService) streamRawChatCompletions(
 	if s.cfg != nil && s.cfg.Gateway.MaxLineSize > 0 {
 		maxLineSize = s.cfg.Gateway.MaxLineSize
 	}
-	scanner.Buffer(make([]byte, 0, 64*1024), maxLineSize)
+	scanBuf := getSSEScannerBuf64K()
+	defer putSSEScannerBuf64K(scanBuf)
+	scanner.Buffer(scanBuf[:0], maxLineSize)
 
 	var usage OpenAIUsage
 	var firstTokenMs *int
@@ -330,14 +332,14 @@ func (s *OpenAIGatewayService) streamRawChatCompletions(
 		}
 
 		writeLine(line)
+		// 仅在 SSE 帧边界（空行）Flush：标准 SSE 帧以空行结尾，
+		// 整帧写入后一次性推送，避免每行 Flush 的多余 syscall；
+		// 残留数据由 http 层在响应结束时兜底 Flush。
 		if line == "" {
 			if !clientDisconnected && clientOutputStarted {
 				c.Writer.Flush()
 			}
 			continue
-		}
-		if !clientDisconnected && clientOutputStarted {
-			c.Writer.Flush()
 		}
 	}
 

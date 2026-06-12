@@ -492,7 +492,8 @@ func (s *OpenAIGatewayService) handleChatStreamingResponse(
 	if s.cfg != nil && s.cfg.Gateway.MaxLineSize > 0 {
 		maxLineSize = s.cfg.Gateway.MaxLineSize
 	}
-	scanner.Buffer(make([]byte, 0, 64*1024), maxLineSize)
+	scanBuf := getSSEScannerBuf64K()
+	scanner.Buffer(scanBuf[:0], maxLineSize)
 
 	streamInterval := time.Duration(0)
 	if s.cfg != nil && s.cfg.Gateway.StreamDataIntervalTimeout > 0 {
@@ -709,6 +710,7 @@ func (s *OpenAIGatewayService) handleChatStreamingResponse(
 
 	// No keepalive: fast synchronous path
 	if streamInterval <= 0 && keepaliveInterval <= 0 {
+		defer putSSEScannerBuf64K(scanBuf)
 		var parser openAICompatSSEFrameParser
 		for scanner.Scan() {
 			line := scanner.Text()
@@ -755,7 +757,8 @@ func (s *OpenAIGatewayService) handleChatStreamingResponse(
 			return false
 		}
 	}
-	go func() {
+	go func(scanBuf *sseScannerBuf64K) {
+		defer putSSEScannerBuf64K(scanBuf)
 		defer close(events)
 		for scanner.Scan() {
 			atomic.StoreInt64(&lastReadAt, time.Now().UnixNano())
@@ -766,7 +769,7 @@ func (s *OpenAIGatewayService) handleChatStreamingResponse(
 		if err := scanner.Err(); err != nil {
 			_ = sendEvent(scanEvent{err: err})
 		}
-	}()
+	}(scanBuf)
 	defer close(done)
 
 	var keepaliveTicker *time.Ticker

@@ -17,6 +17,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/ctxkey"
@@ -2541,23 +2542,24 @@ func estimateTokensForText(s string) int {
 	if s == "" {
 		return 0
 	}
-	runes := []rune(s)
-	if len(runes) == 0 {
+	// 零拷贝：直接按 rune 迭代字符串，避免整文本 []rune 分配。
+	total := utf8.RuneCountInString(s)
+	if total == 0 {
 		return 0
 	}
 	ascii := 0
-	for _, r := range runes {
+	for _, r := range s {
 		if r <= 0x7f {
 			ascii++
 		}
 	}
-	asciiRatio := float64(ascii) / float64(len(runes))
+	asciiRatio := float64(ascii) / float64(total)
 	if asciiRatio >= 0.8 {
 		// Roughly 4 chars per token for English-like text.
-		return (len(runes) + 3) / 4
+		return (total + 3) / 4
 	}
 	// For CJK-heavy text, approximate 1 rune per token.
-	return len(runes)
+	return total
 }
 
 type UpstreamHTTPResult struct {

@@ -540,22 +540,53 @@ func (r *modelPricingRepository) BulkUpsertWanjie(ctx context.Context, models []
 //   - is_custom=false 的已有记录（LiteLLM/litellm 来源）：跳过，保留 USD 定价
 //   - 不存在的记录：新建（is_custom=true，source 取 m.Source）
 func (r *modelPricingRepository) BulkUpsertMaas(ctx context.Context, models []*service.DBModelPricing) error {
+	// 预过滤空 ModelID，收集待处理项与其 ID 集合，供一次性批量读取使用。
+	valid := make([]*service.DBModelPricing, 0, len(models))
+	ids := make([]string, 0, len(models))
 	for _, m := range models {
 		if strings.TrimSpace(m.ModelID) == "" {
 			continue
 		}
-		existing, err := r.client.ModelPricing.Query().
-			Where(modelpricing.ModelIDEQ(m.ModelID)).
-			Only(ctx)
-		if err != nil {
-			if dbent.IsNotFound(err) {
-				// 不存在则新建
-				if createErr := r.Create(ctx, m); createErr != nil {
-					return fmt.Errorf("wanjie create %s: %w", m.ModelID, createErr)
-				}
-				continue
+		valid = append(valid, m)
+		ids = append(ids, m.ModelID)
+	}
+	if len(valid) == 0 {
+		return nil
+	}
+
+	// 事务包裹：避免中途失败留下半写（部分模型已更新、部分未更新）。
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return fmt.Errorf("maas begin tx: %w", err)
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+	txCtx := dbent.NewTxContext(ctx, tx)
+
+	// 一次性批量读取已存在记录，消除原先逐行 Query 的 N+1。
+	existingList, err := tx.ModelPricing.Query().
+		Where(modelpricing.ModelIDIn(ids...)).
+		All(ctx)
+	if err != nil {
+		return fmt.Errorf("maas batch query: %w", err)
+	}
+	existingByModelID := make(map[string]*dbent.ModelPricing, len(existingList))
+	for _, e := range existingList {
+		existingByModelID[e.ModelID] = e
+	}
+
+	for _, m := range valid {
+		existing, ok := existingByModelID[m.ModelID]
+		if !ok {
+			// 不存在则新建（Create 通过 txCtx 自动走事务 client）
+			if createErr := r.Create(txCtx, m); createErr != nil {
+				return fmt.Errorf("wanjie create %s: %w", m.ModelID, createErr)
 			}
-			return fmt.Errorf("wanjie query %s: %w", m.ModelID, err)
+			continue
 		}
 
 		// is_custom=false（LiteLLM 来源）保留不动
@@ -564,7 +595,7 @@ func (r *modelPricingRepository) BulkUpsertMaas(ctx context.Context, models []*s
 		}
 
 		// 更新 is_custom=true 的记录
-		builder := r.client.ModelPricing.UpdateOneID(existing.ID).
+		builder := tx.ModelPricing.UpdateOneID(existing.ID).
 			SetMode(m.Mode).
 			SetPricingUnit(normalizePricingUnit(m.PricingUnit)).
 			SetSupportsPromptCaching(m.SupportsPromptCaching).
@@ -623,6 +654,11 @@ func (r *modelPricingRepository) BulkUpsertMaas(ctx context.Context, models []*s
 			return fmt.Errorf("maas update %s: %w", m.ModelID, err)
 		}
 	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("maas commit tx: %w", err)
+	}
+	committed = true
 	return nil
 }
 

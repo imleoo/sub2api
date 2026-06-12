@@ -475,10 +475,13 @@ func (c *Client) LoadCodeAssist(ctx context.Context, accessToken string) (*LoadC
 			return nil, nil, lastErr
 		}
 
-		respBodyBytes, err := io.ReadAll(resp.Body)
+		respBodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, fetchAvailableModelsBodyLimit+1))
 		_ = resp.Body.Close() // 立即关闭，避免循环内 defer 导致的资源泄漏
 		if err != nil {
 			return nil, nil, fmt.Errorf("读取响应失败: %w", err)
+		}
+		if int64(len(respBodyBytes)) > fetchAvailableModelsBodyLimit {
+			return nil, nil, fmt.Errorf("响应超过 %d 字节", fetchAvailableModelsBodyLimit)
 		}
 
 		// 检查是否需要 URL 降级
@@ -554,10 +557,13 @@ func (c *Client) OnboardUser(ctx context.Context, accessToken, tierID string) (s
 				return "", lastErr
 			}
 
-			respBodyBytes, err := io.ReadAll(resp.Body)
+			respBodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, fetchAvailableModelsBodyLimit+1))
 			_ = resp.Body.Close()
 			if err != nil {
 				return "", fmt.Errorf("读取响应失败: %w", err)
+			}
+			if int64(len(respBodyBytes)) > fetchAvailableModelsBodyLimit {
+				return "", fmt.Errorf("响应超过 %d 字节", fetchAvailableModelsBodyLimit)
 			}
 
 			if shouldFallbackToNextURL(nil, resp.StatusCode) && urlIdx < len(availableURLs)-1 {

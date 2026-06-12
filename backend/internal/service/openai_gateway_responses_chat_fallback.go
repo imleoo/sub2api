@@ -314,7 +314,9 @@ func (s *OpenAIGatewayService) streamChatCompletionsAsResponses(
 	if s.cfg != nil && s.cfg.Gateway.MaxLineSize > 0 {
 		maxLineSize = s.cfg.Gateway.MaxLineSize
 	}
-	scanner.Buffer(make([]byte, 0, 64*1024), maxLineSize)
+	scanBuf := getSSEScannerBuf64K()
+	defer putSSEScannerBuf64K(scanBuf)
+	scanner.Buffer(scanBuf[:0], maxLineSize)
 
 	for scanner.Scan() {
 		line := scanner.Text()

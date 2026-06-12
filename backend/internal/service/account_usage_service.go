@@ -112,12 +112,23 @@ type antigravityUsageCache struct {
 	timestamp time.Time
 }
 
+// geminiUsageCache 缓存 Gemini 额度数据。
+// 额外记录 minuteStart / dayStart：命中时校验窗口边界未变，
+// 避免分钟/日窗口跨界后仍返回上一窗口的 RPM/RPD（stale 误导）。
+type geminiUsageCache struct {
+	usageInfo   *UsageInfo
+	timestamp   time.Time
+	minuteStart time.Time
+	dayStart    time.Time
+}
+
 const (
 	apiCacheTTL             = 3 * time.Minute
 	apiErrorCacheTTL        = 1 * time.Minute        // 负缓存 TTL：429 等错误缓存 1 分钟
 	antigravityErrorTTL     = 1 * time.Minute        // Antigravity 错误缓存 TTL（可恢复错误）
 	apiQueryMaxJitter       = 800 * time.Millisecond // 用量查询最大随机延迟
 	windowStatsCacheTTL     = 1 * time.Minute
+	geminiUsageCacheTTL     = 30 * time.Second // Gemini 用量短缓存 TTL（配合窗口边界校验）
 	openAIProbeCacheTTL     = 10 * time.Minute
 	openAICodexProbeVersion = "0.125.0"
 )
@@ -127,6 +138,7 @@ type UsageCache struct {
 	apiCache          sync.Map           // accountID -> *apiUsageCache
 	windowStatsCache  sync.Map           // accountID -> *windowStatsCache
 	antigravityCache  sync.Map           // accountID -> *antigravityUsageCache
+	geminiCache       sync.Map           // accountID -> *geminiUsageCache
 	apiFlight         singleflight.Group // 防止同一账号的并发请求击穿缓存（Anthropic）
 	antigravityFlight singleflight.Group // 防止同一 Antigravity 账号的并发请求击穿缓存
 	openAIProbeCache  sync.Map           // accountID -> time.Time
@@ -735,12 +747,42 @@ func (s *AccountUsageService) getGeminiUsage(ctx context.Context, account *Accou
 	}
 
 	dayStart := geminiDailyWindowStart(now)
-	stats, err := s.usageLogRepo.GetModelStatsWithFilters(ctx, dayStart, now, 0, 0, account.ID, 0, nil, nil, nil)
-	if err != nil {
-		return nil, fmt.Errorf("get gemini usage stats failed: %w", err)
+	minuteStart := now.Truncate(time.Minute)
+
+	// 短缓存命中：仅当分钟/日窗口边界均未变时复用，避免跨界返回上一窗口的 RPM/RPD。
+	if cached, ok := s.cache.geminiCache.Load(account.ID); ok {
+		if gc, ok := cached.(*geminiUsageCache); ok &&
+			time.Since(gc.timestamp) < geminiUsageCacheTTL &&
+			gc.minuteStart.Equal(minuteStart) &&
+			gc.dayStart.Equal(dayStart) {
+			return cloneGeminiUsage(gc.usageInfo), nil
+		}
 	}
 
-	dayTotals := geminiAggregateUsage(stats)
+	// daily / minute 两次聚合查询无依赖，errgroup 并行。
+	var dayStats, minuteStats []usagestats.ModelStat
+	g, gctx := errgroup.WithContext(ctx)
+	g.Go(func() error {
+		stats, err := s.usageLogRepo.GetModelStatsWithFilters(gctx, dayStart, now, 0, 0, account.ID, 0, nil, nil, nil)
+		if err != nil {
+			return fmt.Errorf("get gemini usage stats failed: %w", err)
+		}
+		dayStats = stats
+		return nil
+	})
+	g.Go(func() error {
+		stats, err := s.usageLogRepo.GetModelStatsWithFilters(gctx, minuteStart, now, 0, 0, account.ID, 0, nil, nil, nil)
+		if err != nil {
+			return fmt.Errorf("get gemini minute usage stats failed: %w", err)
+		}
+		minuteStats = stats
+		return nil
+	})
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
+	dayTotals := geminiAggregateUsage(dayStats)
 	dailyResetAt := geminiDailyResetTime(now)
 
 	// Daily window (RPD)
@@ -755,12 +797,7 @@ func (s *AccountUsageService) getGeminiUsage(ctx context.Context, account *Accou
 	}
 
 	// Minute window (RPM) - fixed-window approximation: current minute [truncate(now), truncate(now)+1m)
-	minuteStart := now.Truncate(time.Minute)
 	minuteResetAt := minuteStart.Add(time.Minute)
-	minuteStats, err := s.usageLogRepo.GetModelStatsWithFilters(ctx, minuteStart, now, 0, 0, account.ID, 0, nil, nil, nil)
-	if err != nil {
-		return nil, fmt.Errorf("get gemini minute usage stats failed: %w", err)
-	}
 	minuteTotals := geminiAggregateUsage(minuteStats)
 
 	if quota.SharedRPM > 0 {
@@ -773,7 +810,25 @@ func (s *AccountUsageService) getGeminiUsage(ctx context.Context, account *Accou
 		usage.GeminiFlashMinute = buildGeminiUsageProgress(minuteTotals.FlashRequests, quota.FlashRPM, minuteResetAt, minuteTotals.FlashTokens, minuteTotals.FlashCost, now)
 	}
 
-	return usage, nil
+	s.cache.geminiCache.Store(account.ID, &geminiUsageCache{
+		usageInfo:   usage,
+		timestamp:   now,
+		minuteStart: minuteStart,
+		dayStart:    dayStart,
+	})
+
+	return cloneGeminiUsage(usage), nil
+}
+
+// cloneGeminiUsage 返回 info 的顶层浅拷贝。
+// Gemini 各窗口 progress 字段在缓存后不再被原地修改，故顶层浅拷贝即可避免
+// 并发请求共享同一 *UsageInfo 导致的写竞争（与 cloneAntigravityUsageWithRemaining 同思路）。
+func cloneGeminiUsage(info *UsageInfo) *UsageInfo {
+	if info == nil {
+		return nil
+	}
+	cp := *info
+	return &cp
 }
 
 // getAntigravityUsage 获取 Antigravity 账户额度
