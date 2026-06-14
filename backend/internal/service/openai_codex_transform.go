@@ -434,7 +434,7 @@ func normalizeOpenAIResponsesImageOnlyModel(reqBody map[string]any) bool {
 }
 
 func normalizeOpenAIModelForUpstream(account *Account, model string) string {
-	if account == nil || account.Type == AccountTypeOAuth {
+	if account == nil {
 		return normalizeCodexModel(model)
 	}
 	return strings.TrimSpace(model)

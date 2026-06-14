@@ -377,20 +377,6 @@ func (_c *GroupCreate) SetNillableModelRoutingEnabled(v *bool) *GroupCreate {
 	return _c
 }
 
-// SetMcpXMLInject sets the "mcp_xml_inject" field.
-func (_c *GroupCreate) SetMcpXMLInject(v bool) *GroupCreate {
-	_c.mutation.SetMcpXMLInject(v)
-	return _c
-}
-
-// SetNillableMcpXMLInject sets the "mcp_xml_inject" field if the given value is not nil.
-func (_c *GroupCreate) SetNillableMcpXMLInject(v *bool) *GroupCreate {
-	if v != nil {
-		_c.SetMcpXMLInject(*v)
-	}
-	return _c
-}
-
 // SetSupportedModelScopes sets the "supported_model_scopes" field.
 func (_c *GroupCreate) SetSupportedModelScopes(v []string) *GroupCreate {
 	_c.mutation.SetSupportedModelScopes(v)
@@ -421,20 +407,6 @@ func (_c *GroupCreate) SetAllowMessagesDispatch(v bool) *GroupCreate {
 func (_c *GroupCreate) SetNillableAllowMessagesDispatch(v *bool) *GroupCreate {
 	if v != nil {
 		_c.SetAllowMessagesDispatch(*v)
-	}
-	return _c
-}
-
-// SetRequireOauthOnly sets the "require_oauth_only" field.
-func (_c *GroupCreate) SetRequireOauthOnly(v bool) *GroupCreate {
-	_c.mutation.SetRequireOauthOnly(v)
-	return _c
-}
-
-// SetNillableRequireOauthOnly sets the "require_oauth_only" field if the given value is not nil.
-func (_c *GroupCreate) SetNillableRequireOauthOnly(v *bool) *GroupCreate {
-	if v != nil {
-		_c.SetRequireOauthOnly(*v)
 	}
 	return _c
 }
@@ -698,10 +670,6 @@ func (_c *GroupCreate) defaults() error {
 		v := group.DefaultModelRoutingEnabled
 		_c.mutation.SetModelRoutingEnabled(v)
 	}
-	if _, ok := _c.mutation.McpXMLInject(); !ok {
-		v := group.DefaultMcpXMLInject
-		_c.mutation.SetMcpXMLInject(v)
-	}
 	if _, ok := _c.mutation.SupportedModelScopes(); !ok {
 		v := group.DefaultSupportedModelScopes
 		_c.mutation.SetSupportedModelScopes(v)
@@ -713,10 +681,6 @@ func (_c *GroupCreate) defaults() error {
 	if _, ok := _c.mutation.AllowMessagesDispatch(); !ok {
 		v := group.DefaultAllowMessagesDispatch
 		_c.mutation.SetAllowMessagesDispatch(v)
-	}
-	if _, ok := _c.mutation.RequireOauthOnly(); !ok {
-		v := group.DefaultRequireOauthOnly
-		_c.mutation.SetRequireOauthOnly(v)
 	}
 	if _, ok := _c.mutation.RequirePrivacySet(); !ok {
 		v := group.DefaultRequirePrivacySet
@@ -810,9 +774,6 @@ func (_c *GroupCreate) check() error {
 	if _, ok := _c.mutation.ModelRoutingEnabled(); !ok {
 		return &ValidationError{Name: "model_routing_enabled", err: errors.New(`ent: missing required field "Group.model_routing_enabled"`)}
 	}
-	if _, ok := _c.mutation.McpXMLInject(); !ok {
-		return &ValidationError{Name: "mcp_xml_inject", err: errors.New(`ent: missing required field "Group.mcp_xml_inject"`)}
-	}
 	if _, ok := _c.mutation.SupportedModelScopes(); !ok {
 		return &ValidationError{Name: "supported_model_scopes", err: errors.New(`ent: missing required field "Group.supported_model_scopes"`)}
 	}
@@ -821,9 +782,6 @@ func (_c *GroupCreate) check() error {
 	}
 	if _, ok := _c.mutation.AllowMessagesDispatch(); !ok {
 		return &ValidationError{Name: "allow_messages_dispatch", err: errors.New(`ent: missing required field "Group.allow_messages_dispatch"`)}
-	}
-	if _, ok := _c.mutation.RequireOauthOnly(); !ok {
-		return &ValidationError{Name: "require_oauth_only", err: errors.New(`ent: missing required field "Group.require_oauth_only"`)}
 	}
 	if _, ok := _c.mutation.RequirePrivacySet(); !ok {
 		return &ValidationError{Name: "require_privacy_set", err: errors.New(`ent: missing required field "Group.require_privacy_set"`)}
@@ -976,10 +934,6 @@ func (_c *GroupCreate) createSpec() (*Group, *sqlgraph.CreateSpec) {
 		_spec.SetField(group.FieldModelRoutingEnabled, field.TypeBool, value)
 		_node.ModelRoutingEnabled = value
 	}
-	if value, ok := _c.mutation.McpXMLInject(); ok {
-		_spec.SetField(group.FieldMcpXMLInject, field.TypeBool, value)
-		_node.McpXMLInject = value
-	}
 	if value, ok := _c.mutation.SupportedModelScopes(); ok {
 		_spec.SetField(group.FieldSupportedModelScopes, field.TypeJSON, value)
 		_node.SupportedModelScopes = value
@@ -991,10 +945,6 @@ func (_c *GroupCreate) createSpec() (*Group, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.AllowMessagesDispatch(); ok {
 		_spec.SetField(group.FieldAllowMessagesDispatch, field.TypeBool, value)
 		_node.AllowMessagesDispatch = value
-	}
-	if value, ok := _c.mutation.RequireOauthOnly(); ok {
-		_spec.SetField(group.FieldRequireOauthOnly, field.TypeBool, value)
-		_node.RequireOauthOnly = value
 	}
 	if value, ok := _c.mutation.RequirePrivacySet(); ok {
 		_spec.SetField(group.FieldRequirePrivacySet, field.TypeBool, value)
@@ -1610,18 +1560,6 @@ func (u *GroupUpsert) UpdateModelRoutingEnabled() *GroupUpsert {
 	return u
 }
 
-// SetMcpXMLInject sets the "mcp_xml_inject" field.
-func (u *GroupUpsert) SetMcpXMLInject(v bool) *GroupUpsert {
-	u.Set(group.FieldMcpXMLInject, v)
-	return u
-}
-
-// UpdateMcpXMLInject sets the "mcp_xml_inject" field to the value that was provided on create.
-func (u *GroupUpsert) UpdateMcpXMLInject() *GroupUpsert {
-	u.SetExcluded(group.FieldMcpXMLInject)
-	return u
-}
-
 // SetSupportedModelScopes sets the "supported_model_scopes" field.
 func (u *GroupUpsert) SetSupportedModelScopes(v []string) *GroupUpsert {
 	u.Set(group.FieldSupportedModelScopes, v)
@@ -1661,18 +1599,6 @@ func (u *GroupUpsert) SetAllowMessagesDispatch(v bool) *GroupUpsert {
 // UpdateAllowMessagesDispatch sets the "allow_messages_dispatch" field to the value that was provided on create.
 func (u *GroupUpsert) UpdateAllowMessagesDispatch() *GroupUpsert {
 	u.SetExcluded(group.FieldAllowMessagesDispatch)
-	return u
-}
-
-// SetRequireOauthOnly sets the "require_oauth_only" field.
-func (u *GroupUpsert) SetRequireOauthOnly(v bool) *GroupUpsert {
-	u.Set(group.FieldRequireOauthOnly, v)
-	return u
-}
-
-// UpdateRequireOauthOnly sets the "require_oauth_only" field to the value that was provided on create.
-func (u *GroupUpsert) UpdateRequireOauthOnly() *GroupUpsert {
-	u.SetExcluded(group.FieldRequireOauthOnly)
 	return u
 }
 
@@ -2298,20 +2224,6 @@ func (u *GroupUpsertOne) UpdateModelRoutingEnabled() *GroupUpsertOne {
 	})
 }
 
-// SetMcpXMLInject sets the "mcp_xml_inject" field.
-func (u *GroupUpsertOne) SetMcpXMLInject(v bool) *GroupUpsertOne {
-	return u.Update(func(s *GroupUpsert) {
-		s.SetMcpXMLInject(v)
-	})
-}
-
-// UpdateMcpXMLInject sets the "mcp_xml_inject" field to the value that was provided on create.
-func (u *GroupUpsertOne) UpdateMcpXMLInject() *GroupUpsertOne {
-	return u.Update(func(s *GroupUpsert) {
-		s.UpdateMcpXMLInject()
-	})
-}
-
 // SetSupportedModelScopes sets the "supported_model_scopes" field.
 func (u *GroupUpsertOne) SetSupportedModelScopes(v []string) *GroupUpsertOne {
 	return u.Update(func(s *GroupUpsert) {
@@ -2358,20 +2270,6 @@ func (u *GroupUpsertOne) SetAllowMessagesDispatch(v bool) *GroupUpsertOne {
 func (u *GroupUpsertOne) UpdateAllowMessagesDispatch() *GroupUpsertOne {
 	return u.Update(func(s *GroupUpsert) {
 		s.UpdateAllowMessagesDispatch()
-	})
-}
-
-// SetRequireOauthOnly sets the "require_oauth_only" field.
-func (u *GroupUpsertOne) SetRequireOauthOnly(v bool) *GroupUpsertOne {
-	return u.Update(func(s *GroupUpsert) {
-		s.SetRequireOauthOnly(v)
-	})
-}
-
-// UpdateRequireOauthOnly sets the "require_oauth_only" field to the value that was provided on create.
-func (u *GroupUpsertOne) UpdateRequireOauthOnly() *GroupUpsertOne {
-	return u.Update(func(s *GroupUpsert) {
-		s.UpdateRequireOauthOnly()
 	})
 }
 
@@ -3174,20 +3072,6 @@ func (u *GroupUpsertBulk) UpdateModelRoutingEnabled() *GroupUpsertBulk {
 	})
 }
 
-// SetMcpXMLInject sets the "mcp_xml_inject" field.
-func (u *GroupUpsertBulk) SetMcpXMLInject(v bool) *GroupUpsertBulk {
-	return u.Update(func(s *GroupUpsert) {
-		s.SetMcpXMLInject(v)
-	})
-}
-
-// UpdateMcpXMLInject sets the "mcp_xml_inject" field to the value that was provided on create.
-func (u *GroupUpsertBulk) UpdateMcpXMLInject() *GroupUpsertBulk {
-	return u.Update(func(s *GroupUpsert) {
-		s.UpdateMcpXMLInject()
-	})
-}
-
 // SetSupportedModelScopes sets the "supported_model_scopes" field.
 func (u *GroupUpsertBulk) SetSupportedModelScopes(v []string) *GroupUpsertBulk {
 	return u.Update(func(s *GroupUpsert) {
@@ -3234,20 +3118,6 @@ func (u *GroupUpsertBulk) SetAllowMessagesDispatch(v bool) *GroupUpsertBulk {
 func (u *GroupUpsertBulk) UpdateAllowMessagesDispatch() *GroupUpsertBulk {
 	return u.Update(func(s *GroupUpsert) {
 		s.UpdateAllowMessagesDispatch()
-	})
-}
-
-// SetRequireOauthOnly sets the "require_oauth_only" field.
-func (u *GroupUpsertBulk) SetRequireOauthOnly(v bool) *GroupUpsertBulk {
-	return u.Update(func(s *GroupUpsert) {
-		s.SetRequireOauthOnly(v)
-	})
-}
-
-// UpdateRequireOauthOnly sets the "require_oauth_only" field to the value that was provided on create.
-func (u *GroupUpsertBulk) UpdateRequireOauthOnly() *GroupUpsertBulk {
-	return u.Update(func(s *GroupUpsert) {
-		s.UpdateRequireOauthOnly()
 	})
 }
 

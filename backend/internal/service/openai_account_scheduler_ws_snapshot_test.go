@@ -16,7 +16,7 @@ func TestOpenAIGatewayService_SelectAccountWithScheduler_UsesWSPassthroughSnapsh
 	account := &Account{
 		ID:          35001,
 		Platform:    PlatformOpenAI,
-		Type:        AccountTypeOAuth,
+		Type:        AccountTypeAPIKey,
 		Status:      StatusActive,
 		Schedulable: true,
 		Concurrency: 10,

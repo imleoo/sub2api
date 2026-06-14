@@ -54,17 +54,16 @@ func TestSnapshotPlatformQuotaDefaults_PassesToRepoBulkInsert(t *testing.T) {
 	five := 5.0
 	plan := &signupGrantPlan{
 		PlatformQuotas: map[string]*DefaultPlatformQuotaSetting{
-			"anthropic":   {DailyLimitUSD: &five},
-			"openai":      {},
-			"gemini":      {},
-			"antigravity": {},
+			"anthropic": {DailyLimitUSD: &five},
+			"openai":    {},
+			"gemini":    {},
 		},
 	}
 	if err := s.snapshotPlatformQuotaDefaults(context.Background(), 999, plan); err != nil {
 		t.Fatal(err)
 	}
-	if len(fakeRepo.records) != 4 {
-		t.Errorf("expected 4 records, got %d", len(fakeRepo.records))
+	if len(fakeRepo.records) != 3 {
+		t.Errorf("expected 3 records, got %d", len(fakeRepo.records))
 	}
 	found := false
 	for _, r := range fakeRepo.records {
@@ -120,10 +119,9 @@ func TestResolveSignupGrantPlan_GlobalQuotaLoadedBeforeAuthSource(t *testing.T) 
 	settings := map[string]string{
 		SettingKeyRegistrationEnabled: "true",
 		SettingKeyDefaultPlatformQuotas: `{
-			"anthropic":   {"daily": 10, "weekly": 50, "monthly": 200},
-			"openai":      {"daily": 5,  "weekly": 25, "monthly": 100},
-			"gemini":      {"daily": 5,  "weekly": 25, "monthly": 100},
-			"antigravity": {"daily": 5,  "weekly": 25, "monthly": 100}
+			"anthropic": {"daily": 10, "weekly": 50, "monthly": 200},
+			"openai":    {"daily": 5,  "weekly": 25, "monthly": 100},
+			"gemini":    {"daily": 5,  "weekly": 25, "monthly": 100}
 		}`,
 	}
 	svc := newAuthService(nil, settings, nil, nil)

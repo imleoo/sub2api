@@ -22,7 +22,7 @@ func (s *GroupRepoSuite) TestListWithAccountCountSort_AttachesActiveCount() {
 		var id int64
 		s.Require().NoError(scanSingleRow(s.ctx, s.tx,
 			"INSERT INTO accounts (name, platform, type, status) VALUES ($1, $2, $3, $4) RETURNING id",
-			[]any{name, service.PlatformAnthropic, service.AccountTypeOAuth, status},
+			[]any{name, service.PlatformAnthropic, service.AccountTypeAPIKey, status},
 			&id))
 		return id
 	}

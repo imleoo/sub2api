@@ -72,7 +72,6 @@ type AccountRepository interface {
 	SetTempUnschedulable(ctx context.Context, id int64, until time.Time, reason string) error
 	ClearTempUnschedulable(ctx context.Context, id int64) error
 	ClearRateLimit(ctx context.Context, id int64) error
-	ClearAntigravityQuotaScopes(ctx context.Context, id int64) error
 	ClearModelRateLimits(ctx context.Context, id int64) error
 	UpdateSessionWindow(ctx context.Context, id int64, start, end *time.Time, status string) error
 	// UpdateSessionWindowEnd 仅更新 5h 窗口的结束时间，不动 start / status。
@@ -186,19 +185,6 @@ func (s *AccountService) Create(ctx context.Context, req CreateAccountRequest) (
 		return nil, fmt.Errorf("create account: %w", err)
 	}
 
-	// require_oauth_only 检查：apikey 类型账号不可加入限制分组
-	if account.Type == AccountTypeAPIKey && len(req.GroupIDs) > 0 {
-		for _, gid := range req.GroupIDs {
-			g, err := s.groupRepo.GetByID(ctx, gid)
-			if err != nil {
-				return nil, err
-			}
-			if g.RequireOAuthOnly && (g.Platform == PlatformOpenAI || g.Platform == PlatformAnthropic || g.Platform == PlatformGemini) {
-				return nil, fmt.Errorf("分组 [%s] 仅允许 OAuth 账号，apikey 类型账号无法加入", g.Name)
-			}
-		}
-	}
-
 	// 绑定分组
 	if len(req.GroupIDs) > 0 {
 		if err := s.accountRepo.BindGroups(ctx, account.ID, req.GroupIDs); err != nil {
@@ -295,18 +281,6 @@ func (s *AccountService) Update(ctx context.Context, id int64, req UpdateAccount
 		// 1) 分组存在性
 		if err := s.validateGroupIDsExist(ctx, *req.GroupIDs); err != nil {
 			return nil, err
-		}
-		// 2) require_oauth_only：apikey 账号不得加入仅 OAuth 分组
-		if account.Type == AccountTypeAPIKey {
-			for _, gid := range *req.GroupIDs {
-				g, err := s.groupRepo.GetByID(ctx, gid)
-				if err != nil {
-					return nil, err
-				}
-				if g.RequireOAuthOnly && (g.Platform == PlatformOpenAI || g.Platform == PlatformAnthropic || g.Platform == PlatformGemini) {
-					return nil, fmt.Errorf("分组 [%s] 仅允许 OAuth 账号，apikey 类型账号无法加入", g.Name)
-				}
-			}
 		}
 	}
 

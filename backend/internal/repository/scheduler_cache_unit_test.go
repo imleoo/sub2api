@@ -13,7 +13,7 @@ func TestBuildSchedulerMetadataAccount_KeepsOpenAIWSFlags(t *testing.T) {
 	account := service.Account{
 		ID:       42,
 		Platform: service.PlatformOpenAI,
-		Type:     service.AccountTypeOAuth,
+		Type:     service.AccountTypeAPIKey,
 		Extra: map[string]any{
 			"openai_oauth_responses_websockets_v2_enabled": true,
 			"openai_oauth_responses_websockets_v2_mode":    service.OpenAIWSIngressModePassthrough,
@@ -112,13 +112,13 @@ func TestBuildSchedulerMetadataAccount_KeepsQuotaAutoPauseFields(t *testing.T) {
 func TestBuildSchedulerMetadataAccount_KeepsModelRateLimits(t *testing.T) {
 	account := service.Account{
 		ID:       90,
-		Platform: service.PlatformAntigravity,
+		Platform: service.PlatformGemini,
 		Extra: map[string]any{
 			"model_rate_limits": map[string]any{
 				"gemini-3-flash": map[string]any{
 					"rate_limit_reset_at": "2026-05-30T10:10:00Z",
 				},
-				"antigravity:gemini": map[string]any{
+				"gemini-3-pro": map[string]any{
 					"rate_limit_reset_at": "2026-05-30T10:10:00Z",
 				},
 			},
@@ -131,6 +131,6 @@ func TestBuildSchedulerMetadataAccount_KeepsModelRateLimits(t *testing.T) {
 	limits, ok := got.Extra["model_rate_limits"].(map[string]any)
 	require.True(t, ok)
 	require.Contains(t, limits, "gemini-3-flash")
-	require.Contains(t, limits, "antigravity:gemini")
+	require.Contains(t, limits, "gemini-3-pro")
 	require.Nil(t, got.Extra["unused_large_field"])
 }

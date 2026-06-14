@@ -128,7 +128,7 @@ func TestSleepWithContext(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestHandleFailoverError_BasicSwitch(t *testing.T) {
-	t.Run("非重试错误_非Antigravity_直接切换", func(t *testing.T) {
+	t.Run("非重试错误_直接切换", func(t *testing.T) {
 		mock := &mockTempUnscheduler{}
 		fs := NewFailoverState(3, false)
 		err := newTestFailoverErr(500, false, false)

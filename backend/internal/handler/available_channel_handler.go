@@ -16,8 +16,8 @@ import (
 //  1. 行过滤：只保留状态为 Active 且与当前用户可访问分组有交集的渠道；
 //  2. 分组过滤：渠道的 Groups 只保留用户可访问的那些；
 //  3. 平台过滤：渠道的 SupportedModels 只保留平台在用户可见 Groups 中出现过的模型，
-//     防止"渠道同时挂在 antigravity / anthropic 两个平台的分组上，用户只访问
-//     antigravity，却看到 anthropic 模型"这类跨平台信息泄漏；
+//     防止"渠道同时挂在 gemini / anthropic 两个平台的分组上，用户只访问
+//     gemini，却看到 anthropic 模型"这类跨平台信息泄漏；
 //  4. 字段白名单：仅返回用户需要的字段（省略 BillingModelSource / RestrictModels
 //     / 内部 ID / Status 等管理字段）。
 type AvailableChannelHandler struct {

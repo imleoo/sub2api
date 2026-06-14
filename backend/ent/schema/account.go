@@ -18,11 +18,11 @@ import (
 // Account 定义 AI API 账户实体的 schema。
 //
 // 账户是系统的核心资源，代表一个可用于调用 AI API 的凭证。
-// 例如：一个 Claude API 账户、一个 Gemini OAuth 账户等。
+// 例如：一个 Claude API 账户、一个 Gemini service_account 账户等。
 //
 // 主要功能：
 //   - 存储不同平台（Claude、Gemini、OpenAI 等）的 API 凭证
-//   - 支持多种认证类型（api_key、oauth、cookie 等）
+//   - 支持多种认证类型（api_key、service_account、bedrock 等）
 //   - 管理账户的调度状态（可调度、速率限制、过载等）
 //   - 通过分组机制实现账户的灵活分配
 type Account struct {
@@ -74,7 +74,7 @@ func (Account) Fields() []ent.Field {
 			Default("").
 			Comment("出站协议（Phase 2 引入；空 = 按 platform/type 派生）"),
 
-		// type: 认证类型，如 "api_key", "oauth", "cookie" 等
+		// type: 认证类型，如 "api_key", "service_account", "bedrock" 等
 		// 不同类型决定了 credentials 中存储的数据结构
 		field.String("type").
 			MaxLen(20).
@@ -83,8 +83,7 @@ func (Account) Fields() []ent.Field {
 		// credentials: 认证凭证，以 JSONB 格式存储
 		// 结构取决于 type 字段：
 		// - api_key: {"api_key": "sk-xxx"}
-		// - oauth: {"access_token": "...", "refresh_token": "...", "expires_at": "..."}
-		// - cookie: {"session_key": "..."}
+		// - service_account: {"service_account_json": "..."}
 		field.JSON("credentials", map[string]any{}).
 			Default(func() map[string]any { return map[string]any{} }).
 			SchemaType(map[string]string{dialect.Postgres: "jsonb"}),

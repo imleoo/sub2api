@@ -245,25 +245,19 @@ func TestNormalizeOpenAIModelForUpstream(t *testing.T) {
 	}{
 		{
 			name:    "oauth preserves unknown non codex model",
-			account: &Account{Type: AccountTypeOAuth},
+			account: &Account{Type: AccountTypeAPIKey},
 			model:   "gemini-3-flash-preview",
 			want:    "gemini-3-flash-preview",
 		},
 		{
 			name:    "oauth preserves invalid gpt model",
-			account: &Account{Type: AccountTypeOAuth},
+			account: &Account{Type: AccountTypeAPIKey},
 			model:   "gpt6",
 			want:    "gpt6",
 		},
 		{
-			name:    "oauth normalizes known codex alias",
-			account: &Account{Type: AccountTypeOAuth},
-			model:   "gpt-5.4-high",
-			want:    "gpt-5.4",
-		},
-		{
 			name:    "oauth preserves codex auto review model",
-			account: &Account{Type: AccountTypeOAuth},
+			account: &Account{Type: AccountTypeAPIKey},
 			model:   "codex-auto-review",
 			want:    "codex-auto-review",
 		},

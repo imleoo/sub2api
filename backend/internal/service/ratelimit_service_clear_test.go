@@ -19,12 +19,10 @@ type rateLimitClearRepoStub struct {
 	getByIDCalls              int
 	clearErrorCalls           int
 	clearRateLimitCalls       int
-	clearAntigravityCalls     int
 	clearModelRateLimitCalls  int
 	clearTempUnschedCalls     int
 	clearErrorErr             error
 	clearRateLimitErr         error
-	clearAntigravityErr       error
 	clearModelRateLimitErr    error
 	clearTempUnschedulableErr error
 }
@@ -45,11 +43,6 @@ func (r *rateLimitClearRepoStub) ClearError(ctx context.Context, id int64) error
 func (r *rateLimitClearRepoStub) ClearRateLimit(ctx context.Context, id int64) error {
 	r.clearRateLimitCalls++
 	return r.clearRateLimitErr
-}
-
-func (r *rateLimitClearRepoStub) ClearAntigravityQuotaScopes(ctx context.Context, id int64) error {
-	r.clearAntigravityCalls++
-	return r.clearAntigravityErr
 }
 
 func (r *rateLimitClearRepoStub) ClearModelRateLimits(ctx context.Context, id int64) error {
@@ -99,7 +92,6 @@ func TestRateLimitService_ClearRateLimit_AlsoClearsTempUnschedulable(t *testing.
 	require.NoError(t, err)
 
 	require.Equal(t, 1, repo.clearRateLimitCalls)
-	require.Equal(t, 1, repo.clearAntigravityCalls)
 	require.Equal(t, 1, repo.clearModelRateLimitCalls)
 	require.Equal(t, 1, repo.clearTempUnschedCalls)
 	require.Equal(t, []int64{42}, cache.deletedIDs)
@@ -130,24 +122,6 @@ func TestRateLimitService_ClearRateLimit_ClearRateLimitFailed(t *testing.T) {
 	require.Error(t, err)
 
 	require.Equal(t, 1, repo.clearRateLimitCalls)
-	require.Equal(t, 0, repo.clearAntigravityCalls)
-	require.Equal(t, 0, repo.clearModelRateLimitCalls)
-	require.Equal(t, 0, repo.clearTempUnschedCalls)
-	require.Empty(t, cache.deletedIDs)
-}
-
-func TestRateLimitService_ClearRateLimit_ClearAntigravityFailed(t *testing.T) {
-	repo := &rateLimitClearRepoStub{
-		clearAntigravityErr: errors.New("clear antigravity failed"),
-	}
-	cache := &tempUnschedCacheRecorder{}
-	svc := NewRateLimitService(repo, nil, &config.Config{}, nil, cache)
-
-	err := svc.ClearRateLimit(context.Background(), 12)
-	require.Error(t, err)
-
-	require.Equal(t, 1, repo.clearRateLimitCalls)
-	require.Equal(t, 1, repo.clearAntigravityCalls)
 	require.Equal(t, 0, repo.clearModelRateLimitCalls)
 	require.Equal(t, 0, repo.clearTempUnschedCalls)
 	require.Empty(t, cache.deletedIDs)
@@ -164,7 +138,6 @@ func TestRateLimitService_ClearRateLimit_ClearModelRateLimitsFailed(t *testing.T
 	require.Error(t, err)
 
 	require.Equal(t, 1, repo.clearRateLimitCalls)
-	require.Equal(t, 1, repo.clearAntigravityCalls)
 	require.Equal(t, 1, repo.clearModelRateLimitCalls)
 	require.Equal(t, 0, repo.clearTempUnschedCalls)
 	require.Empty(t, cache.deletedIDs)
@@ -181,7 +154,6 @@ func TestRateLimitService_ClearRateLimit_CacheDeleteFailedShouldNotFail(t *testi
 	require.NoError(t, err)
 
 	require.Equal(t, 1, repo.clearRateLimitCalls)
-	require.Equal(t, 1, repo.clearAntigravityCalls)
 	require.Equal(t, 1, repo.clearModelRateLimitCalls)
 	require.Equal(t, 1, repo.clearTempUnschedCalls)
 	require.Equal(t, []int64{14}, cache.deletedIDs)
@@ -195,7 +167,6 @@ func TestRateLimitService_ClearRateLimit_WithoutTempUnschedCache(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, 1, repo.clearRateLimitCalls)
-	require.Equal(t, 1, repo.clearAntigravityCalls)
 	require.Equal(t, 1, repo.clearModelRateLimitCalls)
 	require.Equal(t, 1, repo.clearTempUnschedCalls)
 }
@@ -214,7 +185,6 @@ func TestRateLimitService_RecoverAccountAfterSuccessfulTest_ClearsErrorAndRateLi
 						"rate_limit_reset_at": now.Format(time.RFC3339),
 					},
 				},
-				"antigravity_quota_scopes": map[string]any{"gemini": true},
 			},
 		},
 	}
@@ -232,7 +202,6 @@ func TestRateLimitService_RecoverAccountAfterSuccessfulTest_ClearsErrorAndRateLi
 	require.Equal(t, 1, repo.getByIDCalls)
 	require.Equal(t, 1, repo.clearErrorCalls)
 	require.Equal(t, 1, repo.clearRateLimitCalls)
-	require.Equal(t, 1, repo.clearAntigravityCalls)
 	require.Equal(t, 1, repo.clearModelRateLimitCalls)
 	require.Equal(t, 1, repo.clearTempUnschedCalls)
 	require.Equal(t, []int64{42}, cache.deletedIDs)
@@ -260,7 +229,6 @@ func TestRateLimitService_RecoverAccountAfterSuccessfulTest_NoRecoverableStateIs
 	require.Equal(t, 1, repo.getByIDCalls)
 	require.Equal(t, 0, repo.clearErrorCalls)
 	require.Equal(t, 0, repo.clearRateLimitCalls)
-	require.Equal(t, 0, repo.clearAntigravityCalls)
 	require.Equal(t, 0, repo.clearModelRateLimitCalls)
 	require.Equal(t, 0, repo.clearTempUnschedCalls)
 	require.Empty(t, cache.deletedIDs)
@@ -284,11 +252,11 @@ func TestRateLimitService_RecoverAccountAfterSuccessfulTest_ClearErrorFailed(t *
 	require.Equal(t, 0, repo.clearRateLimitCalls)
 }
 
-func TestRateLimitService_RecoverAccountState_InvalidatesOAuthTokenOnErrorRecovery(t *testing.T) {
+func TestRateLimitService_RecoverAccountState_InvalidatesTokenOnErrorRecovery(t *testing.T) {
 	repo := &rateLimitClearRepoStub{
 		getByIDAccount: &Account{
 			ID:     21,
-			Type:   AccountTypeOAuth,
+			Type:   AccountTypeServiceAccount,
 			Status: StatusError,
 		},
 	}

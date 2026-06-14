@@ -180,9 +180,6 @@ func (m *mockAccountRepoForPlatform) ClearTempUnschedulable(ctx context.Context,
 func (m *mockAccountRepoForPlatform) ClearRateLimit(ctx context.Context, id int64) error {
 	return nil
 }
-func (m *mockAccountRepoForPlatform) ClearAntigravityQuotaScopes(ctx context.Context, id int64) error {
-	return nil
-}
 func (m *mockAccountRepoForPlatform) ClearModelRateLimits(ctx context.Context, id int64) error {
 	return nil
 }
@@ -385,34 +382,6 @@ func TestGatewayService_SelectAccountForModelWithPlatform_PriorityAndLastUsed(t 
 	require.NoError(t, err)
 	require.NotNil(t, acc)
 	require.Equal(t, int64(2), acc.ID, "同优先级应选择最久未用的账户")
-}
-
-func TestGatewayService_SelectAccountForModelWithPlatform_GeminiOAuthPreference(t *testing.T) {
-	ctx := context.Background()
-
-	repo := &mockAccountRepoForPlatform{
-		accounts: []Account{
-			{ID: 1, Platform: PlatformGemini, Priority: 1, Status: StatusActive, Schedulable: true, Type: AccountTypeAPIKey},
-			{ID: 2, Platform: PlatformGemini, Priority: 1, Status: StatusActive, Schedulable: true, Type: AccountTypeOAuth},
-		},
-		accountsByID: map[int64]*Account{},
-	}
-	for i := range repo.accounts {
-		repo.accountsByID[repo.accounts[i].ID] = &repo.accounts[i]
-	}
-
-	cache := &mockGatewayCacheForPlatform{}
-
-	svc := &GatewayService{
-		accountRepo: repo,
-		cache:       cache,
-		cfg:         testConfig(),
-	}
-
-	acc, err := svc.selectAccountForModelWithPlatform(ctx, nil, "", "gemini-2.5-pro", nil, PlatformGemini)
-	require.NoError(t, err)
-	require.NotNil(t, acc)
-	require.Equal(t, int64(2), acc.ID, "同优先级且未使用时应优先选择OAuth账户")
 }
 
 // TestGatewayService_SelectAccountForModelWithPlatform_NoAvailableAccounts 测试无可用账户
@@ -874,34 +843,6 @@ func TestGatewayService_SelectAccountForModelWithPlatform_NoModelSupport(t *test
 	require.Error(t, err)
 	require.Nil(t, acc)
 	require.Contains(t, err.Error(), "supporting model")
-}
-
-func TestGatewayService_SelectAccountForModelWithPlatform_GeminiPreferOAuth(t *testing.T) {
-	ctx := context.Background()
-
-	repo := &mockAccountRepoForPlatform{
-		accounts: []Account{
-			{ID: 1, Platform: PlatformGemini, Priority: 1, Status: StatusActive, Schedulable: true, Type: AccountTypeAPIKey},
-			{ID: 2, Platform: PlatformGemini, Priority: 1, Status: StatusActive, Schedulable: true, Type: AccountTypeOAuth},
-		},
-		accountsByID: map[int64]*Account{},
-	}
-	for i := range repo.accounts {
-		repo.accountsByID[repo.accounts[i].ID] = &repo.accounts[i]
-	}
-
-	cache := &mockGatewayCacheForPlatform{}
-
-	svc := &GatewayService{
-		accountRepo: repo,
-		cache:       cache,
-		cfg:         testConfig(),
-	}
-
-	acc, err := svc.selectAccountForModelWithPlatform(ctx, nil, "", "gemini-2.5-pro", nil, PlatformGemini)
-	require.NoError(t, err)
-	require.NotNil(t, acc)
-	require.Equal(t, int64(2), acc.ID)
 }
 
 func TestGatewayService_SelectAccountForModelWithPlatform_GeminiAPIKeyModelMappingFilter(t *testing.T) {
@@ -2111,59 +2052,6 @@ func TestGatewayService_SelectAccountWithLoadAwareness(t *testing.T) {
 		require.NotNil(t, result.WaitPlan)
 		require.Equal(t, int64(1), result.Account.ID)
 	})
-
-	t.Run("Gemini负载排序-优先OAuth", func(t *testing.T) {
-		groupID := int64(24)
-
-		repo := &mockAccountRepoForPlatform{
-			accounts: []Account{
-				{ID: 1, Platform: PlatformGemini, Priority: 1, Status: StatusActive, Schedulable: true, Concurrency: 5, Type: AccountTypeAPIKey},
-				{ID: 2, Platform: PlatformGemini, Priority: 1, Status: StatusActive, Schedulable: true, Concurrency: 5, Type: AccountTypeOAuth},
-			},
-			accountsByID: map[int64]*Account{},
-		}
-		for i := range repo.accounts {
-			repo.accountsByID[repo.accounts[i].ID] = &repo.accounts[i]
-		}
-
-		cache := &mockGatewayCacheForPlatform{}
-
-		groupRepo := &mockGroupRepoForGateway{
-			groups: map[int64]*Group{
-				groupID: {
-					ID:       groupID,
-					Platform: PlatformGemini,
-					Status:   StatusActive,
-					Hydrated: true,
-				},
-			},
-		}
-
-		cfg := testConfig()
-		cfg.Gateway.Scheduling.LoadBatchEnabled = true
-
-		concurrencyCache := &mockConcurrencyCache{
-			loadMap: map[int64]*AccountLoadInfo{
-				1: {AccountID: 1, LoadRate: 10},
-				2: {AccountID: 2, LoadRate: 10},
-			},
-		}
-
-		svc := &GatewayService{
-			accountRepo:        repo,
-			groupRepo:          groupRepo,
-			cache:              cache,
-			cfg:                cfg,
-			concurrencyService: NewConcurrencyService(concurrencyCache),
-		}
-
-		result, err := svc.SelectAccountWithLoadAwareness(ctx, &groupID, "gemini", "gemini-2.5-pro", nil, "", int64(0))
-		require.NoError(t, err)
-		require.NotNil(t, result)
-		require.NotNil(t, result.Account)
-		require.Equal(t, int64(2), result.Account.ID)
-	})
-
 	t.Run("模型路由-过滤路径覆盖", func(t *testing.T) {
 		groupID := int64(70)
 		now := time.Now().Add(10 * time.Minute)

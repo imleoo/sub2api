@@ -479,7 +479,7 @@ func (s *GroupRepoSuite) TestListWithFilters_AccountCount() {
 		s.ctx,
 		s.tx,
 		"INSERT INTO accounts (name, platform, type) VALUES ($1, $2, $3) RETURNING id",
-		[]any{"acc1", service.PlatformAnthropic, service.AccountTypeOAuth},
+		[]any{"acc1", service.PlatformAnthropic, service.AccountTypeAPIKey},
 		&accountID,
 	))
 	_, err := s.tx.ExecContext(s.ctx, "INSERT INTO account_groups (account_id, group_id, priority, created_at) VALUES ($1, $2, $3, NOW())", accountID, g1.ID, 1)
@@ -613,7 +613,7 @@ func (s *GroupRepoSuite) TestGetAccountCount() {
 		s.ctx,
 		s.tx,
 		"INSERT INTO accounts (name, platform, type) VALUES ($1, $2, $3) RETURNING id",
-		[]any{"a1", service.PlatformAnthropic, service.AccountTypeOAuth},
+		[]any{"a1", service.PlatformAnthropic, service.AccountTypeAPIKey},
 		&a1,
 	))
 	var a2 int64
@@ -621,7 +621,7 @@ func (s *GroupRepoSuite) TestGetAccountCount() {
 		s.ctx,
 		s.tx,
 		"INSERT INTO accounts (name, platform, type) VALUES ($1, $2, $3) RETURNING id",
-		[]any{"a2", service.PlatformAnthropic, service.AccountTypeOAuth},
+		[]any{"a2", service.PlatformAnthropic, service.AccountTypeAPIKey},
 		&a2,
 	))
 
@@ -670,7 +670,7 @@ func (s *GroupRepoSuite) TestListWithFilters_ActiveAccountCount_LessThanTotal() 
 		s.Require().NoError(scanSingleRow(
 			s.ctx, s.tx,
 			"INSERT INTO accounts (name, platform, type, status, schedulable) VALUES ($1, $2, $3, $4, $5) RETURNING id",
-			[]any{name, service.PlatformAnthropic, service.AccountTypeOAuth, status, schedulable},
+			[]any{name, service.PlatformAnthropic, service.AccountTypeAPIKey, status, schedulable},
 			&id,
 		))
 		return id
@@ -731,31 +731,31 @@ func (s *GroupRepoSuite) TestListWithFilters_RateLimitedAccountCount() {
 	var normalID int64
 	s.Require().NoError(scanSingleRow(s.ctx, s.tx,
 		"INSERT INTO accounts (name, platform, type) VALUES ($1, $2, $3) RETURNING id",
-		[]any{"acc-normal", service.PlatformAnthropic, service.AccountTypeOAuth},
+		[]any{"acc-normal", service.PlatformAnthropic, service.AccountTypeAPIKey},
 		&normalID))
 
 	var rateLimitedID int64
 	s.Require().NoError(scanSingleRow(s.ctx, s.tx,
 		"INSERT INTO accounts (name, platform, type, rate_limit_reset_at) VALUES ($1, $2, $3, NOW() + INTERVAL '1 hour') RETURNING id",
-		[]any{"acc-rate-limited", service.PlatformAnthropic, service.AccountTypeOAuth},
+		[]any{"acc-rate-limited", service.PlatformAnthropic, service.AccountTypeAPIKey},
 		&rateLimitedID))
 
 	var overloadedID int64
 	s.Require().NoError(scanSingleRow(s.ctx, s.tx,
 		"INSERT INTO accounts (name, platform, type, overload_until) VALUES ($1, $2, $3, NOW() + INTERVAL '1 hour') RETURNING id",
-		[]any{"acc-overloaded", service.PlatformAnthropic, service.AccountTypeOAuth},
+		[]any{"acc-overloaded", service.PlatformAnthropic, service.AccountTypeAPIKey},
 		&overloadedID))
 
 	var tempUnschedulableID int64
 	s.Require().NoError(scanSingleRow(s.ctx, s.tx,
 		"INSERT INTO accounts (name, platform, type, temp_unschedulable_until) VALUES ($1, $2, $3, NOW() + INTERVAL '1 hour') RETURNING id",
-		[]any{"acc-temp-unschedulable", service.PlatformAnthropic, service.AccountTypeOAuth},
+		[]any{"acc-temp-unschedulable", service.PlatformAnthropic, service.AccountTypeAPIKey},
 		&tempUnschedulableID))
 
 	var expiredID int64
 	s.Require().NoError(scanSingleRow(s.ctx, s.tx,
 		"INSERT INTO accounts (name, platform, type, expires_at, auto_pause_on_expired) VALUES ($1, $2, $3, NOW() - INTERVAL '1 hour', TRUE) RETURNING id",
-		[]any{"acc-expired", service.PlatformAnthropic, service.AccountTypeOAuth},
+		[]any{"acc-expired", service.PlatformAnthropic, service.AccountTypeAPIKey},
 		&expiredID))
 
 	_, err := s.tx.ExecContext(s.ctx,
@@ -826,7 +826,7 @@ func (s *GroupRepoSuite) TestDeleteAccountGroupsByGroupID() {
 		s.ctx,
 		s.tx,
 		"INSERT INTO accounts (name, platform, type) VALUES ($1, $2, $3) RETURNING id",
-		[]any{"acc-del", service.PlatformAnthropic, service.AccountTypeOAuth},
+		[]any{"acc-del", service.PlatformAnthropic, service.AccountTypeAPIKey},
 		&accountID,
 	))
 	_, err := s.tx.ExecContext(s.ctx, "INSERT INTO account_groups (account_id, group_id, priority, created_at) VALUES ($1, $2, $3, NOW())", accountID, g.ID, 1)
@@ -858,7 +858,7 @@ func (s *GroupRepoSuite) TestDeleteAccountGroupsByGroupID_MultipleAccounts() {
 			s.ctx,
 			s.tx,
 			"INSERT INTO accounts (name, platform, type) VALUES ($1, $2, $3) RETURNING id",
-			[]any{name, service.PlatformAnthropic, service.AccountTypeOAuth},
+			[]any{name, service.PlatformAnthropic, service.AccountTypeAPIKey},
 			&id,
 		))
 		return id

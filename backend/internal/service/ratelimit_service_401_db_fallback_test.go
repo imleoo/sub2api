@@ -39,7 +39,7 @@ func TestCheckErrorPolicy_401_DBFallback_Escalates(t *testing.T) {
 
 		account := &Account{
 			ID:                      20,
-			Type:                    AccountTypeOAuth,
+			Type:                    AccountTypeAPIKey,
 			Platform:                PlatformGemini,
 			TempUnschedulableReason: "",
 			Credentials: map[string]any{
@@ -73,7 +73,7 @@ func TestCheckErrorPolicy_401_DBFallback_NoDBRecord_FirstHit(t *testing.T) {
 
 	account := &Account{
 		ID:                      21,
-		Type:                    AccountTypeOAuth,
+		Type:                    AccountTypeAPIKey,
 		Platform:                PlatformGemini,
 		TempUnschedulableReason: "",
 		Credentials: map[string]any{
@@ -102,7 +102,7 @@ func TestCheckErrorPolicy_401_DBFallback_DBError_FirstHit(t *testing.T) {
 
 	account := &Account{
 		ID:                      22,
-		Type:                    AccountTypeOAuth,
+		Type:                    AccountTypeAPIKey,
 		Platform:                PlatformGemini,
 		TempUnschedulableReason: "",
 		Credentials: map[string]any{

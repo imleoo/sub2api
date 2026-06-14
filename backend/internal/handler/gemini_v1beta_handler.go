@@ -124,7 +124,7 @@ func (h *GatewayHandler) GeminiV1BetaModels(c *gin.Context) {
 		zap.Any("group_id", apiKey.GroupID),
 	)
 
-	// 检查平台：优先使用强制平台（/antigravity 路由，中间件已设置 request.Context），否则要求 gemini 分组
+	// 检查平台：优先使用强制平台（中间件已设置 request.Context），否则要求 gemini 分组
 	if !middleware.HasForcePlatform(c) {
 		if apiKey.Group == nil || apiKey.Group.Platform != service.PlatformGemini {
 			googleError(c, http.StatusBadRequest, "API key group platform is not gemini")

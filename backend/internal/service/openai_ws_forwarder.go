@@ -1074,8 +1074,6 @@ func (s *OpenAIGatewayService) buildOpenAIResponsesWSURL(account *Account) (stri
 	}
 	var targetURL string
 	switch account.Type {
-	case AccountTypeOAuth:
-		targetURL = chatgptCodexURL
 	case AccountTypeAPIKey:
 		baseURL := account.GetOpenAIBaseURL()
 		if baseURL == "" {
@@ -1127,35 +1125,17 @@ func (s *OpenAIGatewayService) buildOpenAIWSHeaders(
 			headers.Set("accept-language", v)
 		}
 	}
-	// OAuth 账号：将 apiKeyID 混入 session 标识符，防止跨用户会话碰撞。
-	if account != nil && account.Type == AccountTypeOAuth {
-		apiKeyID := getAPIKeyIDFromContext(c)
-		if sessionResolution.SessionID != "" {
-			headers.Set("session_id", isolateOpenAISessionID(apiKeyID, sessionResolution.SessionID))
-		}
-		if sessionResolution.ConversationID != "" {
-			headers.Set("conversation_id", isolateOpenAISessionID(apiKeyID, sessionResolution.ConversationID))
-		}
-	} else {
-		if sessionResolution.SessionID != "" {
-			headers.Set("session_id", sessionResolution.SessionID)
-		}
-		if sessionResolution.ConversationID != "" {
-			headers.Set("conversation_id", sessionResolution.ConversationID)
-		}
+	if sessionResolution.SessionID != "" {
+		headers.Set("session_id", sessionResolution.SessionID)
+	}
+	if sessionResolution.ConversationID != "" {
+		headers.Set("conversation_id", sessionResolution.ConversationID)
 	}
 	if state := strings.TrimSpace(turnState); state != "" {
 		headers.Set(openAIWSTurnStateHeader, state)
 	}
 	if metadata := strings.TrimSpace(turnMetadata); metadata != "" {
 		headers.Set(openAIWSTurnMetadataHeader, metadata)
-	}
-
-	if account != nil && account.Type == AccountTypeOAuth {
-		if chatgptAccountID := account.GetChatGPTAccountID(); chatgptAccountID != "" {
-			headers.Set("chatgpt-account-id", chatgptAccountID)
-		}
-		headers.Set("originator", resolveOpenAIUpstreamOriginator(c, isCodexCLI))
 	}
 
 	betaValue := openAIWSBetaV2Value
@@ -1178,9 +1158,6 @@ func (s *OpenAIGatewayService) buildOpenAIWSHeaders(
 	if s != nil && s.cfg != nil && s.cfg.Gateway.ForceCodexCLI {
 		headers.Set("user-agent", codexCLIUserAgent)
 	}
-	if account != nil && account.Type == AccountTypeOAuth && !openai.IsCodexCLIRequest(headers.Get("user-agent")) {
-		headers.Set("user-agent", codexCLIUserAgent)
-	}
 
 	return headers, sessionResolution
 }
@@ -1199,10 +1176,6 @@ func (s *OpenAIGatewayService) buildOpenAIWSCreatePayload(reqBody map[string]any
 	}
 	payload["type"] = "response.create"
 
-	// OAuth 默认保持 store=false，避免误依赖服务端历史。
-	if account != nil && account.Type == AccountTypeOAuth && !s.isOpenAIWSStoreRecoveryAllowed(account) {
-		payload["store"] = false
-	}
 	return payload
 }
 
@@ -1233,20 +1206,8 @@ func setOpenAIWSTurnMetadata(payload map[string]any, turnMetadata string) {
 	}
 }
 
-func (s *OpenAIGatewayService) isOpenAIWSStoreRecoveryAllowed(account *Account) bool {
-	if account != nil && account.IsOpenAIWSAllowStoreRecoveryEnabled() {
-		return true
-	}
-	if s != nil && s.cfg != nil && s.cfg.Gateway.OpenAIWS.AllowStoreRecovery {
-		return true
-	}
-	return false
-}
-
 func (s *OpenAIGatewayService) isOpenAIWSStoreDisabledInRequest(reqBody map[string]any, account *Account) bool {
-	if account != nil && account.Type == AccountTypeOAuth && !s.isOpenAIWSStoreRecoveryAllowed(account) {
-		return true
-	}
+	_ = account
 	if len(reqBody) == 0 {
 		return false
 	}
@@ -1262,9 +1223,7 @@ func (s *OpenAIGatewayService) isOpenAIWSStoreDisabledInRequest(reqBody map[stri
 }
 
 func (s *OpenAIGatewayService) isOpenAIWSStoreDisabledInRequestRaw(reqBody []byte, account *Account) bool {
-	if account != nil && account.Type == AccountTypeOAuth && !s.isOpenAIWSStoreRecoveryAllowed(account) {
-		return true
-	}
+	_ = account
 	if len(reqBody) == 0 {
 		return false
 	}

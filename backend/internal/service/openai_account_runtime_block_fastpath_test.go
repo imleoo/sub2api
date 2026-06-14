@@ -33,7 +33,7 @@ func TestOpenAIRuntimeBlock_AppliesToOpenAIAPIKeyWhenRateLimitServiceStopsSchedu
 
 func TestOpenAIRuntimeBlock_DoesNotApplyToOtherPlatforms(t *testing.T) {
 	svc := &OpenAIGatewayService{}
-	account := &Account{ID: 45, Platform: PlatformGemini, Type: AccountTypeOAuth}
+	account := &Account{ID: 45, Platform: PlatformGemini, Type: AccountTypeAPIKey}
 
 	svc.BlockAccountScheduling(account, time.Time{}, "custom_error_code")
 
@@ -45,7 +45,7 @@ func TestOpenAIRuntimeBlocker_IgnoresNonOpenAIFromRateLimitService(t *testing.T)
 	repo := &rateLimitAccountRepoStub{}
 	rateLimitService := NewRateLimitService(repo, nil, &config.Config{}, nil, nil)
 	rateLimitService.SetAccountRuntimeBlocker(gateway)
-	account := &Account{ID: 45, Platform: PlatformGemini, Type: AccountTypeOAuth}
+	account := &Account{ID: 45, Platform: PlatformGemini, Type: AccountTypeAPIKey}
 
 	shouldDisable := rateLimitService.HandleUpstreamError(context.Background(), account, http.StatusForbidden, http.Header{}, []byte("forbidden"))
 
@@ -77,7 +77,7 @@ func TestOpenAIModelNotFound_DoesNotRuntimeBlockWholeAccount(t *testing.T) {
 
 func TestOpenAIRuntimeBlock_DoesNotShortenExistingBlock(t *testing.T) {
 	svc := &OpenAIGatewayService{}
-	account := &Account{ID: 46, Platform: PlatformOpenAI, Type: AccountTypeOAuth}
+	account := &Account{ID: 46, Platform: PlatformOpenAI, Type: AccountTypeAPIKey}
 	longUntil := time.Now().Add(10 * time.Minute)
 
 	svc.BlockAccountScheduling(account, longUntil, "oauth_401")
@@ -92,7 +92,7 @@ func TestOpenAIRuntimeBlock_DoesNotShortenExistingBlock(t *testing.T) {
 
 func TestOpenAIRuntimeBlock_ClearAccountSchedulingBlock(t *testing.T) {
 	svc := &OpenAIGatewayService{}
-	account := &Account{ID: 47, Platform: PlatformOpenAI, Type: AccountTypeOAuth}
+	account := &Account{ID: 47, Platform: PlatformOpenAI, Type: AccountTypeAPIKey}
 
 	svc.BlockAccountScheduling(account, time.Now().Add(time.Minute), "429")
 	require.True(t, svc.isOpenAIAccountRuntimeBlocked(account))

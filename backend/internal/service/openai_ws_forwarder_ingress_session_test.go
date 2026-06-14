@@ -348,7 +348,7 @@ func TestOpenAIGatewayService_ProxyResponsesWebSocketFromClient_InjectsCodexImag
 		ID:          31,
 		Name:        "openai-codex-image-ws",
 		Platform:    PlatformOpenAI,
-		Type:        AccountTypeOAuth,
+		Type:        AccountTypeAPIKey,
 		Status:      StatusActive,
 		Schedulable: true,
 		Concurrency: 1,
@@ -356,7 +356,7 @@ func TestOpenAIGatewayService_ProxyResponsesWebSocketFromClient_InjectsCodexImag
 			"access_token": "test-token",
 		},
 		Extra: map[string]any{
-			"openai_oauth_responses_websockets_v2_enabled": true,
+			"openai_apikey_responses_websockets_v2_enabled": true,
 			"codex_image_generation_bridge":                true,
 		},
 	}
@@ -745,7 +745,7 @@ func TestOpenAIGatewayService_ProxyResponsesWebSocketFromClient_PassthroughHeade
 		ID:          453,
 		Name:        "openai-ingress-passthrough-headers",
 		Platform:    PlatformOpenAI,
-		Type:        AccountTypeOAuth,
+		Type:        AccountTypeAPIKey,
 		Status:      StatusActive,
 		Schedulable: true,
 		Concurrency: 1,
@@ -753,7 +753,7 @@ func TestOpenAIGatewayService_ProxyResponsesWebSocketFromClient_PassthroughHeade
 			"access_token": "oauth-token",
 		},
 		Extra: map[string]any{
-			"openai_oauth_responses_websockets_v2_mode": OpenAIWSIngressModePassthrough,
+			"openai_apikey_responses_websockets_v2_mode":  OpenAIWSIngressModePassthrough,
 		},
 	}
 
@@ -824,7 +824,7 @@ func TestOpenAIGatewayService_ProxyResponsesWebSocketFromClient_PassthroughHeade
 		t.Fatal("等待 passthrough websocket 结束超时")
 	}
 
-	require.Equal(t, isolateOpenAISessionID(0, "pcache_passthrough"), captureDialer.lastHeaders.Get("session_id"))
+	require.Equal(t, "pcache_passthrough", captureDialer.lastHeaders.Get("session_id"))
 	require.Equal(t, "turn-state-1", captureDialer.lastHeaders.Get(openAIWSTurnStateHeader))
 	require.Equal(t, "turn-meta-1", captureDialer.lastHeaders.Get(openAIWSTurnMetadataHeader))
 }

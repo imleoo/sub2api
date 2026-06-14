@@ -29,7 +29,7 @@ func TestIsOpenAIImageRateLimitError(t *testing.T) {
 func TestRateLimitService_HandleOpenAIImageRateLimit_ParsesTryAgainCooldown(t *testing.T) {
 	repo := &modelNotFoundAccountRepoStub{}
 	svc := &RateLimitService{accountRepo: repo}
-	account := &Account{ID: 201, Platform: PlatformOpenAI, Type: AccountTypeOAuth}
+	account := &Account{ID: 201, Platform: PlatformOpenAI, Type: AccountTypeAPIKey}
 	body := []byte(`{"error":{"type":"rate_limit_exceeded","message":"Rate limit reached for gpt-image-2-codex (for limit gpt-image) on input-images per min. Please try again in 2s."}}`)
 
 	before := time.Now()
@@ -47,7 +47,7 @@ func TestRateLimitService_HandleOpenAIImageRateLimit_ParsesTryAgainCooldown(t *t
 func TestRateLimitService_HandleOpenAIImageRateLimit_DefaultsToOneMinute(t *testing.T) {
 	repo := &modelNotFoundAccountRepoStub{}
 	svc := &RateLimitService{accountRepo: repo}
-	account := &Account{ID: 202, Platform: PlatformOpenAI, Type: AccountTypeOAuth}
+	account := &Account{ID: 202, Platform: PlatformOpenAI, Type: AccountTypeAPIKey}
 	body := []byte(`{"error":{"type":"rate_limit_exceeded","message":"Rate limit reached for gpt-image-2-codex (for limit gpt-image) on input-images per min."}}`)
 
 	before := time.Now()
@@ -64,7 +64,7 @@ func TestRateLimitService_HandleOpenAIImageRateLimit_DefaultsToOneMinute(t *test
 func TestOpenAIGatewayService_HandleOpenAIAccountUpstreamError_ImageRateLimitDoesNotBlockWholeAccount(t *testing.T) {
 	repo := &modelNotFoundAccountRepoStub{}
 	svc := &OpenAIGatewayService{rateLimitService: &RateLimitService{accountRepo: repo}}
-	account := &Account{ID: 203, Platform: PlatformOpenAI, Type: AccountTypeOAuth}
+	account := &Account{ID: 203, Platform: PlatformOpenAI, Type: AccountTypeAPIKey}
 	body := []byte(`{"error":{"type":"rate_limit_exceeded","message":"Rate limit reached for gpt-image-2-codex (for limit gpt-image) on input-images per min. Please try again in 1s."}}`)
 
 	disabled := svc.handleOpenAIAccountUpstreamError(context.Background(), account, http.StatusTooManyRequests, http.Header{}, body, "gpt-image-2")

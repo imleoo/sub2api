@@ -30,13 +30,12 @@ func TestNormalizeInboundEndpoint(t *testing.T) {
 		{"/v1/images/edits", EndpointImagesEdits},
 		{"/v1beta/models", EndpointGeminiModels},
 
-		// Prefixed paths (antigravity, openai).
-		{"/antigravity/v1/messages", EndpointMessages},
+		// Prefixed paths (openai).
 		{"/openai/v1/responses", EndpointResponses},
 		{"/openai/v1/responses/compact", EndpointResponses},
 		{"/openai/v1/images/generations", EndpointImagesGenerations},
 		{"/openai/v1/images/edits", EndpointImagesEdits},
-		{"/antigravity/v1beta/models/gemini:generateContent", EndpointGeminiModels},
+		{"/openai/v1beta/models/gemini:generateContent", EndpointGeminiModels},
 
 		// Gin route patterns with wildcards.
 		{"/v1beta/models/*modelAction", EndpointGeminiModels},
@@ -81,10 +80,6 @@ func TestDeriveUpstreamEndpoint(t *testing.T) {
 		{"openai embeddings", EndpointEmbeddings, "/v1/embeddings", service.PlatformOpenAI, EndpointEmbeddings},
 		{"openai image generations", EndpointImagesGenerations, "/v1/images/generations", service.PlatformOpenAI, EndpointImagesGenerations},
 		{"openai image edits", EndpointImagesEdits, "/openai/v1/images/edits", service.PlatformOpenAI, EndpointImagesEdits},
-
-		// Antigravity — uses inbound to pick Claude vs Gemini upstream.
-		{"antigravity claude", EndpointMessages, "/antigravity/v1/messages", service.PlatformAntigravity, EndpointMessages},
-		{"antigravity gemini", EndpointGeminiModels, "/antigravity/v1beta/models", service.PlatformAntigravity, EndpointGeminiModels},
 
 		// Unknown platform — passthrough.
 		{"unknown platform", "/v1/embeddings", "/v1/embeddings", "unknown", "/v1/embeddings"},
@@ -143,7 +138,7 @@ func TestInboundEndpointMiddleware(t *testing.T) {
 func TestGetInboundEndpoint_FallbackWithoutMiddleware(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(rec)
-	c.Request = httptest.NewRequest(http.MethodPost, "/antigravity/v1/messages", nil)
+	c.Request = httptest.NewRequest(http.MethodPost, "/openai/v1/messages", nil)
 
 	// Middleware did not run — fallback to normalizing c.Request.URL.Path.
 	got := GetInboundEndpoint(c)

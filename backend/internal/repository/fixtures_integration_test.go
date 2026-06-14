@@ -170,7 +170,7 @@ func mustCreateAccount(t *testing.T, client *dbent.Client, a *service.Account) *
 		a.Platform = service.PlatformAnthropic
 	}
 	if a.Type == "" {
-		a.Type = service.AccountTypeOAuth
+		a.Type = service.AccountTypeAPIKey
 	}
 	if a.Status == "" {
 		a.Status = service.StatusActive

@@ -13,14 +13,6 @@ func TestGetBaseURL(t *testing.T) {
 		expected string
 	}{
 		{
-			name: "non-apikey type returns empty",
-			account: Account{
-				Type:     AccountTypeOAuth,
-				Platform: PlatformAnthropic,
-			},
-			expected: "",
-		},
-		{
 			name: "apikey without base_url returns default anthropic",
 			account: Account{
 				Type:        AccountTypeAPIKey,
@@ -79,7 +71,7 @@ func TestGetGeminiBaseURL(t *testing.T) {
 		{
 			name: "oauth does NOT append base path",
 			account: Account{
-				Type:        AccountTypeOAuth,
+				Type:        AccountTypeAPIKey,
 				Platform:    PlatformGemini,
 				Credentials: map[string]any{"base_url": "https://upstream.example.com"},
 			},
@@ -88,7 +80,7 @@ func TestGetGeminiBaseURL(t *testing.T) {
 		{
 			name: "oauth without base_url returns default",
 			account: Account{
-				Type:        AccountTypeOAuth,
+				Type:        AccountTypeAPIKey,
 				Platform:    PlatformGemini,
 				Credentials: map[string]any{},
 			},

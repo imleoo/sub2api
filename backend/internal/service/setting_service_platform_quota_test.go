@@ -92,7 +92,7 @@ func TestGetDefaultPlatformQuotas_ReturnsThreePlatforms(t *testing.T) {
 
 func TestGetAuthSourcePlatformQuotas_OnlyConfiguredReturned(t *testing.T) {
 	source := "email"
-	// 新 JSON 格式：anthropic daily=5, monthly=100；openai weekly=0；gemini/antigravity 无配置
+	// 新 JSON 格式：anthropic daily=5, monthly=100；openai weekly=0；gemini 无配置
 	svc := newSettingServiceForPlatformQuotaTest(map[string]string{
 		SettingKeyAuthSourcePlatformQuotas(source): `{"anthropic":{"daily":5,"monthly":100},"openai":{"weekly":0}}`,
 	})

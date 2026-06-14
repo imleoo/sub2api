@@ -28,7 +28,7 @@ func TestCheckErrorPolicy(t *testing.T) {
 			name: "no_policy_oauth_returns_none",
 			account: &Account{
 				ID:       1,
-				Type:     AccountTypeOAuth,
+				Type:     AccountTypeAPIKey,
 				Platform: PlatformAnthropic,
 				// no custom error codes, no temp rules
 			},
@@ -70,7 +70,7 @@ func TestCheckErrorPolicy(t *testing.T) {
 			name: "temp_unschedulable_hit_returns_temp_unscheduled",
 			account: &Account{
 				ID:       4,
-				Type:     AccountTypeOAuth,
+				Type:     AccountTypeAPIKey,
 				Platform: PlatformAnthropic,
 				Credentials: map[string]any{
 					"temp_unschedulable_enabled": true,
@@ -92,7 +92,7 @@ func TestCheckErrorPolicy(t *testing.T) {
 			name: "temp_unschedulable_401_first_hit_returns_temp_unscheduled",
 			account: &Account{
 				ID:       14,
-				Type:     AccountTypeOAuth,
+				Type:     AccountTypeAPIKey,
 				Platform: PlatformAnthropic,
 				Credentials: map[string]any{
 					"temp_unschedulable_enabled": true,
@@ -113,7 +113,7 @@ func TestCheckErrorPolicy(t *testing.T) {
 			name: "temp_unschedulable_body_miss_returns_none",
 			account: &Account{
 				ID:       5,
-				Type:     AccountTypeOAuth,
+				Type:     AccountTypeAPIKey,
 				Platform: PlatformAnthropic,
 				Credentials: map[string]any{
 					"temp_unschedulable_enabled": true,

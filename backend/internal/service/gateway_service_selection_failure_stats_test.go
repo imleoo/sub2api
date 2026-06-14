@@ -30,7 +30,7 @@ func TestCollectSelectionFailureStats(t *testing.T) {
 		// platform filtered
 		{
 			ID:          3,
-			Platform:    PlatformAntigravity,
+			Platform:    PlatformLingjing,
 			Status:      StatusActive,
 			Schedulable: true,
 		},

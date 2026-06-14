@@ -37,7 +37,7 @@ func TestAccountTestService_OpenAIImageOAuthHandlesOutputItemDoneFallback(t *tes
 		ID:       53,
 		Name:     "openai-oauth",
 		Platform: PlatformOpenAI,
-		Type:     AccountTypeOAuth,
+		Type:     AccountTypeAPIKey,
 		Credentials: map[string]any{
 			"access_token": "token-123",
 		},

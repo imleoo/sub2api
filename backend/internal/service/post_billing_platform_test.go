@@ -30,7 +30,7 @@ func TestPlatformFromAPIKey_DerivesFromGroup(t *testing.T) {
 		{"anthropic", "anthropic"},
 		{"openai", "openai"},
 		{"gemini", "gemini"},
-		{"antigravity", "antigravity"},
+		{"lingjing", "lingjing"},
 		{"empty", ""},
 	}
 
@@ -47,7 +47,7 @@ func TestPlatformFromAPIKey_DerivesFromGroup(t *testing.T) {
 	}
 }
 
-// TestQuotaPlatform 锁定配额计量口径：ForcePlatform 路由（如 /antigravity）按 ForcePlatform 计，
+// TestQuotaPlatform 锁定配额计量口径：ForcePlatform 路由按 ForcePlatform 计，
 // 否则回退到 Group 平台。preflight 与 post-billing 共用此口径，保证一致。
 func TestQuotaPlatform(t *testing.T) {
 	apiKey := &APIKey{Group: &Group{Platform: PlatformAnthropic}}
@@ -59,9 +59,9 @@ func TestQuotaPlatform(t *testing.T) {
 	})
 
 	t.Run("force platform overrides group platform", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), ctxkey.ForcePlatform, PlatformAntigravity)
-		if got := QuotaPlatform(ctx, apiKey); got != PlatformAntigravity {
-			t.Errorf("QuotaPlatform with force = %q, want %q", got, PlatformAntigravity)
+		ctx := context.WithValue(context.Background(), ctxkey.ForcePlatform, PlatformGemini)
+		if got := QuotaPlatform(ctx, apiKey); got != PlatformGemini {
+			t.Errorf("QuotaPlatform with force = %q, want %q", got, PlatformGemini)
 		}
 	})
 
@@ -73,9 +73,9 @@ func TestQuotaPlatform(t *testing.T) {
 	})
 
 	t.Run("nil api key with force platform returns force platform", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), ctxkey.ForcePlatform, PlatformAntigravity)
-		if got := QuotaPlatform(ctx, nil); got != PlatformAntigravity {
-			t.Errorf("QuotaPlatform(nil) with force = %q, want %q", got, PlatformAntigravity)
+		ctx := context.WithValue(context.Background(), ctxkey.ForcePlatform, PlatformGemini)
+		if got := QuotaPlatform(ctx, nil); got != PlatformGemini {
+			t.Errorf("QuotaPlatform(nil) with force = %q, want %q", got, PlatformGemini)
 		}
 	})
 }

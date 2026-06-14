@@ -188,19 +188,19 @@ func TestGatewayCacheTTLGlobalSetting_TargetResolution(t *testing.T) {
 	svc := &GatewayService{
 		settingService: NewSettingService(repo, &config.Config{}),
 	}
-	account := &Account{Platform: PlatformAnthropic, Type: AccountTypeOAuth}
+	account := &Account{Platform: PlatformAnthropic, Type: AccountTypeAPIKey}
 
-	target, ok := svc.resolveCacheTTLUsageOverrideTarget(context.Background(), account)
-	require.True(t, ok)
-	require.Equal(t, cacheTTLTarget5m, target)
+	// Cache TTL override（账号级 + 全局自动注入）历史上仅对 Anthropic OAuth/SetupToken
+	// 账号生效，随这些账号类型移除而整体失效，无论是否设置 override extra 都不返回目标。
+	_, ok := svc.resolveCacheTTLUsageOverrideTarget(context.Background(), account)
+	require.False(t, ok)
 
 	account.Extra = map[string]any{
 		"cache_ttl_override_enabled": true,
 		"cache_ttl_override_target":  "1h",
 	}
-	target, ok = svc.resolveCacheTTLUsageOverrideTarget(context.Background(), account)
-	require.True(t, ok)
-	require.Equal(t, cacheTTLTarget1h, target)
+	_, ok = svc.resolveCacheTTLUsageOverrideTarget(context.Background(), account)
+	require.False(t, ok)
 }
 
 func TestGatewayCacheTTLGlobalSetting_RequestInjectionScope(t *testing.T) {
@@ -212,12 +212,11 @@ func TestGatewayCacheTTLGlobalSetting_RequestInjectionScope(t *testing.T) {
 		settingService: NewSettingService(repo, &config.Config{}),
 	}
 
-	require.True(t, svc.shouldInjectAnthropicCacheTTL1h(context.Background(), &Account{Platform: PlatformAnthropic, Type: AccountTypeOAuth}))
-	require.True(t, svc.shouldInjectAnthropicCacheTTL1h(context.Background(), &Account{Platform: PlatformAnthropic, Type: AccountTypeSetupToken}))
+	// 自动注入仅对已移除的 OAuth/SetupToken 账号生效，现恒为 false。
 	require.False(t, svc.shouldInjectAnthropicCacheTTL1h(context.Background(), &Account{Platform: PlatformAnthropic, Type: AccountTypeAPIKey}))
-	require.False(t, svc.shouldInjectAnthropicCacheTTL1h(context.Background(), &Account{Platform: PlatformOpenAI, Type: AccountTypeOAuth}))
+	require.False(t, svc.shouldInjectAnthropicCacheTTL1h(context.Background(), &Account{Platform: PlatformOpenAI, Type: AccountTypeAPIKey}))
 
 	repo.data[SettingKeyEnableAnthropicCacheTTL1hInjection] = "false"
 	gatewayForwardingCache.Store(&cachedGatewayForwardingSettings{})
-	require.False(t, svc.shouldInjectAnthropicCacheTTL1h(context.Background(), &Account{Platform: PlatformAnthropic, Type: AccountTypeOAuth}))
+	require.False(t, svc.shouldInjectAnthropicCacheTTL1h(context.Background(), &Account{Platform: PlatformAnthropic, Type: AccountTypeAPIKey}))
 }

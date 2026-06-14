@@ -44,8 +44,7 @@ func TestGetGroupInboundProtocol_DerivesFromPlatformWhenEmpty(t *testing.T) {
 		{"anthropic", "", domain.ProtocolAnthropicMessages},
 		{"openai", "", domain.ProtocolOpenAIChat},
 		{"gemini", "", domain.ProtocolGeminiV1Beta},
-		{"antigravity", "", domain.ProtocolAnthropicMessages}, // antigravity 入站走 Anthropic Messages
-		{"lingjing", "", ""},                                  // lingjing 无通用 inbound 概念 → 空
+		{"lingjing", "", ""}, // lingjing 无通用 inbound 概念 → 空
 		// 新 group：明确 inbound_protocol → 保留原值
 		{"anthropic", domain.ProtocolAnthropicMessages, domain.ProtocolAnthropicMessages},
 		{"openai", domain.ProtocolOpenAIChat, domain.ProtocolOpenAIChat},
@@ -91,7 +90,6 @@ func TestIsOpenAIInbound_Matrix(t *testing.T) {
 		{"openai", "", true, "legacy openai group → OpenAI handler"},
 		{"anthropic", "", false, "legacy anthropic group → Anthropic handler"},
 		{"gemini", "", false, "legacy gemini group → Gemini handler"},
-		{"antigravity", "", false, "legacy antigravity group → Anthropic handler family"},
 		{"lingjing", "", false, "legacy lingjing group → 不走通用 OpenAI 路由"},
 
 		// 无 group context（API key 未挂分组）→ 兜底为 false

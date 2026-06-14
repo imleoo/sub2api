@@ -104,7 +104,7 @@ func newStubAdminService() *stubAdminService {
 		ID:        3,
 		Name:      "account",
 		Platform:  service.PlatformAnthropic,
-		Type:      service.AccountTypeOAuth,
+		Type:      service.AccountTypeAPIKey,
 		Status:    service.StatusActive,
 		CreatedAt: now,
 		UpdatedAt: now,
@@ -617,15 +617,7 @@ func (s *stubAdminService) EnsureOpenAIPrivacy(ctx context.Context, account *ser
 	return ""
 }
 
-func (s *stubAdminService) EnsureAntigravityPrivacy(ctx context.Context, account *service.Account) string {
-	return ""
-}
-
 func (s *stubAdminService) ForceOpenAIPrivacy(ctx context.Context, account *service.Account) string {
-	return ""
-}
-
-func (s *stubAdminService) ForceAntigravityPrivacy(ctx context.Context, account *service.Account) string {
 	return ""
 }
 

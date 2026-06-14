@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/claude"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/tlsfingerprint"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
@@ -717,128 +716,6 @@ func TestGatewayService_AnthropicAPIKeyPassthrough_BuildRequestRejectsInvalidBas
 	require.Error(t, err)
 }
 
-func TestGatewayService_AnthropicOAuth_NotAffectedByAPIKeyPassthroughToggle(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	rec := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(rec)
-	c.Request = httptest.NewRequest(http.MethodPost, "/v1/messages", nil)
-
-	svc := &GatewayService{
-		cfg: &config.Config{
-			Gateway: config.GatewayConfig{MaxLineSize: defaultMaxLineSize},
-		},
-	}
-	account := &Account{
-		Platform: PlatformAnthropic,
-		Type:     AccountTypeOAuth,
-		Extra: map[string]any{
-			"anthropic_passthrough": true,
-		},
-	}
-
-	require.False(t, account.IsAnthropicAPIKeyPassthroughEnabled())
-
-	req, _, err := svc.buildUpstreamRequest(context.Background(), c, account, []byte(`{"model":"claude-3-7-sonnet-20250219"}`), "oauth-token", "oauth", "claude-3-7-sonnet-20250219", true, false)
-	require.NoError(t, err)
-	require.Equal(t, "Bearer oauth-token", getHeaderRaw(req.Header, "authorization"))
-	require.Contains(t, getHeaderRaw(req.Header, "anthropic-beta"), claude.BetaOAuth, "OAuth 链路仍应按原逻辑补齐 oauth beta")
-}
-
-func TestGatewayService_AnthropicOAuth_ForwardPreservesBillingHeaderSystemBlock(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	tests := []struct {
-		name string
-		body string
-	}{
-		{
-			name: "system array",
-			body: `{"model":"claude-3-5-sonnet-latest","system":[{"type":"text","text":"x-anthropic-billing-header keep"}],"messages":[{"role":"user","content":[{"type":"text","text":"hello"}]}]}`,
-		},
-		{
-			name: "system string",
-			body: `{"model":"claude-3-5-sonnet-latest","system":"x-anthropic-billing-header keep","messages":[{"role":"user","content":[{"type":"text","text":"hello"}]}]}`,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			rec := httptest.NewRecorder()
-			c, _ := gin.CreateTestContext(rec)
-			c.Request = httptest.NewRequest(http.MethodPost, "/v1/messages", nil)
-
-			parsed, err := ParseGatewayRequest(NewRequestBodyRef([]byte(tt.body)), PlatformAnthropic)
-			require.NoError(t, err)
-
-			upstream := &anthropicHTTPUpstreamRecorder{
-				resp: &http.Response{
-					StatusCode: http.StatusOK,
-					Header: http.Header{
-						"Content-Type": []string{"application/json"},
-						"x-request-id": []string{"rid-oauth-preserve"},
-					},
-					Body: io.NopCloser(strings.NewReader(`{"id":"msg_1","type":"message","role":"assistant","model":"claude-3-5-sonnet-20241022","content":[{"type":"text","text":"ok"}],"usage":{"input_tokens":12,"output_tokens":7}}`)),
-				},
-			}
-
-			cfg := &config.Config{
-				Gateway: config.GatewayConfig{
-					MaxLineSize: defaultMaxLineSize,
-				},
-			}
-			svc := &GatewayService{
-				cfg:                  cfg,
-				responseHeaderFilter: compileResponseHeaderFilter(cfg),
-				httpUpstream:         upstream,
-				rateLimitService:     &RateLimitService{},
-				deferredService:      &DeferredService{},
-			}
-
-			account := &Account{
-				ID:          301,
-				Name:        "anthropic-oauth-preserve",
-				Platform:    PlatformAnthropic,
-				Type:        AccountTypeOAuth,
-				Concurrency: 1,
-				Credentials: map[string]any{
-					"access_token": "oauth-token",
-				},
-				Status:      StatusActive,
-				Schedulable: true,
-			}
-
-			result, err := svc.Forward(context.Background(), c, account, parsed)
-			require.NoError(t, err)
-			require.NotNil(t, result)
-			require.NotNil(t, upstream.lastReq)
-			require.Equal(t, "Bearer oauth-token", getHeaderRaw(upstream.lastReq.Header, "authorization"))
-			require.Contains(t, getHeaderRaw(upstream.lastReq.Header, "anthropic-beta"), claude.BetaOAuth)
-
-			system := gjson.GetBytes(upstream.lastBody, "system")
-			require.True(t, system.Exists())
-			require.True(t, system.IsArray(), "system should be an array")
-			arr := system.Array()
-			require.Len(t, arr, 3, "system array should have billing block + cc prompt block + expansion block")
-
-			require.Contains(t, arr[0].Get("text").String(), "x-anthropic-billing-header:")
-			require.Contains(t, arr[0].Get("text").String(), "cc_version=")
-
-			require.Equal(t, claudeCodeSystemPrompt, arr[1].Get("text").String())
-			require.False(t, arr[1].Get("cache_control").Exists(), "身份前缀 block 不应带 cache_control")
-
-			require.Equal(t, claudeCodeSystemPromptExpansion, arr[2].Get("text").String())
-			require.Equal(t, "ephemeral", arr[2].Get("cache_control.type").String())
-
-			// 原始 system prompt 应迁移至 messages 中
-			messages := gjson.GetBytes(upstream.lastBody, "messages")
-			require.True(t, messages.IsArray())
-			firstMsg := messages.Array()[0]
-			require.Equal(t, "user", firstMsg.Get("role").String())
-			require.Contains(t, firstMsg.Get("content.0.text").String(), "x-anthropic-billing-header keep")
-		})
-	}
-}
-
 func TestGatewayService_AnthropicAPIKeyPassthrough_StreamingStillCollectsUsageAfterClientDisconnect(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -957,11 +834,11 @@ func TestGatewayService_AnthropicAPIKeyPassthrough_ForwardDirect_InvalidTokenTyp
 
 	account := &Account{
 		ID:       202,
-		Name:     "anthropic-oauth",
+		Name:     "anthropic-bedrock",
 		Platform: PlatformAnthropic,
-		Type:     AccountTypeOAuth,
+		Type:     AccountTypeBedrock,
 		Credentials: map[string]any{
-			"access_token": "oauth-token",
+			"access_token": "bedrock-token",
 		},
 	}
 	svc := &GatewayService{}

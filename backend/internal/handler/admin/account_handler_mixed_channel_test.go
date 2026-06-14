@@ -28,7 +28,7 @@ func TestAccountHandlerCheckMixedChannelNoRisk(t *testing.T) {
 	router := setupAccountMixedChannelRouter(adminSvc)
 
 	body, _ := json.Marshal(map[string]any{
-		"platform":  "antigravity",
+		"platform":  "gemini",
 		"group_ids": []int64{27},
 	})
 	rec := httptest.NewRecorder()
@@ -44,7 +44,7 @@ func TestAccountHandlerCheckMixedChannelNoRisk(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, false, data["has_risk"])
 	require.Equal(t, int64(0), adminSvc.lastMixedCheck.accountID)
-	require.Equal(t, "antigravity", adminSvc.lastMixedCheck.platform)
+	require.Equal(t, "gemini", adminSvc.lastMixedCheck.platform)
 	require.Equal(t, []int64{27}, adminSvc.lastMixedCheck.groupIDs)
 }
 
@@ -53,13 +53,13 @@ func TestAccountHandlerCheckMixedChannelWithRisk(t *testing.T) {
 	adminSvc.checkMixedErr = &service.MixedChannelError{
 		GroupID:         27,
 		GroupName:       "claude-max",
-		CurrentPlatform: "Antigravity",
+		CurrentPlatform: "Gemini",
 		OtherPlatform:   "Anthropic",
 	}
 	router := setupAccountMixedChannelRouter(adminSvc)
 
 	body, _ := json.Marshal(map[string]any{
-		"platform":   "antigravity",
+		"platform":   "gemini",
 		"group_ids":  []int64{27},
 		"account_id": 99,
 	})
@@ -80,7 +80,7 @@ func TestAccountHandlerCheckMixedChannelWithRisk(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, float64(27), details["group_id"])
 	require.Equal(t, "claude-max", details["group_name"])
-	require.Equal(t, "Antigravity", details["current_platform"])
+	require.Equal(t, "Gemini", details["current_platform"])
 	require.Equal(t, "Anthropic", details["other_platform"])
 	require.Equal(t, int64(99), adminSvc.lastMixedCheck.accountID)
 }
@@ -90,15 +90,15 @@ func TestAccountHandlerCreateMixedChannelConflictSimplifiedResponse(t *testing.T
 	adminSvc.createAccountErr = &service.MixedChannelError{
 		GroupID:         27,
 		GroupName:       "claude-max",
-		CurrentPlatform: "Antigravity",
+		CurrentPlatform: "Gemini",
 		OtherPlatform:   "Anthropic",
 	}
 	router := setupAccountMixedChannelRouter(adminSvc)
 
 	body, _ := json.Marshal(map[string]any{
 		"name":        "ag-oauth-1",
-		"platform":    "antigravity",
-		"type":        "oauth",
+		"platform":    "gemini",
+		"type":        "apikey",
 		"credentials": map[string]any{"refresh_token": "rt"},
 		"group_ids":   []int64{27},
 	})
@@ -123,7 +123,7 @@ func TestAccountHandlerUpdateMixedChannelConflictSimplifiedResponse(t *testing.T
 	adminSvc.updateAccountErr = &service.MixedChannelError{
 		GroupID:         27,
 		GroupName:       "claude-max",
-		CurrentPlatform: "Antigravity",
+		CurrentPlatform: "Gemini",
 		OtherPlatform:   "Anthropic",
 	}
 	router := setupAccountMixedChannelRouter(adminSvc)
@@ -152,7 +152,7 @@ func TestAccountHandlerBulkUpdateMixedChannelConflict(t *testing.T) {
 	adminSvc.bulkUpdateAccountErr = &service.MixedChannelError{
 		GroupID:         27,
 		GroupName:       "claude-max",
-		CurrentPlatform: "Antigravity",
+		CurrentPlatform: "Gemini",
 		OtherPlatform:   "Anthropic",
 	}
 	router := setupAccountMixedChannelRouter(adminSvc)
@@ -204,7 +204,7 @@ func TestBulkUpdateAcceptsFilterTargetRequest(t *testing.T) {
 	body, _ := json.Marshal(map[string]any{
 		"filters": map[string]any{
 			"platform":     "openai",
-			"type":         "oauth",
+			"type":         "apikey",
 			"status":       "active",
 			"group":        "12",
 			"privacy_mode": "blocked",

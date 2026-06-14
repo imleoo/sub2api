@@ -544,7 +544,7 @@ func TestClassifyOpsLocalBusinessLimitErrorsExcludedFromSLA(t *testing.T) {
 			wantPhase:   "request",
 		},
 		{
-			name:        "antigravity model whitelist feature gate",
+			name:        "model whitelist feature gate",
 			errType:     "permission_error",
 			message:     "model claude-3-5-sonnet not in whitelist",
 			code:        "",
@@ -553,7 +553,7 @@ func TestClassifyOpsLocalBusinessLimitErrorsExcludedFromSLA(t *testing.T) {
 			wantPhase:   "request",
 		},
 		{
-			name:        "google antigravity model whitelist feature gate",
+			name:        "google model whitelist feature gate",
 			errType:     "api_error",
 			message:     "model gemini-2.5-pro not in whitelist",
 			code:        "403",
@@ -799,7 +799,7 @@ func TestClassifyOpsUpstreamAuthTextStillCountsForSLA(t *testing.T) {
 			status:  http.StatusNotFound,
 		},
 		{
-			name:    "provider antigravity whitelist shaped error",
+			name:    "provider whitelist shaped error",
 			message: "model claude-3-5-sonnet not in whitelist",
 			code:    "403",
 			status:  http.StatusForbidden,

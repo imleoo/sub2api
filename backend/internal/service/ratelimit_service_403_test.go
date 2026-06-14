@@ -39,7 +39,7 @@ func TestRateLimitService_HandleUpstreamError_OpenAI403FirstHitTempUnschedulable
 	account := &Account{
 		ID:       301,
 		Platform: PlatformOpenAI,
-		Type:     AccountTypeOAuth,
+		Type:     AccountTypeAPIKey,
 	}
 
 	shouldDisable := service.HandleUpstreamError(
@@ -69,7 +69,7 @@ func TestRateLimitService_HandleUpstreamError_OpenAI403ThresholdDisables(t *test
 	account := &Account{
 		ID:       302,
 		Platform: PlatformOpenAI,
-		Type:     AccountTypeOAuth,
+		Type:     AccountTypeAPIKey,
 	}
 
 	shouldDisable := service.HandleUpstreamError(

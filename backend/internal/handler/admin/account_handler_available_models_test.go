@@ -76,7 +76,7 @@ func TestAccountHandlerGetAvailableModels_OpenAIOAuthUsesExplicitModelMapping(t 
 			ID:       42,
 			Name:     "openai-oauth",
 			Platform: service.PlatformOpenAI,
-			Type:     service.AccountTypeOAuth,
+			Type:     service.AccountTypeAPIKey,
 			Status:   service.StatusActive,
 			Credentials: map[string]any{
 				"model_mapping": map[string]any{
@@ -110,7 +110,7 @@ func TestAccountHandlerGetAvailableModels_OpenAIOAuthPassthroughFallsBackToDefau
 			ID:       43,
 			Name:     "openai-oauth-passthrough",
 			Platform: service.PlatformOpenAI,
-			Type:     service.AccountTypeOAuth,
+			Type:     service.AccountTypeAPIKey,
 			Status:   service.StatusActive,
 			Credentials: map[string]any{
 				"model_mapping": map[string]any{

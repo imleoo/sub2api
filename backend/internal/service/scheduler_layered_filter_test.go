@@ -170,21 +170,6 @@ func TestSelectByLRU(t *testing.T) {
 		}
 	})
 
-	t.Run("preferOAuth selects from OAuth accounts when multiple nil", func(t *testing.T) {
-		accounts := []accountWithLoad{
-			{account: &Account{ID: 1, LastUsedAt: nil, Type: "session"}, loadInfo: &AccountLoadInfo{}},
-			{account: &Account{ID: 2, LastUsedAt: nil, Type: AccountTypeOAuth}, loadInfo: &AccountLoadInfo{}},
-			{account: &Account{ID: 3, LastUsedAt: nil, Type: AccountTypeOAuth}, loadInfo: &AccountLoadInfo{}},
-		}
-		// preferOAuth 时，应该从 OAuth 类型中选择
-		oauthIDs := map[int64]bool{2: true, 3: true}
-		for i := 0; i < 10; i++ {
-			result := selectByLRU(accounts, true)
-			require.NotNil(t, result)
-			require.True(t, oauthIDs[result.account.ID], "should select from OAuth accounts")
-		}
-	})
-
 	t.Run("preferOAuth falls back to all when no OAuth", func(t *testing.T) {
 		accounts := []accountWithLoad{
 			{account: &Account{ID: 1, LastUsedAt: nil, Type: "session"}, loadInfo: &AccountLoadInfo{}},
@@ -202,7 +187,7 @@ func TestSelectByLRU(t *testing.T) {
 	t.Run("preferOAuth only affects same LastUsedAt accounts", func(t *testing.T) {
 		accounts := []accountWithLoad{
 			{account: &Account{ID: 1, LastUsedAt: &earlier, Type: "session"}, loadInfo: &AccountLoadInfo{}},
-			{account: &Account{ID: 2, LastUsedAt: &now, Type: AccountTypeOAuth}, loadInfo: &AccountLoadInfo{}},
+			{account: &Account{ID: 2, LastUsedAt: &now, Type: AccountTypeAPIKey}, loadInfo: &AccountLoadInfo{}},
 		}
 		result := selectByLRU(accounts, true)
 		require.NotNil(t, result)

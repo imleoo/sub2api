@@ -1546,12 +1546,7 @@ func (p *openAIWSConnPool) maxConnsFactorByAccount(account *Account) float64 {
 	if p == nil || p.cfg == nil || account == nil {
 		return 1.0
 	}
-	switch account.Type {
-	case AccountTypeOAuth:
-		if p.cfg.Gateway.OpenAIWS.OAuthMaxConnsFactor > 0 {
-			return p.cfg.Gateway.OpenAIWS.OAuthMaxConnsFactor
-		}
-	case AccountTypeAPIKey:
+	if account.Type == AccountTypeAPIKey {
 		if p.cfg.Gateway.OpenAIWS.APIKeyMaxConnsFactor > 0 {
 			return p.cfg.Gateway.OpenAIWS.APIKeyMaxConnsFactor
 		}

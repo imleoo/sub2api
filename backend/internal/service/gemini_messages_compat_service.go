@@ -163,7 +163,7 @@ func (s *GeminiMessagesCompatService) SelectAccountForModelWithExclusions(ctx co
 // resolvePlatformAndSchedulingMode resolves target platform and scheduling mode.
 // Returns: platform name, whether to use mixed scheduling, whether force platform, error.
 func (s *GeminiMessagesCompatService) resolvePlatformAndSchedulingMode(ctx context.Context, groupID *int64) (platform string, useMixedScheduling bool, hasForcePlatform bool, err error) {
-	// 优先检查 context 中的强制平台（/antigravity 路由）
+	// 优先检查 context 中的强制平台（平台前缀路由）
 	forcePlatform, hasForcePlatform := ctx.Value(ctxkey.ForcePlatform).(string)
 	if hasForcePlatform && forcePlatform != "" {
 		return forcePlatform, false, true, nil
@@ -180,7 +180,7 @@ func (s *GeminiMessagesCompatService) resolvePlatformAndSchedulingMode(ctx conte
 				return "", false, false, fmt.Errorf("get group failed: %w", err)
 			}
 		}
-		// gemini 分组支持混合调度（包含启用了 mixed_scheduling 的 antigravity 账户）
+		// gemini 分组支持混合调度
 		return group.Platform, group.Platform == PlatformGemini, false, nil
 	}
 
@@ -394,8 +394,8 @@ func (s *GeminiMessagesCompatService) isBetterGeminiAccount(candidate, current *
 		// current 从未使用，保持
 		return false
 	case candidate.LastUsedAt == nil && current.LastUsedAt == nil:
-		// 都未使用，优先选择 OAuth 账号（更兼容 Code Assist 流程）
-		return candidate.Type == AccountTypeOAuth && current.Type != AccountTypeOAuth
+		// 都未使用，无额外偏好
+		return false
 	default:
 		// 都使用过，选择最久未使用的
 		return candidate.LastUsedAt.Before(*current.LastUsedAt)
@@ -531,15 +531,6 @@ func (s *GeminiMessagesCompatService) SelectAccountForAIStudioEndpoints(ctx cont
 				return 0
 			}
 			return 9
-		case AccountTypeOAuth:
-			if strings.TrimSpace(a.GetCredential("project_id")) == "" {
-				return 1
-			}
-			if strings.TrimSpace(a.GetCredential("oauth_type")) == "ai_studio" {
-				return 2
-			}
-			// Code Assist OAuth tokens often lack AI Studio scopes for models listing.
-			return 3
 		case AccountTypeServiceAccount:
 			// Vertex service accounts use aiplatform.googleapis.com, not the AI Studio
 			// endpoint (generativelanguage.googleapis.com), so they cannot serve these requests.
@@ -575,9 +566,7 @@ func (s *GeminiMessagesCompatService) SelectAccountForAIStudioEndpoints(ctx cont
 			case acc.LastUsedAt != nil && selected.LastUsedAt == nil:
 				// keep selected
 			case acc.LastUsedAt == nil && selected.LastUsedAt == nil:
-				if acc.Type == AccountTypeOAuth && selected.Type != AccountTypeOAuth {
-					selected = acc
-				}
+				// 都未使用，无额外偏好
 			default:
 				if acc.LastUsedAt.Before(*selected.LastUsedAt) {
 					selected = acc
@@ -1304,7 +1293,8 @@ func (s *GeminiMessagesCompatService) ForwardNative(ctx context.Context, c *gin.
 		c.Header("x-request-id", requestID)
 	}
 
-	isOAuth := account.Type == AccountTypeOAuth
+	// OAuth 账号类型已移除，count_tokens/错误处理不再走 OAuth 分支。
+	const isOAuth = false
 
 	if resp.StatusCode >= 400 {
 		respBody := s.readUpstreamErrorBody(resp)
@@ -1530,20 +1520,10 @@ func (s *GeminiMessagesCompatService) checkErrorPolicyInLoop(
 }
 
 func (s *GeminiMessagesCompatService) shouldRetryGeminiUpstreamError(account *Account, statusCode int) bool {
+	_ = account
 	switch statusCode {
 	case 429, 500, 502, 503, 504, 529:
 		return true
-	case 403:
-		// GeminiCli OAuth occasionally returns 403 transiently (activation/quota propagation); allow retry.
-		if account == nil || account.Type != AccountTypeOAuth {
-			return false
-		}
-		oauthType := strings.ToLower(strings.TrimSpace(account.GetCredential("oauth_type")))
-		if oauthType == "" && strings.TrimSpace(account.GetCredential("project_id")) != "" {
-			// Legacy/implicit Code Assist OAuth accounts.
-			oauthType = "code_assist"
-		}
-		return oauthType == "code_assist"
 	default:
 		return false
 	}
@@ -2573,15 +2553,6 @@ func (s *GeminiMessagesCompatService) ForwardAIStudioGET(ctx context.Context, ac
 		} else {
 			req.Header.Set("x-goog-api-key", apiKey)
 		}
-	case AccountTypeOAuth:
-		if s.tokenProvider == nil {
-			return nil, errors.New("gemini token provider not configured")
-		}
-		accessToken, err := s.tokenProvider.GetAccessToken(ctx, account)
-		if err != nil {
-			return nil, err
-		}
-		req.Header.Set("Authorization", "Bearer "+accessToken)
 	default:
 		return nil, fmt.Errorf("unsupported account type: %s", account.Type)
 	}

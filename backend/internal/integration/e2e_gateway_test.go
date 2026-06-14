@@ -17,9 +17,8 @@ import (
 
 var (
 	baseURL = getEnv("BASE_URL", "http://localhost:8080")
-	// ENDPOINT_PREFIX: 端点前缀，支持混合模式和非混合模式测试
-	// - "" (默认): 使用 /v1/messages, /v1beta/models（混合模式，可调度 antigravity 账户）
-	// - "/antigravity": 使用 /antigravity/v1/messages, /antigravity/v1beta/models（非混合模式，仅 antigravity 账户）
+	// ENDPOINT_PREFIX: 端点前缀，用于测试带路由前缀的部署
+	// - "" (默认): 使用 /v1/messages, /v1beta/models
 	endpointPrefix = getEnv("ENDPOINT_PREFIX", "")
 	testInterval   = 1 * time.Second // 测试间隔，防止限流
 )
@@ -68,9 +67,9 @@ var geminiModels = []string{
 }
 
 func TestMain(m *testing.M) {
-	mode := "混合模式"
+	mode := "默认模式"
 	if endpointPrefix != "" {
-		mode = "Antigravity 模式"
+		mode = "前缀模式"
 	}
 	claudeKeySet := strings.TrimSpace(os.Getenv(claudeAPIKeyEnv)) != ""
 	geminiKeySet := strings.TrimSpace(os.Getenv(geminiAPIKeyEnv)) != ""
@@ -683,38 +682,6 @@ func testClaudeThinkingWithToolHistory(t *testing.T, claudeKey string, model str
 	t.Logf("✅ thinking 模式工具调用测试通过, id=%v", result["id"])
 }
 
-// TestClaudeMessagesWithGeminiModel 测试在 Claude 端点使用 Gemini 模型
-// 验证：通过 /v1/messages 端点传入 gemini 模型名的场景（含前缀映射）
-// 仅在 Antigravity 模式下运行（ENDPOINT_PREFIX="/antigravity"）
-func TestClaudeMessagesWithGeminiModel(t *testing.T) {
-	if endpointPrefix != "/antigravity" {
-		t.Skip("仅在 Antigravity 模式下运行")
-	}
-	claudeKey := requireClaudeAPIKey(t)
-
-	// 测试通过 Claude 端点调用 Gemini 模型
-	geminiViaClaude := []string{
-		"gemini-3-flash",       // 直接支持
-		"gemini-3-pro-low",     // 直接支持
-		"gemini-3-pro-high",    // 直接支持
-		"gemini-3-pro",         // 前缀映射 -> gemini-3-pro-high
-		"gemini-3-pro-preview", // 前缀映射 -> gemini-3-pro-high
-	}
-
-	for i, model := range geminiViaClaude {
-		if i > 0 {
-			time.Sleep(testInterval)
-		}
-		t.Run(model+"_通过Claude端点", func(t *testing.T) {
-			testClaudeMessage(t, claudeKey, model, false)
-		})
-		time.Sleep(testInterval)
-		t.Run(model+"_通过Claude端点_流式", func(t *testing.T) {
-			testClaudeMessage(t, claudeKey, model, true)
-		})
-	}
-}
-
 // TestClaudeMessagesWithNoSignature 测试历史 thinking block 不带 signature 的场景
 // 验证：Gemini 模型接受没有 signature 的 thinking block
 func TestClaudeMessagesWithNoSignature(t *testing.T) {
@@ -812,32 +779,4 @@ func testClaudeWithNoSignature(t *testing.T, claudeKey string, model string) {
 		t.Errorf("期望 type=message, 得到 %v", result["type"])
 	}
 	t.Logf("✅ 无 signature thinking 处理测试通过, id=%v", result["id"])
-}
-
-// TestGeminiEndpointWithClaudeModel 测试通过 Gemini 端点调用 Claude 模型
-// 仅在 Antigravity 模式下运行（ENDPOINT_PREFIX="/antigravity"）
-func TestGeminiEndpointWithClaudeModel(t *testing.T) {
-	if endpointPrefix != "/antigravity" {
-		t.Skip("仅在 Antigravity 模式下运行")
-	}
-	geminiKey := requireGeminiAPIKey(t)
-
-	// 测试通过 Gemini 端点调用 Claude 模型
-	claudeViaGemini := []string{
-		"claude-sonnet-4-5",
-		"claude-opus-4-5-thinking",
-	}
-
-	for i, model := range claudeViaGemini {
-		if i > 0 {
-			time.Sleep(testInterval)
-		}
-		t.Run(model+"_通过Gemini端点", func(t *testing.T) {
-			testGeminiGenerate(t, geminiKey, model, false)
-		})
-		time.Sleep(testInterval)
-		t.Run(model+"_通过Gemini端点_流式", func(t *testing.T) {
-			testGeminiGenerate(t, geminiKey, model, true)
-		})
-	}
 }

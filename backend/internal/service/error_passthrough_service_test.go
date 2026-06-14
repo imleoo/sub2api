@@ -415,9 +415,9 @@ func TestPlatformMatches(t *testing.T) {
 			expected:        true,
 		},
 		{
-			name:            "匹配 antigravity",
-			rulePlatforms:   []string{"antigravity"},
-			requestPlatform: "antigravity",
+			name:            "匹配 gemini",
+			rulePlatforms:   []string{"gemini"},
+			requestPlatform: "gemini",
 			expected:        true,
 		},
 	}
@@ -543,12 +543,6 @@ func TestMatchRule_PlatformFilter(t *testing.T) {
 		require.NotNil(t, matched)
 		assert.Equal(t, int64(3), matched.ID)
 	})
-
-	t.Run("Antigravity 请求匹配全平台规则", func(t *testing.T) {
-		matched := svc.MatchRule("antigravity", 422, []byte("error"))
-		require.NotNil(t, matched)
-		assert.Equal(t, int64(3), matched.ID)
-	})
 }
 
 func TestMatchRule_NoMatch(t *testing.T) {
@@ -629,7 +623,7 @@ func TestMatchRule_RealWorldScenario_ContextLimitPassthrough(t *testing.T) {
 			ErrorCodes:      []int{422},
 			Keywords:        []string{"context limit"},
 			MatchMode:       model.MatchModeAll, // 必须同时满足
-			Platforms:       []string{"anthropic", "antigravity"},
+			Platforms:       []string{"anthropic", "gemini"},
 			PassthroughCode: true,
 			PassthroughBody: true,
 		},
@@ -646,10 +640,10 @@ func TestMatchRule_RealWorldScenario_ContextLimitPassthrough(t *testing.T) {
 		assert.True(t, matched.PassthroughBody)
 	})
 
-	// 测试 Antigravity 平台
-	t.Run("Antigravity 422 with context limit", func(t *testing.T) {
+	// 测试 Gemini 平台
+	t.Run("Gemini 422 with context limit", func(t *testing.T) {
 		body := []byte(`{"error":"context limit exceeded"}`)
-		matched := svc.MatchRule("antigravity", 422, body)
+		matched := svc.MatchRule("gemini", 422, body)
 		require.NotNil(t, matched)
 	})
 

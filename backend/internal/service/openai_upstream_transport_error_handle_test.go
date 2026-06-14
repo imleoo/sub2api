@@ -18,7 +18,7 @@ import (
 // openaiTransportAccountRepoStub records SetTempUnschedulable calls. It embeds the
 // (nil) AccountRepository interface so any other method call would panic — the
 // helper under test must only touch SetTempUnschedulable. tempUnschedCall is shared
-// with antigravity_internal500_penalty_test.go (same package).
+// via shared_test_stubs_test.go (same package).
 type openaiTransportAccountRepoStub struct {
 	AccountRepository
 	tempUnschedCalls []tempUnschedCall

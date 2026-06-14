@@ -31,7 +31,7 @@ func TestUpdateAccount_PreservesSensitiveCredsWhenIncomingOmits(t *testing.T) {
 		account: &Account{
 			ID:       accountID,
 			Platform: PlatformAnthropic,
-			Type:     AccountTypeOAuth,
+			Type:     AccountTypeAPIKey,
 			Status:   StatusActive,
 			Credentials: map[string]any{
 				"refresh_token": "rt-existing",
@@ -68,7 +68,7 @@ func TestUpdateAccount_ExplicitNewTokenOverwrites(t *testing.T) {
 		account: &Account{
 			ID:       accountID,
 			Platform: PlatformAnthropic,
-			Type:     AccountTypeOAuth,
+			Type:     AccountTypeAPIKey,
 			Status:   StatusActive,
 			Credentials: map[string]any{
 				"refresh_token": "rt-old",
@@ -97,7 +97,7 @@ func TestUpdateAccount_EmptyCredentialsSkipsUpdate(t *testing.T) {
 		account: &Account{
 			ID:       accountID,
 			Platform: PlatformAnthropic,
-			Type:     AccountTypeOAuth,
+			Type:     AccountTypeAPIKey,
 			Status:   StatusActive,
 			Credentials: map[string]any{
 				"refresh_token": "rt-existing",

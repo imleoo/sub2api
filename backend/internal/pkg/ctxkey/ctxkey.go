@@ -5,7 +5,7 @@ package ctxkey
 type Key string
 
 const (
-	// ForcePlatform 强制平台（用于 /antigravity 路由），由 middleware.ForcePlatform 设置
+	// ForcePlatform 强制平台（用于平台前缀路由），由 middleware.ForcePlatform 设置
 	ForcePlatform Key = "ctx_force_platform"
 
 	// RequestID 为服务端生成/透传的请求 ID。

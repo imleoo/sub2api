@@ -322,7 +322,7 @@ func (s *ProxyRepoSuite) mustInsertAccount(name string, proxyID *int64) {
 		"INSERT INTO accounts (name, platform, type, proxy_id) VALUES ($1, $2, $3, $4)",
 		name,
 		service.PlatformAnthropic,
-		service.AccountTypeOAuth,
+		service.AccountTypeAPIKey,
 		pid,
 	)
 	s.Require().NoError(err, "insert account")

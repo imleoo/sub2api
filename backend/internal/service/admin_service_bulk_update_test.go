@@ -193,7 +193,7 @@ func TestAdminServiceBulkUpdateAccounts_ResolvesIDsFromFilters(t *testing.T) {
 
 	filtersValue := reflect.New(filtersField.Type().Elem())
 	filtersValue.Elem().FieldByName("Platform").SetString(PlatformOpenAI)
-	filtersValue.Elem().FieldByName("Type").SetString(AccountTypeOAuth)
+	filtersValue.Elem().FieldByName("Type").SetString(AccountTypeAPIKey)
 	filtersValue.Elem().FieldByName("Status").SetString(StatusActive)
 	filtersValue.Elem().FieldByName("Group").SetString("12")
 	filtersValue.Elem().FieldByName("PrivacyMode").SetString("training_set_cf_blocked")
@@ -204,7 +204,7 @@ func TestAdminServiceBulkUpdateAccounts_ResolvesIDsFromFilters(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, repo.listCalled, "expected filter-target bulk update to resolve matching IDs via account list filters")
 	require.Equal(t, PlatformOpenAI, repo.lastListFilters.platform)
-	require.Equal(t, AccountTypeOAuth, repo.lastListFilters.accountType)
+	require.Equal(t, AccountTypeAPIKey, repo.lastListFilters.accountType)
 	require.Equal(t, StatusActive, repo.lastListFilters.status)
 	require.Equal(t, "bulk-target", repo.lastListFilters.search)
 	require.Equal(t, int64(12), repo.lastListFilters.groupID)

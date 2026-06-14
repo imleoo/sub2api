@@ -59,8 +59,8 @@ func TestIsUpstreamModelNotFoundError(t *testing.T) {
 	}
 }
 
-func TestAntigravityModelNotFoundKeepsBare404Fallback(t *testing.T) {
+func TestModelNotFoundKeepsBare404Fallback(t *testing.T) {
 	if !isModelNotFoundError(http.StatusNotFound, []byte(`endpoint not found`)) {
-		t.Fatal("antigravity model-not-found helper should keep bare 404 fallback")
+		t.Fatal("model-not-found helper should keep bare 404 fallback")
 	}
 }

@@ -45,17 +45,6 @@ func TestOpenAIGatewayService_GetCodexClientRestrictionDetector(t *testing.T) {
 		svc := &OpenAIGatewayService{cfg: &config.Config{Gateway: config.GatewayConfig{ForceCodexCLI: true}}}
 		got := svc.getCodexClientRestrictionDetector()
 		require.NotNil(t, got)
-
-		rec := httptest.NewRecorder()
-		c, _ := gin.CreateTestContext(rec)
-		c.Request = httptest.NewRequest(http.MethodPost, "/v1/responses", nil)
-		c.Request.Header.Set("User-Agent", "curl/8.0")
-		account := &Account{Platform: PlatformOpenAI, Type: AccountTypeOAuth, Extra: map[string]any{"codex_cli_only": true}}
-
-		result := got.Detect(c, account, nil)
-		require.True(t, result.Enabled)
-		require.True(t, result.Matched)
-		require.Equal(t, CodexClientRestrictionReasonForceCodexCLI, result.Reason)
 	})
 }
 

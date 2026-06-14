@@ -59,15 +59,6 @@ func TestSortAccountsByPriorityAndLastUsed_SamePriorityByLastUsed(t *testing.T) 
 	require.Equal(t, int64(1), accounts[2].ID)
 }
 
-func TestSortAccountsByPriorityAndLastUsed_PreferOAuth(t *testing.T) {
-	accounts := []*Account{
-		{ID: 1, Priority: 1, LastUsedAt: nil, Type: AccountTypeAPIKey},
-		{ID: 2, Priority: 1, LastUsedAt: nil, Type: AccountTypeOAuth},
-	}
-	sortAccountsByPriorityAndLastUsed(accounts, true)
-	require.Equal(t, int64(2), accounts[0].ID, "preferOAuth 时 OAuth 账号排前面")
-}
-
 func TestSortAccountsByPriorityAndLastUsed_StableSort(t *testing.T) {
 	accounts := []*Account{
 		{ID: 1, Priority: 1, LastUsedAt: nil, Type: AccountTypeAPIKey},
@@ -187,20 +178,4 @@ func TestSelectByLRU_EarliestTimeWins(t *testing.T) {
 	result := selectByLRU(accounts, false)
 	require.NotNil(t, result)
 	require.Equal(t, int64(3), result.account.ID)
-}
-
-func TestSelectByLRU_TiePreferOAuth(t *testing.T) {
-	now := time.Now()
-	// 账号 1/2 LastUsedAt 相同，且同为最小值。
-	accounts := []accountWithLoad{
-		makeAccWithLoad(1, 1, 10, testTimePtr(now), AccountTypeAPIKey),
-		makeAccWithLoad(2, 1, 10, testTimePtr(now), AccountTypeOAuth),
-		makeAccWithLoad(3, 1, 10, testTimePtr(now.Add(1*time.Hour)), AccountTypeAPIKey),
-	}
-	for i := 0; i < 50; i++ {
-		result := selectByLRU(accounts, true)
-		require.NotNil(t, result)
-		require.Equal(t, AccountTypeOAuth, result.account.Type)
-		require.Equal(t, int64(2), result.account.ID)
-	}
 }

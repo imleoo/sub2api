@@ -174,7 +174,7 @@ func (r *openAI429SnapshotRepo) BulkUpdate(_ context.Context, ids []int64, updat
 func TestHandle429_OpenAIPersistsCodexSnapshotImmediately(t *testing.T) {
 	repo := &openAI429SnapshotRepo{}
 	svc := NewRateLimitService(repo, nil, nil, nil, nil)
-	account := &Account{ID: 123, Platform: PlatformOpenAI, Type: AccountTypeOAuth}
+	account := &Account{ID: 123, Platform: PlatformOpenAI, Type: AccountTypeAPIKey}
 
 	headers := http.Header{}
 	headers.Set("x-codex-primary-used-percent", "100")
@@ -206,7 +206,7 @@ func TestHandle429_OpenAISyncsObservedPlanType(t *testing.T) {
 	account := &Account{
 		ID:          124,
 		Platform:    PlatformOpenAI,
-		Type:        AccountTypeOAuth,
+		Type:        AccountTypeAPIKey,
 		Credentials: map[string]any{"plan_type": "plus"},
 	}
 	body := []byte(`{"error":{"type":"usage_limit_reached","message":"limit reached","plan_type":"free","resets_at":1777283883}}`)
@@ -295,7 +295,7 @@ func TestRateLimitService_HandleUpstreamError_403PreservesOriginalUpstreamMessag
 	account := &Account{
 		ID:       201,
 		Platform: PlatformOpenAI,
-		Type:     AccountTypeOAuth,
+		Type:     AccountTypeAPIKey,
 	}
 
 	shouldDisable := service.HandleUpstreamError(
@@ -318,7 +318,7 @@ func TestRateLimitService_HandleUpstreamError_403FallsBackToRawBody(t *testing.T
 	account := &Account{
 		ID:       202,
 		Platform: PlatformOpenAI,
-		Type:     AccountTypeOAuth,
+		Type:     AccountTypeAPIKey,
 	}
 
 	shouldDisable := service.HandleUpstreamError(

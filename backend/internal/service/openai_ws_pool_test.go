@@ -544,19 +544,13 @@ func TestOpenAIWSConnPool_EffectiveMaxConnsByAccount(t *testing.T) {
 
 	pool := newOpenAIWSConnPool(cfg)
 
-	oauthHigh := &Account{Platform: PlatformOpenAI, Type: AccountTypeOAuth, Concurrency: 10}
-	require.Equal(t, 8, pool.effectiveMaxConnsByAccount(oauthHigh), "应受全局硬上限约束")
-
-	oauthLow := &Account{Platform: PlatformOpenAI, Type: AccountTypeOAuth, Concurrency: 3}
-	require.Equal(t, 3, pool.effectiveMaxConnsByAccount(oauthLow))
-
 	apiKeyHigh := &Account{Platform: PlatformOpenAI, Type: AccountTypeAPIKey, Concurrency: 10}
 	require.Equal(t, 6, pool.effectiveMaxConnsByAccount(apiKeyHigh), "API Key 应按系数缩放")
 
 	apiKeyLow := &Account{Platform: PlatformOpenAI, Type: AccountTypeAPIKey, Concurrency: 1}
 	require.Equal(t, 1, pool.effectiveMaxConnsByAccount(apiKeyLow), "最小值应保持为 1")
 
-	unlimited := &Account{Platform: PlatformOpenAI, Type: AccountTypeOAuth, Concurrency: 0}
+	unlimited := &Account{Platform: PlatformOpenAI, Type: AccountTypeAPIKey, Concurrency: 0}
 	require.Equal(t, 8, pool.effectiveMaxConnsByAccount(unlimited), "无限并发应回退到全局硬上限")
 
 	require.Equal(t, 8, pool.effectiveMaxConnsByAccount(nil), "缺少账号上下文应回退到全局硬上限")
@@ -570,7 +564,7 @@ func TestOpenAIWSConnPool_EffectiveMaxConnsDisabledFallbackHardCap(t *testing.T)
 	cfg.Gateway.OpenAIWS.APIKeyMaxConnsFactor = 1.0
 
 	pool := newOpenAIWSConnPool(cfg)
-	account := &Account{Platform: PlatformOpenAI, Type: AccountTypeOAuth, Concurrency: 2}
+	account := &Account{Platform: PlatformOpenAI, Type: AccountTypeAPIKey, Concurrency: 2}
 	require.Equal(t, 8, pool.effectiveMaxConnsByAccount(account), "关闭动态模式后应保持旧行为")
 }
 
@@ -584,7 +578,7 @@ func TestOpenAIWSConnPool_EffectiveMaxConnsByAccount_ModeRouterV2UsesAccountConc
 
 	pool := newOpenAIWSConnPool(cfg)
 
-	high := &Account{Platform: PlatformOpenAI, Type: AccountTypeOAuth, Concurrency: 20}
+	high := &Account{Platform: PlatformOpenAI, Type: AccountTypeAPIKey, Concurrency: 20}
 	require.Equal(t, 20, pool.effectiveMaxConnsByAccount(high), "v2 路径应直接使用账号并发数作为池上限")
 
 	nonPositive := &Account{Platform: PlatformOpenAI, Type: AccountTypeAPIKey, Concurrency: 0}
@@ -597,7 +591,7 @@ func TestOpenAIWSConnPool_AcquireRejectsWhenEffectiveMaxConnsIsZero(t *testing.T
 	cfg.Gateway.OpenAIWS.MaxConnsPerAccount = 8
 	pool := newOpenAIWSConnPool(cfg)
 
-	account := &Account{ID: 901, Platform: PlatformOpenAI, Type: AccountTypeOAuth, Concurrency: 0}
+	account := &Account{ID: 901, Platform: PlatformOpenAI, Type: AccountTypeAPIKey, Concurrency: 0}
 	_, err := pool.Acquire(context.Background(), openAIWSAcquireRequest{
 		Account: account,
 		WSURL:   "wss://example.com/v1/responses",

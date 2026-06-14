@@ -87,20 +87,6 @@ func TestAccountIsSchedulable_QuotaExceeded(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "oauth ignores quota exceeded",
-			account: &Account{
-				Status:      StatusActive,
-				Schedulable: true,
-				Type:        AccountTypeOAuth,
-				Extra: map[string]any{
-					"quota_daily_limit": 10.0,
-					"quota_daily_used":  10.0,
-					"quota_daily_start": now.Add(-1 * time.Hour).Format(time.RFC3339),
-				},
-			},
-			want: true,
-		},
-		{
 			name: "bedrock quota exceeded",
 			account: &Account{
 				Status:      StatusActive,

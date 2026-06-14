@@ -98,7 +98,7 @@ func TestGetWebSearchEmulationMode_NonAnthropicPlatform(t *testing.T) {
 func TestGetWebSearchEmulationMode_NonAPIKeyType(t *testing.T) {
 	a := &Account{
 		Platform: PlatformAnthropic,
-		Type:     AccountTypeOAuth,
+		Type:     AccountTypeServiceAccount,
 		Extra:    map[string]any{featureKeyWebSearchEmulation: "enabled"},
 	}
 	require.Equal(t, WebSearchModeDefault, a.GetWebSearchEmulationMode())

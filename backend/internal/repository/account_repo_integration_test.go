@@ -85,6 +85,18 @@ func (s *schedulerCacheRecorder) SetOutboxWatermark(ctx context.Context, id int6
 	return nil
 }
 
+func (s *schedulerCacheRecorder) IncrDualBucketTotal(ctx context.Context, platform string) (int64, error) {
+	return 0, nil
+}
+
+func (s *schedulerCacheRecorder) IncrDualBucketDiverged(ctx context.Context, platform string) (int64, error) {
+	return 0, nil
+}
+
+func (s *schedulerCacheRecorder) GetDualBucketStats(ctx context.Context, platform string, days int) ([]service.DualBucketDayStats, error) {
+	return nil, nil
+}
+
 func (s *AccountRepoSuite) SetupTest() {
 	s.ctx = context.Background()
 	tx := testEntTx(s.T())
@@ -102,7 +114,7 @@ func (s *AccountRepoSuite) TestCreate() {
 	account := &service.Account{
 		Name:        "test-create",
 		Platform:    service.PlatformAnthropic,
-		Type:        service.AccountTypeOAuth,
+		Type:        service.AccountTypeAPIKey,
 		Status:      service.StatusActive,
 		Credentials: map[string]any{},
 		Extra:       map[string]any{},
@@ -264,7 +276,7 @@ func (s *AccountRepoSuite) TestListWithFilters() {
 		{
 			name: "filter_by_type",
 			setup: func(client *dbent.Client) {
-				mustCreateAccount(s.T(), client, &service.Account{Name: "t1", Type: service.AccountTypeOAuth})
+				mustCreateAccount(s.T(), client, &service.Account{Name: "t1", Type: service.AccountTypeAPIKey})
 				mustCreateAccount(s.T(), client, &service.Account{Name: "t2", Type: service.AccountTypeAPIKey})
 			},
 			accType:   service.AccountTypeAPIKey,
@@ -410,10 +422,10 @@ func (s *AccountRepoSuite) TestListWithFilters() {
 		{
 			name: "filter_by_privacy_mode",
 			setup: func(client *dbent.Client) {
-				mustCreateAccount(s.T(), client, &service.Account{Name: "privacy-ok", Extra: map[string]any{"privacy_mode": service.PrivacyModeTrainingOff}})
-				mustCreateAccount(s.T(), client, &service.Account{Name: "privacy-fail", Extra: map[string]any{"privacy_mode": service.PrivacyModeFailed}})
+				mustCreateAccount(s.T(), client, &service.Account{Name: "privacy-ok", Extra: map[string]any{"privacy_mode": "training_off"}})
+				mustCreateAccount(s.T(), client, &service.Account{Name: "privacy-fail", Extra: map[string]any{"privacy_mode": "failed"}})
 			},
-			privacyMode: service.PrivacyModeTrainingOff,
+			privacyMode: "training_off",
 			wantCount:   1,
 			validate: func(accounts []service.Account) {
 				s.Require().Equal("privacy-ok", accounts[0].Name)
@@ -424,7 +436,7 @@ func (s *AccountRepoSuite) TestListWithFilters() {
 			setup: func(client *dbent.Client) {
 				mustCreateAccount(s.T(), client, &service.Account{Name: "privacy-unset", Extra: nil})
 				mustCreateAccount(s.T(), client, &service.Account{Name: "privacy-empty", Extra: map[string]any{"privacy_mode": ""}})
-				mustCreateAccount(s.T(), client, &service.Account{Name: "privacy-set", Extra: map[string]any{"privacy_mode": service.PrivacyModeTrainingOff}})
+				mustCreateAccount(s.T(), client, &service.Account{Name: "privacy-set", Extra: map[string]any{"privacy_mode": "training_off"}})
 			},
 			privacyMode: service.AccountPrivacyModeUnsetFilter,
 			wantCount:   2,
@@ -929,7 +941,7 @@ func (s *AccountRepoSuite) TestUpdateExtra_ExhaustedCodexSnapshotSyncsSchedulerC
 	account := mustCreateAccount(s.T(), s.client, &service.Account{
 		Name:     "acc-extra-codex-exhausted",
 		Platform: service.PlatformOpenAI,
-		Type:     service.AccountTypeOAuth,
+		Type:     service.AccountTypeAPIKey,
 		Extra:    map[string]any{},
 	})
 	cacheRecorder := &schedulerCacheRecorder{}
@@ -956,7 +968,7 @@ func (s *AccountRepoSuite) TestUpdateExtra_ExhaustedCodexSnapshotSyncsSchedulerC
 func (s *AccountRepoSuite) TestUpdateExtra_SchedulerRelevantStillEnqueuesOutbox() {
 	account := mustCreateAccount(s.T(), s.client, &service.Account{
 		Name:     "acc-extra-mixed",
-		Platform: service.PlatformAntigravity,
+		Platform: service.PlatformGemini,
 		Extra:    map[string]any{},
 	})
 	_, err := s.repo.sql.ExecContext(s.ctx, "TRUNCATE scheduler_outbox")

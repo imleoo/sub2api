@@ -41,14 +41,14 @@ func TestAccount_IsAnthropicAPIKeyPassthroughEnabled(t *testing.T) {
 	})
 
 	t.Run("非 Anthropic API Key 账号始终关闭", func(t *testing.T) {
-		oauth := &Account{
+		serviceAccount := &Account{
 			Platform: PlatformAnthropic,
-			Type:     AccountTypeOAuth,
+			Type:     AccountTypeServiceAccount,
 			Extra: map[string]any{
 				"anthropic_passthrough": true,
 			},
 		}
-		require.False(t, oauth.IsAnthropicAPIKeyPassthroughEnabled())
+		require.False(t, serviceAccount.IsAnthropicAPIKeyPassthroughEnabled())
 
 		openai := &Account{
 			Platform: PlatformOpenAI,

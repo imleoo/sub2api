@@ -15,7 +15,6 @@ type accountRepoStubForClearAccountError struct {
 	account                  *Account
 	clearErrorCalls          int
 	clearRateLimitCalls      int
-	clearAntigravityCalls    int
 	clearModelRateLimitCalls int
 	clearTempUnschedCalls    int
 }
@@ -38,11 +37,6 @@ func (r *accountRepoStubForClearAccountError) ClearRateLimit(ctx context.Context
 	return nil
 }
 
-func (r *accountRepoStubForClearAccountError) ClearAntigravityQuotaScopes(ctx context.Context, id int64) error {
-	r.clearAntigravityCalls++
-	return nil
-}
-
 func (r *accountRepoStubForClearAccountError) ClearModelRateLimits(ctx context.Context, id int64) error {
 	r.clearModelRateLimitCalls++
 	return nil
@@ -62,7 +56,7 @@ func TestAdminService_ClearAccountError_AlsoClearsRecoverableRuntimeState(t *tes
 		account: &Account{
 			ID:                      31,
 			Platform:                PlatformOpenAI,
-			Type:                    AccountTypeOAuth,
+			Type:                    AccountTypeAPIKey,
 			Status:                  StatusError,
 			ErrorMessage:            "refresh failed",
 			RateLimitResetAt:        &resetAt,
@@ -78,7 +72,6 @@ func TestAdminService_ClearAccountError_AlsoClearsRecoverableRuntimeState(t *tes
 	require.NotNil(t, updated)
 	require.Equal(t, 1, repo.clearErrorCalls)
 	require.Equal(t, 1, repo.clearRateLimitCalls)
-	require.Equal(t, 1, repo.clearAntigravityCalls)
 	require.Equal(t, 1, repo.clearModelRateLimitCalls)
 	require.Equal(t, 1, repo.clearTempUnschedCalls)
 	require.Nil(t, updated.RateLimitResetAt)

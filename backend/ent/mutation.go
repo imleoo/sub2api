@@ -16304,13 +16304,11 @@ type GroupMutation struct {
 	addfallback_group_id_on_invalid_request *int64
 	model_routing                           *map[string][]int64
 	model_routing_enabled                   *bool
-	mcp_xml_inject                          *bool
 	supported_model_scopes                  *[]string
 	appendsupported_model_scopes            []string
 	sort_order                              *int
 	addsort_order                           *int
 	allow_messages_dispatch                 *bool
-	require_oauth_only                      *bool
 	require_privacy_set                     *bool
 	default_mapped_model                    *string
 	messages_dispatch_model_config          *domain.OpenAIMessagesDispatchModelConfig
@@ -17759,42 +17757,6 @@ func (m *GroupMutation) ResetModelRoutingEnabled() {
 	m.model_routing_enabled = nil
 }
 
-// SetMcpXMLInject sets the "mcp_xml_inject" field.
-func (m *GroupMutation) SetMcpXMLInject(b bool) {
-	m.mcp_xml_inject = &b
-}
-
-// McpXMLInject returns the value of the "mcp_xml_inject" field in the mutation.
-func (m *GroupMutation) McpXMLInject() (r bool, exists bool) {
-	v := m.mcp_xml_inject
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldMcpXMLInject returns the old "mcp_xml_inject" field's value of the Group entity.
-// If the Group object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *GroupMutation) OldMcpXMLInject(ctx context.Context) (v bool, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldMcpXMLInject is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldMcpXMLInject requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldMcpXMLInject: %w", err)
-	}
-	return oldValue.McpXMLInject, nil
-}
-
-// ResetMcpXMLInject resets all changes to the "mcp_xml_inject" field.
-func (m *GroupMutation) ResetMcpXMLInject() {
-	m.mcp_xml_inject = nil
-}
-
 // SetSupportedModelScopes sets the "supported_model_scopes" field.
 func (m *GroupMutation) SetSupportedModelScopes(s []string) {
 	m.supported_model_scopes = &s
@@ -17936,42 +17898,6 @@ func (m *GroupMutation) OldAllowMessagesDispatch(ctx context.Context) (v bool, e
 // ResetAllowMessagesDispatch resets all changes to the "allow_messages_dispatch" field.
 func (m *GroupMutation) ResetAllowMessagesDispatch() {
 	m.allow_messages_dispatch = nil
-}
-
-// SetRequireOauthOnly sets the "require_oauth_only" field.
-func (m *GroupMutation) SetRequireOauthOnly(b bool) {
-	m.require_oauth_only = &b
-}
-
-// RequireOauthOnly returns the value of the "require_oauth_only" field in the mutation.
-func (m *GroupMutation) RequireOauthOnly() (r bool, exists bool) {
-	v := m.require_oauth_only
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldRequireOauthOnly returns the old "require_oauth_only" field's value of the Group entity.
-// If the Group object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *GroupMutation) OldRequireOauthOnly(ctx context.Context) (v bool, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldRequireOauthOnly is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldRequireOauthOnly requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldRequireOauthOnly: %w", err)
-	}
-	return oldValue.RequireOauthOnly, nil
-}
-
-// ResetRequireOauthOnly resets all changes to the "require_oauth_only" field.
-func (m *GroupMutation) ResetRequireOauthOnly() {
-	m.require_oauth_only = nil
 }
 
 // SetRequirePrivacySet sets the "require_privacy_set" field.
@@ -18532,7 +18458,7 @@ func (m *GroupMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GroupMutation) Fields() []string {
-	fields := make([]string, 0, 36)
+	fields := make([]string, 0, 34)
 	if m.created_at != nil {
 		fields = append(fields, group.FieldCreatedAt)
 	}
@@ -18611,9 +18537,6 @@ func (m *GroupMutation) Fields() []string {
 	if m.model_routing_enabled != nil {
 		fields = append(fields, group.FieldModelRoutingEnabled)
 	}
-	if m.mcp_xml_inject != nil {
-		fields = append(fields, group.FieldMcpXMLInject)
-	}
 	if m.supported_model_scopes != nil {
 		fields = append(fields, group.FieldSupportedModelScopes)
 	}
@@ -18622,9 +18545,6 @@ func (m *GroupMutation) Fields() []string {
 	}
 	if m.allow_messages_dispatch != nil {
 		fields = append(fields, group.FieldAllowMessagesDispatch)
-	}
-	if m.require_oauth_only != nil {
-		fields = append(fields, group.FieldRequireOauthOnly)
 	}
 	if m.require_privacy_set != nil {
 		fields = append(fields, group.FieldRequirePrivacySet)
@@ -18701,16 +18621,12 @@ func (m *GroupMutation) Field(name string) (ent.Value, bool) {
 		return m.ModelRouting()
 	case group.FieldModelRoutingEnabled:
 		return m.ModelRoutingEnabled()
-	case group.FieldMcpXMLInject:
-		return m.McpXMLInject()
 	case group.FieldSupportedModelScopes:
 		return m.SupportedModelScopes()
 	case group.FieldSortOrder:
 		return m.SortOrder()
 	case group.FieldAllowMessagesDispatch:
 		return m.AllowMessagesDispatch()
-	case group.FieldRequireOauthOnly:
-		return m.RequireOauthOnly()
 	case group.FieldRequirePrivacySet:
 		return m.RequirePrivacySet()
 	case group.FieldDefaultMappedModel:
@@ -18782,16 +18698,12 @@ func (m *GroupMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldModelRouting(ctx)
 	case group.FieldModelRoutingEnabled:
 		return m.OldModelRoutingEnabled(ctx)
-	case group.FieldMcpXMLInject:
-		return m.OldMcpXMLInject(ctx)
 	case group.FieldSupportedModelScopes:
 		return m.OldSupportedModelScopes(ctx)
 	case group.FieldSortOrder:
 		return m.OldSortOrder(ctx)
 	case group.FieldAllowMessagesDispatch:
 		return m.OldAllowMessagesDispatch(ctx)
-	case group.FieldRequireOauthOnly:
-		return m.OldRequireOauthOnly(ctx)
 	case group.FieldRequirePrivacySet:
 		return m.OldRequirePrivacySet(ctx)
 	case group.FieldDefaultMappedModel:
@@ -18993,13 +18905,6 @@ func (m *GroupMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetModelRoutingEnabled(v)
 		return nil
-	case group.FieldMcpXMLInject:
-		v, ok := value.(bool)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetMcpXMLInject(v)
-		return nil
 	case group.FieldSupportedModelScopes:
 		v, ok := value.([]string)
 		if !ok {
@@ -19020,13 +18925,6 @@ func (m *GroupMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAllowMessagesDispatch(v)
-		return nil
-	case group.FieldRequireOauthOnly:
-		v, ok := value.(bool)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetRequireOauthOnly(v)
 		return nil
 	case group.FieldRequirePrivacySet:
 		v, ok := value.(bool)
@@ -19424,9 +19322,6 @@ func (m *GroupMutation) ResetField(name string) error {
 	case group.FieldModelRoutingEnabled:
 		m.ResetModelRoutingEnabled()
 		return nil
-	case group.FieldMcpXMLInject:
-		m.ResetMcpXMLInject()
-		return nil
 	case group.FieldSupportedModelScopes:
 		m.ResetSupportedModelScopes()
 		return nil
@@ -19435,9 +19330,6 @@ func (m *GroupMutation) ResetField(name string) error {
 		return nil
 	case group.FieldAllowMessagesDispatch:
 		m.ResetAllowMessagesDispatch()
-		return nil
-	case group.FieldRequireOauthOnly:
-		m.ResetRequireOauthOnly()
 		return nil
 	case group.FieldRequirePrivacySet:
 		m.ResetRequirePrivacySet()

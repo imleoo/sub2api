@@ -117,27 +117,6 @@ func TestEvaluateOpenAIFastPolicy_BlockRuleCarriesMessage(t *testing.T) {
 	require.Equal(t, "fast mode is not allowed", msg)
 }
 
-func TestEvaluateOpenAIFastPolicy_ScopeFiltersOAuth(t *testing.T) {
-	settings := &OpenAIFastPolicySettings{
-		Rules: []OpenAIFastPolicyRule{{
-			ServiceTier: OpenAIFastTierAny,
-			Action:      BetaPolicyActionFilter,
-			Scope:       BetaPolicyScopeOAuth,
-		}},
-	}
-	svc := newOpenAIGatewayServiceWithSettings(t, settings)
-
-	// OAuth account → rule matches
-	oauthAccount := &Account{Platform: PlatformOpenAI, Type: AccountTypeOAuth}
-	action, _ := svc.evaluateOpenAIFastPolicy(context.Background(), oauthAccount, "gpt-4", OpenAIFastTierPriority)
-	require.Equal(t, BetaPolicyActionFilter, action)
-
-	// API Key account → rule skipped → pass
-	apiKeyAccount := &Account{Platform: PlatformOpenAI, Type: AccountTypeAPIKey}
-	action, _ = svc.evaluateOpenAIFastPolicy(context.Background(), apiKeyAccount, "gpt-4", OpenAIFastTierPriority)
-	require.Equal(t, BetaPolicyActionPass, action)
-}
-
 func TestApplyOpenAIFastPolicyToBody_DefaultPassesPriorityAndFast(t *testing.T) {
 	svc := newOpenAIGatewayServiceWithSettings(t, DefaultOpenAIFastPolicySettings())
 	account := &Account{Platform: PlatformOpenAI, Type: AccountTypeAPIKey}

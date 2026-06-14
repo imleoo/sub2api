@@ -154,8 +154,9 @@ func (a *Account) IsOverloaded() bool {
 	return time.Now().Before(*a.OverloadUntil)
 }
 
+// IsOAuth 已随订阅逆向 OAuth/SetupToken 账号类型移除，恒为 false。
 func (a *Account) IsOAuth() bool {
-	return a.Type == AccountTypeOAuth || a.Type == AccountTypeSetupToken
+	return false
 }
 
 // IsPrivacySet 检查账号的 privacy 是否已成功设置。
@@ -180,15 +181,9 @@ func (a *Account) GetLingjingAPIKey() string {
 	return a.GetCredential("api_key")
 }
 
+// GeminiOAuthType 已随 Gemini OAuth 账号类型移除，恒为空。
 func (a *Account) GeminiOAuthType() string {
-	if a.Platform != PlatformGemini || a.Type != AccountTypeOAuth {
-		return ""
-	}
-	oauthType := strings.TrimSpace(a.GetCredential("oauth_type"))
-	if oauthType == "" && strings.TrimSpace(a.GetCredential("project_id")) != "" {
-		return "code_assist"
-	}
-	return oauthType
+	return ""
 }
 
 func (a *Account) GeminiTierID() string {
@@ -196,19 +191,14 @@ func (a *Account) GeminiTierID() string {
 	return tierID
 }
 
+// IsGeminiCodeAssist 已随 Gemini OAuth CodeAssist 账号类型移除，恒为 false。
 func (a *Account) IsGeminiCodeAssist() bool {
-	if a.Platform != PlatformGemini || a.Type != AccountTypeOAuth {
-		return false
-	}
-	oauthType := a.GeminiOAuthType()
-	if oauthType == "" {
-		return strings.TrimSpace(a.GetCredential("project_id")) != ""
-	}
-	return oauthType == "code_assist"
+	return false
 }
 
+// CanGetUsage 已随订阅逆向 OAuth 账号类型移除，恒为 false。
 func (a *Account) CanGetUsage() bool {
-	return a.Type == AccountTypeOAuth
+	return false
 }
 
 func (a *Account) GetCredential(key string) string {
@@ -1008,8 +998,9 @@ func (a *Account) IsAnthropic() bool {
 	return a.Platform == PlatformAnthropic
 }
 
+// IsOpenAIOAuth 已随 OpenAI OAuth 账号类型移除，恒为 false。
 func (a *Account) IsOpenAIOAuth() bool {
-	return a.IsOpenAI() && a.Type == AccountTypeOAuth
+	return false
 }
 
 // IsGeneric 报告账号是否为通用渠道（多协议 endpoint，账号级单 key）。
@@ -1213,14 +1204,12 @@ func (a *Account) IsOpenAITokenExpired() bool {
 	return time.Now().Add(60 * time.Second).After(*expiresAt)
 }
 
-// IsMixedSchedulingEnabled 检查 antigravity 账户是否启用混合调度
-// 启用后可参与 anthropic/gemini 分组的账户调度
+// IsMixedSchedulingEnabled 已随逆向混合调度平台移除，恒为 false。
 func (a *Account) IsMixedSchedulingEnabled() bool {
-	// 混合调度仅 antigravity 平台使用，逆向平台移除后恒为 false。
 	return false
 }
 
-// IsOveragesEnabled 已随 Antigravity 平台移除，恒为 false。
+// IsOveragesEnabled 已随逆向 overage 平台移除，恒为 false。
 func (a *Account) IsOveragesEnabled() bool {
 	return false
 }
@@ -1525,10 +1514,9 @@ const (
 	WindowCostNotSchedulable
 )
 
-// IsAnthropicOAuthOrSetupToken 判断是否为 Anthropic OAuth 或 SetupToken 类型账号
-// 仅这两类账号支持 5h 窗口额度控制和会话数量控制
+// IsAnthropicOAuthOrSetupToken 已随 Anthropic OAuth/SetupToken 账号类型移除，恒为 false。
 func (a *Account) IsAnthropicOAuthOrSetupToken() bool {
-	return a.Platform == PlatformAnthropic && (a.Type == AccountTypeOAuth || a.Type == AccountTypeSetupToken)
+	return false
 }
 
 // IsTLSFingerprintEnabled 检查是否启用 TLS 指纹伪装

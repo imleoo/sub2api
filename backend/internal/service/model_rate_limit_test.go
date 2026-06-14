@@ -107,7 +107,7 @@ func TestIsModelRateLimited(t *testing.T) {
 			expected:       true,
 		},
 		{
-			name: "non-antigravity platform - gemini-3-pro-preview NOT mapped",
+			name: "gemini platform - gemini-3-pro-preview NOT mapped",
 			account: &Account{
 				Platform: PlatformGemini,
 				Extra: map[string]any{
@@ -119,7 +119,7 @@ func TestIsModelRateLimited(t *testing.T) {
 				},
 			},
 			requestedModel: "gemini-3-pro-preview",
-			expected:       false, // gemini 平台不走 antigravity 映射
+			expected:       false, // gemini 平台不走 preview→high 映射
 		},
 		{
 			name: "no scope fallback - claude_sonnet should not match",

@@ -180,11 +180,6 @@ func ModelRoutingEnabled(v bool) predicate.Group {
 	return predicate.Group(sql.FieldEQ(FieldModelRoutingEnabled, v))
 }
 
-// McpXMLInject applies equality check predicate on the "mcp_xml_inject" field. It's identical to McpXMLInjectEQ.
-func McpXMLInject(v bool) predicate.Group {
-	return predicate.Group(sql.FieldEQ(FieldMcpXMLInject, v))
-}
-
 // SortOrder applies equality check predicate on the "sort_order" field. It's identical to SortOrderEQ.
 func SortOrder(v int) predicate.Group {
 	return predicate.Group(sql.FieldEQ(FieldSortOrder, v))
@@ -193,11 +188,6 @@ func SortOrder(v int) predicate.Group {
 // AllowMessagesDispatch applies equality check predicate on the "allow_messages_dispatch" field. It's identical to AllowMessagesDispatchEQ.
 func AllowMessagesDispatch(v bool) predicate.Group {
 	return predicate.Group(sql.FieldEQ(FieldAllowMessagesDispatch, v))
-}
-
-// RequireOauthOnly applies equality check predicate on the "require_oauth_only" field. It's identical to RequireOauthOnlyEQ.
-func RequireOauthOnly(v bool) predicate.Group {
-	return predicate.Group(sql.FieldEQ(FieldRequireOauthOnly, v))
 }
 
 // RequirePrivacySet applies equality check predicate on the "require_privacy_set" field. It's identical to RequirePrivacySetEQ.
@@ -1335,16 +1325,6 @@ func ModelRoutingEnabledNEQ(v bool) predicate.Group {
 	return predicate.Group(sql.FieldNEQ(FieldModelRoutingEnabled, v))
 }
 
-// McpXMLInjectEQ applies the EQ predicate on the "mcp_xml_inject" field.
-func McpXMLInjectEQ(v bool) predicate.Group {
-	return predicate.Group(sql.FieldEQ(FieldMcpXMLInject, v))
-}
-
-// McpXMLInjectNEQ applies the NEQ predicate on the "mcp_xml_inject" field.
-func McpXMLInjectNEQ(v bool) predicate.Group {
-	return predicate.Group(sql.FieldNEQ(FieldMcpXMLInject, v))
-}
-
 // SortOrderEQ applies the EQ predicate on the "sort_order" field.
 func SortOrderEQ(v int) predicate.Group {
 	return predicate.Group(sql.FieldEQ(FieldSortOrder, v))
@@ -1393,16 +1373,6 @@ func AllowMessagesDispatchEQ(v bool) predicate.Group {
 // AllowMessagesDispatchNEQ applies the NEQ predicate on the "allow_messages_dispatch" field.
 func AllowMessagesDispatchNEQ(v bool) predicate.Group {
 	return predicate.Group(sql.FieldNEQ(FieldAllowMessagesDispatch, v))
-}
-
-// RequireOauthOnlyEQ applies the EQ predicate on the "require_oauth_only" field.
-func RequireOauthOnlyEQ(v bool) predicate.Group {
-	return predicate.Group(sql.FieldEQ(FieldRequireOauthOnly, v))
-}
-
-// RequireOauthOnlyNEQ applies the NEQ predicate on the "require_oauth_only" field.
-func RequireOauthOnlyNEQ(v bool) predicate.Group {
-	return predicate.Group(sql.FieldNEQ(FieldRequireOauthOnly, v))
 }
 
 // RequirePrivacySetEQ applies the EQ predicate on the "require_privacy_set" field.

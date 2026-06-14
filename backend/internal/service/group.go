@@ -29,7 +29,7 @@ type Group struct {
 	MonthlyLimitUSD     *float64
 	DefaultValidityDays int
 
-	// 图片生成计费配置（antigravity 和 gemini 平台使用）
+	// 图片生成计费配置（gemini 平台使用）
 	AllowImageGeneration bool
 	ImageRateIndependent bool
 	ImageRateMultiplier  float64
@@ -49,10 +49,7 @@ type Group struct {
 	ModelRouting        map[string][]int64
 	ModelRoutingEnabled bool
 
-	// MCP XML 协议注入开关（仅 antigravity 平台使用）
-	MCPXMLInject bool
-
-	// 支持的模型系列（仅 antigravity 平台使用）
+	// 支持的模型系列
 	// 可选值: claude, gemini_text, gemini_image
 	SupportedModelScopes []string
 
@@ -61,8 +58,7 @@ type Group struct {
 
 	// OpenAI Messages 调度配置（仅 openai 平台使用）
 	AllowMessagesDispatch       bool
-	RequireOAuthOnly            bool // 仅允许非 apikey 类型账号关联（OpenAI/Antigravity/Anthropic/Gemini）
-	RequirePrivacySet           bool // 调度时仅允许 privacy 已成功设置的账号（OpenAI/Antigravity/Anthropic/Gemini）
+	RequirePrivacySet           bool // 调度时仅允许 privacy 已成功设置的账号
 	DefaultMappedModel          string
 	MessagesDispatchModelConfig OpenAIMessagesDispatchModelConfig
 	ModelsListConfig            GroupModelsListConfig

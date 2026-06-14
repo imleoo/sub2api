@@ -28,7 +28,7 @@ func TestSchedulerCacheSnapshotUsesSlimMetadataButKeepsFullAccount(t *testing.T)
 		ID:          101,
 		Name:        "gemini-heavy",
 		Platform:    service.PlatformGemini,
-		Type:        service.AccountTypeOAuth,
+		Type:        service.AccountTypeAPIKey,
 		Status:      service.StatusActive,
 		Schedulable: true,
 		Concurrency: 3,

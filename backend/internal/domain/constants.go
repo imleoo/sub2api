@@ -18,11 +18,10 @@ const (
 
 // Platform constants
 const (
-	PlatformAnthropic   = "anthropic"
-	PlatformOpenAI      = "openai"
-	PlatformGemini      = "gemini"
-	PlatformAntigravity = "antigravity"
-	PlatformLingjing    = "lingjing"
+	PlatformAnthropic = "anthropic"
+	PlatformOpenAI    = "openai"
+	PlatformGemini    = "gemini"
+	PlatformLingjing  = "lingjing"
 	// PlatformGeneric 表示多 endpoint 通用账号（P5-4）。
 	// 此类账号不绑定特定 AI 平台，通过 Endpoint 实体携带 base_url/outbound_protocol 路由，
 	// 不参与双桶影子比较（与 lingjing 相同处理）。
@@ -31,8 +30,6 @@ const (
 
 // Account type constants
 const (
-	AccountTypeOAuth          = "oauth"           // OAuth类型账号（full scope: profile + inference）
-	AccountTypeSetupToken     = "setup-token"     // Setup Token类型账号（inference only scope）
 	AccountTypeAPIKey         = "apikey"          // API Key类型账号
 	AccountTypeUpstream       = "upstream"        // 上游透传类型账号（通过 Base URL + API Key 连接上游）
 	AccountTypeBedrock        = "bedrock"         // AWS Bedrock 类型账号（通过 SigV4 签名或 API Key 连接 Bedrock，由 credentials.auth_mode 区分）

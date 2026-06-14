@@ -198,7 +198,7 @@ func TestHandle529_EnabledFromDB_PausesAccount(t *testing.T) {
 	svc := NewRateLimitService(accountRepo, nil, &config.Config{}, nil, nil)
 	svc.SetSettingService(settingSvc)
 
-	account := &Account{ID: 42, Platform: PlatformAnthropic, Type: AccountTypeOAuth}
+	account := &Account{ID: 42, Platform: PlatformAnthropic, Type: AccountTypeAPIKey}
 	before := time.Now()
 	svc.handle529(context.Background(), account)
 
@@ -217,7 +217,7 @@ func TestHandle529_DisabledFromDB_SkipsAccount(t *testing.T) {
 	svc := NewRateLimitService(accountRepo, nil, &config.Config{}, nil, nil)
 	svc.SetSettingService(settingSvc)
 
-	account := &Account{ID: 42, Platform: PlatformAnthropic, Type: AccountTypeOAuth}
+	account := &Account{ID: 42, Platform: PlatformAnthropic, Type: AccountTypeAPIKey}
 	svc.handle529(context.Background(), account)
 
 	require.Equal(t, 0, accountRepo.overloadCalls, "should NOT pause when disabled")
@@ -230,7 +230,7 @@ func TestHandle529_NilSettingService_FallsBackToConfig(t *testing.T) {
 	svc := NewRateLimitService(accountRepo, nil, cfg, nil, nil)
 	// NOT calling SetSettingService — remains nil
 
-	account := &Account{ID: 77, Platform: PlatformAnthropic, Type: AccountTypeOAuth}
+	account := &Account{ID: 77, Platform: PlatformAnthropic, Type: AccountTypeAPIKey}
 	before := time.Now()
 	svc.handle529(context.Background(), account)
 
@@ -242,7 +242,7 @@ func TestHandle529_NilSettingService_ZeroConfig_DefaultsTen(t *testing.T) {
 	accountRepo := &overloadAccountRepoStub{}
 	svc := NewRateLimitService(accountRepo, nil, &config.Config{}, nil, nil)
 
-	account := &Account{ID: 88, Platform: PlatformAnthropic, Type: AccountTypeOAuth}
+	account := &Account{ID: 88, Platform: PlatformAnthropic, Type: AccountTypeAPIKey}
 	before := time.Now()
 	svc.handle529(context.Background(), account)
 
@@ -261,7 +261,7 @@ func TestHandle529_DBReadError_FallsBackToConfig(t *testing.T) {
 	svc := NewRateLimitService(accountRepo, nil, cfg, nil, nil)
 	svc.SetSettingService(settingSvc)
 
-	account := &Account{ID: 99, Platform: PlatformAnthropic, Type: AccountTypeOAuth}
+	account := &Account{ID: 99, Platform: PlatformAnthropic, Type: AccountTypeAPIKey}
 	before := time.Now()
 	svc.handle529(context.Background(), account)
 

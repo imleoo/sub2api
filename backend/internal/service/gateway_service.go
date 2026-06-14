@@ -590,7 +590,7 @@ type UpstreamFailoverError struct {
 	StatusCode             int
 	ResponseBody           []byte      // 上游响应体，用于错误透传规则匹配
 	ResponseHeaders        http.Header // 上游响应头，用于透传 cf-ray/cf-mitigated/content-type 等诊断信息
-	ForceCacheBilling      bool        // Antigravity 粘性会话切换时设为 true
+	ForceCacheBilling      bool        // 粘性会话切换时设为 true
 	RetryableOnSameAccount bool        // 临时性错误（如 Google 间歇性 400、空响应），应在同一账号上重试 N 次再切换
 }
 
@@ -1542,7 +1542,7 @@ func (s *GatewayService) SelectAccountForModel(ctx context.Context, groupID *int
 
 // SelectAccountForModelWithExclusions selects an account supporting the requested model while excluding specified accounts.
 func (s *GatewayService) SelectAccountForModelWithExclusions(ctx context.Context, groupID *int64, sessionHash string, requestedModel string, excludedIDs map[int64]struct{}) (*Account, error) {
-	// 优先检查 context 中的强制平台（/antigravity 路由）
+	// 优先检查 context 中的强制平台（平台前缀路由）
 	var platform string
 	forcePlatform, hasForcePlatform := ctx.Value(ctxkey.ForcePlatform).(string)
 	if hasForcePlatform && forcePlatform != "" {
@@ -1569,7 +1569,7 @@ func (s *GatewayService) SelectAccountForModelWithExclusions(ctx context.Context
 		return nil, fmt.Errorf("%w supporting model: %s (channel pricing restriction)", ErrNoAvailableAccounts, requestedModel)
 	}
 
-	// anthropic/gemini 分组支持混合调度（包含启用了 mixed_scheduling 的 antigravity 账户）
+	// anthropic/gemini 分组支持混合调度
 	// 注意：强制平台模式不走混合调度
 	if (platform == PlatformAnthropic || platform == PlatformGemini) && !hasForcePlatform {
 		account, err := s.selectAccountWithMixedScheduling(ctx, groupID, sessionHash, requestedModel, excludedIDs, platform)
@@ -1579,7 +1579,7 @@ func (s *GatewayService) SelectAccountForModelWithExclusions(ctx context.Context
 		return s.hydrateSelectedAccount(ctx, account)
 	}
 
-	// antigravity 分组、强制平台模式或无分组使用单平台选择
+	// 强制平台模式或无分组使用单平台选择
 	// 注意：强制平台模式也必须遵守分组限制，不再回退到全平台查询
 	account, err := s.selectAccountForModelWithPlatform(ctx, groupID, sessionHash, requestedModel, excludedIDs, platform)
 	if err != nil {
@@ -2559,6 +2559,7 @@ func (s *GatewayService) withWindowCostPrefetch(ctx context.Context, accounts []
 	accountIDs := make([]int64, 0, len(accounts))
 	for i := range accounts {
 		account := &accounts[i]
+		// 窗口费用控制随 Anthropic OAuth/SetupToken 账号移除而失效。
 		if account == nil || !account.IsAnthropicOAuthOrSetupToken() {
 			continue
 		}
@@ -2950,20 +2951,7 @@ func selectByLRU(accounts []accountWithLoad, preferOAuth bool) *accountWithLoad 
 		return &accounts[candidateIdxs[0]]
 	}
 
-	// 4. 如果有多个候选且 preferOAuth，优先选择 OAuth 类型
-	if preferOAuth {
-		var oauthIdxs []int
-		for _, idx := range candidateIdxs {
-			if accounts[idx].account.Type == AccountTypeOAuth {
-				oauthIdxs = append(oauthIdxs, idx)
-			}
-		}
-		if len(oauthIdxs) > 0 {
-			candidateIdxs = oauthIdxs
-		}
-	}
-
-	// 5. 随机选择一个
+	// 4. 随机选择一个
 	selectedIdx := candidateIdxs[mathrand.Intn(len(candidateIdxs))]
 	return &accounts[selectedIdx]
 }
@@ -2980,9 +2968,6 @@ func sortAccountsByPriorityAndLastUsed(accounts []*Account, preferOAuth bool) {
 		case a.LastUsedAt != nil && b.LastUsedAt == nil:
 			return false
 		case a.LastUsedAt == nil && b.LastUsedAt == nil:
-			if preferOAuth && a.Type != b.Type {
-				return a.Type == AccountTypeOAuth
-			}
 			return false
 		default:
 			return a.LastUsedAt.Before(*b.LastUsedAt)
@@ -3024,12 +3009,8 @@ func sameAccountWithLoadGroup(a, b accountWithLoad) bool {
 }
 
 // shuffleWithinPriorityAndLastUsed 对排序后的 []*Account 切片，按 (Priority, LastUsedAt) 分组后组内随机打乱。
-//
-// 注意：当 preferOAuth=true 时，需要保证 OAuth 账号在同组内仍然优先，否则会把排序时的偏好打散掉。
-// 因此这里采用"组内分区 + 分区内 shuffle"的方式：
-// - 先把同组账号按 (OAuth / 非 OAuth) 拆成两段，保持 OAuth 段在前；
-// - 再分别在各段内随机打散，避免热点。
 func shuffleWithinPriorityAndLastUsed(accounts []*Account, preferOAuth bool) {
+	_ = preferOAuth
 	if len(accounts) <= 1 {
 		return
 	}
@@ -3040,29 +3021,9 @@ func shuffleWithinPriorityAndLastUsed(accounts []*Account, preferOAuth bool) {
 			j++
 		}
 		if j-i > 1 {
-			if preferOAuth {
-				oauth := make([]*Account, 0, j-i)
-				others := make([]*Account, 0, j-i)
-				for _, acc := range accounts[i:j] {
-					if acc.Type == AccountTypeOAuth {
-						oauth = append(oauth, acc)
-					} else {
-						others = append(others, acc)
-					}
-				}
-				if len(oauth) > 1 {
-					mathrand.Shuffle(len(oauth), func(a, b int) { oauth[a], oauth[b] = oauth[b], oauth[a] })
-				}
-				if len(others) > 1 {
-					mathrand.Shuffle(len(others), func(a, b int) { others[a], others[b] = others[b], others[a] })
-				}
-				copy(accounts[i:], oauth)
-				copy(accounts[i+len(oauth):], others)
-			} else {
-				mathrand.Shuffle(j-i, func(a, b int) {
-					accounts[i+a], accounts[i+b] = accounts[i+b], accounts[i+a]
-				})
-			}
+			mathrand.Shuffle(j-i, func(a, b int) {
+				accounts[i+a], accounts[i+b] = accounts[i+b], accounts[i+a]
+			})
 		}
 		i = j
 	}
@@ -3103,13 +3064,11 @@ func (s *GatewayService) sortCandidatesForFallback(accounts []*Account, preferOA
 
 // sortAccountsByPriorityOnly 仅按优先级排序
 func sortAccountsByPriorityOnly(accounts []*Account, preferOAuth bool) {
+	_ = preferOAuth
 	sort.SliceStable(accounts, func(i, j int) bool {
 		a, b := accounts[i], accounts[j]
 		if a.Priority != b.Priority {
 			return a.Priority < b.Priority
-		}
-		if preferOAuth && a.Type != b.Type {
-			return a.Type == AccountTypeOAuth
 		}
 		return false
 	})
@@ -3140,7 +3099,6 @@ func shuffleWithinPriority(accounts []*Account) {
 
 // selectAccountForModelWithPlatform 选择单平台账户（完全隔离）
 func (s *GatewayService) selectAccountForModelWithPlatform(ctx context.Context, groupID *int64, sessionHash string, requestedModel string, excludedIDs map[int64]struct{}, platform string) (*Account, error) {
-	preferOAuth := platform == PlatformGemini
 	routingAccountIDs := s.routingAccountIDsForRequest(ctx, groupID, requestedModel, platform)
 
 	// require_privacy_set: 获取分组信息
@@ -3254,9 +3212,7 @@ func (s *GatewayService) selectAccountForModelWithPlatform(ctx context.Context, 
 				case acc.LastUsedAt != nil && selected.LastUsedAt == nil:
 					// keep selected (never used is preferred)
 				case acc.LastUsedAt == nil && selected.LastUsedAt == nil:
-					if preferOAuth && acc.Type != selected.Type && acc.Type == AccountTypeOAuth {
-						selected = acc
-					}
+					// 都未使用，无额外偏好
 				default:
 					if acc.LastUsedAt.Before(*selected.LastUsedAt) {
 						selected = acc
@@ -3368,9 +3324,7 @@ func (s *GatewayService) selectAccountForModelWithPlatform(ctx context.Context, 
 			case acc.LastUsedAt != nil && selected.LastUsedAt == nil:
 				// keep selected (never used is preferred)
 			case acc.LastUsedAt == nil && selected.LastUsedAt == nil:
-				if preferOAuth && acc.Type != selected.Type && acc.Type == AccountTypeOAuth {
-					selected = acc
-				}
+				// 都未使用，无额外偏好
 			default:
 				if acc.LastUsedAt.Before(*selected.LastUsedAt) {
 					selected = acc
@@ -3398,9 +3352,8 @@ func (s *GatewayService) selectAccountForModelWithPlatform(ctx context.Context, 
 }
 
 // selectAccountWithMixedScheduling 选择账户（支持混合调度）
-// 查询原生平台账户 + 启用 mixed_scheduling 的 antigravity 账户
+// 查询原生平台账户
 func (s *GatewayService) selectAccountWithMixedScheduling(ctx context.Context, groupID *int64, sessionHash string, requestedModel string, excludedIDs map[int64]struct{}, nativePlatform string) (*Account, error) {
-	preferOAuth := nativePlatform == PlatformGemini
 	routingAccountIDs := s.routingAccountIDsForRequest(ctx, groupID, requestedModel, nativePlatform)
 
 	// require_privacy_set: 获取分组信息
@@ -3424,7 +3377,7 @@ func (s *GatewayService) selectAccountWithMixedScheduling(ctx context.Context, g
 			if err == nil && accountID > 0 && containsInt64(routingAccountIDs, accountID) {
 				if _, excluded := excludedIDs[accountID]; !excluded {
 					account, err := s.getSchedulableAccount(ctx, accountID)
-					// 检查账号分组归属和有效性：原生平台直接匹配，antigravity 需要启用混合调度
+					// 检查账号分组归属和有效性：原生平台直接匹配
 					if err == nil {
 						clearSticky := shouldClearStickySession(account, requestedModel)
 						if clearSticky {
@@ -3510,9 +3463,7 @@ func (s *GatewayService) selectAccountWithMixedScheduling(ctx context.Context, g
 				case acc.LastUsedAt != nil && selected.LastUsedAt == nil:
 					// keep selected (never used is preferred)
 				case acc.LastUsedAt == nil && selected.LastUsedAt == nil:
-					if preferOAuth && acc.Platform == PlatformGemini && selected.Platform == PlatformGemini && acc.Type != selected.Type && acc.Type == AccountTypeOAuth {
-						selected = acc
-					}
+					// 都未使用，无额外偏好
 				default:
 					if acc.LastUsedAt.Before(*selected.LastUsedAt) {
 						selected = acc
@@ -3541,7 +3492,7 @@ func (s *GatewayService) selectAccountWithMixedScheduling(ctx context.Context, g
 		if err == nil && accountID > 0 {
 			if _, excluded := excludedIDs[accountID]; !excluded {
 				account, err := s.getSchedulableAccount(ctx, accountID)
-				// 检查账号分组归属和有效性：原生平台直接匹配，antigravity 需要启用混合调度
+				// 检查账号分组归属和有效性：原生平台直接匹配
 				if err == nil {
 					clearSticky := shouldClearStickySession(account, requestedModel)
 					if clearSticky {
@@ -3621,9 +3572,7 @@ func (s *GatewayService) selectAccountWithMixedScheduling(ctx context.Context, g
 			case acc.LastUsedAt != nil && selected.LastUsedAt == nil:
 				// keep selected (never used is preferred)
 			case acc.LastUsedAt == nil && selected.LastUsedAt == nil:
-				if preferOAuth && acc.Platform == PlatformGemini && selected.Platform == PlatformGemini && acc.Type != selected.Type && acc.Type == AccountTypeOAuth {
-					selected = acc
-				}
+				// 都未使用，无额外偏好
 			default:
 				if acc.LastUsedAt.Before(*selected.LastUsedAt) {
 					selected = acc
@@ -3849,9 +3798,6 @@ func (s *GatewayService) isModelSupportedByAccount(account *Account, requestedMo
 // GetAccessToken 获取账号凭证
 func (s *GatewayService) GetAccessToken(ctx context.Context, account *Account) (string, string, error) {
 	switch account.Type {
-	case AccountTypeOAuth, AccountTypeSetupToken:
-		// Both oauth and setup-token use OAuth token flow
-		return s.getOAuthToken(ctx, account)
 	case AccountTypeAPIKey:
 		apiKey := account.GetCredential("api_key")
 		if apiKey == "" {
@@ -3875,25 +3821,6 @@ func (s *GatewayService) GetAccessToken(ctx context.Context, account *Account) (
 	default:
 		return "", "", fmt.Errorf("unsupported account type: %s", account.Type)
 	}
-}
-
-func (s *GatewayService) getOAuthToken(ctx context.Context, account *Account) (string, string, error) {
-	// 对于 Anthropic OAuth 账号，使用 ClaudeTokenProvider 获取缓存的 token
-	if account.Platform == PlatformAnthropic && account.Type == AccountTypeOAuth && s.claudeTokenProvider != nil {
-		accessToken, err := s.claudeTokenProvider.GetAccessToken(ctx, account)
-		if err != nil {
-			return "", "", err
-		}
-		return accessToken, "oauth", nil
-	}
-
-	// 其他情况（Gemini 有自己的 TokenProvider，setup-token 类型等）直接从账号读取
-	accessToken := account.GetCredential("access_token")
-	if accessToken == "" {
-		return "", "", errors.New("access_token not found in credentials")
-	}
-	// Token刷新由后台 TokenRefreshService 处理，此处只返回当前token
-	return accessToken, "oauth", nil
 }
 
 // 重试相关常量
@@ -4449,11 +4376,10 @@ func forceEphemeralCacheControlTTL(body []byte, ttl string) []byte {
 	return out
 }
 
-func (s *GatewayService) shouldInjectAnthropicCacheTTL1h(ctx context.Context, account *Account) bool {
-	if account == nil || !account.IsAnthropicOAuthOrSetupToken() || s == nil || s.settingService == nil {
-		return false
-	}
-	return s.settingService.IsAnthropicCacheTTL1hInjectionEnabled(ctx)
+// shouldInjectAnthropicCacheTTL1h 历史上仅对 Anthropic OAuth/SetupToken 账号生效，
+// 该账号类型随订阅逆向移除后恒为 false。
+func (s *GatewayService) shouldInjectAnthropicCacheTTL1h(_ context.Context, _ *Account) bool {
+	return false
 }
 
 // Forward 转发请求到Claude API
@@ -8234,9 +8160,7 @@ func (s *GatewayService) resolveCacheTTLUsageOverrideTarget(ctx context.Context,
 	if account.IsCacheTTLOverrideEnabled() {
 		return account.GetCacheTTLOverrideTarget(), true
 	}
-	if account.IsAnthropicOAuthOrSetupToken() && s != nil && s.settingService != nil && s.settingService.IsAnthropicCacheTTL1hInjectionEnabled(ctx) {
-		return cacheTTLTarget5m, true
-	}
+	// 全局自动注入历史上仅对 Anthropic OAuth/SetupToken 账号生效，账号类型移除后不再触发。
 	return "", false
 }
 
@@ -8404,7 +8328,7 @@ func PlatformFromAPIKey(apiKey *APIKey) string {
 }
 
 // QuotaPlatform 返回 user×platform 配额计量使用的平台标识。
-// 强制平台路由（如 /antigravity）优先按 ctx 中的 ForcePlatform 计量，否则回退到
+// 强制平台路由优先按 ctx 中的 ForcePlatform 计量，否则回退到
 // APIKey 关联 Group 的平台。
 //
 // 注意：必须用带 ForcePlatform 的请求 context 调用（如 handler 的 c.Request.Context()）。
@@ -9327,7 +9251,7 @@ func (s *GatewayService) buildRecordUsageLog(
 //
 // 优先级：
 //  1. account.extra.provider（DeepSeek / 硅基流动等 OpenAI-compatible 渠道写在 extra）
-//  2. account.Platform（原厂账号：anthropic / openai / gemini / antigravity / lingjing）
+//  2. account.Platform（原厂账号：anthropic / openai / gemini / lingjing）
 //
 // 两路均经 NormalizeProvider 规范化（详见 docs/glossary.md §1.3 别名表）。
 func resolveProviderKey(account *Account) string {

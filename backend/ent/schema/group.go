@@ -81,7 +81,7 @@ func (Group) Fields() []ent.Field {
 		field.Int("default_validity_days").
 			Default(30),
 
-		// 图片生成计费配置（antigravity 和 gemini 平台使用）
+		// 图片生成计费配置（gemini 平台使用）
 		field.Bool("allow_image_generation").
 			Default(false).
 			Comment("是否允许该分组使用图片生成能力"),
@@ -129,11 +129,6 @@ func (Group) Fields() []ent.Field {
 			Default(false).
 			Comment("是否启用模型路由配置"),
 
-		// MCP XML 协议注入开关 (added by migration 042)
-		field.Bool("mcp_xml_inject").
-			Default(true).
-			Comment("是否注入 MCP XML 调用协议提示词（仅 antigravity 平台）"),
-
 		// 支持的模型系列 (added by migration 046)
 		field.JSON("supported_model_scopes", []string{}).
 			Default([]string{"claude", "gemini_text", "gemini_image"}).
@@ -149,9 +144,6 @@ func (Group) Fields() []ent.Field {
 		field.Bool("allow_messages_dispatch").
 			Default(false).
 			Comment("是否允许 /v1/messages 调度到此 OpenAI 分组"),
-		field.Bool("require_oauth_only").
-			Default(false).
-			Comment("仅允许非 apikey 类型账号关联到此分组"),
 		field.Bool("require_privacy_set").
 			Default(false).
 			Comment("调度时仅允许 privacy 已成功设置的账号"),

@@ -68,16 +68,12 @@ const (
 	FieldModelRouting = "model_routing"
 	// FieldModelRoutingEnabled holds the string denoting the model_routing_enabled field in the database.
 	FieldModelRoutingEnabled = "model_routing_enabled"
-	// FieldMcpXMLInject holds the string denoting the mcp_xml_inject field in the database.
-	FieldMcpXMLInject = "mcp_xml_inject"
 	// FieldSupportedModelScopes holds the string denoting the supported_model_scopes field in the database.
 	FieldSupportedModelScopes = "supported_model_scopes"
 	// FieldSortOrder holds the string denoting the sort_order field in the database.
 	FieldSortOrder = "sort_order"
 	// FieldAllowMessagesDispatch holds the string denoting the allow_messages_dispatch field in the database.
 	FieldAllowMessagesDispatch = "allow_messages_dispatch"
-	// FieldRequireOauthOnly holds the string denoting the require_oauth_only field in the database.
-	FieldRequireOauthOnly = "require_oauth_only"
 	// FieldRequirePrivacySet holds the string denoting the require_privacy_set field in the database.
 	FieldRequirePrivacySet = "require_privacy_set"
 	// FieldDefaultMappedModel holds the string denoting the default_mapped_model field in the database.
@@ -189,11 +185,9 @@ var Columns = []string{
 	FieldFallbackGroupIDOnInvalidRequest,
 	FieldModelRouting,
 	FieldModelRoutingEnabled,
-	FieldMcpXMLInject,
 	FieldSupportedModelScopes,
 	FieldSortOrder,
 	FieldAllowMessagesDispatch,
-	FieldRequireOauthOnly,
 	FieldRequirePrivacySet,
 	FieldDefaultMappedModel,
 	FieldMessagesDispatchModelConfig,
@@ -268,16 +262,12 @@ var (
 	DefaultClaudeCodeOnly bool
 	// DefaultModelRoutingEnabled holds the default value on creation for the "model_routing_enabled" field.
 	DefaultModelRoutingEnabled bool
-	// DefaultMcpXMLInject holds the default value on creation for the "mcp_xml_inject" field.
-	DefaultMcpXMLInject bool
 	// DefaultSupportedModelScopes holds the default value on creation for the "supported_model_scopes" field.
 	DefaultSupportedModelScopes []string
 	// DefaultSortOrder holds the default value on creation for the "sort_order" field.
 	DefaultSortOrder int
 	// DefaultAllowMessagesDispatch holds the default value on creation for the "allow_messages_dispatch" field.
 	DefaultAllowMessagesDispatch bool
-	// DefaultRequireOauthOnly holds the default value on creation for the "require_oauth_only" field.
-	DefaultRequireOauthOnly bool
 	// DefaultRequirePrivacySet holds the default value on creation for the "require_privacy_set" field.
 	DefaultRequirePrivacySet bool
 	// DefaultDefaultMappedModel holds the default value on creation for the "default_mapped_model" field.
@@ -425,11 +415,6 @@ func ByModelRoutingEnabled(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldModelRoutingEnabled, opts...).ToFunc()
 }
 
-// ByMcpXMLInject orders the results by the mcp_xml_inject field.
-func ByMcpXMLInject(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldMcpXMLInject, opts...).ToFunc()
-}
-
 // BySortOrder orders the results by the sort_order field.
 func BySortOrder(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSortOrder, opts...).ToFunc()
@@ -438,11 +423,6 @@ func BySortOrder(opts ...sql.OrderTermOption) OrderOption {
 // ByAllowMessagesDispatch orders the results by the allow_messages_dispatch field.
 func ByAllowMessagesDispatch(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAllowMessagesDispatch, opts...).ToFunc()
-}
-
-// ByRequireOauthOnly orders the results by the require_oauth_only field.
-func ByRequireOauthOnly(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldRequireOauthOnly, opts...).ToFunc()
 }
 
 // ByRequirePrivacySet orders the results by the require_privacy_set field.

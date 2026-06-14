@@ -448,7 +448,7 @@ func TestOpenAIGatewayService_GetSchedulableAccount_ExhaustedCodexExtraDoesNotSe
 	account := Account{
 		ID:          701,
 		Platform:    PlatformOpenAI,
-		Type:        AccountTypeOAuth,
+		Type:        AccountTypeAPIKey,
 		Status:      StatusActive,
 		Schedulable: true,
 		Concurrency: 1,
@@ -477,7 +477,7 @@ func TestAdminService_ListAccounts_ExhaustedCodexExtraDoesNotSetRateLimit(t *tes
 		stubOpenAIAccountRepo: stubOpenAIAccountRepo{accounts: []Account{{
 			ID:          702,
 			Platform:    PlatformOpenAI,
-			Type:        AccountTypeOAuth,
+			Type:        AccountTypeAPIKey,
 			Status:      StatusActive,
 			Schedulable: true,
 			Concurrency: 1,
@@ -490,7 +490,7 @@ func TestAdminService_ListAccounts_ExhaustedCodexExtraDoesNotSetRateLimit(t *tes
 	}
 	svc := &adminServiceImpl{accountRepo: repo}
 
-	accounts, total, err := svc.ListAccounts(context.Background(), 1, 20, PlatformOpenAI, AccountTypeOAuth, "", "", 0, "", "", "")
+	accounts, total, err := svc.ListAccounts(context.Background(), 1, 20, PlatformOpenAI, AccountTypeAPIKey, "", "", 0, "", "", "")
 	require.NoError(t, err)
 	require.Equal(t, int64(1), total)
 	require.Len(t, accounts, 1)

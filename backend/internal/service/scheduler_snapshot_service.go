@@ -641,7 +641,7 @@ func (s *SchedulerSnapshotService) loadAccountsFromDB(ctx context.Context, bucke
 
 	// P5-6: protocol 桶为主路径（ProtocolBucketEnabled=true）。
 	// 注意：generic/lingjing 通过 Endpoint 实体路由，不走协议桶；
-	// mixed 模式（anthropic+antigravity）在协议层统一为 anthropic_messages，无需单独处理。
+	// mixed 模式在协议层统一为 anthropic_messages，无需单独处理。
 	if s.cfg != nil && s.cfg.Gateway.Scheduling.ProtocolBucketEnabled {
 		protocol := platformToProtocol(bucket.Platform)
 		if protocol != "" {

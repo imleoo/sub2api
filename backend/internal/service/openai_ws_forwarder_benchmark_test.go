@@ -17,7 +17,7 @@ var (
 func BenchmarkOpenAIWSForwarderHotPath(b *testing.B) {
 	cfg := &config.Config{}
 	svc := &OpenAIGatewayService{cfg: cfg}
-	account := &Account{ID: 1, Platform: PlatformOpenAI, Type: AccountTypeOAuth}
+	account := &Account{ID: 1, Platform: PlatformOpenAI, Type: AccountTypeAPIKey}
 	reqBody := benchmarkOpenAIWSHotPathRequest()
 
 	b.ReportAllocs()

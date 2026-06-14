@@ -97,7 +97,7 @@ type Group struct {
 	WeeklyLimitUSD   *float64 `json:"weekly_limit_usd"`
 	MonthlyLimitUSD  *float64 `json:"monthly_limit_usd"`
 
-	// 图片生成计费配置（仅 antigravity 平台使用）
+	// 图片生成计费配置（仅 gemini 平台使用）
 	AllowImageGeneration bool     `json:"allow_image_generation"`
 	ImageRateIndependent bool     `json:"image_rate_independent"`
 	ImageRateMultiplier  float64  `json:"image_rate_multiplier"`
@@ -114,8 +114,7 @@ type Group struct {
 	// OpenAI Messages 调度开关（用户侧需要此字段判断是否展示 Claude Code 教程）
 	AllowMessagesDispatch bool `json:"allow_messages_dispatch"`
 
-	// 账号过滤控制（仅 OpenAI/Antigravity 平台有效）
-	RequireOAuthOnly  bool `json:"require_oauth_only"`
+	// 账号过滤控制（仅 OpenAI 平台有效）
 	RequirePrivacySet bool `json:"require_privacy_set"`
 
 	// RPMLimit 分组级每分钟请求数上限（0 = 不限制），设置后覆盖用户级 rpm_limit。
@@ -134,15 +133,12 @@ type AdminGroup struct {
 	ModelRouting        map[string][]int64 `json:"model_routing"`
 	ModelRoutingEnabled bool               `json:"model_routing_enabled"`
 
-	// MCP XML 协议注入（仅 antigravity 平台使用）
-	MCPXMLInject bool `json:"mcp_xml_inject"`
-
 	// OpenAI Messages 调度配置（仅 openai 平台使用）
 	DefaultMappedModel          string                                   `json:"default_mapped_model"`
 	MessagesDispatchModelConfig domain.OpenAIMessagesDispatchModelConfig `json:"messages_dispatch_model_config"`
 	ModelsListConfig            domain.GroupModelsListConfig             `json:"models_list_config"`
 
-	// 支持的模型系列（仅 antigravity 平台使用）
+	// 支持的模型系列
 	SupportedModelScopes    []string       `json:"supported_model_scopes"`
 	AccountGroups           []AccountGroup `json:"account_groups,omitempty"`
 	AccountCount            int64          `json:"account_count,omitempty"`

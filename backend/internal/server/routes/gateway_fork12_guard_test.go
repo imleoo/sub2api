@@ -35,13 +35,12 @@ func TestGatewayRoutes_LingjingVideoRouteGroup(t *testing.T) {
 		"fork 12 /lingjing/v1/video/:taskId polling endpoint must be preserved")
 }
 
-// TestGatewayRoutes_ForcePlatformMiddleware 守护 ForcePlatform middleware 至少 3 处。
+// TestGatewayRoutes_ForcePlatformMiddleware 守护 ForcePlatform middleware（lingjing fork 12）。
 //
-// 期望：lingjing × 1 + antigravity v1 × 1 + antigravity v1beta × 1 = 3 处。
-// 若 Phase 5 引入更多专用路由，守护应放宽。
+// 期望：lingjing × 1（逆向清理后专用强制平台路由已移除）。
 func TestGatewayRoutes_ForcePlatformMiddleware(t *testing.T) {
 	src := loadGatewayRouteSource(t)
 	count := strings.Count(src, "ForcePlatform(")
-	require.GreaterOrEqual(t, count, 3,
-		"ForcePlatform middleware (lingjing + antigravity x2) must be preserved (found %d, expected >= 3)", count)
+	require.GreaterOrEqual(t, count, 1,
+		"ForcePlatform middleware (lingjing fork 12) must be preserved (found %d, expected >= 1)", count)
 }
