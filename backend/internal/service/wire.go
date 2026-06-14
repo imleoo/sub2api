@@ -472,7 +472,6 @@ var ProviderSet = wire.NewSet(
 	NewCompositeTokenCacheInvalidator,
 	wire.Bind(new(TokenCacheInvalidator), new(*CompositeTokenCacheInvalidator)),
 	NewOAuthService,
-	NewGeminiOAuthService,
 	NewGeminiQuotaService,
 	ProvideOAuthRefreshAPI,
 	ProvideGeminiTokenProvider,

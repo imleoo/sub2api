@@ -1184,8 +1184,6 @@ func (s *AccountTestService) testGeminiAccountConnection(c *gin.Context, account
 	switch account.Type {
 	case AccountTypeAPIKey:
 		req, err = s.buildGeminiAPIKeyRequest(ctx, account, testModelID, payload)
-	case AccountTypeOAuth:
-		req, err = s.buildGeminiOAuthRequest(ctx, account, testModelID, payload)
 	case AccountTypeServiceAccount:
 		req, err = s.buildGeminiServiceAccountRequest(ctx, account, testModelID, payload)
 	default:
@@ -1303,44 +1301,6 @@ func (s *AccountTestService) buildGeminiAPIKeyRequest(ctx context.Context, accou
 	return req, nil
 }
 
-// buildGeminiOAuthRequest builds request for Gemini OAuth accounts
-func (s *AccountTestService) buildGeminiOAuthRequest(ctx context.Context, account *Account, modelID string, payload []byte) (*http.Request, error) {
-	if s.geminiTokenProvider == nil {
-		return nil, fmt.Errorf("gemini token provider not configured")
-	}
-
-	// Get access token (auto-refreshes if needed)
-	accessToken, err := s.geminiTokenProvider.GetAccessToken(ctx, account)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get access token: %w", err)
-	}
-
-	projectID := strings.TrimSpace(account.GetCredential("project_id"))
-	if projectID == "" {
-		// AI Studio OAuth mode (no project_id): call generativelanguage API directly with Bearer token.
-		baseURL := account.GetCredential("base_url")
-		if strings.TrimSpace(baseURL) == "" {
-			baseURL = geminicli.AIStudioBaseURL
-		}
-		normalizedBaseURL, err := s.validateUpstreamBaseURL(baseURL)
-		if err != nil {
-			return nil, err
-		}
-		fullURL := fmt.Sprintf("%s/v1beta/models/%s:streamGenerateContent?alt=sse", strings.TrimRight(normalizedBaseURL, "/"), modelID)
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, fullURL, bytes.NewReader(payload))
-		if err != nil {
-			return nil, err
-		}
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+accessToken)
-		return req, nil
-	}
-
-	// Code Assist mode (with project_id)
-	return s.buildCodeAssistRequest(ctx, accessToken, projectID, modelID, payload)
-}
-
 func (s *AccountTestService) buildGeminiServiceAccountRequest(ctx context.Context, account *Account, modelID string, payload []byte) (*http.Request, error) {
 	if s.geminiTokenProvider == nil {
 		return nil, fmt.Errorf("gemini token provider not configured")
@@ -1359,38 +1319,6 @@ func (s *AccountTestService) buildGeminiServiceAccountRequest(ctx context.Contex
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+accessToken)
-	return req, nil
-}
-
-// buildCodeAssistRequest builds request for Google Code Assist API (used by Gemini CLI and Antigravity)
-func (s *AccountTestService) buildCodeAssistRequest(ctx context.Context, accessToken, projectID, modelID string, payload []byte) (*http.Request, error) {
-	var inner map[string]any
-	if err := json.Unmarshal(payload, &inner); err != nil {
-		return nil, err
-	}
-
-	wrapped := map[string]any{
-		"model":   modelID,
-		"project": projectID,
-		"request": inner,
-	}
-	wrappedBytes, _ := json.Marshal(wrapped)
-
-	normalizedBaseURL, err := s.validateUpstreamBaseURL(geminicli.GeminiCliBaseURL)
-	if err != nil {
-		return nil, err
-	}
-	fullURL := fmt.Sprintf("%s/v1internal:streamGenerateContent?alt=sse", normalizedBaseURL)
-
-	req, err := http.NewRequestWithContext(ctx, "POST", fullURL, bytes.NewReader(wrappedBytes))
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-	req.Header.Set("User-Agent", geminicli.GeminiCLIUserAgent)
-
 	return req, nil
 }
 

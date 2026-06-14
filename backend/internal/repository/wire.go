@@ -144,9 +144,6 @@ var ProviderSet = wire.NewSet(
 	NewProxyExitInfoProber,
 	NewClaudeUsageFetcher,
 	NewHTTPUpstream,
-	NewGeminiOAuthClient,
-	NewGeminiCliCodeAssistClient,
-	NewGeminiDriveClient,
 
 	ProvideEnt,
 	ProvideSQLDB,

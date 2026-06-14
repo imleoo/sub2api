@@ -1,24 +1,12 @@
 package repository
 
 import (
-	"reflect"
 	"sync"
 	"testing"
 	"time"
-	"unsafe"
 
-	"github.com/imroc/req/v3"
 	"github.com/stretchr/testify/require"
 )
-
-func forceHTTPVersion(t *testing.T, client *req.Client) string {
-	t.Helper()
-	transport := client.GetTransport()
-	field := reflect.ValueOf(transport).Elem().FieldByName("forceHttpVersion")
-	require.True(t, field.IsValid(), "forceHttpVersion field not found")
-	require.True(t, field.CanAddr(), "forceHttpVersion field not addressable")
-	return reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().String()
-}
 
 func TestGetSharedReqClient_ForceHTTP2SeparatesCache(t *testing.T) {
 	sharedReqClients = sync.Map{}
@@ -103,12 +91,4 @@ func TestGetSharedReqClient_ProxyURLMissingHost(t *testing.T) {
 	_, err := getSharedReqClient(opts)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "proxy URL missing host")
-}
-
-
-func TestCreateGeminiReqClient_ForceHTTP2Disabled(t *testing.T) {
-	sharedReqClients = sync.Map{}
-	client, err := createGeminiReqClient("http://proxy.local:8080")
-	require.NoError(t, err)
-	require.Equal(t, "", forceHTTPVersion(t, client))
 }
