@@ -100,18 +100,12 @@ func ProvideOpenAITokenProvider(
 	return p
 }
 
-// ProvideGeminiTokenProvider creates GeminiTokenProvider with OAuthRefreshAPI injection
+// ProvideGeminiTokenProvider creates GeminiTokenProvider for service-account access.
 func ProvideGeminiTokenProvider(
 	accountRepo AccountRepository,
 	tokenCache GeminiTokenCache,
-	geminiOAuthService *GeminiOAuthService,
-	refreshAPI *OAuthRefreshAPI,
 ) *GeminiTokenProvider {
-	p := NewGeminiTokenProvider(accountRepo, tokenCache, geminiOAuthService)
-	executor := NewGeminiTokenRefresher(geminiOAuthService)
-	p.SetRefreshAPI(refreshAPI, executor)
-	p.SetRefreshPolicy(GeminiProviderRefreshPolicy())
-	return p
+	return NewGeminiTokenProvider(accountRepo, tokenCache)
 }
 
 // ProvideAntigravityTokenProvider creates AntigravityTokenProvider
