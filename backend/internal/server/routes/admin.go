@@ -327,16 +327,12 @@ func registerAccountRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		accounts.GET("/:id", h.Admin.Account.GetByID)
 		accounts.POST("", h.Admin.Account.Create)
 		accounts.POST("/check-mixed-channel", h.Admin.Account.CheckMixedChannel)
-		accounts.POST("/import/codex-session", h.Admin.Account.ImportCodexSession)
 		accounts.POST("/sync/crs", h.Admin.Account.SyncFromCRS)
 		accounts.POST("/sync/crs/preview", h.Admin.Account.PreviewFromCRS)
 		accounts.PUT("/:id", h.Admin.Account.Update)
 		accounts.DELETE("/:id", h.Admin.Account.Delete)
 		accounts.POST("/:id/test", h.Admin.Account.Test)
 		accounts.POST("/:id/recover-state", h.Admin.Account.RecoverState)
-		accounts.POST("/:id/refresh", h.Admin.Account.Refresh)
-		accounts.POST("/:id/apply-oauth-credentials", h.Admin.Account.ApplyOAuthCredentials)
-		accounts.POST("/:id/set-privacy", h.Admin.Account.SetPrivacy)
 		accounts.GET("/:id/stats", h.Admin.Account.GetStats)
 		// Phase 1 P1-4：账号跨 group 全量聚合（语义 alias，显式承诺不被 group_id 切分）
 		accounts.GET("/:id/stats-cross-group", h.Admin.Account.GetStatsCrossGroup)
@@ -366,11 +362,6 @@ func registerAccountRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		accounts.POST("/bulk-update", h.Admin.Account.BulkUpdate)
 		accounts.POST("/batch-clear-error", h.Admin.Account.BatchClearError)
 		accounts.POST("/batch-refresh", h.Admin.Account.BatchRefresh)
-
-		// Antigravity 默认模型映射
-		// accounts.GET("/antigravity/default-model-mapping", ...) // 已移除
-
-		// Claude OAuth routes - 已移除
 	}
 }
 

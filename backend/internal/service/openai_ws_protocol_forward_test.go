@@ -618,7 +618,6 @@ func TestNewOpenAIGatewayService_InitializesOpenAIWSResolver(t *testing.T) {
 		nil,
 		nil,
 		nil,
-		nil,
 		nil, // upstreamCostResolver: Phase 0 P0-5
 		nil, // userPlatformQuotaRepo
 	)
