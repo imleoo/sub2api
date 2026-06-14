@@ -98,7 +98,6 @@ var ProviderSet = wire.NewSet(
 	NewProviderPricingRepository,
 	NewEndpointRepository,
 	NewSmsCache, // 功能29：手机号短信验证码 Redis 缓存
-	NewOpenAIOAuthClient,
 	NewUserPlatformQuotaRepository,     // T14: user × platform quota
 	NewUserPlatformQuotaServiceAdapter, // T14: adapter → service.UserPlatformQuotaRepository
 

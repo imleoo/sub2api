@@ -7,15 +7,7 @@ import (
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/oauth"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/openai"
 )
-
-// OpenAIOAuthClient interface for OpenAI OAuth operations
-type OpenAIOAuthClient interface {
-	ExchangeCode(ctx context.Context, code, codeVerifier, redirectURI, proxyURL, clientID string) (*openai.TokenResponse, error)
-	RefreshToken(ctx context.Context, refreshToken, proxyURL string) (*openai.TokenResponse, error)
-	RefreshTokenWithClientID(ctx context.Context, refreshToken, proxyURL string, clientID string) (*openai.TokenResponse, error)
-}
 
 // ClaudeOAuthClient handles HTTP requests for Claude OAuth flows
 type ClaudeOAuthClient interface {

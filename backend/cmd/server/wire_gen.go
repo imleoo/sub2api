@@ -169,8 +169,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	dashboardHandler := admin.NewDashboardHandler(dashboardService, dashboardAggregationService)
 	proxyExitInfoProber := repository.NewProxyExitInfoProber(configConfig)
 	proxyLatencyCache := repository.NewProxyLatencyCache(redisClient)
-	privacyClientFactory := providePrivacyClientFactory()
-	adminService := service.NewAdminService(userRepository, groupRepository, accountRepository, proxyRepository, apiKeyRepository, redeemCodeRepository, usageLogRepository, userGroupRateRepository, userRPMCache, billingCacheService, proxyExitInfoProber, proxyLatencyCache, apiKeyAuthCacheInvalidator, client, settingService, subscriptionService, userSubscriptionRepository, privacyClientFactory, openAIGatewayService)
+	adminService := service.NewAdminService(userRepository, groupRepository, accountRepository, proxyRepository, apiKeyRepository, redeemCodeRepository, usageLogRepository, userGroupRateRepository, userRPMCache, billingCacheService, proxyExitInfoProber, proxyLatencyCache, apiKeyAuthCacheInvalidator, client, settingService, subscriptionService, userSubscriptionRepository, openAIGatewayService)
 	adminUserHandler := admin.NewUserHandler(adminService, concurrencyService, serviceUserPlatformQuotaRepository, billingCache)
 	groupCapacityService := service.NewGroupCapacityService(accountRepository, groupRepository, concurrencyService, sessionLimitCache, rpmCache)
 	groupHandler := admin.NewGroupHandler(adminService, dashboardService, groupCapacityService)
@@ -268,7 +267,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	opsCleanupService := service.ProvideOpsCleanupService(opsRepository, db, redisClient, configConfig, channelMonitorService, settingRepository, opsService)
 	opsScheduledReportService := service.ProvideOpsScheduledReportService(opsService, userService, emailService, redisClient, configConfig)
 	oAuthRefreshAPI := service.ProvideOAuthRefreshAPI(accountRepository, geminiTokenCache)
-	tokenRefreshService := service.ProvideTokenRefreshService(accountRepository, compositeTokenCacheInvalidator, schedulerCache, configConfig, tempUnschedCache, privacyClientFactory, proxyRepository, oAuthRefreshAPI, openAIGatewayService)
+	tokenRefreshService := service.ProvideTokenRefreshService(accountRepository, compositeTokenCacheInvalidator, schedulerCache, configConfig, tempUnschedCache, oAuthRefreshAPI, openAIGatewayService)
 	accountExpiryService := service.ProvideAccountExpiryService(accountRepository)
 	proxyExpiryService := service.ProvideProxyExpiryService(proxyRepository)
 	subscriptionExpiryService := service.ProvideSubscriptionExpiryService(userSubscriptionRepository, settingRepository, notificationEmailService, leaderLockCache, db)
@@ -293,10 +292,6 @@ type Application struct {
 	Cleanup func()
 	// SQLDB 用于启动健康检查等需要直接读 DB 的运维场景（Phase 2 P2-4 引入）。
 	SQLDB *sql.DB
-}
-
-func providePrivacyClientFactory() service.PrivacyClientFactory {
-	return repository.CreatePrivacyReqClient
 }
 
 func provideServiceBuildInfo(buildInfo handler.BuildInfo) service.BuildInfo {

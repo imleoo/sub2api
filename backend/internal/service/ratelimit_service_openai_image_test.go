@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
@@ -88,6 +89,7 @@ func TestOpenAIGatewayServiceForwardImages_ImageRateLimitReturnsFailoverAndCools
 	c.Request = req
 
 	svc := &OpenAIGatewayService{
+		cfg:              &config.Config{},
 		rateLimitService: &RateLimitService{accountRepo: repo},
 		httpUpstream: &httpUpstreamRecorder{
 			resp: &http.Response{
@@ -101,11 +103,11 @@ func TestOpenAIGatewayServiceForwardImages_ImageRateLimitReturnsFailoverAndCools
 	require.NoError(t, err)
 	account := &Account{
 		ID:       204,
-		Name:     "openai-oauth",
+		Name:     "openai-apikey",
 		Platform: PlatformOpenAI,
-		Type:     AccountTypeOAuth,
+		Type:     AccountTypeAPIKey,
 		Credentials: map[string]any{
-			"access_token": "token-123",
+			"api_key": "sk-test",
 		},
 	}
 

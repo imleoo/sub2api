@@ -84,10 +84,6 @@ func (s *OpenAIGatewayService) ForwardAsChatCompletions(
 
 	promptCacheKey = strings.TrimSpace(promptCacheKey)
 	compatPromptCacheInjected := false
-	if promptCacheKey == "" && account.Type == AccountTypeOAuth && shouldAutoInjectPromptCacheKeyForCompat(upstreamModel) {
-		promptCacheKey = deriveCompatPromptCacheKey(&chatReq, upstreamModel)
-		compatPromptCacheInjected = promptCacheKey != ""
-	}
 
 	// 3. Build the upstream (Responses API) body.
 	//
@@ -166,26 +162,6 @@ func (s *OpenAIGatewayService) ForwardAsChatCompletions(
 		)
 	}
 	logger.L().Debug("openai chat_completions: model mapping applied", logFields...)
-
-	if account.Type == AccountTypeOAuth {
-		var reqBody map[string]any
-		if err := json.Unmarshal(responsesBody, &reqBody); err != nil {
-			return nil, fmt.Errorf("unmarshal for codex transform: %w", err)
-		}
-		codexResult := applyCodexOAuthTransform(reqBody, false, false)
-		if codexResult.NormalizedModel != "" {
-			upstreamModel = codexResult.NormalizedModel
-		}
-		if codexResult.PromptCacheKey != "" {
-			promptCacheKey = codexResult.PromptCacheKey
-		} else if promptCacheKey != "" {
-			reqBody["prompt_cache_key"] = promptCacheKey
-		}
-		responsesBody, err = json.Marshal(reqBody)
-		if err != nil {
-			return nil, fmt.Errorf("remarshal after codex transform: %w", err)
-		}
-	}
 
 	if account.Type == AccountTypeAPIKey {
 		if trimmedKey := strings.TrimSpace(promptCacheKey); trimmedKey != "" {
@@ -321,13 +297,6 @@ func (s *OpenAIGatewayService) ForwardAsChatCompletions(
 		if responsesReq.Reasoning != nil && responsesReq.Reasoning.Effort != "" {
 			re := responsesReq.Reasoning.Effort
 			result.ReasoningEffort = &re
-		}
-	}
-
-	// Extract and save Codex usage snapshot from response headers (for OAuth accounts)
-	if handleErr == nil && account.Type == AccountTypeOAuth {
-		if snapshot := ParseCodexRateLimitHeaders(resp.Header); snapshot != nil {
-			s.updateCodexUsageSnapshot(ctx, account.ID, snapshot)
 		}
 	}
 

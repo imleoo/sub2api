@@ -121,11 +121,10 @@ func TestForwardAsChatCompletions_UnknownModelDoesNotUseDefaultMappedModel(t *te
 		ID:          1,
 		Name:        "openai-oauth",
 		Platform:    PlatformOpenAI,
-		Type:        AccountTypeOAuth,
+		Type:        AccountTypeAPIKey,
 		Concurrency: 1,
 		Credentials: map[string]any{
-			"access_token":       "oauth-token",
-			"chatgpt_account_id": "chatgpt-acc",
+			"api_key": "sk-test",
 		},
 	}
 
@@ -207,16 +206,15 @@ func TestForwardAsChatCompletions_ClientDisconnectDrainsUpstreamUsage(t *testing
 		Body:       io.NopCloser(strings.NewReader(upstreamBody)),
 	}}
 
-	svc := &OpenAIGatewayService{httpUpstream: upstream}
+	svc := &OpenAIGatewayService{httpUpstream: upstream, cfg: &config.Config{}}
 	account := &Account{
 		ID:          1,
-		Name:        "openai-oauth",
+		Name:        "openai-apikey",
 		Platform:    PlatformOpenAI,
-		Type:        AccountTypeOAuth,
+		Type:        AccountTypeAPIKey,
 		Concurrency: 1,
 		Credentials: map[string]any{
-			"access_token":       "oauth-token",
-			"chatgpt_account_id": "chatgpt-acc",
+			"api_key": "sk-test",
 		},
 	}
 
@@ -248,16 +246,15 @@ func TestForwardAsChatCompletions_BufferedResponseFailedTriggersFailover(t *test
 		Body:       io.NopCloser(strings.NewReader(upstreamBody)),
 	}}
 
-	svc := &OpenAIGatewayService{httpUpstream: upstream}
+	svc := &OpenAIGatewayService{httpUpstream: upstream, cfg: &config.Config{}}
 	account := &Account{
 		ID:          1,
 		Name:        "openai-oauth",
 		Platform:    PlatformOpenAI,
-		Type:        AccountTypeOAuth,
+		Type:        AccountTypeAPIKey,
 		Concurrency: 1,
 		Credentials: map[string]any{
-			"access_token":       "oauth-token",
-			"chatgpt_account_id": "chatgpt-acc",
+			"api_key": "sk-test",
 		},
 	}
 
@@ -293,16 +290,15 @@ func TestForwardAsChatCompletions_StreamResponseFailedTriggersFailoverBeforeFlus
 		Body:       io.NopCloser(strings.NewReader(upstreamBody)),
 	}}
 
-	svc := &OpenAIGatewayService{httpUpstream: upstream}
+	svc := &OpenAIGatewayService{httpUpstream: upstream, cfg: &config.Config{}}
 	account := &Account{
 		ID:          1,
 		Name:        "openai-oauth",
 		Platform:    PlatformOpenAI,
-		Type:        AccountTypeOAuth,
+		Type:        AccountTypeAPIKey,
 		Concurrency: 1,
 		Credentials: map[string]any{
-			"access_token":       "oauth-token",
-			"chatgpt_account_id": "chatgpt-acc",
+			"api_key": "sk-test",
 		},
 	}
 
@@ -341,16 +337,15 @@ func TestForwardAsChatCompletions_StreamsUsageWithoutClientStreamOptions(t *test
 		Body:       io.NopCloser(strings.NewReader(upstreamBody)),
 	}}
 
-	svc := &OpenAIGatewayService{httpUpstream: upstream}
+	svc := &OpenAIGatewayService{httpUpstream: upstream, cfg: &config.Config{}}
 	account := &Account{
 		ID:          1,
 		Name:        "openai-oauth",
 		Platform:    PlatformOpenAI,
-		Type:        AccountTypeOAuth,
+		Type:        AccountTypeAPIKey,
 		Concurrency: 1,
 		Credentials: map[string]any{
-			"access_token":       "oauth-token",
-			"chatgpt_account_id": "chatgpt-acc",
+			"api_key": "sk-test",
 		},
 	}
 
@@ -393,16 +388,15 @@ func TestForwardAsChatCompletions_StreamsTopLevelTerminalUsage(t *testing.T) {
 		Body:       io.NopCloser(strings.NewReader(upstreamBody)),
 	}}
 
-	svc := &OpenAIGatewayService{httpUpstream: upstream}
+	svc := &OpenAIGatewayService{httpUpstream: upstream, cfg: &config.Config{}}
 	account := &Account{
 		ID:          1,
 		Name:        "openai-oauth",
 		Platform:    PlatformOpenAI,
-		Type:        AccountTypeOAuth,
+		Type:        AccountTypeAPIKey,
 		Concurrency: 1,
 		Credentials: map[string]any{
-			"access_token":       "oauth-token",
-			"chatgpt_account_id": "chatgpt-acc",
+			"api_key": "sk-test",
 		},
 	}
 
@@ -441,16 +435,15 @@ func TestForwardAsChatCompletions_BufferedTopLevelTerminalUsage(t *testing.T) {
 		Body:       io.NopCloser(strings.NewReader(upstreamBody)),
 	}}
 
-	svc := &OpenAIGatewayService{httpUpstream: upstream}
+	svc := &OpenAIGatewayService{httpUpstream: upstream, cfg: &config.Config{}}
 	account := &Account{
 		ID:          1,
 		Name:        "openai-oauth",
 		Platform:    PlatformOpenAI,
-		Type:        AccountTypeOAuth,
+		Type:        AccountTypeAPIKey,
 		Concurrency: 1,
 		Credentials: map[string]any{
-			"access_token":       "oauth-token",
-			"chatgpt_account_id": "chatgpt-acc",
+			"api_key": "sk-test",
 		},
 	}
 
@@ -489,16 +482,15 @@ func TestForwardAsChatCompletions_TerminalUsageWithoutUpstreamCloseReturns(t *te
 		Body:       upstreamStream,
 	}}
 
-	svc := &OpenAIGatewayService{httpUpstream: upstream}
+	svc := &OpenAIGatewayService{httpUpstream: upstream, cfg: &config.Config{}}
 	account := &Account{
 		ID:          1,
 		Name:        "openai-oauth",
 		Platform:    PlatformOpenAI,
-		Type:        AccountTypeOAuth,
+		Type:        AccountTypeAPIKey,
 		Concurrency: 1,
 		Credentials: map[string]any{
-			"access_token":       "oauth-token",
-			"chatgpt_account_id": "chatgpt-acc",
+			"api_key": "sk-test",
 		},
 	}
 
@@ -555,16 +547,15 @@ func TestForwardAsChatCompletions_EventNamedTerminalWithoutUpstreamCloseReturns(
 		Body:       upstreamStream,
 	}}
 
-	svc := &OpenAIGatewayService{httpUpstream: upstream}
+	svc := &OpenAIGatewayService{httpUpstream: upstream, cfg: &config.Config{}}
 	account := &Account{
 		ID:          1,
 		Name:        "openai-oauth",
 		Platform:    PlatformOpenAI,
-		Type:        AccountTypeOAuth,
+		Type:        AccountTypeAPIKey,
 		Concurrency: 1,
 		Credentials: map[string]any{
-			"access_token":       "oauth-token",
-			"chatgpt_account_id": "chatgpt-acc",
+			"api_key": "sk-test",
 		},
 	}
 
@@ -618,16 +609,15 @@ func TestForwardAsChatCompletions_EventTypeDoesNotLeakAcrossFrames(t *testing.T)
 		Body:       io.NopCloser(strings.NewReader(upstreamBody)),
 	}}
 
-	svc := &OpenAIGatewayService{httpUpstream: upstream}
+	svc := &OpenAIGatewayService{httpUpstream: upstream, cfg: &config.Config{}}
 	account := &Account{
 		ID:          1,
 		Name:        "openai-oauth",
 		Platform:    PlatformOpenAI,
-		Type:        AccountTypeOAuth,
+		Type:        AccountTypeAPIKey,
 		Concurrency: 1,
 		Credentials: map[string]any{
-			"access_token":       "oauth-token",
-			"chatgpt_account_id": "chatgpt-acc",
+			"api_key": "sk-test",
 		},
 	}
 
@@ -658,16 +648,15 @@ func TestForwardAsChatCompletions_BufferedTerminalWithoutUpstreamCloseReturns(t 
 		Body:       upstreamStream,
 	}}
 
-	svc := &OpenAIGatewayService{httpUpstream: upstream}
+	svc := &OpenAIGatewayService{httpUpstream: upstream, cfg: &config.Config{}}
 	account := &Account{
 		ID:          1,
 		Name:        "openai-oauth",
 		Platform:    PlatformOpenAI,
-		Type:        AccountTypeOAuth,
+		Type:        AccountTypeAPIKey,
 		Concurrency: 1,
 		Credentials: map[string]any{
-			"access_token":       "oauth-token",
-			"chatgpt_account_id": "chatgpt-acc",
+			"api_key": "sk-test",
 		},
 	}
 
@@ -710,16 +699,15 @@ func TestForwardAsChatCompletions_DoneSentinelWithoutTerminalReturnsError(t *tes
 		Body:       io.NopCloser(strings.NewReader(upstreamBody)),
 	}}
 
-	svc := &OpenAIGatewayService{httpUpstream: upstream}
+	svc := &OpenAIGatewayService{httpUpstream: upstream, cfg: &config.Config{}}
 	account := &Account{
 		ID:          1,
 		Name:        "openai-oauth",
 		Platform:    PlatformOpenAI,
-		Type:        AccountTypeOAuth,
+		Type:        AccountTypeAPIKey,
 		Concurrency: 1,
 		Credentials: map[string]any{
-			"access_token":       "oauth-token",
-			"chatgpt_account_id": "chatgpt-acc",
+			"api_key": "sk-test",
 		},
 	}
 
@@ -754,16 +742,15 @@ func TestForwardAsChatCompletions_UpstreamRequestIgnoresClientCancel(t *testing.
 		Body:       io.NopCloser(strings.NewReader(upstreamBody)),
 	}}
 
-	svc := &OpenAIGatewayService{httpUpstream: upstream}
+	svc := &OpenAIGatewayService{httpUpstream: upstream, cfg: &config.Config{}}
 	account := &Account{
 		ID:          1,
 		Name:        "openai-oauth",
 		Platform:    PlatformOpenAI,
-		Type:        AccountTypeOAuth,
+		Type:        AccountTypeAPIKey,
 		Concurrency: 1,
 		Credentials: map[string]any{
-			"access_token":       "oauth-token",
-			"chatgpt_account_id": "chatgpt-acc",
+			"api_key": "sk-test",
 		},
 	}
 

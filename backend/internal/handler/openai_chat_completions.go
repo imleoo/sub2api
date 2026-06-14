@@ -245,10 +245,6 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 						return
 					}
 					switchCount++
-					if h.gatewayService.ShouldStopOpenAIOAuth429Failover(account, failoverErr.StatusCode, switchCount) {
-						h.handleFailoverExhausted(c, failoverErr, streamStarted)
-						return
-					}
 					reqLog.Warn("openai_chat_completions.upstream_failover_switching",
 						zap.Int64("account_id", account.ID),
 						zap.Int("upstream_status", failoverErr.StatusCode),

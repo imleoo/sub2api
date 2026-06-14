@@ -552,8 +552,6 @@ func (s *OpenAIGatewayService) ForwardImages(
 	switch account.Type {
 	case AccountTypeAPIKey:
 		return s.forwardOpenAIImagesAPIKey(ctx, c, account, body, parsed, channelMappedModel)
-	case AccountTypeOAuth:
-		return s.forwardOpenAIImagesOAuth(ctx, c, account, parsed, channelMappedModel)
 	default:
 		return nil, fmt.Errorf("unsupported account type: %s", account.Type)
 	}

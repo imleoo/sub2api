@@ -46,17 +46,6 @@ func ProvideOAuthRefreshAPI(accountRepo AccountRepository, tokenCache GeminiToke
 	return NewOAuthRefreshAPI(accountRepo, tokenCache)
 }
 
-// ProvideOpenAIOAuthService creates OpenAIOAuthService with privacy/account enrichment support.
-func ProvideOpenAIOAuthService(
-	proxyRepo ProxyRepository,
-	oauthClient OpenAIOAuthClient,
-	privacyClientFactory PrivacyClientFactory,
-) *OpenAIOAuthService {
-	svc := NewOpenAIOAuthService(proxyRepo, oauthClient)
-	svc.SetPrivacyClientFactory(privacyClientFactory)
-	return svc
-}
-
 // ProvideTokenRefreshService creates and starts TokenRefreshService
 func ProvideTokenRefreshService(
 	accountRepo AccountRepository,
@@ -64,13 +53,10 @@ func ProvideTokenRefreshService(
 	schedulerCache SchedulerCache,
 	cfg *config.Config,
 	tempUnschedCache TempUnschedCache,
-	privacyClientFactory PrivacyClientFactory,
-	proxyRepo ProxyRepository,
 	refreshAPI *OAuthRefreshAPI,
 	runtimeBlocker AccountRuntimeBlocker,
 ) *TokenRefreshService {
 	svc := NewTokenRefreshService(accountRepo, cacheInvalidator, schedulerCache, cfg, tempUnschedCache)
-	svc.SetPrivacyDeps(privacyClientFactory, proxyRepo)
 	svc.SetRefreshAPI(refreshAPI)
 	svc.SetRefreshPolicy(DefaultBackgroundRefreshPolicy())
 	svc.SetAccountRuntimeBlocker(runtimeBlocker)
@@ -84,20 +70,6 @@ func ProvideClaudeTokenProvider(
 	tokenCache GeminiTokenCache,
 ) *ClaudeTokenProvider {
 	return NewClaudeTokenProvider(accountRepo, tokenCache)
-}
-
-// ProvideOpenAITokenProvider creates OpenAITokenProvider with OAuthRefreshAPI injection
-func ProvideOpenAITokenProvider(
-	accountRepo AccountRepository,
-	tokenCache GeminiTokenCache,
-	openaiOAuthService *OpenAIOAuthService,
-	refreshAPI *OAuthRefreshAPI,
-) *OpenAITokenProvider {
-	p := NewOpenAITokenProvider(accountRepo, tokenCache, openaiOAuthService)
-	executor := NewOpenAITokenRefresher(openaiOAuthService, accountRepo)
-	p.SetRefreshAPI(refreshAPI, executor)
-	p.SetRefreshPolicy(OpenAIProviderRefreshPolicy())
-	return p
 }
 
 // ProvideGeminiTokenProvider creates GeminiTokenProvider for service-account access.
@@ -500,14 +472,12 @@ var ProviderSet = wire.NewSet(
 	NewCompositeTokenCacheInvalidator,
 	wire.Bind(new(TokenCacheInvalidator), new(*CompositeTokenCacheInvalidator)),
 	NewOAuthService,
-	ProvideOpenAIOAuthService,
 	NewGeminiOAuthService,
 	NewGeminiQuotaService,
 	ProvideOAuthRefreshAPI,
 	ProvideGeminiTokenProvider,
 	NewGeminiMessagesCompatService,
 	ProvideAntigravityTokenProvider,
-	ProvideOpenAITokenProvider,
 	ProvideClaudeTokenProvider,
 	NewAntigravityGatewayService,
 	ProvideRateLimitService,

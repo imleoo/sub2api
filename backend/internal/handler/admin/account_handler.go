@@ -573,8 +573,6 @@ func (h *AccountHandler) Create(c *gin.Context) {
 		createdAccount = account
 		// Antigravity OAuth: 新账号直接设置隐私
 		h.adminService.ForceAntigravityPrivacy(ctx, account)
-		// OpenAI OAuth: 新账号直接设置隐私
-		h.adminService.ForceOpenAIPrivacy(ctx, account)
 		return h.buildAccountResponseWithRuntime(ctx, account), nil
 	})
 	if err != nil {
@@ -1303,7 +1301,6 @@ func (h *AccountHandler) BatchCreate(c *gin.Context) {
 		results := make([]gin.H, 0, len(req.Accounts))
 		// 收集需要异步设置隐私的 OAuth 账号
 		var antigravityPrivacyAccounts []*service.Account
-		var openaiPrivacyAccounts []*service.Account
 
 		for _, item := range req.Accounts {
 			if item.RateMultiplier != nil && *item.RateMultiplier < 0 {
@@ -1351,8 +1348,6 @@ func (h *AccountHandler) BatchCreate(c *gin.Context) {
 				switch account.Platform {
 				case service.PlatformAntigravity:
 					antigravityPrivacyAccounts = append(antigravityPrivacyAccounts, account)
-				case service.PlatformOpenAI:
-					openaiPrivacyAccounts = append(openaiPrivacyAccounts, account)
 				}
 			}
 			// OpenAI APIKey 账号异步探测 /v1/responses 能力。
@@ -1381,21 +1376,6 @@ func (h *AccountHandler) BatchCreate(c *gin.Context) {
 				}
 			}()
 		}
-		if len(openaiPrivacyAccounts) > 0 {
-			accounts := openaiPrivacyAccounts
-			go func() {
-				defer func() {
-					if r := recover(); r != nil {
-						slog.Error("batch_create_openai_privacy_panic", "recover", r)
-					}
-				}()
-				bgCtx := context.Background()
-				for _, acc := range accounts {
-					adminSvc.ForceOpenAIPrivacy(bgCtx, acc)
-				}
-			}()
-		}
-
 		return gin.H{
 			"success": success,
 			"failed":  failed,
@@ -2084,12 +2064,10 @@ func (h *AccountHandler) SetPrivacy(c *gin.Context) {
 	}
 	var mode string
 	switch account.Platform {
-	case service.PlatformOpenAI:
-		mode = h.adminService.ForceOpenAIPrivacy(c.Request.Context(), account)
 	case service.PlatformAntigravity:
 		mode = h.adminService.ForceAntigravityPrivacy(c.Request.Context(), account)
 	default:
-		response.BadRequest(c, "Only OpenAI and Antigravity OAuth accounts support privacy setting")
+		response.BadRequest(c, "Only Antigravity OAuth accounts support privacy setting")
 		return
 	}
 	if mode == "" {

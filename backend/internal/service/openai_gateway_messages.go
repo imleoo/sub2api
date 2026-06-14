@@ -80,10 +80,7 @@ func (s *OpenAIGatewayService) ForwardAsAnthropic(
 	compatContinuationDisabled := compatContinuationEnabled &&
 		s.isOpenAICompatSessionContinuationDisabled(ctx, c, account, promptCacheKey)
 	compatTurnState := ""
-	// OAuth/Plus relies on session_id + x-codex-turn-state; trimming to a
-	// sliding 12-message window makes the cached prefix stall at system/tools.
-	// Keep full replay there so upstream prompt caching can grow turn by turn.
-	if compatReplayGuardEnabled && account.Type != AccountTypeOAuth && previousResponseID == "" && !compatContinuationDisabled {
+	if compatReplayGuardEnabled && previousResponseID == "" && !compatContinuationDisabled {
 		compatReplayTrimmed = applyAnthropicCompatFullReplayGuard(&anthropicReq)
 	}
 
@@ -108,7 +105,7 @@ func (s *OpenAIGatewayService) ForwardAsAnthropic(
 		responsesReq.PreviousResponseID = previousResponseID
 		trimAnthropicCompatResponsesInputToLatestTurn(responsesReq)
 	}
-	if compatReplayGuardEnabled && account.Type != AccountTypeOAuth {
+	if compatReplayGuardEnabled {
 		appendOpenAICompatClaudeCodeTodoGuard(responsesReq)
 	}
 
@@ -143,63 +140,10 @@ func (s *OpenAIGatewayService) ForwardAsAnthropic(
 	}
 	logger.L().Debug("openai messages: model mapping applied", logFields...)
 
-	// 4. Marshal Responses request body, then apply OAuth codex transform
+	// 4. Marshal Responses request body.
 	responsesBody, err := json.Marshal(responsesReq)
 	if err != nil {
 		return nil, fmt.Errorf("marshal responses request: %w", err)
-	}
-
-	if account.Type == AccountTypeOAuth {
-		var reqBody map[string]any
-		if err := json.Unmarshal(responsesBody, &reqBody); err != nil {
-			return nil, fmt.Errorf("unmarshal for codex transform: %w", err)
-		}
-		codexResult := applyCodexOAuthTransformWithOptions(reqBody, codexOAuthTransformOptions{
-			SkipDefaultInstructions: true,
-			PreserveToolCallIDs:     true,
-		})
-		forcedTemplateText := ""
-		if s.cfg != nil {
-			forcedTemplateText = s.cfg.Gateway.ForcedCodexInstructionsTemplate
-		}
-		templateUpstreamModel := upstreamModel
-		if codexResult.NormalizedModel != "" {
-			templateUpstreamModel = codexResult.NormalizedModel
-		}
-		existingInstructions, _ := reqBody["instructions"].(string)
-		if strings.TrimSpace(existingInstructions) == "" {
-			existingInstructions = extractPromptLikeInstructionsFromInput(reqBody)
-		}
-		if _, err := applyForcedCodexInstructionsTemplate(reqBody, forcedTemplateText, forcedCodexInstructionsTemplateData{
-			ExistingInstructions: strings.TrimSpace(existingInstructions),
-			OriginalModel:        originalModel,
-			NormalizedModel:      normalizedModel,
-			BillingModel:         billingModel,
-			UpstreamModel:        templateUpstreamModel,
-		}); err != nil {
-			return nil, err
-		}
-		ensureCodexOAuthInstructionsField(reqBody)
-		if shouldAutoInjectPromptCacheKeyForCompat(upstreamModel) {
-			appendOpenAICompatClaudeCodeTodoGuardToRequestBody(reqBody)
-		}
-		if codexResult.NormalizedModel != "" {
-			upstreamModel = codexResult.NormalizedModel
-		}
-		if codexResult.PromptCacheKey != "" {
-			promptCacheKey = codexResult.PromptCacheKey
-		}
-		delete(reqBody, "prompt_cache_key")
-		if shouldAutoInjectPromptCacheKeyForCompat(upstreamModel) {
-			compatTurnState = s.getOpenAICompatSessionTurnState(ctx, c, account, promptCacheKey)
-		}
-		// OAuth codex transform forces stream=true upstream, so always use
-		// the streaming response handler regardless of what the client asked.
-		isStream = true
-		responsesBody, err = json.Marshal(reqBody)
-		if err != nil {
-			return nil, fmt.Errorf("remarshal after codex transform: %w", err)
-		}
 	}
 
 	// For API key accounts (including OpenAI-compatible upstream gateways),
@@ -260,17 +204,6 @@ func (s *OpenAIGatewayService) ForwardAsAnthropic(
 		if upstreamReq.Header.Get("conversation_id") != "" {
 			upstreamReq.Header.Set("conversation_id", isolatedSessionID)
 		}
-	}
-	if account.Type == AccountTypeOAuth {
-		// Anthropic Messages compatibility uses the ChatGPT Codex SSE endpoint.
-		// Match airgate-openai's request shape: the SSE endpoint does not need
-		// the Responses experimental beta header, and forcing originator can make
-		// ChatGPT select a different internal continuation path.
-		upstreamReq.Header.Del("OpenAI-Beta")
-		upstreamReq.Header.Del("originator")
-	}
-	if account.Type == AccountTypeOAuth && promptCacheKey != "" && strings.TrimSpace(c.GetHeader("conversation_id")) == "" {
-		upstreamReq.Header.Del("conversation_id")
 	}
 	if compatTurnState != "" && upstreamReq.Header.Get("x-codex-turn-state") == "" {
 		upstreamReq.Header.Set("x-codex-turn-state", compatTurnState)
@@ -349,12 +282,6 @@ func (s *OpenAIGatewayService) ForwardAsAnthropic(
 		return s.handleAnthropicErrorResponse(resp, c, account, billingModel)
 	}
 
-	if account.Type == AccountTypeOAuth && promptCacheKey != "" {
-		if turnState := strings.TrimSpace(resp.Header.Get("x-codex-turn-state")); turnState != "" {
-			s.bindOpenAICompatSessionTurnState(ctx, c, account, promptCacheKey, turnState)
-		}
-	}
-
 	// 9. Handle normal response
 	// Upstream is always streaming; choose response format based on client preference.
 	var result *OpenAIForwardResult
@@ -384,27 +311,7 @@ func (s *OpenAIGatewayService) ForwardAsAnthropic(
 		}
 	}
 
-	// Extract and save Codex usage snapshot from response headers (for OAuth accounts)
-	if handleErr == nil && account.Type == AccountTypeOAuth {
-		if snapshot := ParseCodexRateLimitHeaders(resp.Header); snapshot != nil {
-			s.updateCodexUsageSnapshot(ctx, account.ID, snapshot)
-		}
-	}
-
 	return result, handleErr
-}
-
-func ensureCodexOAuthInstructionsField(reqBody map[string]any) {
-	if reqBody == nil {
-		return
-	}
-	if value, ok := reqBody["instructions"]; !ok || value == nil {
-		reqBody["instructions"] = ""
-		return
-	}
-	if _, ok := reqBody["instructions"].(string); !ok {
-		reqBody["instructions"] = ""
-	}
 }
 
 // handleAnthropicErrorResponse reads an upstream error and returns it in

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
@@ -38,7 +39,7 @@ func TestOpenAIGatewayService_Forward_FailoverReparsesCachedBodyForNextAccount(t
 			requestModel: "gpt-5.4-high",
 			firstMapping: map[string]any{"gpt-5.4-high": "gpt-5.4"},
 			wantFirst:    "gpt-5.4",
-			wantSecond:   "gpt-5.4",
+			wantSecond:   "gpt-5.4-high",
 		},
 		{
 			name:          "first account has no mapping second account has mapping",
@@ -80,7 +81,7 @@ func TestOpenAIGatewayService_Forward_FailoverReparsesCachedBodyForNextAccount(t
 					Body:       io.NopCloser(strings.NewReader(`{"id":"resp_123","status":"completed","model":"ok","output":[],"usage":{"input_tokens":1,"output_tokens":1}}`)),
 				},
 			}}
-			svc := &OpenAIGatewayService{httpUpstream: upstream}
+			svc := &OpenAIGatewayService{httpUpstream: upstream, cfg: &config.Config{}}
 
 			firstAccount := openAIFailoverCachedBodyTestAccount(1, "account-a", tt.firstMapping)
 			secondAccount := openAIFailoverCachedBodyTestAccount(2, "account-b", tt.secondMapping)
@@ -116,7 +117,7 @@ func TestGetOpenAIRequestBodyMap_IgnoresLegacyContextCache(t *testing.T) {
 }
 
 func openAIFailoverCachedBodyTestAccount(id int64, name string, mapping map[string]any) *Account {
-	credentials := map[string]any{"access_token": "oauth-token", "chatgpt_account_id": "chatgpt-account"}
+	credentials := map[string]any{"api_key": "sk-test"}
 	if mapping != nil {
 		credentials["model_mapping"] = mapping
 	}
@@ -124,7 +125,7 @@ func openAIFailoverCachedBodyTestAccount(id int64, name string, mapping map[stri
 		ID:             id,
 		Name:           name,
 		Platform:       PlatformOpenAI,
-		Type:           AccountTypeOAuth,
+		Type:           AccountTypeAPIKey,
 		Concurrency:    1,
 		Credentials:    credentials,
 		Status:         StatusActive,

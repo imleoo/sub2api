@@ -439,10 +439,6 @@ func (h *OpenAIGatewayHandler) Responses(c *gin.Context) {
 						return
 					}
 					switchCount++
-					if h.gatewayService.ShouldStopOpenAIOAuth429Failover(account, failoverErr.StatusCode, switchCount) {
-						h.handleFailoverExhausted(c, failoverErr, streamStarted)
-						return
-					}
 					reqLog.Warn("openai.upstream_failover_switching",
 						zap.Int64("account_id", account.ID),
 						zap.Int("upstream_status", failoverErr.StatusCode),
@@ -472,9 +468,6 @@ func (h *OpenAIGatewayHandler) Responses(c *gin.Context) {
 			}
 		}
 		if result != nil {
-			if account.Type == service.AccountTypeOAuth {
-				h.gatewayService.UpdateCodexUsageSnapshotFromHeaders(c.Request.Context(), account.ID, result.ResponseHeaders)
-			}
 			h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, true, result.FirstTokenMs)
 		} else {
 			h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, true, nil)
@@ -842,10 +835,6 @@ func (h *OpenAIGatewayHandler) Messages(c *gin.Context) {
 						return
 					}
 					switchCount++
-					if h.gatewayService.ShouldStopOpenAIOAuth429Failover(account, failoverErr.StatusCode, switchCount) {
-						h.handleAnthropicFailoverExhausted(c, failoverErr, streamStarted)
-						return
-					}
 					reqLog.Warn("openai_messages.upstream_failover_switching",
 						zap.Int64("account_id", account.ID),
 						zap.Int("upstream_status", failoverErr.StatusCode),
@@ -1475,9 +1464,6 @@ func (h *OpenAIGatewayHandler) ResponsesWebSocket(c *gin.Context) {
 				if result == nil {
 					return
 				}
-				if account.Type == service.AccountTypeOAuth {
-					h.gatewayService.UpdateCodexUsageSnapshotFromHeaders(ctx, account.ID, result.ResponseHeaders)
-				}
 				h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, true, result.FirstTokenMs)
 				inboundEndpoint := GetInboundEndpoint(c)
 				upstreamEndpoint := GetUpstreamEndpoint(c, account.Platform)
@@ -1539,10 +1525,6 @@ func (h *OpenAIGatewayHandler) ResponsesWebSocket(c *gin.Context) {
 					return
 				}
 				switchCount++
-				if h.gatewayService.ShouldStopOpenAIOAuth429Failover(account, failoverErr.StatusCode, switchCount) {
-					closeOpenAIWSFailoverExhausted(wsConn, failoverErr)
-					return
-				}
 				h.gatewayService.RecordOpenAIAccountSwitch()
 				reqLog.Warn("openai.websocket_upstream_failover_switching",
 					zap.Int64("account_id", account.ID),

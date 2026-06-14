@@ -228,7 +228,7 @@ func TestAdminServiceBulkUpdateAccounts_ResolvesIDsFromFilters(t *testing.T) {
 	filtersValue.Elem().FieldByName("Type").SetString(AccountTypeOAuth)
 	filtersValue.Elem().FieldByName("Status").SetString(StatusActive)
 	filtersValue.Elem().FieldByName("Group").SetString("12")
-	filtersValue.Elem().FieldByName("PrivacyMode").SetString(PrivacyModeCFBlocked)
+	filtersValue.Elem().FieldByName("PrivacyMode").SetString("training_set_cf_blocked")
 	filtersValue.Elem().FieldByName("Search").SetString("bulk-target")
 	filtersField.Set(filtersValue)
 
@@ -240,7 +240,7 @@ func TestAdminServiceBulkUpdateAccounts_ResolvesIDsFromFilters(t *testing.T) {
 	require.Equal(t, StatusActive, repo.lastListFilters.status)
 	require.Equal(t, "bulk-target", repo.lastListFilters.search)
 	require.Equal(t, int64(12), repo.lastListFilters.groupID)
-	require.Equal(t, PrivacyModeCFBlocked, repo.lastListFilters.privacyMode)
+	require.Equal(t, "training_set_cf_blocked", repo.lastListFilters.privacyMode)
 	require.Equal(t, []int64{7, 11}, repo.bulkUpdateIDs)
 	require.Equal(t, 2, result.Success)
 	require.Equal(t, 0, result.Failed)

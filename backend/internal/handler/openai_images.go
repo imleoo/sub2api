@@ -265,10 +265,6 @@ func (h *OpenAIGatewayHandler) Images(c *gin.Context) {
 						return
 					}
 					switchCount++
-					if h.gatewayService.ShouldStopOpenAIOAuth429Failover(account, failoverErr.StatusCode, switchCount) {
-						h.handleFailoverExhausted(c, failoverErr, streamStarted)
-						return
-					}
 					reqLog.Warn("openai.images.upstream_failover_switching",
 						zap.Int64("account_id", account.ID),
 						zap.Int("upstream_status", failoverErr.StatusCode),
@@ -298,9 +294,6 @@ func (h *OpenAIGatewayHandler) Images(c *gin.Context) {
 			}
 		}
 		if result != nil {
-			if account.Type == service.AccountTypeOAuth {
-				h.gatewayService.UpdateCodexUsageSnapshotFromHeaders(c.Request.Context(), account.ID, result.ResponseHeaders)
-			}
 			h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, true, result.FirstTokenMs)
 		} else {
 			h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, true, nil)

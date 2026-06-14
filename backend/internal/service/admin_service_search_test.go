@@ -192,11 +192,11 @@ func TestAdminService_ListAccounts_WithPrivacyMode(t *testing.T) {
 		}
 		svc := &adminServiceImpl{accountRepo: repo}
 
-		accounts, total, err := svc.ListAccounts(context.Background(), 1, 20, PlatformOpenAI, AccountTypeOAuth, StatusActive, "acc2", 0, PrivacyModeCFBlocked, "", "")
+		accounts, total, err := svc.ListAccounts(context.Background(), 1, 20, PlatformOpenAI, AccountTypeOAuth, StatusActive, "acc2", 0, "training_set_cf_blocked", "", "")
 		require.NoError(t, err)
 		require.Equal(t, int64(1), total)
 		require.Equal(t, []Account{{ID: 2, Name: "acc2"}}, accounts)
-		require.Equal(t, PrivacyModeCFBlocked, repo.listWithFiltersPrivacy)
+		require.Equal(t, "training_set_cf_blocked", repo.listWithFiltersPrivacy)
 	})
 }
 

@@ -160,13 +160,10 @@ func (a *Account) IsOAuth() bool {
 }
 
 // IsPrivacySet 检查账号的 privacy 是否已成功设置。
-// OpenAI: privacy_mode == "training_off"
 // Antigravity: privacy_mode == "privacy_set"
 // 其他平台: 无 privacy 概念，始终返回 true
 func (a *Account) IsPrivacySet() bool {
 	switch a.Platform {
-	case PlatformOpenAI:
-		return a.getExtraString("privacy_mode") == PrivacyModeTrainingOff
 	case PlatformAntigravity:
 		return a.getExtraString("privacy_mode") == AntigravityPrivacySet
 	default:
@@ -1241,7 +1238,7 @@ func (a *Account) SupportsOpenAIImageCapability(capability OpenAIImagesCapabilit
 	}
 	switch capability {
 	case OpenAIImagesCapabilityBasic, OpenAIImagesCapabilityNative:
-		return a.Type == AccountTypeOAuth || a.Type == AccountTypeAPIKey
+		return a.Type == AccountTypeAPIKey
 	default:
 		return true
 	}

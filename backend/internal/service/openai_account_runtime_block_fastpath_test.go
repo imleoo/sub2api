@@ -12,17 +12,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestOpenAI429FastPath_MarksOAuthAccountCoolingDown(t *testing.T) {
+func TestOpenAI429FastPath_DoesNotBlockWithoutRateLimitService(t *testing.T) {
 	svc := &OpenAIGatewayService{}
-	account := &Account{ID: 42, Platform: PlatformOpenAI, Type: AccountTypeOAuth}
 	apiKeyAccount := &Account{ID: 43, Platform: PlatformOpenAI, Type: AccountTypeAPIKey}
 
-	shouldDisable := svc.handleOpenAIAccountUpstreamError(context.Background(), account, http.StatusTooManyRequests, http.Header{}, nil)
 	apiKeyShouldDisable := svc.handleOpenAIAccountUpstreamError(context.Background(), apiKeyAccount, http.StatusTooManyRequests, http.Header{}, nil)
 
-	require.False(t, shouldDisable)
 	require.False(t, apiKeyShouldDisable)
-	require.True(t, svc.isOpenAIAccountRuntimeBlocked(account))
 	require.False(t, svc.isOpenAIAccountRuntimeBlocked(apiKeyAccount))
 }
 
@@ -103,21 +99,4 @@ func TestOpenAIRuntimeBlock_ClearAccountSchedulingBlock(t *testing.T) {
 
 	svc.ClearAccountSchedulingBlock(account.ID)
 	require.False(t, svc.isOpenAIAccountRuntimeBlocked(account))
-}
-
-func TestShouldStopOpenAIOAuth429Failover_OnlyDuringStorm(t *testing.T) {
-	svc := &OpenAIGatewayService{}
-	account := &Account{ID: 42, Platform: PlatformOpenAI, Type: AccountTypeOAuth}
-	apiKeyAccount := &Account{ID: 43, Platform: PlatformOpenAI, Type: AccountTypeAPIKey}
-
-	require.False(t, svc.ShouldStopOpenAIOAuth429Failover(account, http.StatusTooManyRequests, 1))
-
-	for i := 0; i < openAIOAuth429StormThreshold; i++ {
-		svc.recordOpenAIOAuth429()
-	}
-
-	require.True(t, svc.ShouldStopOpenAIOAuth429Failover(account, http.StatusTooManyRequests, 1))
-	require.False(t, svc.ShouldStopOpenAIOAuth429Failover(apiKeyAccount, http.StatusTooManyRequests, 1))
-	require.False(t, svc.ShouldStopOpenAIOAuth429Failover(account, http.StatusInternalServerError, 1))
-	require.False(t, svc.ShouldStopOpenAIOAuth429Failover(account, http.StatusTooManyRequests, 0))
 }
