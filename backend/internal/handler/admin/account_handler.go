@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/handler/dto"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/antigravity"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/claude"
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/geminicli"
@@ -571,8 +570,6 @@ func (h *AccountHandler) Create(c *gin.Context) {
 			return nil, execErr
 		}
 		createdAccount = account
-		// Antigravity OAuth: 新账号直接设置隐私
-		h.adminService.ForceAntigravityPrivacy(ctx, account)
 		return h.buildAccountResponseWithRuntime(ctx, account), nil
 	})
 	if err != nil {
@@ -1299,8 +1296,6 @@ func (h *AccountHandler) BatchCreate(c *gin.Context) {
 		success := 0
 		failed := 0
 		results := make([]gin.H, 0, len(req.Accounts))
-		// 收集需要异步设置隐私的 OAuth 账号
-		var antigravityPrivacyAccounts []*service.Account
 
 		for _, item := range req.Accounts {
 			if item.RateMultiplier != nil && *item.RateMultiplier < 0 {
@@ -1343,13 +1338,6 @@ func (h *AccountHandler) BatchCreate(c *gin.Context) {
 				})
 				continue
 			}
-			// 收集需要异步设置隐私的 OAuth 账号
-			if account.Type == service.AccountTypeOAuth {
-				switch account.Platform {
-				case service.PlatformAntigravity:
-					antigravityPrivacyAccounts = append(antigravityPrivacyAccounts, account)
-				}
-			}
 			// OpenAI APIKey 账号异步探测 /v1/responses 能力。
 			h.scheduleOpenAIResponsesProbe(account)
 			success++
@@ -1360,22 +1348,6 @@ func (h *AccountHandler) BatchCreate(c *gin.Context) {
 			})
 		}
 
-		// 异步设置隐私，避免批量创建时阻塞请求
-		adminSvc := h.adminService
-		if len(antigravityPrivacyAccounts) > 0 {
-			accounts := antigravityPrivacyAccounts
-			go func() {
-				defer func() {
-					if r := recover(); r != nil {
-						slog.Error("batch_create_antigravity_privacy_panic", "recover", r)
-					}
-				}()
-				bgCtx := context.Background()
-				for _, acc := range accounts {
-					adminSvc.ForceAntigravityPrivacy(bgCtx, acc)
-				}
-			}()
-		}
 		return gin.H{
 			"success": success,
 			"failed":  failed,
@@ -1905,13 +1877,6 @@ func (h *AccountHandler) GetAvailableModels(c *gin.Context) {
 		return
 	}
 
-	// Handle Antigravity accounts: return Claude + Gemini models
-	if account.Platform == service.PlatformAntigravity {
-		// 直接复用 antigravity.DefaultModels()，与 /v1/models 端点保持同步
-		response.Success(c, antigravity.DefaultModels())
-		return
-	}
-
 	// Handle Claude/Anthropic accounts
 	// For OAuth and Setup-Token accounts: return default models
 	if account.IsOAuth() {
@@ -2044,50 +2009,6 @@ func (h *AccountHandler) SyncUpstreamModelsPreview(c *gin.Context) {
 
 	response.Success(c, gin.H{"models": models})
 }
-
-// SetPrivacy handles setting privacy for a single OpenAI/Antigravity OAuth account
-// POST /api/v1/admin/accounts/:id/set-privacy
-func (h *AccountHandler) SetPrivacy(c *gin.Context) {
-	accountID, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		response.BadRequest(c, "Invalid account ID")
-		return
-	}
-	account, err := h.adminService.GetAccount(c.Request.Context(), accountID)
-	if err != nil {
-		response.NotFound(c, "Account not found")
-		return
-	}
-	if account.Type != service.AccountTypeOAuth {
-		response.BadRequest(c, "Only OAuth accounts support privacy setting")
-		return
-	}
-	var mode string
-	switch account.Platform {
-	case service.PlatformAntigravity:
-		mode = h.adminService.ForceAntigravityPrivacy(c.Request.Context(), account)
-	default:
-		response.BadRequest(c, "Only Antigravity OAuth accounts support privacy setting")
-		return
-	}
-	if mode == "" {
-		response.BadRequest(c, "Cannot set privacy: missing access_token")
-		return
-	}
-	// 从 DB 重新读取以确保返回最新状态
-	updated, err := h.adminService.GetAccount(c.Request.Context(), accountID)
-	if err != nil {
-		// 隐私已设置成功但读取失败，回退到内存更新
-		if account.Extra == nil {
-			account.Extra = make(map[string]any)
-		}
-		account.Extra["privacy_mode"] = mode
-		response.Success(c, h.buildAccountResponseWithRuntime(c.Request.Context(), account))
-		return
-	}
-	response.Success(c, h.buildAccountResponseWithRuntime(c.Request.Context(), updated))
-}
-
 
 // sanitizeExtraBaseRPM 对 extra map 中的 base_rpm 值进行范围校验和归一化。
 // 负值归零，超过 10000 截断为 10000。extra 为 nil 或不含 base_rpm 时无操作。

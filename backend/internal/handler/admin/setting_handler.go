@@ -243,7 +243,6 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		FallbackModelAnthropic:                 settings.FallbackModelAnthropic,
 		FallbackModelOpenAI:                    settings.FallbackModelOpenAI,
 		FallbackModelGemini:                    settings.FallbackModelGemini,
-		FallbackModelAntigravity:               settings.FallbackModelAntigravity,
 		EnableIdentityPatch:                    settings.EnableIdentityPatch,
 		IdentityPatchPrompt:                    settings.IdentityPatchPrompt,
 		OpsMonitoringEnabled:                   opsEnabled && settings.OpsMonitoringEnabled,
@@ -259,7 +258,6 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		EnableCCHSigning:                       settings.EnableCCHSigning,
 		EnableAnthropicCacheTTL1hInjection:     settings.EnableAnthropicCacheTTL1hInjection,
 		RewriteMessageCacheControl:             settings.RewriteMessageCacheControl,
-		AntigravityUserAgentVersion:            settings.AntigravityUserAgentVersion,
 		OpenAICodexUserAgent:                   settings.OpenAICodexUserAgent,
 		OpenAIAllowClaudeCodeCodexPlugin:       settings.OpenAIAllowClaudeCodeCodexPlugin,
 		WebSearchEmulationEnabled:              settings.WebSearchEmulationEnabled,
@@ -586,7 +584,6 @@ type UpdateSettingsRequest struct {
 	FallbackModelAnthropic   string `json:"fallback_model_anthropic"`
 	FallbackModelOpenAI      string `json:"fallback_model_openai"`
 	FallbackModelGemini      string `json:"fallback_model_gemini"`
-	FallbackModelAntigravity string `json:"fallback_model_antigravity"`
 
 	// Identity patch configuration (Claude -> Gemini)
 	EnableIdentityPatch bool   `json:"enable_identity_patch"`
@@ -613,7 +610,6 @@ type UpdateSettingsRequest struct {
 	EnableCCHSigning                   *bool   `json:"enable_cch_signing"`
 	EnableAnthropicCacheTTL1hInjection *bool   `json:"enable_anthropic_cache_ttl_1h_injection"`
 	RewriteMessageCacheControl         *bool   `json:"rewrite_message_cache_control"`
-	AntigravityUserAgentVersion        *string `json:"antigravity_user_agent_version"`
 	OpenAICodexUserAgent               *string `json:"openai_codex_user_agent"`
 	OpenAIAllowClaudeCodeCodexPlugin   *bool   `json:"openai_allow_claude_code_codex_plugin"`
 
@@ -1493,14 +1489,6 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			return
 		}
 	}
-	if req.AntigravityUserAgentVersion != nil {
-		normalized := strings.TrimSpace(*req.AntigravityUserAgentVersion)
-		req.AntigravityUserAgentVersion = &normalized
-		if normalized != "" && !semverPattern.MatchString(normalized) {
-			response.Error(c, http.StatusBadRequest, "antigravity_user_agent_version must be empty or a valid semver (e.g. 1.23.2)")
-			return
-		}
-	}
 	if req.OpenAICodexUserAgent != nil {
 		normalized := strings.TrimSpace(*req.OpenAICodexUserAgent)
 		req.OpenAICodexUserAgent = &normalized
@@ -1654,7 +1642,6 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		FallbackModelAnthropic:                 req.FallbackModelAnthropic,
 		FallbackModelOpenAI:                    req.FallbackModelOpenAI,
 		FallbackModelGemini:                    req.FallbackModelGemini,
-		FallbackModelAntigravity:               req.FallbackModelAntigravity,
 		EnableIdentityPatch:                    req.EnableIdentityPatch,
 		IdentityPatchPrompt:                    req.IdentityPatchPrompt,
 		MinClaudeCodeVersion:                   req.MinClaudeCodeVersion,
@@ -1720,12 +1707,6 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 				return *req.RewriteMessageCacheControl
 			}
 			return previousSettings.RewriteMessageCacheControl
-		}(),
-		AntigravityUserAgentVersion: func() string {
-			if req.AntigravityUserAgentVersion != nil {
-				return *req.AntigravityUserAgentVersion
-			}
-			return previousSettings.AntigravityUserAgentVersion
 		}(),
 		OpenAICodexUserAgent: func() string {
 			if req.OpenAICodexUserAgent != nil {
@@ -2213,7 +2194,6 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		FallbackModelAnthropic:                 updatedSettings.FallbackModelAnthropic,
 		FallbackModelOpenAI:                    updatedSettings.FallbackModelOpenAI,
 		FallbackModelGemini:                    updatedSettings.FallbackModelGemini,
-		FallbackModelAntigravity:               updatedSettings.FallbackModelAntigravity,
 		EnableIdentityPatch:                    updatedSettings.EnableIdentityPatch,
 		IdentityPatchPrompt:                    updatedSettings.IdentityPatchPrompt,
 		OpsMonitoringEnabled:                   updatedSettings.OpsMonitoringEnabled,
@@ -2229,7 +2209,6 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		EnableCCHSigning:                       updatedSettings.EnableCCHSigning,
 		EnableAnthropicCacheTTL1hInjection:     updatedSettings.EnableAnthropicCacheTTL1hInjection,
 		RewriteMessageCacheControl:             updatedSettings.RewriteMessageCacheControl,
-		AntigravityUserAgentVersion:            updatedSettings.AntigravityUserAgentVersion,
 		OpenAICodexUserAgent:                   updatedSettings.OpenAICodexUserAgent,
 		OpenAIAllowClaudeCodeCodexPlugin:       updatedSettings.OpenAIAllowClaudeCodeCodexPlugin,
 		PaymentVisibleMethodAlipaySource:       updatedSettings.PaymentVisibleMethodAlipaySource,
@@ -2630,9 +2609,6 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	if before.FallbackModelGemini != after.FallbackModelGemini {
 		changed = append(changed, "fallback_model_gemini")
 	}
-	if before.FallbackModelAntigravity != after.FallbackModelAntigravity {
-		changed = append(changed, "fallback_model_antigravity")
-	}
 	if before.EnableIdentityPatch != after.EnableIdentityPatch {
 		changed = append(changed, "enable_identity_patch")
 	}
@@ -2695,9 +2671,6 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	}
 	if before.RewriteMessageCacheControl != after.RewriteMessageCacheControl {
 		changed = append(changed, "rewrite_message_cache_control")
-	}
-	if before.AntigravityUserAgentVersion != after.AntigravityUserAgentVersion {
-		changed = append(changed, "antigravity_user_agent_version")
 	}
 	if before.OpenAICodexUserAgent != after.OpenAICodexUserAgent {
 		changed = append(changed, "openai_codex_user_agent")

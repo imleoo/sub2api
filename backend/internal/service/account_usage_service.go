@@ -106,12 +106,6 @@ type windowStatsCache struct {
 	timestamp time.Time
 }
 
-// antigravityUsageCache 缓存 Antigravity 额度数据
-type antigravityUsageCache struct {
-	usageInfo *UsageInfo
-	timestamp time.Time
-}
-
 // geminiUsageCache 缓存 Gemini 额度数据。
 // 额外记录 minuteStart / dayStart：命中时校验窗口边界未变，
 // 避免分钟/日窗口跨界后仍返回上一窗口的 RPM/RPD（stale 误导）。
@@ -125,7 +119,6 @@ type geminiUsageCache struct {
 const (
 	apiCacheTTL             = 3 * time.Minute
 	apiErrorCacheTTL        = 1 * time.Minute        // 负缓存 TTL：429 等错误缓存 1 分钟
-	antigravityErrorTTL     = 1 * time.Minute        // Antigravity 错误缓存 TTL（可恢复错误）
 	apiQueryMaxJitter       = 800 * time.Millisecond // 用量查询最大随机延迟
 	windowStatsCacheTTL     = 1 * time.Minute
 	geminiUsageCacheTTL     = 30 * time.Second // Gemini 用量短缓存 TTL（配合窗口边界校验）
@@ -135,13 +128,11 @@ const (
 
 // UsageCache 封装账户使用量相关的缓存
 type UsageCache struct {
-	apiCache          sync.Map           // accountID -> *apiUsageCache
-	windowStatsCache  sync.Map           // accountID -> *windowStatsCache
-	antigravityCache  sync.Map           // accountID -> *antigravityUsageCache
-	geminiCache       sync.Map           // accountID -> *geminiUsageCache
-	apiFlight         singleflight.Group // 防止同一账号的并发请求击穿缓存（Anthropic）
-	antigravityFlight singleflight.Group // 防止同一 Antigravity 账号的并发请求击穿缓存
-	openAIProbeCache  sync.Map           // accountID -> time.Time
+	apiCache         sync.Map           // accountID -> *apiUsageCache
+	windowStatsCache sync.Map           // accountID -> *windowStatsCache
+	geminiCache      sync.Map           // accountID -> *geminiUsageCache
+	apiFlight        singleflight.Group // 防止同一账号的并发请求击穿缓存（Anthropic）
+	openAIProbeCache sync.Map           // accountID -> time.Time
 }
 
 // NewUsageCache 创建 UsageCache 实例
@@ -172,31 +163,6 @@ type UsageProgress struct {
 	LimitRequests    int64        `json:"limit_requests,omitempty"`
 }
 
-// AntigravityModelQuota Antigravity 单个模型的配额信息
-type AntigravityModelQuota struct {
-	Utilization int    `json:"utilization"` // 使用率 0-100
-	ResetTime   string `json:"reset_time"`  // 重置时间 ISO8601
-}
-
-// AntigravityModelDetail Antigravity 单个模型的详细能力信息
-type AntigravityModelDetail struct {
-	DisplayName        string          `json:"display_name,omitempty"`
-	SupportsImages     *bool           `json:"supports_images,omitempty"`
-	SupportsThinking   *bool           `json:"supports_thinking,omitempty"`
-	ThinkingBudget     *int            `json:"thinking_budget,omitempty"`
-	Recommended        *bool           `json:"recommended,omitempty"`
-	MaxTokens          *int            `json:"max_tokens,omitempty"`
-	MaxOutputTokens    *int            `json:"max_output_tokens,omitempty"`
-	SupportedMimeTypes map[string]bool `json:"supported_mime_types,omitempty"`
-}
-
-// AICredit 表示 Antigravity 账号的 AI Credits 余额信息。
-type AICredit struct {
-	CreditType     string  `json:"credit_type,omitempty"`
-	Amount         float64 `json:"amount,omitempty"`
-	MinimumBalance float64 `json:"minimum_balance,omitempty"`
-}
-
 // UsageInfo 账号使用量信息
 type UsageInfo struct {
 	Source             string         `json:"source,omitempty"`               // "passive" or "active"
@@ -211,34 +177,7 @@ type UsageInfo struct {
 	GeminiProMinute    *UsageProgress `json:"gemini_pro_minute,omitempty"`    // Gemini Pro RPM
 	GeminiFlashMinute  *UsageProgress `json:"gemini_flash_minute,omitempty"`  // Gemini Flash RPM
 
-	// Antigravity 多模型配额
-	AntigravityQuota map[string]*AntigravityModelQuota `json:"antigravity_quota,omitempty"`
-
-	// Antigravity 账号级信息
-	SubscriptionTier    string `json:"subscription_tier,omitempty"`     // 归一化订阅等级: FREE/PRO/ULTRA/UNKNOWN
-	SubscriptionTierRaw string `json:"subscription_tier_raw,omitempty"` // 上游原始订阅等级名称
-
-	// Antigravity 模型详细能力信息（与 antigravity_quota 同 key）
-	AntigravityQuotaDetails map[string]*AntigravityModelDetail `json:"antigravity_quota_details,omitempty"`
-
-	// Antigravity AI Credits 余额
-	AICredits []AICredit `json:"ai_credits,omitempty"`
-
-	// Antigravity 废弃模型转发规则 (old_model_id -> new_model_id)
-	ModelForwardingRules map[string]string `json:"model_forwarding_rules,omitempty"`
-
-	// Antigravity 账号是否被上游禁止 (HTTP 403)
-	IsForbidden     bool   `json:"is_forbidden,omitempty"`
-	ForbiddenReason string `json:"forbidden_reason,omitempty"`
-	ForbiddenType   string `json:"forbidden_type,omitempty"` // "validation" / "violation" / "forbidden"
-	ValidationURL   string `json:"validation_url,omitempty"` // 验证/申诉链接
-
-	// 状态标记（从 ForbiddenType / HTTP 错误码推导）
-	NeedsVerify bool `json:"needs_verify,omitempty"` // 需要人工验证（forbidden_type=validation）
-	IsBanned    bool `json:"is_banned,omitempty"`    // 账号被封（forbidden_type=violation）
-	NeedsReauth bool `json:"needs_reauth,omitempty"` // token 失效需重新授权（401）
-
-	// 错误码（机器可读）：forbidden / unauthenticated / rate_limited / network_error
+	// 错误码（机器可读）：unauthenticated / rate_limited / network_error
 	ErrorCode string `json:"error_code,omitempty"`
 
 	// 获取 usage 时的错误信息（降级返回，而非 500）
@@ -279,14 +218,13 @@ type ClaudeUsageFetcher interface {
 
 // AccountUsageService 账号使用量查询服务
 type AccountUsageService struct {
-	accountRepo             AccountRepository
-	usageLogRepo            UsageLogRepository
-	usageFetcher            ClaudeUsageFetcher
-	geminiQuotaService      *GeminiQuotaService
-	antigravityQuotaFetcher *AntigravityQuotaFetcher
-	cache                   *UsageCache
-	identityCache           IdentityCache
-	tlsFPProfileService     *TLSFingerprintProfileService
+	accountRepo         AccountRepository
+	usageLogRepo        UsageLogRepository
+	usageFetcher        ClaudeUsageFetcher
+	geminiQuotaService  *GeminiQuotaService
+	cache               *UsageCache
+	identityCache       IdentityCache
+	tlsFPProfileService *TLSFingerprintProfileService
 }
 
 // NewAccountUsageService 创建AccountUsageService实例
@@ -295,20 +233,18 @@ func NewAccountUsageService(
 	usageLogRepo UsageLogRepository,
 	usageFetcher ClaudeUsageFetcher,
 	geminiQuotaService *GeminiQuotaService,
-	antigravityQuotaFetcher *AntigravityQuotaFetcher,
 	cache *UsageCache,
 	identityCache IdentityCache,
 	tlsFPProfileService *TLSFingerprintProfileService,
 ) *AccountUsageService {
 	return &AccountUsageService{
-		accountRepo:             accountRepo,
-		usageLogRepo:            usageLogRepo,
-		usageFetcher:            usageFetcher,
-		geminiQuotaService:      geminiQuotaService,
-		antigravityQuotaFetcher: antigravityQuotaFetcher,
-		cache:                   cache,
-		identityCache:           identityCache,
-		tlsFPProfileService:     tlsFPProfileService,
+		accountRepo:         accountRepo,
+		usageLogRepo:        usageLogRepo,
+		usageFetcher:        usageFetcher,
+		geminiQuotaService:  geminiQuotaService,
+		cache:               cache,
+		identityCache:       identityCache,
+		tlsFPProfileService: tlsFPProfileService,
 	}
 }
 
@@ -334,15 +270,6 @@ func (s *AccountUsageService) GetUsage(ctx context.Context, accountID int64, for
 
 	if account.Platform == PlatformGemini {
 		usage, err := s.getGeminiUsage(ctx, account)
-		if err == nil {
-			s.tryClearRecoverableAccountError(ctx, account)
-		}
-		return usage, err
-	}
-
-	// Antigravity 平台：使用 AntigravityQuotaFetcher 获取额度
-	if account.Platform == PlatformAntigravity {
-		usage, err := s.getAntigravityUsage(ctx, account)
 		if err == nil {
 			s.tryClearRecoverableAccountError(ctx, account)
 		}
@@ -822,175 +749,13 @@ func (s *AccountUsageService) getGeminiUsage(ctx context.Context, account *Accou
 
 // cloneGeminiUsage 返回 info 的顶层浅拷贝。
 // Gemini 各窗口 progress 字段在缓存后不再被原地修改，故顶层浅拷贝即可避免
-// 并发请求共享同一 *UsageInfo 导致的写竞争（与 cloneAntigravityUsageWithRemaining 同思路）。
+// 并发请求共享同一 *UsageInfo 导致的写竞争。
 func cloneGeminiUsage(info *UsageInfo) *UsageInfo {
 	if info == nil {
 		return nil
 	}
 	cp := *info
 	return &cp
-}
-
-// getAntigravityUsage 获取 Antigravity 账户额度
-func (s *AccountUsageService) getAntigravityUsage(ctx context.Context, account *Account) (*UsageInfo, error) {
-	if s.antigravityQuotaFetcher == nil || !s.antigravityQuotaFetcher.CanFetch(account) {
-		now := time.Now()
-		return &UsageInfo{UpdatedAt: &now}, nil
-	}
-
-	// 1. 检查缓存
-	if cached, ok := s.cache.antigravityCache.Load(account.ID); ok {
-		if cache, ok := cached.(*antigravityUsageCache); ok {
-			ttl := antigravityCacheTTL(cache.usageInfo)
-			if time.Since(cache.timestamp) < ttl {
-				return cloneAntigravityUsageWithRemaining(cache.usageInfo), nil
-			}
-		}
-	}
-
-	// 2. singleflight 防止并发击穿
-	flightKey := fmt.Sprintf("ag-usage:%d", account.ID)
-	result, flightErr, _ := s.cache.antigravityFlight.Do(flightKey, func() (any, error) {
-		// 再次检查缓存（等待期间可能已被填充）
-		if cached, ok := s.cache.antigravityCache.Load(account.ID); ok {
-			if cache, ok := cached.(*antigravityUsageCache); ok {
-				ttl := antigravityCacheTTL(cache.usageInfo)
-				if time.Since(cache.timestamp) < ttl {
-					// 返回缓存对象的副本并重算 RemainingSeconds，避免原地写共享缓存。
-					return cloneAntigravityUsageWithRemaining(cache.usageInfo), nil
-				}
-			}
-		}
-
-		// 使用独立 context，避免调用方 cancel 导致所有共享 flight 的请求失败
-		fetchCtx, fetchCancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer fetchCancel()
-
-		proxyURL := s.antigravityQuotaFetcher.GetProxyURL(fetchCtx, account)
-		fetchResult, err := s.antigravityQuotaFetcher.FetchQuota(fetchCtx, account, proxyURL)
-		if err != nil {
-			degraded := buildAntigravityDegradedUsage(err)
-			enrichUsageWithAccountError(degraded, account)
-			s.cache.antigravityCache.Store(account.ID, &antigravityUsageCache{
-				usageInfo: degraded,
-				timestamp: time.Now(),
-			})
-			return degraded, nil
-		}
-
-		enrichUsageWithAccountError(fetchResult.UsageInfo, account)
-		s.cache.antigravityCache.Store(account.ID, &antigravityUsageCache{
-			usageInfo: fetchResult.UsageInfo,
-			timestamp: time.Now(),
-		})
-		return fetchResult.UsageInfo, nil
-	})
-
-	if flightErr != nil {
-		return nil, flightErr
-	}
-	usage, ok := result.(*UsageInfo)
-	if !ok || usage == nil {
-		now := time.Now()
-		return &UsageInfo{UpdatedAt: &now}, nil
-	}
-	return usage, nil
-}
-
-// cloneAntigravityUsageWithRemaining 返回 info 的浅拷贝（含 FiveHour 副本），
-// 并在副本上重算 RemainingSeconds。缓存命中路径用它替代原地写，避免对存放在
-// 共享 sync.Map 里的 *UsageInfo 原地修改而与并发读/JSON 序列化构成 data race。
-// 其余内嵌指针（SevenDay 等）下游只读，无需深拷贝。
-func cloneAntigravityUsageWithRemaining(info *UsageInfo) *UsageInfo {
-	if info == nil {
-		return nil
-	}
-	cp := *info
-	if info.FiveHour != nil {
-		fh := *info.FiveHour
-		if fh.ResetsAt != nil {
-			remaining := int(time.Until(*fh.ResetsAt).Seconds())
-			if remaining < 0 {
-				remaining = 0
-			}
-			fh.RemainingSeconds = remaining
-		}
-		cp.FiveHour = &fh
-	}
-	return &cp
-}
-
-// antigravityCacheTTL 根据 UsageInfo 内容决定缓存 TTL
-// 403 forbidden 状态稳定，缓存与成功相同（3 分钟）；
-// 其他错误（401/网络）可能快速恢复，缓存 1 分钟。
-func antigravityCacheTTL(info *UsageInfo) time.Duration {
-	if info == nil {
-		return antigravityErrorTTL
-	}
-	if info.IsForbidden {
-		return apiCacheTTL // 封号/验证状态不会很快变
-	}
-	if info.ErrorCode != "" || info.Error != "" {
-		return antigravityErrorTTL
-	}
-	return apiCacheTTL
-}
-
-// buildAntigravityDegradedUsage 从 FetchQuota 错误构建降级 UsageInfo
-func buildAntigravityDegradedUsage(err error) *UsageInfo {
-	now := time.Now()
-	errMsg := fmt.Sprintf("usage API error: %v", err)
-	slog.Warn("antigravity usage fetch failed, returning degraded response", "error", err)
-
-	info := &UsageInfo{
-		UpdatedAt: &now,
-		Error:     errMsg,
-	}
-
-	// 从错误信息推断 error_code 和状态标记
-	// 错误格式来自 antigravity/client.go: "fetchAvailableModels 失败 (HTTP %d): ..."
-	errStr := err.Error()
-	switch {
-	case strings.Contains(errStr, "HTTP 401") ||
-		strings.Contains(errStr, "UNAUTHENTICATED") ||
-		strings.Contains(errStr, "invalid_grant"):
-		info.ErrorCode = errorCodeUnauthenticated
-		info.NeedsReauth = true
-	case strings.Contains(errStr, "HTTP 429"):
-		info.ErrorCode = errorCodeRateLimited
-	default:
-		info.ErrorCode = errorCodeNetworkError
-	}
-
-	return info
-}
-
-// enrichUsageWithAccountError 结合账号错误状态修正 UsageInfo
-// 场景 1（成功路径）：FetchAvailableModels 正常返回，但账号已因 403 被标记为 error，
-//
-//	需要在正常 usage 数据上附加 forbidden/validation 信息。
-//
-// 场景 2（降级路径）：被封号的账号 OAuth token 失效，FetchAvailableModels 返回 401，
-//
-//	降级逻辑设置了 needs_reauth，但账号实际是 403 封号/需验证，需覆盖为正确状态。
-func enrichUsageWithAccountError(info *UsageInfo, account *Account) {
-	if info == nil || account == nil || account.Status != StatusError {
-		return
-	}
-	msg := strings.ToLower(account.ErrorMessage)
-	if !strings.Contains(msg, "403") && !strings.Contains(msg, "forbidden") &&
-		!strings.Contains(msg, "violation") && !strings.Contains(msg, "validation") {
-		return
-	}
-	fbType := classifyForbiddenType(account.ErrorMessage)
-	info.IsForbidden = true
-	info.ForbiddenType = fbType
-	info.ForbiddenReason = account.ErrorMessage
-	info.NeedsVerify = fbType == forbiddenTypeValidation
-	info.IsBanned = fbType == forbiddenTypeViolation
-	info.ValidationURL = extractValidationURL(account.ErrorMessage)
-	info.ErrorCode = errorCodeForbidden
-	info.NeedsReauth = false
 }
 
 // addWindowStats 为 usage 数据添加窗口期统计

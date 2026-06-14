@@ -1,16 +1,6 @@
-package antigravity
+package gemini
 
-// Gemini v1internal 请求/响应类型定义
-
-// V1InternalRequest v1internal 请求包装
-type V1InternalRequest struct {
-	Project     string        `json:"project"`
-	RequestID   string        `json:"requestId"`
-	UserAgent   string        `json:"userAgent"`
-	RequestType string        `json:"requestType,omitempty"`
-	Model       string        `json:"model"`
-	Request     GeminiRequest `json:"request"`
-}
+// Gemini 原生协议请求/响应类型定义（平台无关，供正规 Gemini 会话/签名链复用）
 
 // GeminiRequest Gemini 请求内容
 type GeminiRequest struct {
@@ -126,13 +116,6 @@ type GeminiSafetySetting struct {
 	Threshold string `json:"threshold"`
 }
 
-// V1InternalResponse v1internal 响应包装
-type V1InternalResponse struct {
-	Response     GeminiResponse `json:"response"`
-	ResponseID   string         `json:"responseId,omitempty"`
-	ModelVersion string         `json:"modelVersion,omitempty"`
-}
-
 // GeminiResponse Gemini 响应
 type GeminiResponse struct {
 	Candidates    []GeminiCandidate    `json:"candidates,omitempty"`
@@ -193,19 +176,5 @@ type GeminiGroundingWeb struct {
 	URI   string `json:"uri,omitempty"`
 }
 
-// DefaultSafetySettings 默认安全设置（关闭所有过滤）
-var DefaultSafetySettings = []GeminiSafetySetting{
-	{Category: "HARM_CATEGORY_HARASSMENT", Threshold: "OFF"},
-	{Category: "HARM_CATEGORY_HATE_SPEECH", Threshold: "OFF"},
-	{Category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", Threshold: "OFF"},
-	{Category: "HARM_CATEGORY_DANGEROUS_CONTENT", Threshold: "OFF"},
-	{Category: "HARM_CATEGORY_CIVIC_INTEGRITY", Threshold: "OFF"},
-}
-
-// DefaultStopSequences 默认停止序列
-var DefaultStopSequences = []string{
-	"<|user|>",
-	"<|endoftext|>",
-	"<|end_of_turn|>",
-	"\n\nHuman:",
-}
+// DummyThoughtSignature 用于跳过 Gemini 3 thought_signature 验证
+const DummyThoughtSignature = "skip_thought_signature_validator"

@@ -11,7 +11,7 @@ import (
 	"unsafe"
 
 	"github.com/Wei-Shaw/sub2api/internal/domain"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/antigravity"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/gemini"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -1113,7 +1113,7 @@ func filterThinkingBlocksInternal(body []byte, _ bool) []byte {
 				// only keep thinking blocks with valid signatures
 				if thinkingEnabled && role == "assistant" {
 					signature, _ := blockMap["signature"].(string)
-					if signature != "" && signature != antigravity.DummyThoughtSignature {
+					if signature != "" && signature != gemini.DummyThoughtSignature {
 						newContent = append(newContent, block)
 						continue
 					}

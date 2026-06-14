@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"github.com/Wei-Shaw/sub2api/internal/domain"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/antigravity"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/gemini"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/googleapi"
 	pkghttputil "github.com/Wei-Shaw/sub2api/internal/pkg/httputil"
@@ -39,28 +38,14 @@ func (h *GatewayHandler) GeminiV1BetaListModels(c *gin.Context) {
 		googleError(c, http.StatusUnauthorized, "Invalid API key")
 		return
 	}
-	// 检查平台：优先使用强制平台（/antigravity 路由），否则要求 gemini 分组
-	forcePlatform, hasForcePlatform := middleware.GetForcePlatformFromContext(c)
-	if !hasForcePlatform && (apiKey.Group == nil || apiKey.Group.Platform != service.PlatformGemini) {
+	// 检查平台：要求 gemini 分组
+	if apiKey.Group == nil || apiKey.Group.Platform != service.PlatformGemini {
 		googleError(c, http.StatusBadRequest, "API key group platform is not gemini")
-		return
-	}
-
-	// 强制 antigravity 模式：返回 antigravity 支持的模型列表
-	if forcePlatform == service.PlatformAntigravity {
-		c.JSON(http.StatusOK, antigravity.FallbackGeminiModelsList())
 		return
 	}
 
 	account, err := h.geminiCompatService.SelectAccountForAIStudioEndpoints(c.Request.Context(), apiKey.GroupID)
 	if err != nil {
-		// 没有 gemini 账户，检查是否有 antigravity 账户可用
-		hasAntigravity, _ := h.geminiCompatService.HasAntigravityAccounts(c.Request.Context(), apiKey.GroupID)
-		if hasAntigravity {
-			// antigravity 账户使用静态模型列表
-			c.JSON(http.StatusOK, gemini.FallbackModelsList())
-			return
-		}
 		markOpsRoutingCapacityLimitedIfNoAvailable(c, err)
 		googleError(c, http.StatusServiceUnavailable, "No available Gemini accounts: "+err.Error())
 		return
@@ -86,9 +71,8 @@ func (h *GatewayHandler) GeminiV1BetaGetModel(c *gin.Context) {
 		googleError(c, http.StatusUnauthorized, "Invalid API key")
 		return
 	}
-	// 检查平台：优先使用强制平台（/antigravity 路由），否则要求 gemini 分组
-	forcePlatform, hasForcePlatform := middleware.GetForcePlatformFromContext(c)
-	if !hasForcePlatform && (apiKey.Group == nil || apiKey.Group.Platform != service.PlatformGemini) {
+	// 检查平台：要求 gemini 分组
+	if apiKey.Group == nil || apiKey.Group.Platform != service.PlatformGemini {
 		googleError(c, http.StatusBadRequest, "API key group platform is not gemini")
 		return
 	}
@@ -99,21 +83,8 @@ func (h *GatewayHandler) GeminiV1BetaGetModel(c *gin.Context) {
 		return
 	}
 
-	// 强制 antigravity 模式：返回 antigravity 模型信息
-	if forcePlatform == service.PlatformAntigravity {
-		c.JSON(http.StatusOK, antigravity.FallbackGeminiModel(modelName))
-		return
-	}
-
 	account, err := h.geminiCompatService.SelectAccountForAIStudioEndpoints(c.Request.Context(), apiKey.GroupID)
 	if err != nil {
-		// 没有 gemini 账户，检查是否有 antigravity 账户可用
-		hasAntigravity, _ := h.geminiCompatService.HasAntigravityAccounts(c.Request.Context(), apiKey.GroupID)
-		if hasAntigravity {
-			// antigravity 账户使用静态模型信息
-			c.JSON(http.StatusOK, gemini.FallbackModel(modelName))
-			return
-		}
 		markOpsRoutingCapacityLimitedIfNoAvailable(c, err)
 		googleError(c, http.StatusServiceUnavailable, "No available Gemini accounts: "+err.Error())
 		return
@@ -301,7 +272,7 @@ func (h *GatewayHandler) GeminiV1BetaModels(c *gin.Context) {
 
 	if useDigestFallback {
 		// 解析 Gemini 请求体
-		var geminiReq antigravity.GeminiRequest
+		var geminiReq gemini.GeminiRequest
 		if err := json.Unmarshal(body, &geminiReq); err == nil && len(geminiReq.Contents) > 0 {
 			// 生成摘要链
 			geminiDigestChain = service.BuildGeminiDigestChain(&geminiReq)
@@ -362,13 +333,6 @@ func (h *GatewayHandler) GeminiV1BetaModels(c *gin.Context) {
 	cleanedForUnknownBinding := false
 
 	fs := NewFailoverState(h.maxAccountSwitchesGemini, hasBoundSession)
-
-	// 单账号分组提前设置 SingleAccountRetry 标记，让 Service 层首次 503 就不设模型限流标记。
-	// 避免单账号分组收到 503 (MODEL_CAPACITY_EXHAUSTED) 时设 29s 限流，导致后续请求连续快速失败。
-	if h.gatewayService.IsSingleAntigravityAccountGroup(c.Request.Context(), apiKey.GroupID) {
-		ctx := service.WithSingleAccountRetry(c.Request.Context(), true, h.metadataBridgeEnabled())
-		c.Request = c.Request.WithContext(ctx)
-	}
 
 	for {
 		selection, err := h.gatewayService.SelectAccountWithLoadAwareness(c.Request.Context(), apiKey.GroupID, sessionKey, modelName, fs.FailedAccountIDs, "", int64(0)) // Gemini 不使用会话限制
@@ -508,23 +472,8 @@ func (h *GatewayHandler) GeminiV1BetaModels(c *gin.Context) {
 			return
 		}
 
-		// native 路径：gemini_v1beta → gemini_v1beta（原有平台分流逻辑不变）
-		sessionGroupID := derefGroupID(apiKey.GroupID)
-		if account.Platform == service.PlatformAntigravity && account.Type != service.AccountTypeAPIKey {
-			result, err = h.antigravityGatewayService.ForwardGemini(
-				requestCtx,
-				c,
-				account,
-				modelName,
-				action,
-				stream,
-				body,
-				hasBoundSession,
-				service.WithForwardGeminiSession(sessionGroupID, sessionKey),
-			)
-		} else {
-			result, err = h.geminiCompatService.ForwardNative(requestCtx, c, account, modelName, action, stream, body)
-		}
+		// native 路径：gemini_v1beta → gemini_v1beta
+		result, err = h.geminiCompatService.ForwardNative(requestCtx, c, account, modelName, action, stream, body)
 		if accountReleaseFunc != nil {
 			accountReleaseFunc()
 		}

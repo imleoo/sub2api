@@ -26,7 +26,7 @@ func TestBuildV1ModelsURL(t *testing.T) {
 	require.Equal(t, "https://api.anthropic.com/v1/models", buildV1ModelsURL("https://api.anthropic.com"))
 	require.Equal(t, "https://api.anthropic.com/v1/models", buildV1ModelsURL("https://api.anthropic.com/v1"))
 	require.Equal(t, "https://api.anthropic.com/v1/models", buildV1ModelsURL("https://api.anthropic.com/v1/models"))
-	require.Equal(t, "https://gateway.example.com/antigravity/v1/models", buildV1ModelsURL("https://gateway.example.com/antigravity/"))
+	require.Equal(t, "https://gateway.example.com/proxy/v1/models", buildV1ModelsURL("https://gateway.example.com/proxy/"))
 }
 
 func TestBuildGeminiModelsURL(t *testing.T) {
@@ -116,38 +116,6 @@ func TestBuildUpstreamModelsRequestsForAPIKeyAccounts(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "https://generativelanguage.googleapis.com/v1beta/models", geminiReq.URL.String())
 	require.Equal(t, "gemini-key", geminiReq.Header.Get("x-goog-api-key"))
-
-	antigravityReq, err := svc.buildAntigravityAPIKeyModelsRequest(ctx, &Account{
-		Platform: PlatformAntigravity,
-		Type:     AccountTypeAPIKey,
-		Credentials: map[string]any{
-			"api_key":  "antigravity-key",
-			"base_url": "https://gateway.example.com/antigravity",
-		},
-	})
-	require.NoError(t, err)
-	require.Equal(t, "https://gateway.example.com/antigravity/v1/models", antigravityReq.URL.String())
-	require.Equal(t, "antigravity-key", antigravityReq.Header.Get("x-api-key"))
-}
-
-func TestBuildAntigravityAPIKeyModelsRequestRejectsOfficialCloudCodeBase(t *testing.T) {
-	t.Parallel()
-
-	svc := &AccountTestService{cfg: upstreamModelSyncTestConfig()}
-	_, err := svc.buildAntigravityAPIKeyModelsRequest(context.Background(), &Account{
-		Platform: PlatformAntigravity,
-		Type:     AccountTypeAPIKey,
-		Credentials: map[string]any{
-			"api_key":  "antigravity-key",
-			"base_url": "https://cloudcode-pa.googleapis.com",
-		},
-	})
-	require.Error(t, err)
-
-	var syncErr *UpstreamModelSyncError
-	require.True(t, errors.As(err, &syncErr))
-	require.Equal(t, UpstreamModelSyncErrorUnsupported, syncErr.Kind)
-	require.Contains(t, syncErr.SafeMessage(), "compatible gateway")
 }
 
 func TestBuildAnthropicUpstreamModelsRequestRejectsBedrock(t *testing.T) {

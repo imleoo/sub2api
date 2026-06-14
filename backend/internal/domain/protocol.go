@@ -40,10 +40,9 @@ func IsValidProtocol(s string) bool {
 // 用于 Group.inbound_protocol 为空时按 Group.platform 推断。这是 Phase 2 双写期的
 // 兼容兜底；Phase 5 切单桶后将废弃。
 var platformDefaultInboundProtocol = map[string]string{
-	PlatformAnthropic:   ProtocolAnthropicMessages,
-	PlatformOpenAI:      ProtocolOpenAIChat,
-	PlatformGemini:      ProtocolGeminiV1Beta,
-	PlatformAntigravity: ProtocolAnthropicMessages, // antigravity 入站走 Anthropic Messages
+	PlatformAnthropic: ProtocolAnthropicMessages,
+	PlatformOpenAI:    ProtocolOpenAIChat,
+	PlatformGemini:    ProtocolGeminiV1Beta,
 	// lingjing 不走通用 inbound 路由（自带 /lingjing/v1/video/* 专用路由组），保持空
 }
 
@@ -66,10 +65,9 @@ func ResolveInboundProtocol(inboundProtocol, platform string) string {
 // 注意：OpenAI 账号实际上 outbound 既可以是 openai_chat 又可以是 openai_responses，
 // 这里只给出"无能力探测时"的默认值（openai_chat 最保守）。能力探测在 Phase 3 P3-6 落地。
 var platformDefaultOutboundProtocol = map[string]string{
-	PlatformAnthropic:   ProtocolAnthropicMessages,
-	PlatformOpenAI:      ProtocolOpenAIChat,
-	PlatformGemini:      ProtocolGeminiV1Beta,
-	PlatformAntigravity: ProtocolAnthropicMessages,
+	PlatformAnthropic: ProtocolAnthropicMessages,
+	PlatformOpenAI:    ProtocolOpenAIChat,
+	PlatformGemini:    ProtocolGeminiV1Beta,
 }
 
 // ResolveOutboundProtocol 派生 Account 的 outbound_protocol（语义同 ResolveInboundProtocol）。

@@ -157,7 +157,6 @@ type SystemSettings struct {
 	FallbackModelAnthropic   string `json:"fallback_model_anthropic"`
 	FallbackModelOpenAI      string `json:"fallback_model_openai"`
 	FallbackModelGemini      string `json:"fallback_model_gemini"`
-	FallbackModelAntigravity string `json:"fallback_model_antigravity"`
 
 	// Identity patch configuration (Claude -> Gemini)
 	EnableIdentityPatch bool   `json:"enable_identity_patch"`
@@ -184,7 +183,6 @@ type SystemSettings struct {
 	EnableCCHSigning                   bool   `json:"enable_cch_signing"`
 	EnableAnthropicCacheTTL1hInjection bool   `json:"enable_anthropic_cache_ttl_1h_injection"`
 	RewriteMessageCacheControl         bool   `json:"rewrite_message_cache_control"`
-	AntigravityUserAgentVersion        string `json:"antigravity_user_agent_version"`
 	OpenAICodexUserAgent               string `json:"openai_codex_user_agent"`
 	OpenAIAllowClaudeCodeCodexPlugin   bool   `json:"openai_allow_claude_code_codex_plugin"`
 

@@ -18,8 +18,6 @@ func platformToProtocol(platform string) string {
 		return domain.ProtocolOpenAIChat
 	case PlatformGemini:
 		return domain.ProtocolGeminiV1Beta
-	case PlatformAntigravity:
-		return domain.ProtocolAnthropicMessages
 	case PlatformLingjing, PlatformGeneric:
 		// lingjing/generic 不参与双桶比较（lingjing 是异步任务；generic 通过 Endpoint 实体路由）
 		return ""

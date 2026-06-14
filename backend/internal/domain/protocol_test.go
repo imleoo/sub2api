@@ -69,7 +69,6 @@ func TestResolveInboundProtocol_FallsBackToPlatform(t *testing.T) {
 		"anthropic":   "anthropic_messages",
 		"openai":      "openai_chat",
 		"gemini":      "gemini_v1beta",
-		"antigravity": "anthropic_messages", // antigravity 入站走 Anthropic Messages
 		"lingjing":    "",                   // lingjing 不走通用 inbound 路由
 		"unknown":     "",                   // 未登记 platform 返回空（调用方应回退）
 	}
@@ -85,7 +84,6 @@ func TestResolveOutboundProtocol_FallsBackToPlatform(t *testing.T) {
 		"anthropic":   "anthropic_messages",
 		"openai":      "openai_chat", // 保守默认；Phase 3 P3-6 能力探测可升级到 openai_responses
 		"gemini":      "gemini_v1beta",
-		"antigravity": "anthropic_messages",
 		"lingjing":    "",
 		"unknown":     "",
 	}

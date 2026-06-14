@@ -705,64 +705,6 @@ func TestGeminiMessagesCompatService_SelectAccountForModelWithExclusions_NoModel
 	require.Contains(t, err.Error(), "supporting model")
 }
 
-func TestGeminiMessagesCompatService_SelectAccountForModelWithExclusions_StickyMixedScheduling(t *testing.T) {
-	ctx := context.Background()
-	repo := &mockAccountRepoForGemini{
-		accounts: []Account{
-			{ID: 1, Platform: PlatformAntigravity, Priority: 1, Status: StatusActive, Schedulable: true, Extra: map[string]any{"mixed_scheduling": true}},
-			{ID: 2, Platform: PlatformGemini, Priority: 2, Status: StatusActive, Schedulable: true},
-		},
-		accountsByID: map[int64]*Account{},
-	}
-	for i := range repo.accounts {
-		repo.accountsByID[repo.accounts[i].ID] = &repo.accounts[i]
-	}
-
-	cache := &mockGatewayCacheForGemini{
-		sessionBindings: map[string]int64{"gemini:session-999": 1},
-	}
-	groupRepo := &mockGroupRepoForGemini{groups: map[int64]*Group{}}
-
-	svc := &GeminiMessagesCompatService{
-		accountRepo: repo,
-		groupRepo:   groupRepo,
-		cache:       cache,
-	}
-
-	acc, err := svc.SelectAccountForModelWithExclusions(ctx, nil, "session-999", "gemini-2.5-flash", nil)
-	require.NoError(t, err)
-	require.NotNil(t, acc)
-	require.Equal(t, int64(1), acc.ID)
-}
-
-func TestGeminiMessagesCompatService_SelectAccountForModelWithExclusions_SkipDisabledMixedScheduling(t *testing.T) {
-	ctx := context.Background()
-	repo := &mockAccountRepoForGemini{
-		accounts: []Account{
-			{ID: 1, Platform: PlatformAntigravity, Priority: 1, Status: StatusActive, Schedulable: true},
-			{ID: 2, Platform: PlatformGemini, Priority: 2, Status: StatusActive, Schedulable: true},
-		},
-		accountsByID: map[int64]*Account{},
-	}
-	for i := range repo.accounts {
-		repo.accountsByID[repo.accounts[i].ID] = &repo.accounts[i]
-	}
-
-	cache := &mockGatewayCacheForGemini{}
-	groupRepo := &mockGroupRepoForGemini{groups: map[int64]*Group{}}
-
-	svc := &GeminiMessagesCompatService{
-		accountRepo: repo,
-		groupRepo:   groupRepo,
-		cache:       cache,
-	}
-
-	acc, err := svc.SelectAccountForModelWithExclusions(ctx, nil, "", "gemini-2.5-flash", nil)
-	require.NoError(t, err)
-	require.NotNil(t, acc)
-	require.Equal(t, int64(2), acc.ID)
-}
-
 func TestGeminiMessagesCompatService_SelectAccountForModelWithExclusions_ExcludedAccount(t *testing.T) {
 	ctx := context.Background()
 	repo := &mockAccountRepoForGemini{
@@ -920,33 +862,21 @@ func TestGeminiMessagesCompatService_isModelSupportedByAccount(t *testing.T) {
 		expected bool
 	}{
 		{
-			name:     "Antigravity平台-支持gemini模型",
-			account:  &Account{Platform: PlatformAntigravity},
+			name:     "Gemini平台-无映射配置-支持所有模型",
+			account:  &Account{Platform: PlatformGemini},
 			model:    "gemini-2.5-flash",
 			expected: true,
 		},
 		{
-			name:     "Antigravity平台-支持claude模型",
-			account:  &Account{Platform: PlatformAntigravity},
-			model:    "claude-sonnet-4-5",
-			expected: true,
-		},
-		{
-			name:     "Antigravity平台-不支持gpt模型",
-			account:  &Account{Platform: PlatformAntigravity},
-			model:    "gpt-4",
-			expected: false,
-		},
-		{
-			name:     "Antigravity平台-空模型允许",
-			account:  &Account{Platform: PlatformAntigravity},
+			name:     "Gemini平台-空模型允许",
+			account:  &Account{Platform: PlatformGemini},
 			model:    "",
 			expected: true,
 		},
 		{
-			name: "Antigravity平台-自定义映射-支持自定义模型",
+			name: "Gemini平台-自定义映射-支持自定义模型",
 			account: &Account{
-				Platform: PlatformAntigravity,
+				Platform: PlatformGemini,
 				Credentials: map[string]any{
 					"model_mapping": map[string]any{
 						"my-custom-model": "upstream-model",
@@ -958,9 +888,9 @@ func TestGeminiMessagesCompatService_isModelSupportedByAccount(t *testing.T) {
 			expected: true,
 		},
 		{
-			name: "Antigravity平台-自定义映射-不在映射中的模型不支持",
+			name: "Gemini平台-自定义映射-不在映射中的模型不支持",
 			account: &Account{
-				Platform: PlatformAntigravity,
+				Platform: PlatformGemini,
 				Credentials: map[string]any{
 					"model_mapping": map[string]any{
 						"my-custom-model": "upstream-model",
@@ -969,12 +899,6 @@ func TestGeminiMessagesCompatService_isModelSupportedByAccount(t *testing.T) {
 			},
 			model:    "claude-sonnet-4-5",
 			expected: false,
-		},
-		{
-			name:     "Gemini平台-无映射配置-支持所有模型",
-			account:  &Account{Platform: PlatformGemini},
-			model:    "gemini-2.5-flash",
-			expected: true,
 		},
 		{
 			name: "Gemini平台-有映射配置-只支持配置的模型",

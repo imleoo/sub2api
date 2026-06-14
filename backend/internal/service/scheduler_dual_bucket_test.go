@@ -15,7 +15,6 @@ func TestPlatformToProtocol(t *testing.T) {
 		{PlatformAnthropic, domain.ProtocolAnthropicMessages},
 		{PlatformOpenAI, domain.ProtocolOpenAIChat},
 		{PlatformGemini, domain.ProtocolGeminiV1Beta},
-		{PlatformAntigravity, domain.ProtocolAnthropicMessages},
 		{PlatformLingjing, ""},  // lingjing 不参与双桶
 		{PlatformGeneric, ""},   // generic 通过 Endpoint 实体路由，不参与双桶
 		{"unknown", ""},         // 未知 platform 不参与

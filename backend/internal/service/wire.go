@@ -8,7 +8,6 @@ import (
 	dbent "github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/payment"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/antigravity"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 	"github.com/google/wire"
 	"github.com/redis/go-redis/v9"
@@ -55,15 +54,6 @@ func ProvideGeminiTokenProvider(
 	tokenCache GeminiTokenCache,
 ) *GeminiTokenProvider {
 	return NewGeminiTokenProvider(accountRepo, tokenCache)
-}
-
-// ProvideAntigravityTokenProvider creates AntigravityTokenProvider
-func ProvideAntigravityTokenProvider(
-	accountRepo AccountRepository,
-	tokenCache GeminiTokenCache,
-	tempUnschedCache TempUnschedCache,
-) *AntigravityTokenProvider {
-	return NewAntigravityTokenProvider(accountRepo, tokenCache)
 }
 
 // ProvideDashboardAggregationService 创建并启动仪表盘聚合服务
@@ -355,7 +345,6 @@ func ProvideOpsService(
 	gatewayService *GatewayService,
 	openAIGatewayService *OpenAIGatewayService,
 	geminiCompatService *GeminiMessagesCompatService,
-	antigravityGatewayService *AntigravityGatewayService,
 	systemLogSink *OpsSystemLogSink,
 	settingService *SettingService,
 ) *OpsService {
@@ -369,7 +358,6 @@ func ProvideOpsService(
 		gatewayService,
 		openAIGatewayService,
 		geminiCompatService,
-		antigravityGatewayService,
 		systemLogSink,
 	)
 	if settingService != nil {
@@ -389,7 +377,6 @@ func ProvideSettingService(settingRepo SettingRepository, groupRepo GroupReposit
 	if err := svc.LoadAPIKeyACLTrustForwardedIPSetting(context.Background()); err != nil {
 		logger.LegacyPrintf("service.setting", "Warning: load api key acl forwarded ip setting failed: %v", err)
 	}
-	antigravity.SetUserAgentVersionResolver(svc.GetAntigravityUserAgentVersion)
 	return svc
 }
 
@@ -451,9 +438,7 @@ var ProviderSet = wire.NewSet(
 	NewGeminiQuotaService,
 	ProvideGeminiTokenProvider,
 	NewGeminiMessagesCompatService,
-	ProvideAntigravityTokenProvider,
 	ProvideClaudeTokenProvider,
-	NewAntigravityGatewayService,
 	ProvideRateLimitService,
 	NewAccountUsageService,
 	NewAccountTestService,
@@ -487,7 +472,6 @@ var ProviderSet = wire.NewSet(
 	ProvideDashboardAggregationService,
 	ProvideUsageCleanupService,
 	ProvideDeferredService,
-	NewAntigravityQuotaFetcher,
 	NewUserAttributeService,
 	NewUsageCache,
 	NewTotpService,

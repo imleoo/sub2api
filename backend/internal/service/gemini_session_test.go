@@ -3,7 +3,7 @@ package service
 import (
 	"testing"
 
-	"github.com/Wei-Shaw/sub2api/internal/pkg/antigravity"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/gemini"
 )
 
 func TestShortHash(t *testing.T) {
@@ -35,7 +35,7 @@ func TestShortHash(t *testing.T) {
 func TestBuildGeminiDigestChain(t *testing.T) {
 	tests := []struct {
 		name     string
-		req      *antigravity.GeminiRequest
+		req      *gemini.GeminiRequest
 		wantLen  int  // 预期的分段数量
 		hasEmpty bool // 是否应该是空字符串
 	}{
@@ -46,54 +46,54 @@ func TestBuildGeminiDigestChain(t *testing.T) {
 		},
 		{
 			name: "empty contents",
-			req: &antigravity.GeminiRequest{
-				Contents: []antigravity.GeminiContent{},
+			req: &gemini.GeminiRequest{
+				Contents: []gemini.GeminiContent{},
 			},
 			hasEmpty: true,
 		},
 		{
 			name: "single user message",
-			req: &antigravity.GeminiRequest{
-				Contents: []antigravity.GeminiContent{
-					{Role: "user", Parts: []antigravity.GeminiPart{{Text: "hello"}}},
+			req: &gemini.GeminiRequest{
+				Contents: []gemini.GeminiContent{
+					{Role: "user", Parts: []gemini.GeminiPart{{Text: "hello"}}},
 				},
 			},
 			wantLen: 1, // u:<hash>
 		},
 		{
 			name: "user and model messages",
-			req: &antigravity.GeminiRequest{
-				Contents: []antigravity.GeminiContent{
-					{Role: "user", Parts: []antigravity.GeminiPart{{Text: "hello"}}},
-					{Role: "model", Parts: []antigravity.GeminiPart{{Text: "hi there"}}},
+			req: &gemini.GeminiRequest{
+				Contents: []gemini.GeminiContent{
+					{Role: "user", Parts: []gemini.GeminiPart{{Text: "hello"}}},
+					{Role: "model", Parts: []gemini.GeminiPart{{Text: "hi there"}}},
 				},
 			},
 			wantLen: 2, // u:<hash>-m:<hash>
 		},
 		{
 			name: "with system instruction",
-			req: &antigravity.GeminiRequest{
-				SystemInstruction: &antigravity.GeminiContent{
+			req: &gemini.GeminiRequest{
+				SystemInstruction: &gemini.GeminiContent{
 					Role:  "user",
-					Parts: []antigravity.GeminiPart{{Text: "You are a helpful assistant"}},
+					Parts: []gemini.GeminiPart{{Text: "You are a helpful assistant"}},
 				},
-				Contents: []antigravity.GeminiContent{
-					{Role: "user", Parts: []antigravity.GeminiPart{{Text: "hello"}}},
+				Contents: []gemini.GeminiContent{
+					{Role: "user", Parts: []gemini.GeminiPart{{Text: "hello"}}},
 				},
 			},
 			wantLen: 2, // s:<hash>-u:<hash>
 		},
 		{
 			name: "conversation with system",
-			req: &antigravity.GeminiRequest{
-				SystemInstruction: &antigravity.GeminiContent{
+			req: &gemini.GeminiRequest{
+				SystemInstruction: &gemini.GeminiContent{
 					Role:  "user",
-					Parts: []antigravity.GeminiPart{{Text: "System prompt"}},
+					Parts: []gemini.GeminiPart{{Text: "System prompt"}},
 				},
-				Contents: []antigravity.GeminiContent{
-					{Role: "user", Parts: []antigravity.GeminiPart{{Text: "hello"}}},
-					{Role: "model", Parts: []antigravity.GeminiPart{{Text: "hi"}}},
-					{Role: "user", Parts: []antigravity.GeminiPart{{Text: "how are you?"}}},
+				Contents: []gemini.GeminiContent{
+					{Role: "user", Parts: []gemini.GeminiPart{{Text: "hello"}}},
+					{Role: "model", Parts: []gemini.GeminiPart{{Text: "hi"}}},
+					{Role: "user", Parts: []gemini.GeminiPart{{Text: "how are you?"}}},
 				},
 			},
 			wantLen: 4, // s:<hash>-u:<hash>-m:<hash>-u:<hash>
@@ -132,9 +132,9 @@ func TestBuildGeminiDigestChain(t *testing.T) {
 }
 
 func TestGenerateGeminiPrefixHash(t *testing.T) {
-	hash1 := GenerateGeminiPrefixHash(1, 100, "192.168.1.1", "Mozilla/5.0", "antigravity", "gemini-2.5-pro")
-	hash2 := GenerateGeminiPrefixHash(1, 100, "192.168.1.1", "Mozilla/5.0", "antigravity", "gemini-2.5-pro")
-	hash3 := GenerateGeminiPrefixHash(2, 100, "192.168.1.1", "Mozilla/5.0", "antigravity", "gemini-2.5-pro")
+	hash1 := GenerateGeminiPrefixHash(1, 100, "192.168.1.1", "Mozilla/5.0", "gemini", "gemini-2.5-pro")
+	hash2 := GenerateGeminiPrefixHash(1, 100, "192.168.1.1", "Mozilla/5.0", "gemini", "gemini-2.5-pro")
+	hash3 := GenerateGeminiPrefixHash(2, 100, "192.168.1.1", "Mozilla/5.0", "gemini", "gemini-2.5-pro")
 
 	// 相同输入应该产生相同输出
 	if hash1 != hash2 {
@@ -153,8 +153,8 @@ func TestGenerateGeminiPrefixHash(t *testing.T) {
 }
 
 func TestGenerateGeminiPrefixHash_IgnoresUserAgentVersionNoise(t *testing.T) {
-	hash1 := GenerateGeminiPrefixHash(1, 100, "192.168.1.1", "Mozilla/5.0 codex_cli_rs/0.1.0", "antigravity", "gemini-2.5-pro")
-	hash2 := GenerateGeminiPrefixHash(1, 100, "192.168.1.1", "Mozilla/5.0 codex_cli_rs/0.1.1", "antigravity", "gemini-2.5-pro")
+	hash1 := GenerateGeminiPrefixHash(1, 100, "192.168.1.1", "Mozilla/5.0 codex_cli_rs/0.1.0", "gemini", "gemini-2.5-pro")
+	hash2 := GenerateGeminiPrefixHash(1, 100, "192.168.1.1", "Mozilla/5.0 codex_cli_rs/0.1.1", "gemini", "gemini-2.5-pro")
 
 	if hash1 != hash2 {
 		t.Fatalf("version-only User-Agent changes should not perturb Gemini prefix hash: %s vs %s", hash1, hash2)
@@ -162,8 +162,8 @@ func TestGenerateGeminiPrefixHash_IgnoresUserAgentVersionNoise(t *testing.T) {
 }
 
 func TestGenerateGeminiPrefixHash_IgnoresFreeformUserAgentVersionNoise(t *testing.T) {
-	hash1 := GenerateGeminiPrefixHash(1, 100, "192.168.1.1", "Codex CLI 0.1.0", "antigravity", "gemini-2.5-pro")
-	hash2 := GenerateGeminiPrefixHash(1, 100, "192.168.1.1", "Codex CLI 0.1.1", "antigravity", "gemini-2.5-pro")
+	hash1 := GenerateGeminiPrefixHash(1, 100, "192.168.1.1", "Codex CLI 0.1.0", "gemini", "gemini-2.5-pro")
+	hash2 := GenerateGeminiPrefixHash(1, 100, "192.168.1.1", "Codex CLI 0.1.1", "gemini", "gemini-2.5-pro")
 
 	if hash1 != hash2 {
 		t.Fatalf("free-form version-only User-Agent changes should not perturb Gemini prefix hash: %s vs %s", hash1, hash2)
@@ -266,21 +266,21 @@ func splitChain(chain string) []string {
 }
 
 func TestDigestChainDifferentSysInstruction(t *testing.T) {
-	req1 := &antigravity.GeminiRequest{
-		SystemInstruction: &antigravity.GeminiContent{
-			Parts: []antigravity.GeminiPart{{Text: "SYS_ORIGINAL"}},
+	req1 := &gemini.GeminiRequest{
+		SystemInstruction: &gemini.GeminiContent{
+			Parts: []gemini.GeminiPart{{Text: "SYS_ORIGINAL"}},
 		},
-		Contents: []antigravity.GeminiContent{
-			{Role: "user", Parts: []antigravity.GeminiPart{{Text: "hello"}}},
+		Contents: []gemini.GeminiContent{
+			{Role: "user", Parts: []gemini.GeminiPart{{Text: "hello"}}},
 		},
 	}
 
-	req2 := &antigravity.GeminiRequest{
-		SystemInstruction: &antigravity.GeminiContent{
-			Parts: []antigravity.GeminiPart{{Text: "SYS_MODIFIED"}},
+	req2 := &gemini.GeminiRequest{
+		SystemInstruction: &gemini.GeminiContent{
+			Parts: []gemini.GeminiPart{{Text: "SYS_MODIFIED"}},
 		},
-		Contents: []antigravity.GeminiContent{
-			{Role: "user", Parts: []antigravity.GeminiPart{{Text: "hello"}}},
+		Contents: []gemini.GeminiContent{
+			{Role: "user", Parts: []gemini.GeminiPart{{Text: "hello"}}},
 		},
 	}
 
@@ -296,19 +296,19 @@ func TestDigestChainDifferentSysInstruction(t *testing.T) {
 }
 
 func TestDigestChainTamperedMiddleContent(t *testing.T) {
-	req1 := &antigravity.GeminiRequest{
-		Contents: []antigravity.GeminiContent{
-			{Role: "user", Parts: []antigravity.GeminiPart{{Text: "hello"}}},
-			{Role: "model", Parts: []antigravity.GeminiPart{{Text: "ORIGINAL_REPLY"}}},
-			{Role: "user", Parts: []antigravity.GeminiPart{{Text: "next"}}},
+	req1 := &gemini.GeminiRequest{
+		Contents: []gemini.GeminiContent{
+			{Role: "user", Parts: []gemini.GeminiPart{{Text: "hello"}}},
+			{Role: "model", Parts: []gemini.GeminiPart{{Text: "ORIGINAL_REPLY"}}},
+			{Role: "user", Parts: []gemini.GeminiPart{{Text: "next"}}},
 		},
 	}
 
-	req2 := &antigravity.GeminiRequest{
-		Contents: []antigravity.GeminiContent{
-			{Role: "user", Parts: []antigravity.GeminiPart{{Text: "hello"}}},
-			{Role: "model", Parts: []antigravity.GeminiPart{{Text: "TAMPERED_REPLY"}}},
-			{Role: "user", Parts: []antigravity.GeminiPart{{Text: "next"}}},
+	req2 := &gemini.GeminiRequest{
+		Contents: []gemini.GeminiContent{
+			{Role: "user", Parts: []gemini.GeminiPart{{Text: "hello"}}},
+			{Role: "model", Parts: []gemini.GeminiPart{{Text: "TAMPERED_REPLY"}}},
+			{Role: "user", Parts: []gemini.GeminiPart{{Text: "next"}}},
 		},
 	}
 

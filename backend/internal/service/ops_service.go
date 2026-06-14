@@ -35,7 +35,6 @@ type OpsService struct {
 	gatewayService            *GatewayService
 	openAIGatewayService      *OpenAIGatewayService
 	geminiCompatService       *GeminiMessagesCompatService
-	antigravityGatewayService *AntigravityGatewayService
 	systemLogSink             *OpsSystemLogSink
 
 	// cleanupReloader 由 wire 在 OpsCleanupService 构造完成后通过 SetCleanupReloader 注入。
@@ -82,7 +81,6 @@ func NewOpsService(
 	gatewayService *GatewayService,
 	openAIGatewayService *OpenAIGatewayService,
 	geminiCompatService *GeminiMessagesCompatService,
-	antigravityGatewayService *AntigravityGatewayService,
 	systemLogSink *OpsSystemLogSink,
 ) *OpsService {
 	svc := &OpsService{
@@ -97,7 +95,6 @@ func NewOpsService(
 		gatewayService:            gatewayService,
 		openAIGatewayService:      openAIGatewayService,
 		geminiCompatService:       geminiCompatService,
-		antigravityGatewayService: antigravityGatewayService,
 		systemLogSink:             systemLogSink,
 	}
 	svc.applyRuntimeLogConfigOnStartup(context.Background())

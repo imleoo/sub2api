@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/antigravity"
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 	"github.com/imroc/req/v3"
 	"golang.org/x/sync/singleflight"
@@ -118,15 +117,6 @@ const gatewayForwardingCacheTTL = 60 * time.Second
 const gatewayForwardingErrorTTL = 5 * time.Second
 const gatewayForwardingDBTimeout = 5 * time.Second
 
-// cachedAntigravityUserAgentVersion 缓存 Antigravity UA 版本号（进程内缓存，60s TTL）
-type cachedAntigravityUserAgentVersion struct {
-	version   string
-	expiresAt int64 // unix nano
-}
-
-const antigravityUserAgentVersionCacheTTL = 60 * time.Second
-const antigravityUserAgentVersionErrorTTL = 5 * time.Second
-const antigravityUserAgentVersionDBTimeout = 5 * time.Second
 
 // DefaultOpenAICodexUserAgent OpenAI Codex 默认 User-Agent（用于规避 Cloudflare 对浏览器 UA 的质询）
 const DefaultOpenAICodexUserAgent = "codex-tui/0.125.0 (Ubuntu 22.4.0; x86_64) xterm-256color (codex-tui; 0.125.0)"
@@ -181,8 +171,6 @@ type SettingService struct {
 	onUpdate                    func() // Callback when settings are updated (for cache invalidation)
 	version                     string // Application version
 	webSearchManagerBuilder     WebSearchManagerBuilder
-	antigravityUAVersionCache   atomic.Value // *cachedAntigravityUserAgentVersion
-	antigravityUAVersionSF      singleflight.Group
 	openAICodexUACache          atomic.Value // *cachedOpenAICodexUserAgent
 	openAICodexUASF             singleflight.Group
 	openAIAllowCodexPluginCache atomic.Value // *cachedOpenAIAllowCodexPlugin
@@ -989,55 +977,6 @@ func (s *SettingService) IsUserErrorViewAllowed(ctx context.Context) bool {
 		return false
 	}
 	return vals[SettingKeyAllowUserViewErrorRequests] == "true"
-}
-
-// GetAntigravityUserAgentVersion 返回 Antigravity 上游请求使用的版本号。
-// 后台设置优先；为空、缺失或非法时回退到 ANTIGRAVITY_USER_AGENT_VERSION / 内置默认值。
-func (s *SettingService) GetAntigravityUserAgentVersion(ctx context.Context) string {
-	fallback := antigravity.GetDefaultUserAgentVersion()
-	if s == nil || s.settingRepo == nil {
-		return fallback
-	}
-	if cached, ok := s.antigravityUAVersionCache.Load().(*cachedAntigravityUserAgentVersion); ok && cached != nil {
-		if time.Now().UnixNano() < cached.expiresAt {
-			return cached.version
-		}
-	}
-
-	result, _, _ := s.antigravityUAVersionSF.Do("antigravity_user_agent_version", func() (any, error) {
-		if cached, ok := s.antigravityUAVersionCache.Load().(*cachedAntigravityUserAgentVersion); ok && cached != nil {
-			if time.Now().UnixNano() < cached.expiresAt {
-				return cached.version, nil
-			}
-		}
-		if ctx == nil {
-			ctx = context.Background()
-		}
-		dbCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), antigravityUserAgentVersionDBTimeout)
-		defer cancel()
-		value, err := s.settingRepo.GetValue(dbCtx, SettingKeyAntigravityUserAgentVersion)
-		if err != nil && !errors.Is(err, ErrSettingNotFound) {
-			slog.Warn("failed to get antigravity user agent version setting", "error", err)
-			s.antigravityUAVersionCache.Store(&cachedAntigravityUserAgentVersion{
-				version:   fallback,
-				expiresAt: time.Now().Add(antigravityUserAgentVersionErrorTTL).UnixNano(),
-			})
-			return fallback, nil
-		}
-		version := antigravity.NormalizeUserAgentVersion(value)
-		if version == "" {
-			version = fallback
-		}
-		s.antigravityUAVersionCache.Store(&cachedAntigravityUserAgentVersion{
-			version:   version,
-			expiresAt: time.Now().Add(antigravityUserAgentVersionCacheTTL).UnixNano(),
-		})
-		return version, nil
-	})
-	if version, ok := result.(string); ok && version != "" {
-		return version
-	}
-	return fallback
 }
 
 // GetOpenAICodexUserAgent 返回 OpenAI Codex 上游请求使用的 User-Agent。
@@ -1913,7 +1852,6 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	updates[SettingKeyFallbackModelAnthropic] = settings.FallbackModelAnthropic
 	updates[SettingKeyFallbackModelOpenAI] = settings.FallbackModelOpenAI
 	updates[SettingKeyFallbackModelGemini] = settings.FallbackModelGemini
-	updates[SettingKeyFallbackModelAntigravity] = settings.FallbackModelAntigravity
 
 	// Identity patch configuration (Claude -> Gemini)
 	updates[SettingKeyEnableIdentityPatch] = strconv.FormatBool(settings.EnableIdentityPatch)
@@ -1958,7 +1896,6 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	updates[SettingKeyEnableCCHSigning] = strconv.FormatBool(settings.EnableCCHSigning)
 	updates[SettingKeyEnableAnthropicCacheTTL1hInjection] = strconv.FormatBool(settings.EnableAnthropicCacheTTL1hInjection)
 	updates[SettingKeyRewriteMessageCacheControl] = strconv.FormatBool(settings.RewriteMessageCacheControl)
-	updates[SettingKeyAntigravityUserAgentVersion] = antigravity.NormalizeUserAgentVersion(settings.AntigravityUserAgentVersion)
 	updates[SettingKeyOpenAICodexUserAgent] = strings.TrimSpace(settings.OpenAICodexUserAgent)
 	updates[SettingKeyOpenAIAllowClaudeCodeCodexPlugin] = strconv.FormatBool(settings.OpenAIAllowClaudeCodeCodexPlugin)
 	updates[SettingPaymentVisibleMethodAlipaySource] = settings.PaymentVisibleMethodAlipaySource
@@ -2130,15 +2067,6 @@ func (s *SettingService) refreshCachedSettings(settings *SystemSettings) {
 		anthropicCacheTTL1hInjection: settings.EnableAnthropicCacheTTL1hInjection,
 		rewriteMessageCacheControl:   settings.RewriteMessageCacheControl,
 		expiresAt:                    time.Now().Add(gatewayForwardingCacheTTL).UnixNano(),
-	})
-	s.antigravityUAVersionSF.Forget("antigravity_user_agent_version")
-	antigravityUserAgentVersion := antigravity.NormalizeUserAgentVersion(settings.AntigravityUserAgentVersion)
-	if antigravityUserAgentVersion == "" {
-		antigravityUserAgentVersion = antigravity.GetDefaultUserAgentVersion()
-	}
-	s.antigravityUAVersionCache.Store(&cachedAntigravityUserAgentVersion{
-		version:   antigravityUserAgentVersion,
-		expiresAt: time.Now().Add(antigravityUserAgentVersionCacheTTL).UnixNano(),
 	})
 	s.openAICodexUASF.Forget("openai_codex_user_agent")
 	codexUA := strings.TrimSpace(settings.OpenAICodexUserAgent)
@@ -2888,7 +2816,6 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyFallbackModelAnthropic:   "claude-3-5-sonnet-20241022",
 		SettingKeyFallbackModelOpenAI:      "gpt-4o",
 		SettingKeyFallbackModelGemini:      "gemini-2.5-pro",
-		SettingKeyFallbackModelAntigravity: "gemini-2.5-pro",
 		// Identity patch defaults
 		SettingKeyEnableIdentityPatch: "true",
 		SettingKeyIdentityPatchPrompt: "",
@@ -2920,7 +2847,6 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyAllowUngroupedKeyScheduling:        "false",
 		SettingKeyEnableAnthropicCacheTTL1hInjection: "false",
 		SettingKeyRewriteMessageCacheControl:         strconv.FormatBool(s.defaultRewriteMessageCacheControl()),
-		SettingKeyAntigravityUserAgentVersion:        "",
 		SettingKeyOpenAICodexUserAgent:               "",
 		SettingPaymentVisibleMethodAlipaySource:      "",
 		SettingPaymentVisibleMethodWxpaySource:       "",
@@ -3390,7 +3316,6 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	result.FallbackModelAnthropic = s.getStringOrDefault(settings, SettingKeyFallbackModelAnthropic, "claude-3-5-sonnet-20241022")
 	result.FallbackModelOpenAI = s.getStringOrDefault(settings, SettingKeyFallbackModelOpenAI, "gpt-4o")
 	result.FallbackModelGemini = s.getStringOrDefault(settings, SettingKeyFallbackModelGemini, "gemini-2.5-pro")
-	result.FallbackModelAntigravity = s.getStringOrDefault(settings, SettingKeyFallbackModelAntigravity, "gemini-2.5-pro")
 
 	// Identity patch settings (default: enabled, to preserve existing behavior)
 	if v, ok := settings[SettingKeyEnableIdentityPatch]; ok && v != "" {
@@ -3453,7 +3378,6 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	} else {
 		result.RewriteMessageCacheControl = s.defaultRewriteMessageCacheControl()
 	}
-	result.AntigravityUserAgentVersion = antigravity.NormalizeUserAgentVersion(settings[SettingKeyAntigravityUserAgentVersion])
 	result.OpenAICodexUserAgent = strings.TrimSpace(settings[SettingKeyOpenAICodexUserAgent])
 	result.OpenAIAllowClaudeCodeCodexPlugin = settings[SettingKeyOpenAIAllowClaudeCodeCodexPlugin] == "true"
 
@@ -3863,9 +3787,6 @@ func (s *SettingService) GetFallbackModel(ctx context.Context, platform string) 
 		defaultModel = "gpt-4o"
 	case PlatformGemini:
 		key = SettingKeyFallbackModelGemini
-		defaultModel = "gemini-2.5-pro"
-	case PlatformAntigravity:
-		key = SettingKeyFallbackModelAntigravity
 		defaultModel = "gemini-2.5-pro"
 	default:
 		return ""
@@ -4975,10 +4896,9 @@ func (s *SettingService) SetStreamTimeoutSettings(ctx context.Context, settings 
 // 容错语义：取值失败或 unmarshal 失败 → 返回补齐 4 key 的空 map（fail-open，注册不被阻断）。
 func (s *SettingService) GetDefaultPlatformQuotas(ctx context.Context) (map[string]*DefaultPlatformQuotaSetting, error) {
 	out := map[string]*DefaultPlatformQuotaSetting{
-		"anthropic":   {},
-		"openai":      {},
-		"gemini":      {},
-		"antigravity": {},
+		"anthropic": {},
+		"openai":    {},
+		"gemini":    {},
 	}
 	raw, err := s.settingRepo.GetValue(ctx, SettingKeyDefaultPlatformQuotas)
 	if err != nil || raw == "" {
