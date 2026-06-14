@@ -237,62 +237,6 @@ func AccountFromServiceShallow(a *service.Account) *Account {
 		GroupIDs:                a.GroupIDs,
 	}
 
-	// 提取 5h 窗口费用控制和会话数量控制配置（仅 Anthropic OAuth/SetupToken 账号有效）
-	if a.IsAnthropicOAuthOrSetupToken() {
-		if limit := a.GetWindowCostLimit(); limit > 0 {
-			out.WindowCostLimit = &limit
-		}
-		if reserve := a.GetWindowCostStickyReserve(); reserve > 0 {
-			out.WindowCostStickyReserve = &reserve
-		}
-		if maxSessions := a.GetMaxSessions(); maxSessions > 0 {
-			out.MaxSessions = &maxSessions
-		}
-		if idleTimeout := a.GetSessionIdleTimeoutMinutes(); idleTimeout > 0 {
-			out.SessionIdleTimeoutMin = &idleTimeout
-		}
-		if rpm := a.GetBaseRPM(); rpm > 0 {
-			out.BaseRPM = &rpm
-			strategy := a.GetRPMStrategy()
-			out.RPMStrategy = &strategy
-			buffer := a.GetRPMStickyBuffer()
-			out.RPMStickyBuffer = &buffer
-		}
-		// 用户消息队列模式
-		if mode := a.GetUserMsgQueueMode(); mode != "" {
-			out.UserMsgQueueMode = &mode
-		}
-		// TLS指纹伪装开关
-		if a.IsTLSFingerprintEnabled() {
-			enabled := true
-			out.EnableTLSFingerprint = &enabled
-		}
-		// TLS指纹模板ID
-		if profileID := a.GetTLSFingerprintProfileID(); profileID > 0 {
-			out.TLSFingerprintProfileID = &profileID
-		}
-		// 会话ID伪装开关
-		if a.IsSessionIDMaskingEnabled() {
-			enabled := true
-			out.EnableSessionIDMasking = &enabled
-		}
-		// 缓存 TTL 强制替换
-		if a.IsCacheTTLOverrideEnabled() {
-			enabled := true
-			out.CacheTTLOverrideEnabled = &enabled
-			target := a.GetCacheTTLOverrideTarget()
-			out.CacheTTLOverrideTarget = &target
-		}
-		// 自定义 Base URL 中继转发
-		if a.IsCustomBaseURLEnabled() {
-			enabled := true
-			out.CustomBaseURLEnabled = &enabled
-			if customURL := a.GetCustomBaseURL(); customURL != "" {
-				out.CustomBaseURL = &customURL
-			}
-		}
-	}
-
 	// 提取账号配额限制（apikey / bedrock 类型有效）
 	if a.IsAPIKeyOrBedrock() {
 		if limit := a.GetQuotaLimit(); limit > 0 {

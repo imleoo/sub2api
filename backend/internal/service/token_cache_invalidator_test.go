@@ -43,7 +43,7 @@ func TestCompositeTokenCacheInvalidator_Gemini(t *testing.T) {
 	account := &Account{
 		ID:       10,
 		Platform: PlatformGemini,
-		Type:     AccountTypeOAuth,
+		Type:     AccountTypeServiceAccount,
 		Credentials: map[string]any{
 			"project_id": "project-x",
 		},
@@ -51,7 +51,7 @@ func TestCompositeTokenCacheInvalidator_Gemini(t *testing.T) {
 
 	err := invalidator.InvalidateToken(context.Background(), account)
 	require.NoError(t, err)
-	// 新行为：同时删除基于 project_id 和 account_id 的缓存键
+	// 同时删除基于 project_id 和 account_id 的缓存键
 	// 这是为了处理：首次获取 token 时可能没有 project_id，之后自动检测到后会使用新 key
 	require.Equal(t, []string{"gemini:project-x", "gemini:account:10"}, cache.deletedKeys)
 }
@@ -62,7 +62,7 @@ func TestCompositeTokenCacheInvalidator_GeminiWithoutProjectID(t *testing.T) {
 	account := &Account{
 		ID:       10,
 		Platform: PlatformGemini,
-		Type:     AccountTypeOAuth,
+		Type:     AccountTypeServiceAccount,
 		Credentials: map[string]any{
 			"access_token": "gemini-token",
 		},
@@ -74,135 +74,13 @@ func TestCompositeTokenCacheInvalidator_GeminiWithoutProjectID(t *testing.T) {
 	require.Equal(t, []string{"gemini:account:10"}, cache.deletedKeys)
 }
 
-func TestCompositeTokenCacheInvalidator_Antigravity(t *testing.T) {
-	cache := &geminiTokenCacheStub{}
-	invalidator := NewCompositeTokenCacheInvalidator(cache)
-	account := &Account{
-		ID:       99,
-		Platform: PlatformAntigravity,
-		Type:     AccountTypeOAuth,
-		Credentials: map[string]any{
-			"project_id": "ag-project",
-		},
-	}
-
-	err := invalidator.InvalidateToken(context.Background(), account)
-	require.NoError(t, err)
-	// 新行为：同时删除基于 project_id 和 account_id 的缓存键
-	require.Equal(t, []string{"ag:ag-project", "ag:account:99"}, cache.deletedKeys)
-}
-
-func TestCompositeTokenCacheInvalidator_AntigravityWithoutProjectID(t *testing.T) {
-	cache := &geminiTokenCacheStub{}
-	invalidator := NewCompositeTokenCacheInvalidator(cache)
-	account := &Account{
-		ID:       99,
-		Platform: PlatformAntigravity,
-		Type:     AccountTypeOAuth,
-		Credentials: map[string]any{
-			"access_token": "ag-token",
-		},
-	}
-
-	err := invalidator.InvalidateToken(context.Background(), account)
-	require.NoError(t, err)
-	// 没有 project_id 时，两个 key 相同，去重后只删除一个
-	require.Equal(t, []string{"ag:account:99"}, cache.deletedKeys)
-}
-
-func TestCompositeTokenCacheInvalidator_OpenAI(t *testing.T) {
-	cache := &geminiTokenCacheStub{}
-	invalidator := NewCompositeTokenCacheInvalidator(cache)
-	account := &Account{
-		ID:       500,
-		Platform: PlatformOpenAI,
-		Type:     AccountTypeOAuth,
-		Credentials: map[string]any{
-			"access_token": "openai-token",
-		},
-	}
-
-	err := invalidator.InvalidateToken(context.Background(), account)
-	require.NoError(t, err)
-	require.Equal(t, []string{"openai:account:500"}, cache.deletedKeys)
-}
-
-func TestCompositeTokenCacheInvalidator_Claude(t *testing.T) {
-	cache := &geminiTokenCacheStub{}
-	invalidator := NewCompositeTokenCacheInvalidator(cache)
-	account := &Account{
-		ID:       600,
-		Platform: PlatformAnthropic,
-		Type:     AccountTypeOAuth,
-		Credentials: map[string]any{
-			"access_token": "claude-token",
-		},
-	}
-
-	err := invalidator.InvalidateToken(context.Background(), account)
-	require.NoError(t, err)
-	require.Equal(t, []string{"claude:account:600"}, cache.deletedKeys)
-}
-
-func TestCompositeTokenCacheInvalidator_SkipNonOAuth(t *testing.T) {
-	cache := &geminiTokenCacheStub{}
-	invalidator := NewCompositeTokenCacheInvalidator(cache)
-
-	tests := []struct {
-		name    string
-		account *Account
-	}{
-		{
-			name: "gemini_api_key",
-			account: &Account{
-				ID:       1,
-				Platform: PlatformGemini,
-				Type:     AccountTypeAPIKey,
-			},
-		},
-		{
-			name: "openai_api_key",
-			account: &Account{
-				ID:       2,
-				Platform: PlatformOpenAI,
-				Type:     AccountTypeAPIKey,
-			},
-		},
-		{
-			name: "claude_api_key",
-			account: &Account{
-				ID:       3,
-				Platform: PlatformAnthropic,
-				Type:     AccountTypeAPIKey,
-			},
-		},
-		{
-			name: "claude_setup_token",
-			account: &Account{
-				ID:       4,
-				Platform: PlatformAnthropic,
-				Type:     AccountTypeSetupToken,
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cache.deletedKeys = nil
-			err := invalidator.InvalidateToken(context.Background(), tt.account)
-			require.NoError(t, err)
-			require.Empty(t, cache.deletedKeys)
-		})
-	}
-}
-
 func TestCompositeTokenCacheInvalidator_SkipUnsupportedPlatform(t *testing.T) {
 	cache := &geminiTokenCacheStub{}
 	invalidator := NewCompositeTokenCacheInvalidator(cache)
 	account := &Account{
 		ID:       100,
 		Platform: "unknown-platform",
-		Type:     AccountTypeOAuth,
+		Type:     AccountTypeAPIKey,
 	}
 
 	err := invalidator.InvalidateToken(context.Background(), account)
@@ -215,7 +93,7 @@ func TestCompositeTokenCacheInvalidator_NilCache(t *testing.T) {
 	account := &Account{
 		ID:       2,
 		Platform: PlatformGemini,
-		Type:     AccountTypeOAuth,
+		Type:     AccountTypeServiceAccount,
 	}
 
 	err := invalidator.InvalidateToken(context.Background(), account)
@@ -236,7 +114,7 @@ func TestCompositeTokenCacheInvalidator_NilInvalidator(t *testing.T) {
 	account := &Account{
 		ID:       5,
 		Platform: PlatformGemini,
-		Type:     AccountTypeOAuth,
+		Type:     AccountTypeServiceAccount,
 	}
 
 	err := invalidator.InvalidateToken(context.Background(), account)
@@ -248,66 +126,19 @@ func TestCompositeTokenCacheInvalidator_DeleteError(t *testing.T) {
 	cache := &geminiTokenCacheStub{deleteErr: expectedErr}
 	invalidator := NewCompositeTokenCacheInvalidator(cache)
 
-	tests := []struct {
-		name    string
-		account *Account
-	}{
-		{
-			name: "openai_delete_error",
-			account: &Account{
-				ID:       700,
-				Platform: PlatformOpenAI,
-				Type:     AccountTypeOAuth,
-			},
-		},
-		{
-			name: "claude_delete_error",
-			account: &Account{
-				ID:       800,
-				Platform: PlatformAnthropic,
-				Type:     AccountTypeOAuth,
-			},
+	account := &Account{
+		ID:       700,
+		Platform: PlatformGemini,
+		Type:     AccountTypeServiceAccount,
+		Credentials: map[string]any{
+			"project_id": "gemini-proj",
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// 新行为：删除失败只记录日志，不返回错误
-			// 这是因为缓存失效失败不应影响主业务流程
-			err := invalidator.InvalidateToken(context.Background(), tt.account)
-			require.NoError(t, err)
-		})
-	}
-}
-
-func TestCompositeTokenCacheInvalidator_AllPlatformsIntegration(t *testing.T) {
-	// 测试所有平台的缓存键生成和删除
-	cache := &geminiTokenCacheStub{}
-	invalidator := NewCompositeTokenCacheInvalidator(cache)
-
-	accounts := []*Account{
-		{ID: 1, Platform: PlatformGemini, Type: AccountTypeOAuth, Credentials: map[string]any{"project_id": "gemini-proj"}},
-		{ID: 2, Platform: PlatformAntigravity, Type: AccountTypeOAuth, Credentials: map[string]any{"project_id": "ag-proj"}},
-		{ID: 3, Platform: PlatformOpenAI, Type: AccountTypeOAuth},
-		{ID: 4, Platform: PlatformAnthropic, Type: AccountTypeOAuth},
-	}
-
-	// 新行为：Gemini 和 Antigravity 会同时删除基于 project_id 和 account_id 的键
-	expectedKeys := []string{
-		"gemini:gemini-proj",
-		"gemini:account:1",
-		"ag:ag-proj",
-		"ag:account:2",
-		"openai:account:3",
-		"claude:account:4",
-	}
-
-	for _, acc := range accounts {
-		err := invalidator.InvalidateToken(context.Background(), acc)
-		require.NoError(t, err)
-	}
-
-	require.Equal(t, expectedKeys, cache.deletedKeys)
+	// 删除失败只记录日志，不返回错误
+	// 这是因为缓存失效失败不应影响主业务流程
+	err := invalidator.InvalidateToken(context.Background(), account)
+	require.NoError(t, err)
 }
 
 // ========== GetCredentialAsInt64 测试 ==========

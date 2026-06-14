@@ -23,7 +23,6 @@ func TestProvideServiceBuildInfo(t *testing.T) {
 func TestProvideCleanup_WithMinimalDependencies_NoPanic(t *testing.T) {
 	cfg := &config.Config{}
 
-	tokenRefreshSvc := service.NewTokenRefreshService(nil, nil, nil, cfg, nil)
 	accountExpirySvc := service.NewAccountExpiryService(nil, time.Second)
 	proxyExpirySvc := service.NewProxyExpiryService(nil, time.Second)
 	subscriptionExpirySvc := service.NewSubscriptionExpiryService(nil, time.Second)
@@ -44,7 +43,6 @@ func TestProvideCleanup_WithMinimalDependencies_NoPanic(t *testing.T) {
 		&service.OpsScheduledReportService{},
 		opsSystemLogSinkSvc,
 		schedulerSnapshotSvc,
-		tokenRefreshSvc,
 		accountExpirySvc,
 		proxyExpirySvc,
 		subscriptionExpirySvc,

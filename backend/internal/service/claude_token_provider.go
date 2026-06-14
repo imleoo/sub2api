@@ -8,13 +8,10 @@ import (
 // ClaudeTokenCache token cache interface.
 type ClaudeTokenCache = GeminiTokenCache
 
-// ClaudeTokenProvider manages access_token for Claude OAuth and Vertex service account accounts.
+// ClaudeTokenProvider manages access_token for Vertex service account accounts.
 type ClaudeTokenProvider struct {
-	accountRepo   AccountRepository
-	tokenCache    ClaudeTokenCache
-	refreshAPI    *OAuthRefreshAPI
-	executor      OAuthRefreshExecutor
-	refreshPolicy ProviderRefreshPolicy
+	accountRepo AccountRepository
+	tokenCache  ClaudeTokenCache
 }
 
 func NewClaudeTokenProvider(
@@ -22,21 +19,9 @@ func NewClaudeTokenProvider(
 	tokenCache ClaudeTokenCache,
 ) *ClaudeTokenProvider {
 	return &ClaudeTokenProvider{
-		accountRepo:   accountRepo,
-		tokenCache:    tokenCache,
-		refreshPolicy: ClaudeProviderRefreshPolicy(),
+		accountRepo: accountRepo,
+		tokenCache:  tokenCache,
 	}
-}
-
-// SetRefreshAPI injects unified OAuth refresh API and executor.
-func (p *ClaudeTokenProvider) SetRefreshAPI(api *OAuthRefreshAPI, executor OAuthRefreshExecutor) {
-	p.refreshAPI = api
-	p.executor = executor
-}
-
-// SetRefreshPolicy injects caller-side refresh policy.
-func (p *ClaudeTokenProvider) SetRefreshPolicy(policy ProviderRefreshPolicy) {
-	p.refreshPolicy = policy
 }
 
 // GetAccessToken returns a valid access_token for service_account type.

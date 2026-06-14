@@ -41,29 +41,6 @@ func ProvideEmailQueueService(emailService *EmailService) *EmailQueueService {
 	return NewEmailQueueService(emailService, 3)
 }
 
-// ProvideOAuthRefreshAPI creates OAuthRefreshAPI with the default lock TTL.
-func ProvideOAuthRefreshAPI(accountRepo AccountRepository, tokenCache GeminiTokenCache) *OAuthRefreshAPI {
-	return NewOAuthRefreshAPI(accountRepo, tokenCache)
-}
-
-// ProvideTokenRefreshService creates and starts TokenRefreshService
-func ProvideTokenRefreshService(
-	accountRepo AccountRepository,
-	cacheInvalidator TokenCacheInvalidator,
-	schedulerCache SchedulerCache,
-	cfg *config.Config,
-	tempUnschedCache TempUnschedCache,
-	refreshAPI *OAuthRefreshAPI,
-	runtimeBlocker AccountRuntimeBlocker,
-) *TokenRefreshService {
-	svc := NewTokenRefreshService(accountRepo, cacheInvalidator, schedulerCache, cfg, tempUnschedCache)
-	svc.SetRefreshAPI(refreshAPI)
-	svc.SetRefreshPolicy(DefaultBackgroundRefreshPolicy())
-	svc.SetAccountRuntimeBlocker(runtimeBlocker)
-	svc.Start()
-	return svc
-}
-
 // ProvideClaudeTokenProvider creates ClaudeTokenProvider
 func ProvideClaudeTokenProvider(
 	accountRepo AccountRepository,
@@ -471,9 +448,7 @@ var ProviderSet = wire.NewSet(
 	wire.Bind(new(AccountRuntimeBlocker), new(*OpenAIGatewayService)),
 	NewCompositeTokenCacheInvalidator,
 	wire.Bind(new(TokenCacheInvalidator), new(*CompositeTokenCacheInvalidator)),
-	NewOAuthService,
 	NewGeminiQuotaService,
-	ProvideOAuthRefreshAPI,
 	ProvideGeminiTokenProvider,
 	NewGeminiMessagesCompatService,
 	ProvideAntigravityTokenProvider,
@@ -505,7 +480,6 @@ var ProviderSet = wire.NewSet(
 	NewIdentityService,
 	NewCRSSyncService,
 	ProvideUpdateService,
-	ProvideTokenRefreshService,
 	ProvideAccountExpiryService,
 	ProvideProxyExpiryService,
 	ProvideSubscriptionExpiryService,
