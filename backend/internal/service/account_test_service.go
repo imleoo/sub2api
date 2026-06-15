@@ -521,15 +521,7 @@ func (s *AccountTestService) testClaudeAccountConnection(c *gin.Context, account
 	var useBearer bool
 	var apiURL string
 
-	if account.IsOAuth() {
-		// OAuth or Setup Token - use Bearer token
-		useBearer = true
-		apiURL = testClaudeAPIURL
-		authToken = account.GetCredential("access_token")
-		if authToken == "" {
-			return s.sendErrorAndEnd(c, "No access token available")
-		}
-	} else if account.Type == "apikey" {
+	if account.Type == "apikey" {
 		// API Key - use x-api-key header
 		useBearer = false
 		authToken = account.GetCredential("api_key")
@@ -968,14 +960,6 @@ func (s *AccountTestService) testOpenAICompactConnection(c *gin.Context, account
 	chatgptAccountID := ""
 
 	switch {
-	case account.IsOAuth():
-		isOAuth = true
-		authToken = account.GetOpenAIAccessToken()
-		if authToken == "" {
-			return s.sendErrorAndEnd(c, "No access token available")
-		}
-		apiURL = chatgptCodexAPIURL + "/compact"
-		chatgptAccountID = account.GetChatGPTAccountID()
 	case account.Type == AccountTypeAPIKey:
 		authToken = account.GetOpenAIApiKey()
 		if authToken == "" {

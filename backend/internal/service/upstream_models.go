@@ -225,22 +225,7 @@ func (s *AccountTestService) buildAnthropicUpstreamModelsRequest(ctx context.Con
 	authHeaderValue := ""
 	betaHeader := ""
 
-	if account.IsOAuth() {
-		accessToken := strings.TrimSpace(account.GetCredential("access_token"))
-		if accessToken == "" && s.claudeTokenProvider != nil {
-			token, tokenErr := s.claudeTokenProvider.GetAccessToken(ctx, account)
-			if tokenErr != nil {
-				return nil, newUpstreamModelSyncUpstreamError("Failed to get Anthropic access token", tokenErr)
-			}
-			accessToken = strings.TrimSpace(token)
-		}
-		if accessToken == "" {
-			return nil, newUpstreamModelSyncConfigError("No Anthropic access token is available", nil)
-		}
-		authHeaderName = "Authorization"
-		authHeaderValue = "Bearer " + accessToken
-		betaHeader = claude.DefaultBetaHeader
-	} else if account.Type == AccountTypeAPIKey {
+	if account.Type == AccountTypeAPIKey {
 		apiKey := strings.TrimSpace(account.GetCredential("api_key"))
 		if apiKey == "" {
 			return nil, newUpstreamModelSyncConfigError("No Anthropic API key is available", nil)

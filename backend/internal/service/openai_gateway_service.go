@@ -6463,7 +6463,7 @@ func evaluateOpenAIFastPolicyWithSettings(settings *OpenAIFastPolicySettings, ac
 	if settings == nil {
 		return BetaPolicyActionPass, ""
 	}
-	isOAuth := account != nil && account.IsOAuth()
+	isOAuth := false
 	isBedrock := account != nil && account.IsBedrock()
 	for _, rule := range settings.Rules {
 		if !betaPolicyScopeMatches(rule.Scope, isOAuth, isBedrock) {

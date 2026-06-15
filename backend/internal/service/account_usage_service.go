@@ -409,7 +409,7 @@ func (s *AccountUsageService) shouldProbeOpenAICodexSnapshot(accountID int64, no
 }
 
 func (s *AccountUsageService) probeOpenAICodexSnapshot(ctx context.Context, account *Account) (map[string]any, error) {
-	if account == nil || !account.IsOAuth() {
+	if account == nil {
 		return nil, nil
 	}
 	accessToken := account.GetOpenAIAccessToken()
