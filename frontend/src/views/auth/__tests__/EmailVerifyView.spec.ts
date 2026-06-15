@@ -1,6 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import EmailVerifyView from '@/views/auth/EmailVerifyView.vue'
+import { storeAffiliateReferralCode } from '@/utils/oauthAffiliate'
 
 const {
   pushMock,
@@ -307,6 +308,8 @@ describe('EmailVerifyView', () => {
         password: 'secret-123',
       })
     )
+    // register_data 不含 aff_code，验证回退到已存储的推荐码（loadAffiliateReferralCode）
+    storeAffiliateReferralCode('AFF123')
     apiClientPostMock.mockResolvedValue({
       data: {
         access_token: 'oauth-access-token',
@@ -445,6 +448,7 @@ describe('EmailVerifyView', () => {
     expect(registerMock).toHaveBeenCalledWith({
       email: 'normal@example.com',
       password: 'secret-456',
+      username: '',
       verify_code: '654321',
       turnstile_token: undefined,
       promo_code: 'PROMO',
