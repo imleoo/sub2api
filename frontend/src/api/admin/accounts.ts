@@ -195,16 +195,6 @@ export async function testAccount(id: number): Promise<{
 }
 
 /**
- * Refresh account credentials
- * @param id - Account ID
- * @returns Updated account
- */
-export async function refreshCredentials(id: number): Promise<Account> {
-  const { data } = await apiClient.post<Account>(`/admin/accounts/${id}/refresh`)
-  return data
-}
-
-/**
  * Get account usage statistics
  * @param id - Account ID
  * @param days - Number of days (default: 30)
@@ -618,19 +608,6 @@ export async function batchClearError(accountIds: number[]): Promise<BatchOperat
   return data
 }
 
-/**
- * Batch refresh account credentials
- * @param accountIds - Array of account IDs
- * @returns Batch operation result
- */
-export async function batchRefresh(accountIds: number[]): Promise<BatchOperationResult> {
-  const { data } = await apiClient.post<BatchOperationResult>('/admin/accounts/batch-refresh', {
-    account_ids: accountIds,
-  }, {
-    timeout: 120000  // 120s timeout for large batch refreshes
-  })
-  return data
-}
 
 async function getAccountEndpoints(id: number): Promise<AccountEndpoint[]> {
   const { data } = await apiClient.get<AccountEndpoint[]>(`/admin/accounts/${id}/endpoints`)
@@ -678,7 +655,6 @@ export const accountsAPI = {
   delete: deleteAccount,
   toggleStatus,
   testAccount,
-  refreshCredentials,
   getStats,
   clearError,
   getUsage,
@@ -701,7 +677,6 @@ export const accountsAPI = {
   exportData,
   importData,
   batchClearError,
-  batchRefresh,
   getAccountEndpoints,
   updateAccountEndpoints,
   fetchEndpointModels,

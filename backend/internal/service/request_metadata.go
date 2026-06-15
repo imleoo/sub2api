@@ -13,7 +13,6 @@ var requestMetadataKey = requestMetadataContextKey{}
 
 type RequestMetadata struct {
 	IsMaxTokensOneHaikuRequest *bool
-	ThinkingEnabled            *bool
 	PrefetchedStickyAccountID  *int64
 	PrefetchedStickyGroupID    *int64
 	SingleAccountRetry         *bool
@@ -22,16 +21,14 @@ type RequestMetadata struct {
 
 var (
 	requestMetadataFallbackIsMaxTokensOneHaikuTotal atomic.Int64
-	requestMetadataFallbackThinkingEnabledTotal     atomic.Int64
 	requestMetadataFallbackPrefetchedStickyAccount  atomic.Int64
 	requestMetadataFallbackPrefetchedStickyGroup    atomic.Int64
 	requestMetadataFallbackSingleAccountRetryTotal  atomic.Int64
 	requestMetadataFallbackAccountSwitchCountTotal  atomic.Int64
 )
 
-func RequestMetadataFallbackStats() (isMaxTokensOneHaiku, thinkingEnabled, prefetchedStickyAccount, prefetchedStickyGroup, singleAccountRetry, accountSwitchCount int64) {
+func RequestMetadataFallbackStats() (isMaxTokensOneHaiku, prefetchedStickyAccount, prefetchedStickyGroup, singleAccountRetry, accountSwitchCount int64) {
 	return requestMetadataFallbackIsMaxTokensOneHaikuTotal.Load(),
-		requestMetadataFallbackThinkingEnabledTotal.Load(),
 		requestMetadataFallbackPrefetchedStickyAccount.Load(),
 		requestMetadataFallbackPrefetchedStickyGroup.Load(),
 		requestMetadataFallbackSingleAccountRetryTotal.Load(),
@@ -77,15 +74,6 @@ func WithIsMaxTokensOneHaikuRequest(ctx context.Context, value bool, bridgeOldKe
 	})
 }
 
-func WithThinkingEnabled(ctx context.Context, value bool, bridgeOldKeys bool) context.Context {
-	return updateRequestMetadata(ctx, bridgeOldKeys, func(md *RequestMetadata) {
-		v := value
-		md.ThinkingEnabled = &v
-	}, func(base context.Context) context.Context {
-		return context.WithValue(base, ctxkey.ThinkingEnabled, value)
-	})
-}
-
 func WithPrefetchedStickySession(ctx context.Context, accountID, groupID int64, bridgeOldKeys bool) context.Context {
 	return updateRequestMetadata(ctx, bridgeOldKeys, func(md *RequestMetadata) {
 		account := accountID
@@ -125,20 +113,6 @@ func IsMaxTokensOneHaikuRequestFromContext(ctx context.Context) (bool, bool) {
 	}
 	if value, ok := ctx.Value(ctxkey.IsMaxTokensOneHaikuRequest).(bool); ok {
 		requestMetadataFallbackIsMaxTokensOneHaikuTotal.Add(1)
-		return value, true
-	}
-	return false, false
-}
-
-func ThinkingEnabledFromContext(ctx context.Context) (bool, bool) {
-	if md := metadataFromContext(ctx); md != nil && md.ThinkingEnabled != nil {
-		return *md.ThinkingEnabled, true
-	}
-	if ctx == nil {
-		return false, false
-	}
-	if value, ok := ctx.Value(ctxkey.ThinkingEnabled).(bool); ok {
-		requestMetadataFallbackThinkingEnabledTotal.Add(1)
 		return value, true
 	}
 	return false, false

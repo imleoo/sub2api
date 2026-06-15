@@ -1949,7 +1949,6 @@ export default {
         usageAnthropic: '用量 (Claude)',
         usageOpenAI: '用量 (OpenAI)',
         usageGemini: '用量 (Gemini)',
-        usageAntigravity: '用量 (Antigravity)',
         concurrency: '并发数',
         status: '状态',
         lastActive: '最后活跃时间',
@@ -2465,14 +2464,6 @@ export default {
         tooltip: '启用后，当请求包含 MCP 工具时，会在 system prompt 中注入 XML 格式调用协议提示词。关闭此选项可避免对某些客户端造成干扰。',
         enabled: '已启用',
         disabled: '已禁用'
-      },
-      supportedScopes: {
-        title: '支持的模型系列',
-        tooltip: '选择此分组支持的模型系列。未勾选的系列将不会被路由到此分组。',
-        claude: 'Claude',
-        geminiText: 'Gemini Text',
-        geminiImage: 'Gemini Image',
-        hint: '至少选择一个模型系列'
       }
     },
 

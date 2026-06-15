@@ -287,7 +287,6 @@ type OpenAICompatibilityFallbackMetricsSnapshot struct {
 	SessionHashLegacyReadHitRate       float64 `json:"session_hash_legacy_read_hit_rate"`
 
 	MetadataLegacyFallbackIsMaxTokensOneHaikuTotal int64 `json:"metadata_legacy_fallback_is_max_tokens_one_haiku_total"`
-	MetadataLegacyFallbackThinkingEnabledTotal     int64 `json:"metadata_legacy_fallback_thinking_enabled_total"`
 	MetadataLegacyFallbackPrefetchedStickyAccount  int64 `json:"metadata_legacy_fallback_prefetched_sticky_account_total"`
 	MetadataLegacyFallbackPrefetchedStickyGroup    int64 `json:"metadata_legacy_fallback_prefetched_sticky_group_total"`
 	MetadataLegacyFallbackSingleAccountRetryTotal  int64 `json:"metadata_legacy_fallback_single_account_retry_total"`
@@ -913,13 +912,13 @@ func (s *OpenAIGatewayService) SnapshotOpenAIWSRetryMetrics() OpenAIWSRetryMetri
 
 func SnapshotOpenAICompatibilityFallbackMetrics() OpenAICompatibilityFallbackMetricsSnapshot {
 	legacyReadFallbackTotal, legacyReadFallbackHit, legacyDualWriteTotal := openAIStickyCompatStats()
-	isMaxTokensOneHaiku, thinkingEnabled, prefetchedStickyAccount, prefetchedStickyGroup, singleAccountRetry, accountSwitchCount := RequestMetadataFallbackStats()
+	isMaxTokensOneHaiku, prefetchedStickyAccount, prefetchedStickyGroup, singleAccountRetry, accountSwitchCount := RequestMetadataFallbackStats()
 
 	readHitRate := float64(0)
 	if legacyReadFallbackTotal > 0 {
 		readHitRate = float64(legacyReadFallbackHit) / float64(legacyReadFallbackTotal)
 	}
-	metadataFallbackTotal := isMaxTokensOneHaiku + thinkingEnabled + prefetchedStickyAccount + prefetchedStickyGroup + singleAccountRetry + accountSwitchCount
+	metadataFallbackTotal := isMaxTokensOneHaiku + prefetchedStickyAccount + prefetchedStickyGroup + singleAccountRetry + accountSwitchCount
 
 	return OpenAICompatibilityFallbackMetricsSnapshot{
 		SessionHashLegacyReadFallbackTotal: legacyReadFallbackTotal,
@@ -928,7 +927,6 @@ func SnapshotOpenAICompatibilityFallbackMetrics() OpenAICompatibilityFallbackMet
 		SessionHashLegacyReadHitRate:       readHitRate,
 
 		MetadataLegacyFallbackIsMaxTokensOneHaikuTotal: isMaxTokensOneHaiku,
-		MetadataLegacyFallbackThinkingEnabledTotal:     thinkingEnabled,
 		MetadataLegacyFallbackPrefetchedStickyAccount:  prefetchedStickyAccount,
 		MetadataLegacyFallbackPrefetchedStickyGroup:    prefetchedStickyGroup,
 		MetadataLegacyFallbackSingleAccountRetryTotal:  singleAccountRetry,

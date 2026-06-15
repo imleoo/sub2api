@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -28,14 +27,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/sync/errgroup"
 )
-
-// OAuthHandler is kept as a stub for route compatibility.
-type OAuthHandler struct{}
-
-// NewOAuthHandler creates a new OAuth handler stub.
-func NewOAuthHandler() *OAuthHandler {
-	return &OAuthHandler{}
-}
 
 // AccountHandler handles admin account management
 type AccountHandler struct {
@@ -113,7 +104,7 @@ type CreateAccountRequest struct {
 	Name                    string                 `json:"name" binding:"required"`
 	Notes                   *string                `json:"notes"`
 	Platform                string                 `json:"platform" binding:"required"`
-	Type                    string                 `json:"type" binding:"required,oneof=oauth setup-token apikey upstream bedrock service_account"`
+	Type                    string                 `json:"type" binding:"required,oneof=apikey upstream bedrock service_account"`
 	Credentials             map[string]any         `json:"credentials" binding:"required"`
 	Extra                   map[string]any         `json:"extra"`
 	ProxyID                 *int64                 `json:"proxy_id"`
@@ -133,7 +124,7 @@ type CreateAccountRequest struct {
 type UpdateAccountRequest struct {
 	Name                    string         `json:"name"`
 	Notes                   *string        `json:"notes"`
-	Type                    string         `json:"type" binding:"omitempty,oneof=oauth setup-token apikey upstream bedrock service_account"`
+	Type                    string         `json:"type" binding:"omitempty,oneof=apikey upstream bedrock service_account"`
 	Credentials             map[string]any `json:"credentials"`
 	Extra                   map[string]any `json:"extra"`
 	ProxyID                 *int64         `json:"proxy_id"`
@@ -849,138 +840,6 @@ func (h *AccountHandler) PreviewFromCRS(c *gin.Context) {
 	response.Success(c, result)
 }
 
-// refreshSingleAccount is no longer used since OAuth accounts are removed.
-func (h *AccountHandler) refreshSingleAccount(_ context.Context, _ *service.Account) (*service.Account, string, error) {
-	return nil, "", infraerrors.BadRequest("NOT_SUPPORTED", "OAuth refresh is no longer supported")
-}
-
-// Refresh handles refreshing account credentials
-// POST /api/v1/admin/accounts/:id/refresh
-func (h *AccountHandler) Refresh(c *gin.Context) {
-	accountID, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		response.BadRequest(c, "Invalid account ID")
-		return
-	}
-
-	// Get account
-	account, err := h.adminService.GetAccount(c.Request.Context(), accountID)
-	if err != nil {
-		response.NotFound(c, "Account not found")
-		return
-	}
-
-	updatedAccount, warning, err := h.refreshSingleAccount(c.Request.Context(), account)
-	if err != nil {
-		response.ErrorFrom(c, err)
-		return
-	}
-
-	if warning == "missing_project_id_temporary" {
-		response.Success(c, gin.H{
-			"message": "Token refreshed successfully, but project_id could not be retrieved (will retry automatically)",
-			"warning": "missing_project_id_temporary",
-		})
-		return
-	}
-
-	response.Success(c, h.buildAccountResponseWithRuntime(c.Request.Context(), updatedAccount))
-}
-
-// ApplyOAuthCredentialsRequest is the payload for persisting re-authorized OAuth credentials.
-type ApplyOAuthCredentialsRequest struct {
-	Type        string         `json:"type" binding:"required,oneof=oauth setup-token"`
-	Credentials map[string]any `json:"credentials" binding:"required"`
-	Extra       map[string]any `json:"extra"`
-}
-
-// ApplyOAuthCredentials 将"重新授权"得到的新凭据原子落库。
-// POST /api/v1/admin/accounts/:id/apply-oauth-credentials
-//
-// 与通用 PUT /:id (Update) 接口的关键区别：
-//   - 仅接收 type / credentials / extra 三个字段（不接受 concurrency / rpm / quota_* 等可能误传的字段）
-//   - Extra 走 UpdateAccountExtra(JSONB key 级合并)，**绝不**全量覆盖；
-//     避免 base_rpm / window_cost_limit / max_sessions / quota_* / privacy_mode
-//     等持久化配置在重新授权后丢失
-//   - 内置 ClearError + InvalidateToken，避免前端额外两次调用，
-//     并修复旧路径未失效 token 缓存导致重新授权后立即 401 的隐性 bug
-//
-// 与 /refresh 的区别：/refresh 用现有 refresh_token 换 access_token（无用户交互），
-// 本接口承接前端完成完整 OAuth 流程后的落库步骤。
-func (h *AccountHandler) ApplyOAuthCredentials(c *gin.Context) {
-	accountID, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		response.BadRequest(c, "Invalid account ID")
-		return
-	}
-
-	var req ApplyOAuthCredentialsRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "Invalid request: "+err.Error())
-		return
-	}
-
-	ctx := c.Request.Context()
-
-	// 预检查账号存在 + OAuth 类型（与 Refresh handler 语义一致，提供更友好的错误信息）。
-	existing, err := h.adminService.GetAccount(ctx, accountID)
-	if err != nil {
-		response.NotFound(c, "Account not found")
-		return
-	}
-	if !existing.IsOAuth() {
-		response.ErrorFrom(c, infraerrors.BadRequest("NOT_OAUTH", "cannot apply oauth credentials to non-OAuth account"))
-		return
-	}
-
-	updatedAccount, err := h.adminService.UpdateAccount(ctx, accountID, &service.UpdateAccountInput{
-		Type:        req.Type,
-		Credentials: req.Credentials,
-	})
-	if err != nil {
-		response.ErrorFrom(c, err)
-		return
-	}
-
-	// 增量合并 Extra（JSONB key 级 merge，绝不覆盖 base_rpm / window_cost_limit /
-	// max_sessions / quota_* / privacy_mode 等持久化键）。
-	// best-effort：失败仅记日志；下方 ClearAccountError 会从 DB 重新读取最新 account，
-	// 因此响应里的 extra 始终以 DB 为准——这里不需要手动维护内存快照。
-	if len(req.Extra) > 0 {
-		if extraErr := h.adminService.UpdateAccountExtra(ctx, accountID, req.Extra); extraErr != nil {
-			extraKeys := make([]string, 0, len(req.Extra))
-			for k := range req.Extra {
-				extraKeys = append(extraKeys, k)
-			}
-			slog.Error("apply_oauth_credentials.update_extra_failed",
-				"account_id", accountID,
-				"extra_keys", extraKeys,
-				"err", extraErr,
-			)
-		}
-	}
-
-	if cleared, clearErr := h.adminService.ClearAccountError(ctx, accountID); clearErr != nil {
-		slog.Warn("apply_oauth_credentials.clear_error_failed",
-			"account_id", accountID,
-			"err", clearErr,
-		)
-	} else if cleared != nil {
-		updatedAccount = cleared
-	}
-
-	if h.tokenCacheInvalidator != nil && updatedAccount.IsOAuth() {
-		if invalidateErr := h.tokenCacheInvalidator.InvalidateToken(ctx, updatedAccount); invalidateErr != nil {
-			slog.Warn("apply_oauth_credentials.invalidate_token_failed",
-				"account_id", accountID,
-				"err", invalidateErr,
-			)
-		}
-	}
-
-	response.Success(c, h.buildAccountResponseWithRuntime(ctx, updatedAccount))
-}
-
 // GetStats handles getting account statistics
 // GET /api/v1/admin/accounts/:id/stats
 func (h *AccountHandler) GetStats(c *gin.Context) {
@@ -1093,14 +952,6 @@ func (h *AccountHandler) ClearError(c *gin.Context) {
 		return
 	}
 
-	// 清除错误后，同时清除 token 缓存，确保下次请求会获取最新的 token（触发刷新或从 DB 读取）
-	// 这解决了管理员重置账号状态后，旧的失效 token 仍在缓存中导致立即再次 401 的问题
-	if h.tokenCacheInvalidator != nil && account.IsOAuth() {
-		if invalidateErr := h.tokenCacheInvalidator.InvalidateToken(c.Request.Context(), account); invalidateErr != nil {
-			log.Printf("[WARN] Failed to invalidate token cache for account %d: %v", accountID, invalidateErr)
-		}
-	}
-
 	response.Success(c, h.buildAccountResponseWithRuntime(c.Request.Context(), account))
 }
 
@@ -1148,7 +999,7 @@ func (h *AccountHandler) BatchClearError(c *gin.Context) {
 	for _, id := range req.AccountIDs {
 		accountID := id // 闭包捕获
 		g.Go(func() error {
-			account, err := h.adminService.ClearAccountError(gctx, accountID)
+			_, err := h.adminService.ClearAccountError(gctx, accountID)
 			if err != nil {
 				mu.Lock()
 				failedCount++
@@ -1158,13 +1009,6 @@ func (h *AccountHandler) BatchClearError(c *gin.Context) {
 				})
 				mu.Unlock()
 				return nil
-			}
-
-			// 清除错误后，同时清除 token 缓存
-			if h.tokenCacheInvalidator != nil && account.IsOAuth() {
-				if invalidateErr := h.tokenCacheInvalidator.InvalidateToken(gctx, account); invalidateErr != nil {
-					log.Printf("[WARN] Failed to invalidate token cache for account %d: %v", accountID, invalidateErr)
-				}
 			}
 
 			mu.Lock()
@@ -1184,100 +1028,6 @@ func (h *AccountHandler) BatchClearError(c *gin.Context) {
 		"success": successCount,
 		"failed":  failedCount,
 		"errors":  errors,
-	})
-}
-
-// BatchRefresh handles batch refreshing account credentials
-// POST /api/v1/admin/accounts/batch-refresh
-func (h *AccountHandler) BatchRefresh(c *gin.Context) {
-	var req struct {
-		AccountIDs []int64 `json:"account_ids"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "Invalid request: "+err.Error())
-		return
-	}
-	if len(req.AccountIDs) == 0 {
-		response.BadRequest(c, "account_ids is required")
-		return
-	}
-
-	ctx := c.Request.Context()
-
-	accounts, err := h.adminService.GetAccountsByIDs(ctx, req.AccountIDs)
-	if err != nil {
-		response.ErrorFrom(c, err)
-		return
-	}
-
-	// 建立已获取账号的 ID 集合，检测缺失的 ID
-	foundIDs := make(map[int64]bool, len(accounts))
-	for _, acc := range accounts {
-		if acc != nil {
-			foundIDs[acc.ID] = true
-		}
-	}
-
-	const maxConcurrency = 10
-	g, gctx := errgroup.WithContext(ctx)
-	g.SetLimit(maxConcurrency)
-
-	var mu sync.Mutex
-	var successCount, failedCount int
-	var errors []gin.H
-	var warnings []gin.H
-
-	// 将不存在的账号 ID 标记为失败
-	for _, id := range req.AccountIDs {
-		if !foundIDs[id] {
-			failedCount++
-			errors = append(errors, gin.H{
-				"account_id": id,
-				"error":      "account not found",
-			})
-		}
-	}
-
-	// 注意：所有 goroutine 必须 return nil，避免 errgroup cancel 其他并发任务
-	for _, account := range accounts {
-		acc := account // 闭包捕获
-		if acc == nil {
-			continue
-		}
-		g.Go(func() error {
-			_, warning, err := h.refreshSingleAccount(gctx, acc)
-			mu.Lock()
-			if err != nil {
-				failedCount++
-				errors = append(errors, gin.H{
-					"account_id": acc.ID,
-					"error":      err.Error(),
-				})
-			} else {
-				successCount++
-				if warning != "" {
-					warnings = append(warnings, gin.H{
-						"account_id": acc.ID,
-						"warning":    warning,
-					})
-				}
-			}
-			mu.Unlock()
-			return nil
-		})
-	}
-
-	if err := g.Wait(); err != nil {
-		response.ErrorFrom(c, err)
-		return
-	}
-
-	response.Success(c, gin.H{
-		"total":    len(req.AccountIDs),
-		"success":  successCount,
-		"failed":   failedCount,
-		"errors":   errors,
-		"warnings": warnings,
 	})
 }
 
@@ -1841,12 +1591,6 @@ func (h *AccountHandler) GetAvailableModels(c *gin.Context) {
 
 	// Handle Gemini accounts
 	if account.IsGemini() {
-		// For OAuth accounts: return default Gemini models
-		if account.IsOAuth() {
-			response.Success(c, geminicli.DefaultModels)
-			return
-		}
-
 		// For API Key accounts: return models based on model_mapping
 		mapping := account.GetModelMapping()
 		if len(mapping) == 0 {
@@ -1878,12 +1622,6 @@ func (h *AccountHandler) GetAvailableModels(c *gin.Context) {
 	}
 
 	// Handle Claude/Anthropic accounts
-	// For OAuth and Setup-Token accounts: return default models
-	if account.IsOAuth() {
-		response.Success(c, claude.DefaultModels)
-		return
-	}
-
 	// For API Key accounts: return models based on model_mapping
 	mapping := account.GetModelMapping()
 	if len(mapping) == 0 {

@@ -114,7 +114,6 @@ func clearGatewayRequestDerivedState(parsed *ParsedRequest) {
 	parsed.Stream = false
 	parsed.MetadataUserID = ""
 	parsed.HasSystem = false
-	parsed.ThinkingEnabled = false
 	parsed.OutputEffort = ""
 	parsed.MaxTokens = 0
 	parsed.systemRange = missingJSONRange()
@@ -187,9 +186,6 @@ func parseGatewayRequestCurrentBody(parsed *ParsedRequest, protocol string) erro
 
 	parsed.MetadataUserID = gjson.Get(jsonStr, "metadata.user_id").String()
 
-	thinkingType := gjson.Get(jsonStr, "thinking.type").String()
-	parsed.ThinkingEnabled = thinkingType == "enabled" || thinkingType == "adaptive"
-
 	parsed.OutputEffort = strings.TrimSpace(gjson.Get(jsonStr, "output_config.effort").String())
 
 	maxTokensResult := gjson.Get(jsonStr, "max_tokens")
@@ -222,15 +218,14 @@ func refreshGatewayRequestRanges(parsed *ParsedRequest, protocol string) error {
 // 2. 将解析结果 ParsedRequest 传递给 Service 层
 // 3. 避免重复 json.Unmarshal，减少 CPU 和内存开销
 type ParsedRequest struct {
-	Body            *RequestBodyRef // 原始请求体引用（保留用于转发）；替换内容请走 ReplaceBody
-	Model           string          // 请求的模型名称
-	Stream          bool            // 是否为流式请求
-	MetadataUserID  string          // metadata.user_id（用于会话亲和）
-	HasSystem       bool            // 是否包含 system 字段（包含 null 也视为显式传入）
-	ThinkingEnabled bool            // 是否开启 thinking（部分平台会影响最终模型名）
-	OutputEffort    string          // output_config.effort（Claude API 的推理强度控制）
-	MaxTokens       int             // max_tokens 值（用于探测请求拦截）
-	SessionContext  *SessionContext // 可选：请求上下文区分因子（nil 时行为不变）
+	Body           *RequestBodyRef // 原始请求体引用（保留用于转发）；替换内容请走 ReplaceBody
+	Model          string          // 请求的模型名称
+	Stream         bool            // 是否为流式请求
+	MetadataUserID string          // metadata.user_id（用于会话亲和）
+	HasSystem      bool            // 是否包含 system 字段（包含 null 也视为显式传入）
+	OutputEffort   string          // output_config.effort（Claude API 的推理强度控制）
+	MaxTokens      int             // max_tokens 值（用于探测请求拦截）
+	SessionContext *SessionContext // 可选：请求上下文区分因子（nil 时行为不变）
 
 	protocol      string    // 当前 Body 的协议格式，用于 Body 替换后刷新 raw range
 	systemRange   jsonRange // system/systemInstruction.parts 的 raw JSON 范围，绑定 Body 当前内容

@@ -87,10 +87,10 @@ func TestSetStickySessionAccountID_DualWriteOldDisabled(t *testing.T) {
 func TestSnapshotOpenAICompatibilityFallbackMetrics(t *testing.T) {
 	before := SnapshotOpenAICompatibilityFallbackMetrics()
 
-	ctx := context.WithValue(context.Background(), ctxkey.ThinkingEnabled, true)
-	_, _ = ThinkingEnabledFromContext(ctx)
+	ctx := context.WithValue(context.Background(), ctxkey.IsMaxTokensOneHaikuRequest, true)
+	_, _ = IsMaxTokensOneHaikuRequestFromContext(ctx)
 
 	after := SnapshotOpenAICompatibilityFallbackMetrics()
 	require.GreaterOrEqual(t, after.MetadataLegacyFallbackTotal, before.MetadataLegacyFallbackTotal+1)
-	require.GreaterOrEqual(t, after.MetadataLegacyFallbackThinkingEnabledTotal, before.MetadataLegacyFallbackThinkingEnabledTotal+1)
+	require.GreaterOrEqual(t, after.MetadataLegacyFallbackIsMaxTokensOneHaikuTotal, before.MetadataLegacyFallbackIsMaxTokensOneHaikuTotal+1)
 }

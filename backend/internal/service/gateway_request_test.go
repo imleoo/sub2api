@@ -23,23 +23,6 @@ func TestParseGatewayRequest(t *testing.T) {
 	require.True(t, parsed.HasSystem)
 	require.NotEmpty(t, parsed.SystemRaw())
 	require.NotEmpty(t, parsed.MessagesRaw())
-	require.False(t, parsed.ThinkingEnabled)
-}
-
-func TestParseGatewayRequest_ThinkingEnabled(t *testing.T) {
-	body := []byte(`{"model":"claude-sonnet-4-5","thinking":{"type":"enabled"},"messages":[{"content":"hi"}]}`)
-	parsed, err := ParseGatewayRequest(NewRequestBodyRef(body), "")
-	require.NoError(t, err)
-	require.Equal(t, "claude-sonnet-4-5", parsed.Model)
-	require.True(t, parsed.ThinkingEnabled)
-}
-
-func TestParseGatewayRequest_ThinkingAdaptiveEnabled(t *testing.T) {
-	body := []byte(`{"model":"claude-sonnet-4-5","thinking":{"type":"adaptive"},"messages":[{"content":"hi"}]}`)
-	parsed, err := ParseGatewayRequest(NewRequestBodyRef(body), "")
-	require.NoError(t, err)
-	require.Equal(t, "claude-sonnet-4-5", parsed.Model)
-	require.True(t, parsed.ThinkingEnabled)
 }
 
 func TestParseGatewayRequest_MaxTokens(t *testing.T) {
@@ -916,7 +899,6 @@ func TestParseGatewayRequest_OptionalFieldsMissing(t *testing.T) {
 		wantStream      bool
 		wantMetadataUID string
 		wantHasSystem   bool
-		wantThinking    bool
 		wantMaxTokens   int
 		wantMessagesNil bool
 		wantMessagesLen int
@@ -928,7 +910,6 @@ func TestParseGatewayRequest_OptionalFieldsMissing(t *testing.T) {
 			wantStream:      false,
 			wantMetadataUID: "",
 			wantHasSystem:   false,
-			wantThinking:    false,
 			wantMaxTokens:   0,
 			wantMessagesNil: true,
 		},
@@ -938,19 +919,6 @@ func TestParseGatewayRequest_OptionalFieldsMissing(t *testing.T) {
 			wantModel:       "test",
 			wantMetadataUID: "",
 			wantHasSystem:   false,
-			wantThinking:    false,
-		},
-		{
-			name:         "thinking 非 enabled（type=disabled）",
-			body:         `{"model":"test","thinking":{"type":"disabled"}}`,
-			wantModel:    "test",
-			wantThinking: false,
-		},
-		{
-			name:         "thinking 字段缺失",
-			body:         `{"model":"test"}`,
-			wantModel:    "test",
-			wantThinking: false,
 		},
 	}
 
@@ -963,7 +931,6 @@ func TestParseGatewayRequest_OptionalFieldsMissing(t *testing.T) {
 			require.Equal(t, tt.wantStream, parsed.Stream)
 			require.Equal(t, tt.wantMetadataUID, parsed.MetadataUserID)
 			require.Equal(t, tt.wantHasSystem, parsed.HasSystem)
-			require.Equal(t, tt.wantThinking, parsed.ThinkingEnabled)
 			require.Equal(t, tt.wantMaxTokens, parsed.MaxTokens)
 
 			if tt.wantMessagesNil {
@@ -1067,13 +1034,6 @@ func parseGatewayRequestOld(body []byte, protocol string) (*ParsedRequest, error
 	if meta, ok := req["metadata"].(map[string]any); ok {
 		if uid, ok := meta["user_id"].(string); ok {
 			parsed.MetadataUserID = uid
-		}
-	}
-
-	// thinking.type
-	if thinking, ok := req["thinking"].(map[string]any); ok {
-		if thinkType, ok := thinking["type"].(string); ok && thinkType == "enabled" {
-			parsed.ThinkingEnabled = true
 		}
 	}
 
