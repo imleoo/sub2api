@@ -93,8 +93,7 @@ const hasBreakdown = computed(() => sortedBreakdown.value.length > 0)
 const PLATFORM_LABELS: Record<string, string> = {
   anthropic: 'Claude',
   openai: 'OpenAI',
-  gemini: 'Gemini',
-  antigravity: 'Antigravity'
+  gemini: 'Gemini'
 }
 
 function platformLabel(platform: string): string {

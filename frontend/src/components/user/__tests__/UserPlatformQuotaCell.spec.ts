@@ -57,7 +57,7 @@ describe('UserPlatformQuotaCell', () => {
     expect(html).toContain('90.5/2000')
   })
 
-  it('多平台按 anthropic→openai→gemini→antigravity 顺序，仅展示有限额的', () => {
+  it('多平台按 anthropic→openai→gemini 顺序，仅展示有限额的', () => {
     const w = mount(UserPlatformQuotaCell, {
       props: {
         quotas: [

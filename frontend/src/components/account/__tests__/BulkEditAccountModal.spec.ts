@@ -1,7 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import BulkEditAccountModal from '../BulkEditAccountModal.vue'
-import ModelWhitelistSelector from '../ModelWhitelistSelector.vue'
 import { adminAPI } from '@/api/admin'
 
 vi.mock('@/stores/app', () => ({
@@ -21,16 +20,12 @@ vi.mock('@/api/admin', () => ({
   }
 }))
 
-vi.mock('@/api/admin/accounts', () => ({
-  getAntigravityDefaultModelMapping: vi.fn()
-}))
-
 vi.mock('@/api/admin/modelPricings', () => ({
   listModelPricings: vi.fn().mockResolvedValue({
     data: {
       items: [
-        { model_id: 'gemini-3.1-flash-image', provider: 'antigravity', mode: 'image_generation', display_name: null, description: null, input_cost_per_token: null, output_cost_per_token: null, cache_creation_input_token_cost: null, cache_read_input_token_cost: null, output_cost_per_image: null, output_cost_per_image_token: null, supports_prompt_caching: false, custom_input_cost: null, custom_output_cost: null, discount_rate: null, is_custom: false, is_enabled: true, last_synced_at: null, created_at: '', updated_at: '' },
-        { model_id: 'gemini-2.5-flash-image', provider: 'antigravity', mode: 'image_generation', display_name: null, description: null, input_cost_per_token: null, output_cost_per_token: null, cache_creation_input_token_cost: null, cache_read_input_token_cost: null, output_cost_per_image: null, output_cost_per_image_token: null, supports_prompt_caching: false, custom_input_cost: null, custom_output_cost: null, discount_rate: null, is_custom: false, is_enabled: true, last_synced_at: null, created_at: '', updated_at: '' },
+        { model_id: 'gemini-3.1-flash-image', provider: 'gemini', mode: 'image_generation', display_name: null, description: null, input_cost_per_token: null, output_cost_per_token: null, cache_creation_input_token_cost: null, cache_read_input_token_cost: null, output_cost_per_image: null, output_cost_per_image_token: null, supports_prompt_caching: false, custom_input_cost: null, custom_output_cost: null, discount_rate: null, is_custom: false, is_enabled: true, last_synced_at: null, created_at: '', updated_at: '' },
+        { model_id: 'gemini-2.5-flash-image', provider: 'gemini', mode: 'image_generation', display_name: null, description: null, input_cost_per_token: null, output_cost_per_token: null, cache_creation_input_token_cost: null, cache_read_input_token_cost: null, output_cost_per_image: null, output_cost_per_image_token: null, supports_prompt_caching: false, custom_input_cost: null, custom_output_cost: null, discount_rate: null, is_custom: false, is_enabled: true, last_synced_at: null, created_at: '', updated_at: '' },
       ],
       total: 2,
       page: 1,
@@ -54,7 +49,7 @@ function mountModal(extraProps: Record<string, unknown> = {}) {
     props: {
       show: true,
       accountIds: [1, 2],
-      selectedPlatforms: ['antigravity'],
+      selectedPlatforms: ['anthropic'],
       selectedTypes: ['apikey'],
       proxies: [],
       groups: [],
@@ -102,31 +97,6 @@ describe('BulkEditAccountModal', () => {
     } as any)
   })
 
-  it('antigravity 白名单包含 Gemini 图片模型且过滤掉普通 GPT 模型', async () => {
-    const wrapper = mountModal()
-    const selector = wrapper.findComponent(ModelWhitelistSelector)
-    expect(selector.exists()).toBe(true)
-
-    await selector.find('div.cursor-pointer').trigger('click')
-    await flushPromises()
-
-    expect(wrapper.text()).toContain('gemini-3.1-flash-image')
-    expect(wrapper.text()).toContain('gemini-2.5-flash-image')
-    expect(wrapper.text()).not.toContain('gpt-5.3-codex')
-  })
-
-  it('antigravity 映射预设包含图片映射并过滤 OpenAI 预设', async () => {
-    const wrapper = mountModal()
-
-    const mappingTab = wrapper.findAll('button').find((btn) => btn.text().includes('admin.accounts.modelMapping'))
-    expect(mappingTab).toBeTruthy()
-    await mappingTab!.trigger('click')
-
-    expect(wrapper.text()).toContain('3.1-Flash-Image透传')
-    expect(wrapper.text()).toContain('3-Pro-Image→3.1')
-    expect(wrapper.text()).not.toContain('GPT-5.3 Codex Spark')
-  })
-
   it('仅勾选模型限制且白名单留空时，应提交空 model_mapping 以支持所有模型', async () => {
     const wrapper = mountModal({
       selectedPlatforms: ['anthropic'],
@@ -148,7 +118,7 @@ describe('BulkEditAccountModal', () => {
   it('OpenAI 账号批量编辑可开启自动透传', async () => {
     const wrapper = mountModal({
       selectedPlatforms: ['openai'],
-      selectedTypes: ['oauth']
+      selectedTypes: ['apikey']
     })
 
     await wrapper.get('#bulk-edit-openai-passthrough-enabled').setValue(true)
@@ -160,73 +130,6 @@ describe('BulkEditAccountModal', () => {
     expect(adminAPI.accounts.bulkUpdate).toHaveBeenCalledWith([1, 2], {
       extra: {
         openai_passthrough: true
-      }
-    })
-  })
-
-  it('OpenAI OAuth 批量编辑应提交 OAuth 专属 WS mode 字段', async () => {
-    const wrapper = mountModal({
-      selectedPlatforms: ['openai'],
-      selectedTypes: ['oauth']
-    })
-
-    await wrapper.get('#bulk-edit-openai-ws-mode-enabled').setValue(true)
-    await wrapper.get('[data-testid="bulk-edit-openai-ws-mode-select"]').setValue('passthrough')
-    await wrapper.get('#bulk-edit-account-form').trigger('submit.prevent')
-    await flushPromises()
-
-    expect(adminAPI.accounts.bulkUpdate).toHaveBeenCalledTimes(1)
-    expect(adminAPI.accounts.bulkUpdate).toHaveBeenCalledWith([1, 2], {
-      extra: {
-        openai_oauth_responses_websockets_v2_mode: 'passthrough',
-        openai_oauth_responses_websockets_v2_enabled: true
-      }
-    })
-  })
-
-  it('OpenAI API Key 批量编辑不显示 WS mode 入口', () => {
-    const wrapper = mountModal({
-      selectedPlatforms: ['openai'],
-      selectedTypes: ['apikey']
-    })
-
-    expect(wrapper.find('#bulk-edit-openai-ws-mode-enabled').exists()).toBe(false)
-  })
-
-  it('OpenAI OAuth 批量编辑应提交 codex_cli_only 字段', async () => {
-    const wrapper = mountModal({
-      selectedPlatforms: ['openai'],
-      selectedTypes: ['oauth']
-    })
-
-    await wrapper.get('#bulk-edit-openai-codex-cli-only-enabled').setValue(true)
-    await wrapper.get('#bulk-edit-openai-codex-cli-only-toggle').trigger('click')
-    await wrapper.get('#bulk-edit-account-form').trigger('submit.prevent')
-    await flushPromises()
-
-    expect(adminAPI.accounts.bulkUpdate).toHaveBeenCalledTimes(1)
-    expect(adminAPI.accounts.bulkUpdate).toHaveBeenCalledWith([1, 2], {
-      extra: {
-        codex_cli_only: true
-      }
-    })
-  })
-
-  it('OpenAI OAuth 批量编辑应提交 codex_cli_only_allowed_clients 字段', async () => {
-    const wrapper = mountModal({
-      selectedPlatforms: ['openai'],
-      selectedTypes: ['oauth']
-    })
-
-    await wrapper.get('#bulk-edit-openai-codex-allow-claude-code-enabled').setValue(true)
-    await wrapper.get('#bulk-edit-openai-codex-allow-claude-code-toggle').trigger('click')
-    await wrapper.get('#bulk-edit-account-form').trigger('submit.prevent')
-    await flushPromises()
-
-    expect(adminAPI.accounts.bulkUpdate).toHaveBeenCalledTimes(1)
-    expect(adminAPI.accounts.bulkUpdate).toHaveBeenCalledWith([1, 2], {
-      extra: {
-        codex_cli_only_allowed_clients: ['claude_code']
       }
     })
   })
@@ -261,7 +164,7 @@ describe('BulkEditAccountModal', () => {
         filters: { platform: 'openai' },
         previewCount: 12,
         selectedPlatforms: ['openai'],
-        selectedTypes: ['oauth', 'apikey']
+        selectedTypes: ['apikey']
       }
     })
 
@@ -311,7 +214,7 @@ describe('BulkEditAccountModal', () => {
   it('开启 OpenAI 自动透传时不再同时提交模型限制', async () => {
     const wrapper = mountModal({
       selectedPlatforms: ['openai'],
-      selectedTypes: ['oauth']
+      selectedTypes: ['apikey']
     })
 
     await wrapper.get('#bulk-edit-openai-passthrough-enabled').setValue(true)

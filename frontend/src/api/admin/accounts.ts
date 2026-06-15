@@ -16,8 +16,6 @@ import type {
   TempUnschedulableStatus,
   AdminDataPayload,
   AdminDataImportResult,
-  CodexSessionImportRequest,
-  CodexSessionImportResult,
   CheckMixedChannelRequest,
   CheckMixedChannelResponse,
   AccountEndpoint,
@@ -203,30 +201,6 @@ export async function testAccount(id: number): Promise<{
  */
 export async function refreshCredentials(id: number): Promise<Account> {
   const { data } = await apiClient.post<Account>(`/admin/accounts/${id}/refresh`)
-  return data
-}
-
-/**
- * Apply OAuth credentials after re-authorization.
- *
- * Unlike `update()`, this endpoint:
- * - never overwrites the whole `extra` JSONB (merges incrementally instead),
- *   so persistent settings like `base_rpm`, `window_cost_limit`, `max_sessions`,
- *   `quota_*` and `privacy_mode` are preserved
- * - clears the account error and invalidates the token cache server-side
- */
-export async function applyOAuthCredentials(
-  id: number,
-  payload: {
-    type: 'oauth' | 'setup-token'
-    credentials: Record<string, unknown>
-    extra?: Record<string, unknown>
-  }
-): Promise<Account> {
-  const { data } = await apiClient.post<Account>(
-    `/admin/accounts/${id}/apply-oauth-credentials`,
-    payload
-  )
   return data
 }
 
@@ -490,33 +464,6 @@ export async function syncUpstreamModels(id: number): Promise<SyncUpstreamModels
   return data
 }
 
-/**
- * Generate OAuth authorization URL
- * @param endpoint - API endpoint path
- * @param config - Proxy configuration
- * @returns Auth URL and session ID
- */
-export async function generateAuthUrl(
-  endpoint: string,
-  config: { proxy_id?: number }
-): Promise<{ auth_url: string; session_id: string }> {
-  const { data } = await apiClient.post<{ auth_url: string; session_id: string }>(endpoint, config)
-  return data
-}
-
-/**
- * Exchange authorization code for tokens
- * @param endpoint - API endpoint path
- * @param exchangeData - Session ID, code, and optional proxy config
- * @returns Token information
- */
-export async function exchangeCode(
-  endpoint: string,
-  exchangeData: { session_id: string; code: string; state?: string; proxy_id?: number }
-): Promise<Record<string, unknown>> {
-  const { data } = await apiClient.post<Record<string, unknown>>(endpoint, exchangeData)
-  return data
-}
 
 export interface SyncUpstreamPreviewParams {
   platform: string
@@ -638,36 +585,6 @@ export async function importData(payload: {
   return data
 }
 
-export async function importCodexSession(payload: CodexSessionImportRequest): Promise<CodexSessionImportResult> {
-  const { data } = await apiClient.post<CodexSessionImportResult>('/admin/accounts/import/codex-session', payload)
-  return data
-}
-
-/**
- * Refresh OpenAI token using refresh token
- * @param refreshToken - The refresh token
- * @param proxyId - Optional proxy ID
- * @returns Token information including access_token, email, etc.
- */
-export async function refreshOpenAIToken(
-  refreshToken: string,
-  proxyId?: number | null,
-  endpoint: string = '/admin/openai/refresh-token',
-  clientId?: string
-): Promise<Record<string, unknown>> {
-  const payload: { refresh_token: string; proxy_id?: number; client_id?: string } = {
-    refresh_token: refreshToken
-  }
-  if (proxyId) {
-    payload.proxy_id = proxyId
-  }
-  if (clientId) {
-    payload.client_id = clientId
-  }
-  const { data } = await apiClient.post<Record<string, unknown>>(endpoint, payload)
-  return data
-}
-
 /**
  * Batch operation result type
  */
@@ -712,16 +629,6 @@ export async function batchRefresh(accountIds: number[]): Promise<BatchOperation
   }, {
     timeout: 120000  // 120s timeout for large batch refreshes
   })
-  return data
-}
-
-/**
- * Set privacy for an Antigravity OAuth account
- * @param id - Account ID
- * @returns Updated account
- */
-export async function setPrivacy(id: number): Promise<Account> {
-  const { data } = await apiClient.post<Account>(`/admin/accounts/${id}/set-privacy`)
   return data
 }
 
@@ -772,7 +679,6 @@ export const accountsAPI = {
   toggleStatus,
   testAccount,
   refreshCredentials,
-  applyOAuthCredentials,
   getStats,
   clearError,
   getUsage,
@@ -787,9 +693,6 @@ export const accountsAPI = {
   getAvailableModels,
   syncUpstreamModels,
   syncUpstreamModelsPreview,
-  generateAuthUrl,
-  exchangeCode,
-  refreshOpenAIToken,
   batchCreate,
   batchUpdateCredentials,
   bulkUpdate,
@@ -797,10 +700,8 @@ export const accountsAPI = {
   syncFromCrs,
   exportData,
   importData,
-  importCodexSession,
   batchClearError,
   batchRefresh,
-  setPrivacy,
   getAccountEndpoints,
   updateAccountEndpoints,
   fetchEndpointModels,

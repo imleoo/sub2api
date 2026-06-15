@@ -61,7 +61,7 @@ describe('TOTP 弹窗定时器清理', () => {
     mocks.initiateSetup.mockResolvedValue({
       qr_code_url: 'otpauth://totp/TokenPanel:test?secret=ABC123',
       secret: 'ABC123',
-      setup_token: 'setup-token'
+      setup_token: 'totp-setup-token-abc'
     })
     mocks.enable.mockResolvedValue({ success: true })
     mocks.disable.mockResolvedValue({ success: true })

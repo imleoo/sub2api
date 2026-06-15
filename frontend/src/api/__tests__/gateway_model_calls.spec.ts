@@ -554,54 +554,6 @@ describe('API Key 用量查询 - GET /v1/usage', () => {
 // 7. Antigravity 专属路由
 // ══════════════════════════════════════════════════════════════
 
-describe('Antigravity 专属路由 - /antigravity/v1', () => {
-  it('antigravity Claude messages 调用', async () => {
-    const client = createGatewayClient(MOCK_TOKEN, MOCK_BASE_URL)
-    mockPost.mockResolvedValueOnce({
-      data: {
-        id: 'msg_ag_001',
-        type: 'message',
-        role: 'assistant',
-        content: [{ type: 'text', text: 'Antigravity response' }],
-        model: 'claude-3-5-sonnet-20241022',
-        stop_reason: 'end_turn',
-      },
-    })
-
-    await client.post('/antigravity/v1/messages', {
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 1024,
-      messages: [{ role: 'user', content: 'Hello via Antigravity!' }],
-    })
-
-    const [endpoint] = mockPost.mock.calls[0]
-    expect(endpoint).toBe('/antigravity/v1/messages')
-  })
-
-  it('antigravity Gemini generateContent 调用', async () => {
-    const client = createGatewayClient(MOCK_TOKEN, MOCK_BASE_URL)
-    mockPost.mockResolvedValueOnce({
-      data: { candidates: [{ content: { parts: [{ text: 'ok' }], role: 'model' }, finishReason: 'STOP' }] },
-    })
-
-    await client.post('/antigravity/v1beta/models/gemini-2.5-flash:generateContent', {
-      contents: [{ role: 'user', parts: [{ text: 'Hello via Antigravity Gemini!' }] }],
-    })
-
-    const [endpoint] = mockPost.mock.calls[0]
-    expect(endpoint).toContain('/antigravity/v1beta/models/gemini-2.5-flash')
-  })
-
-  it('antigravity 模型列表', async () => {
-    const client = createGatewayClient(MOCK_TOKEN, MOCK_BASE_URL)
-    mockGet.mockResolvedValueOnce({ data: { object: 'list', data: [] } })
-
-    await client.get('/antigravity/v1/models')
-
-    expect(mockGet).toHaveBeenCalledWith('/antigravity/v1/models')
-  })
-})
-
 // ══════════════════════════════════════════════════════════════
 // 8. 认证方式验证
 // ══════════════════════════════════════════════════════════════

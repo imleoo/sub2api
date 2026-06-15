@@ -60,7 +60,6 @@ const platformLabel = computed(() => {
     case 'anthropic': return 'Anthropic'
     case 'openai': return 'OpenAI'
     case 'gemini': return 'Gemini'
-    case 'antigravity': return 'Antigravity'
     case 'lingjing': return '灵境'
     default: return props.platform || 'Unknown'
   }
@@ -107,8 +106,6 @@ const platformClass = computed(() => {
       return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
     case 'gemini':
       return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-    case 'antigravity':
-      return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
     case 'lingjing':
       return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
     default:
@@ -124,8 +121,6 @@ const typeClass = computed(() => {
       return 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
     case 'gemini':
       return 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-    case 'antigravity':
-      return 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
     case 'lingjing':
       return 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
     default:

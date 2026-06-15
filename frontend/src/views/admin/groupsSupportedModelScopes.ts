@@ -1,7 +1,8 @@
 export const normalizeSupportedModelScopesForPlatform = (
-  platform: string,
-  scopes: string[] | undefined,
+  _platform: string,
+  _scopes: string[] | undefined,
 ): string[] => {
-  if (platform !== "antigravity") return [];
-  return scopes ?? [];
+  // Per-group supported model scopes are no longer used by any active platform;
+  // no per-group scope filtering applies.
+  return [];
 };

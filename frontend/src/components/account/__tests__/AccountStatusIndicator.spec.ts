@@ -17,8 +17,8 @@ function makeAccount(overrides: Partial<Account>): Account {
   return {
     id: 1,
     name: 'account',
-    platform: 'antigravity',
-    type: 'oauth',
+    platform: 'anthropic',
+    type: 'apikey',
     proxy_id: null,
     concurrency: 1,
     priority: 1,

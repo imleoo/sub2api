@@ -21,15 +21,10 @@ export interface CcSwitchImportDeeplinkInput {
 
 export function resolveCcSwitchImportConfig(
   platform: GroupPlatform | undefined | null,
-  clientType: CcSwitchClientType,
+  _clientType: CcSwitchClientType,
   baseUrl: string
 ): CcSwitchImportConfig {
   switch (platform || 'anthropic') {
-    case 'antigravity':
-      return {
-        app: clientType === 'gemini' ? 'gemini' : 'claude',
-        endpoint: `${baseUrl}/antigravity`
-      }
     case 'openai':
       return {
         app: 'codex',

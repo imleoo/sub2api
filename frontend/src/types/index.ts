@@ -495,7 +495,7 @@ export interface PaginationConfig {
 
 // ==================== API Key & Group Types ====================
 
-export type GroupPlatform = 'anthropic' | 'openai' | 'gemini' | 'antigravity' | 'lingjing' | 'generic'
+export type GroupPlatform = 'anthropic' | 'openai' | 'gemini' | 'lingjing' | 'generic'
 
 export type SubscriptionType = 'standard' | 'subscription'
 
@@ -534,7 +534,6 @@ export interface Group {
   allow_messages_dispatch?: boolean
   default_mapped_model?: string
   messages_dispatch_model_config?: OpenAIMessagesDispatchModelConfig
-  require_oauth_only: boolean
   require_privacy_set: boolean
   created_at: string
   updated_at: string
@@ -545,10 +544,7 @@ export interface AdminGroup extends Group {
   model_routing: Record<string, number[]> | null
   model_routing_enabled: boolean
 
-  // MCP XML 协议注入（仅 antigravity 平台使用）
-  mcp_xml_inject: boolean
-
-  // 支持的模型系列（仅 antigravity 平台使用）
+  // 支持的模型系列
   supported_model_scopes?: string[]
 
   // 分组下账号数量（仅管理员可见）
@@ -647,7 +643,6 @@ export interface CreateGroupRequest {
   claude_code_only?: boolean
   fallback_group_id?: number | null
   fallback_group_id_on_invalid_request?: number | null
-  mcp_xml_inject?: boolean
   supported_model_scopes?: string[]
   models_list_config?: ModelsListConfig
   allow_messages_dispatch?: boolean
@@ -656,7 +651,6 @@ export interface CreateGroupRequest {
   model_routing?: Record<string, number[]> | null
   model_routing_enabled?: boolean
   rpm_limit?: number
-  require_oauth_only?: boolean
   require_privacy_set?: boolean
   // 从指定分组复制账号
   copy_accounts_from_group_ids?: number[]
@@ -682,7 +676,6 @@ export interface UpdateGroupRequest {
   claude_code_only?: boolean
   fallback_group_id?: number | null
   fallback_group_id_on_invalid_request?: number | null
-  mcp_xml_inject?: boolean
   supported_model_scopes?: string[]
   models_list_config?: ModelsListConfig
   allow_messages_dispatch?: boolean
@@ -691,15 +684,14 @@ export interface UpdateGroupRequest {
   model_routing?: Record<string, number[]> | null
   model_routing_enabled?: boolean
   rpm_limit?: number
-  require_oauth_only?: boolean
   require_privacy_set?: boolean
   copy_accounts_from_group_ids?: number[]
 }
 
 // ==================== Account & Proxy Types ====================
 
-export type AccountPlatform = 'anthropic' | 'openai' | 'gemini' | 'antigravity' | 'lingjing' | 'generic'
-export type AccountType = 'oauth' | 'setup-token' | 'apikey' | 'upstream' | 'bedrock' | 'service_account'
+export type AccountPlatform = 'anthropic' | 'openai' | 'gemini' | 'lingjing' | 'generic'
+export type AccountType = 'apikey' | 'upstream' | 'bedrock' | 'service_account'
 export type ProxyProtocol = 'http' | 'https' | 'socks5' | 'socks5h'
 
 export type OutboundProtocol = 'openai_chat' | 'openai_responses' | 'anthropic_messages' | 'gemini_v1beta'
@@ -861,7 +853,6 @@ export interface Account {
   // Extra fields including Codex usage, OpenAI compact capability, and model-level rate limits.
   extra?: (CodexUsageSnapshot & OpenAICompactState & {
     model_rate_limits?: Record<string, { rate_limited_at: string; rate_limit_reset_at: string }>
-    antigravity_credits_overages?: Record<string, { activated_at: string; active_until: string }>
   } & Record<string, unknown>)
   proxy_id: number | null
   proxy_fallback_origin_id?: number | null
@@ -967,12 +958,6 @@ export interface UsageProgress {
   limit_requests?: number
 }
 
-// Antigravity 单个模型的配额信息
-export interface AntigravityModelQuota {
-  utilization: number // 使用率 0-100
-  reset_time: string  // 重置时间 ISO8601
-}
-
 export interface AccountUsageInfo {
   source?: 'passive' | 'active'
   updated_at: string | null
@@ -985,21 +970,8 @@ export interface AccountUsageInfo {
   gemini_shared_minute?: UsageProgress | null
   gemini_pro_minute?: UsageProgress | null
   gemini_flash_minute?: UsageProgress | null
-  antigravity_quota?: Record<string, AntigravityModelQuota> | null
-  ai_credits?: Array<{
-    credit_type?: string
-    amount?: number
-    minimum_balance?: number
-  }> | null
-  // Antigravity 403 forbidden 状态
-  is_forbidden?: boolean
-  forbidden_reason?: string
-  forbidden_type?: string   // "validation" | "violation" | "forbidden"
-  validation_url?: string   // 验证/申诉链接
 
   // 状态标记（后端自动推导）
-  needs_verify?: boolean    // 需要人工验证（forbidden_type=validation）
-  is_banned?: boolean       // 账号被封（forbidden_type=violation）
   needs_reauth?: boolean    // token 失效需重新授权（401）
 
   // 机器可读错误码：forbidden / unauthenticated / rate_limited / network_error
@@ -1183,51 +1155,6 @@ export interface AdminDataImportResult {
   account_created: number
   account_failed: number
   errors?: AdminDataImportError[]
-}
-
-export interface CodexSessionImportRequest {
-  content?: string
-  contents?: string[]
-  name?: string
-  notes?: string | null
-  group_ids?: number[]
-  proxy_id?: number | null
-  concurrency?: number
-  priority?: number
-  rate_multiplier?: number
-  load_factor?: number | null
-  expires_at?: number | null
-  auto_pause_on_expired?: boolean
-  credential_extras?: Record<string, unknown>
-  extra?: Record<string, unknown>
-  update_existing?: boolean
-  skip_default_group_bind?: boolean
-  confirm_mixed_channel_risk?: boolean
-}
-
-export interface CodexSessionImportMessage {
-  index: number
-  name?: string
-  message: string
-}
-
-export interface CodexSessionImportItem {
-  index: number
-  name?: string
-  action: 'created' | 'updated' | 'skipped' | 'failed'
-  account_id?: number
-  message?: string
-}
-
-export interface CodexSessionImportResult {
-  total: number
-  created: number
-  updated: number
-  skipped: number
-  failed: number
-  items?: CodexSessionImportItem[]
-  warnings?: CodexSessionImportMessage[]
-  errors?: CodexSessionImportMessage[]
 }
 
 // ==================== Usage & Redeem Types ====================

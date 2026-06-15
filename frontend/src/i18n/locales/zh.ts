@@ -98,7 +98,6 @@ export default {
       multimodalLabel: '多模态模型',
       claude: 'Claude',
       gemini: 'Gemini',
-      antigravity: 'Antigravity',
       deepseek: 'DeepSeek V4',
       kimi: 'Kimi K2.6',
       qwen: '通义千问',
@@ -818,15 +817,6 @@ export default {
         codexCli: 'Codex CLI',
         codexCliWs: 'Codex CLI (WebSocket)',
         opencode: 'OpenCode'
-      },
-      antigravity: {
-        description: '为 Antigravity 分组配置 API 访问。请根据您使用的客户端选择对应的配置方式。',
-        claudeCode: 'Claude Code',
-        geminiCli: 'Gemini CLI',
-        claudeNote:
-          '这些环境变量将在当前终端会话中生效。如需永久配置，请将其添加到 ~/.bashrc、~/.zshrc 或相应的配置文件中。',
-        geminiNote:
-          '这些环境变量将在当前终端会话中生效。如需永久配置，请将其添加到 ~/.bashrc、~/.zshrc 或相应的配置文件中。'
       },
       gemini: {
         description:
@@ -2311,7 +2301,6 @@ export default {
         anthropic: 'Anthropic',
         openai: 'OpenAI',
         gemini: 'Gemini',
-        antigravity: 'Antigravity',
         lingjing: '灵境',
         generic: '通用渠道',
       },
@@ -3365,7 +3354,6 @@ export default {
       tokenRefreshed: 'Token 刷新成功',
       accountDeleted: '账号删除成功',
       rateLimitCleared: '速率限制已清除',
-      setupToken: 'Setup Token',
       apiKey: 'API Key',
       deleteConfirm: "确定要删除账号 '{name}' 吗？此操作无法撤销。",
       failedToClearRateLimit: '清除速率限制失败',
@@ -3374,7 +3362,6 @@ export default {
         openai: 'OpenAI',
         anthropic: 'Anthropic',
         gemini: 'Gemini',
-        antigravity: 'Antigravity',
         lingjing: '灵境',
         generic: '通用渠道',
       },
@@ -3429,8 +3416,6 @@ export default {
         responsesApi: 'Responses API',
         googleOauth: 'Google OAuth',
         codeAssist: 'Code Assist',
-        antigravityOauth: 'Antigravity OAuth',
-        antigravityApikey: '通过 Base URL + API Key 连接',
         upstream: '对接上游',
         upstreamDesc: '通过 Base URL + API Key 连接上游',
         api_key: 'API Key',
@@ -3651,7 +3636,6 @@ export default {
       vertexSaJsonRequired: '请上传 Service Account JSON',
       oauthSetupToken: 'Setup Token',
       addMethod: '添加方式',
-      setupTokenLongLived: 'Setup Token（长期有效）',
       baseUrl: 'Base URL',
       baseUrlHint: '留空使用官方 Anthropic API',
       apiKeyRequired: 'API Key *',
@@ -4116,35 +4100,6 @@ export default {
           aiStudioNotConfigured:
             'AI Studio OAuth 未配置：请先设置 GEMINI_OAUTH_CLIENT_ID / GEMINI_OAUTH_CLIENT_SECRET，并在 Google OAuth Client 添加 Redirect URI：http://localhost:1455/auth/callback'
         },
-        // Antigravity specific
-        antigravity: {
-          title: 'Antigravity 账户授权',
-          followSteps: '请按照以下步骤完成 Antigravity 账户的授权：',
-          step1GenerateUrl: '生成授权链接',
-          generateAuthUrl: '生成授权链接',
-          step2OpenUrl: '在浏览器中打开链接并完成授权',
-          openUrlDesc: '请在新标签页中打开授权链接，登录您的 Google 账户并授权。',
-          importantNotice:
-            '重要提示：授权后页面可能会加载较长时间，请耐心等待。当浏览器地址栏变为 http://localhost... 开头时，表示授权已完成。',
-          step3EnterCode: '输入授权链接或 Code',
-          authCodeDesc:
-            '授权完成后，当页面地址变为 http://localhost:xxx/auth/callback?code=... 时：',
-          authCode: '授权链接或 Code',
-          authCodePlaceholder:
-            '方式1：复制完整的链接\n(http://localhost:xxx/auth/callback?code=...)\n方式2：仅复制 code 参数的值',
-          authCodeHint: '您可以直接复制整个链接或仅复制 code 参数值，系统会自动识别',
-          failedToGenerateUrl: '生成 Antigravity 授权链接失败',
-          missingExchangeParams: '缺少 code / session_id / state',
-          failedToExchangeCode: 'Antigravity 授权码兑换失败',
-          // Refresh Token auth
-          refreshTokenAuth: '手动输入 RT',
-          refreshTokenDesc: '输入您已有的 Antigravity Refresh Token，支持批量输入（每行一个），系统将自动验证并创建账号。',
-          refreshTokenPlaceholder: '粘贴您的 Antigravity Refresh Token...\n支持多个，每行一个',
-          validating: '验证中...',
-          validateAndCreate: '验证并创建账号',
-          pleaseEnterRefreshToken: '请输入 Refresh Token',
-          failedToValidateRT: '验证 Refresh Token 失败'
-        }
       },
       // Gemini specific (platform-wide)
       gemini: {
@@ -4286,7 +4241,6 @@ export default {
       claudeCodeAccount: 'Claude Code 账号',
       openaiAccount: 'OpenAI 账号',
       geminiAccount: 'Gemini 账号',
-      antigravityAccount: 'Antigravity 账号',
       inputMethod: '输入方式',
       reAuthorizedSuccess: '账号重新授权成功',
       // Test Modal
@@ -6014,9 +5968,6 @@ export default {
         anthropicCacheTTL1hInjectionHint: '开启后，对 Anthropic OAuth/Setup Token 请求体中已有的 ephemeral 缓存块强制写入 1h；响应 usage 默认按 5m 回写计费，账号级 TTL 计费设置优先。',
         rewriteMessageCacheControl: '改写消息缓存断点',
         rewriteMessageCacheControlHint: '默认关闭，保留客户端在 messages 内容块中的 cache_control。开启后会清除客户端断点并注入代理断点，适合不自行管理缓存策略的客户端。',
-        antigravityUserAgentVersion: 'Antigravity UA 版本',
-        antigravityUserAgentVersionPlaceholder: '1.23.2',
-        antigravityUserAgentVersionHint: '留空时使用 ANTIGRAVITY_USER_AGENT_VERSION 或内置默认值 1.23.2；填写后后台设置优先。',
         openaiCodexUserAgent: 'OpenAI Codex UA',
         openaiCodexUserAgentPlaceholder: 'codex-tui/0.125.0 (Ubuntu 22.4.0; x86_64) xterm-256color (codex-tui; 0.125.0)',
         openaiCodexUserAgentHint: '用于规避 OpenAI 上游 Cloudflare 对浏览器 UA 的访问质询。仅在检测到客户端 User-Agent 为浏览器（Mozilla/...）时生效，其他客户端原样透传。留空使用内置默认值。',

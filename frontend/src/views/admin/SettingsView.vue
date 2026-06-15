@@ -1176,7 +1176,6 @@
                       @update:modelValue="
                         rule.scope = $event as
                           | 'all'
-                          | 'oauth'
                           | 'apikey'
                           | 'bedrock'
                       "
@@ -3483,7 +3482,7 @@
                       </tr>
                     </thead>
                     <tbody class="space-y-2">
-                      <tr v-for="p in (['anthropic', 'openai', 'gemini', 'antigravity'] as const)" :key="p" class="align-top">
+                      <tr v-for="p in (['anthropic', 'openai', 'gemini'] as const)" :key="p" class="align-top">
                         <td class="pr-4 py-1">
                           <span class="font-mono text-xs text-gray-700 dark:text-gray-300">{{ p }}</span>
                         </td>
@@ -3818,7 +3817,7 @@
                             </tr>
                           </thead>
                           <tbody>
-                            <tr v-for="p in (['anthropic', 'openai', 'gemini', 'antigravity'] as const)" :key="`${authSource.source}-pq-${p}`" class="align-top">
+                            <tr v-for="p in (['anthropic', 'openai', 'gemini'] as const)" :key="`${authSource.source}-pq-${p}`" class="align-top">
                               <td class="pr-4 py-1">
                                 <span class="font-mono text-xs text-gray-700 dark:text-gray-300">{{ p }}</span>
                               </td>
@@ -4083,36 +4082,6 @@
                   </p>
                 </div>
                 <Toggle v-model="form.rewrite_message_cache_control" />
-              </div>
-
-              <!-- Antigravity UA 版本 -->
-              <div>
-                <label
-                  class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
-                >
-                  {{
-                    t(
-                      "admin.settings.gatewayForwarding.antigravityUserAgentVersion",
-                    )
-                  }}
-                </label>
-                <input
-                  v-model="form.antigravity_user_agent_version"
-                  type="text"
-                  class="input max-w-xs font-mono text-sm"
-                  :placeholder="
-                    t(
-                      'admin.settings.gatewayForwarding.antigravityUserAgentVersionPlaceholder',
-                    )
-                  "
-                />
-                <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                  {{
-                    t(
-                      "admin.settings.gatewayForwarding.antigravityUserAgentVersionHint",
-                    )
-                  }}
-                </p>
               </div>
 
               <!-- OpenAI Codex UA -->
@@ -7146,7 +7115,7 @@ const betaPolicyForm = reactive({
   rules: [] as Array<{
     beta_token: string;
     action: "pass" | "filter" | "block";
-    scope: "all" | "oauth" | "apikey" | "bedrock";
+    scope: "all" | "apikey" | "bedrock";
     error_message?: string;
     model_whitelist?: string[];
     fallback_action?: "pass" | "filter" | "block";
@@ -7420,7 +7389,6 @@ const form = reactive<SettingsForm>({
   fallback_model_anthropic: "claude-3-5-sonnet-20241022",
   fallback_model_openai: "gpt-4o",
   fallback_model_gemini: "gemini-2.5-pro",
-  fallback_model_antigravity: "gemini-2.5-pro",
   // Identity patch (Claude -> Gemini)
   enable_identity_patch: true,
   identity_patch_prompt: "",
@@ -7441,7 +7409,6 @@ const form = reactive<SettingsForm>({
   enable_cch_signing: false,
   enable_anthropic_cache_ttl_1h_injection: false,
   rewrite_message_cache_control: false,
-  antigravity_user_agent_version: "",
   openai_codex_user_agent: "",
   openai_allow_claude_code_codex_plugin: false,
   // 余额、订阅到期与账号限额通知
@@ -8604,7 +8571,6 @@ async function saveSettings() {
       fallback_model_anthropic: form.fallback_model_anthropic,
       fallback_model_openai: form.fallback_model_openai,
       fallback_model_gemini: form.fallback_model_gemini,
-      fallback_model_antigravity: form.fallback_model_antigravity,
       enable_identity_patch: form.enable_identity_patch,
       identity_patch_prompt: form.identity_patch_prompt,
       min_claude_code_version: form.min_claude_code_version,
@@ -8616,8 +8582,6 @@ async function saveSettings() {
       enable_anthropic_cache_ttl_1h_injection:
         form.enable_anthropic_cache_ttl_1h_injection,
       rewrite_message_cache_control: form.rewrite_message_cache_control,
-      antigravity_user_agent_version:
-        form.antigravity_user_agent_version?.trim() || "",
       openai_codex_user_agent:
         form.openai_codex_user_agent?.trim() || "",
       openai_allow_claude_code_codex_plugin: form.openai_allow_claude_code_codex_plugin,
@@ -9069,7 +9033,6 @@ const betaPolicyActionOptions = computed(() => [
 
 const betaPolicyScopeOptions = computed(() => [
   { value: "all", label: t("admin.settings.betaPolicy.scopeAll") },
-  { value: "oauth", label: t("admin.settings.betaPolicy.scopeOAuth") },
   { value: "apikey", label: t("admin.settings.betaPolicy.scopeAPIKey") },
   { value: "bedrock", label: t("admin.settings.betaPolicy.scopeBedrock") },
 ]);
@@ -9168,7 +9131,6 @@ const openaiFastPolicyActionOptions = computed(() => [
 
 const openaiFastPolicyScopeOptions = computed(() => [
   { value: "all", label: t("admin.settings.openaiFastPolicy.scopeAll") },
-  { value: "oauth", label: t("admin.settings.openaiFastPolicy.scopeOAuth") },
   { value: "apikey", label: t("admin.settings.openaiFastPolicy.scopeAPIKey") },
   {
     value: "bedrock",

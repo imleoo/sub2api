@@ -38,7 +38,6 @@ const mountPlanCard = (groupPlatform: string) =>
         rate_multiplier: 1,
         validity_days: 30,
         validity_unit: "day",
-        supported_model_scopes: ["claude", "gemini_text", "gemini_image"],
         is_active: true,
       },
     },
@@ -46,19 +45,9 @@ const mountPlanCard = (groupPlatform: string) =>
   });
 
 describe("SubscriptionPlanCard", () => {
-  it("does not show Antigravity model scopes for OpenAI plans", () => {
+  it("renders the plan name", () => {
     const text = mountPlanCard("openai").text();
 
-    expect(text).not.toContain("Claude");
-    expect(text).not.toContain("Gemini");
-    expect(text).not.toContain("Imagen");
-  });
-
-  it("shows model scopes for Antigravity plans", () => {
-    const text = mountPlanCard("antigravity").text();
-
-    expect(text).toContain("Claude");
-    expect(text).toContain("Gemini");
-    expect(text).toContain("Imagen");
+    expect(text).toContain("Pro");
   });
 });
