@@ -1365,127 +1365,6 @@ func (s *GatewayService) buildOAuthMetadataUserID(parsed *ParsedRequest, account
 	return FormatMetadataUserID(userID, accountUUID, sessionID, uaVersion)
 }
 
-// applyClaudeCodeOAuthMimicryToBody 将"非 Claude Code 客户端 + Claude OAuth 账号"
-// 路径上原本只在 /v1/messages 里做的完整伪装应用到任意 body 上。
-//
-// 这是 /v1/messages 主路径上 rewriteSystemForNonClaudeCode +
-// normalizeClaudeOAuthRequestBody 流程的通用版，供 OpenAI 协议兼容层
-// (ForwardAsChatCompletions / ForwardAsResponses) 复用。
-//
-// 未抽离之前，OpenAI 协议兼容层仅做 injectClaudeCodePrompt（前置追加），
-// 而仓内 /v1/messages 路径自己的注释明确说过"仅前置追加无法通过 Anthropic
-// 第三方检测"；那条注释就是本函数存在的根因。
-//
-// 参数：
-//   - ctx / c：用于读取指纹和 gateway settings；c 可为 nil（如 count_tokens）。
-//   - account：必须是 OAuth 账号，且调用方已判断不是 Claude Code 客户端。
-//   - body：已经 marshal 成 Anthropic /v1/messages 格式的请求体。
-//   - systemRaw：body 中原始 system 字段（用于判断是否需要 rewrite）。
-//   - model：最终会发给上游的模型 ID（用于 haiku 旁路 + metadata 版本选择）。
-//
-// 返回：改写后的 body。即使中间任何一步失败，也会退化成原 body（不会 panic）。
-func (s *GatewayService) applyClaudeCodeOAuthMimicryToBody(
-	ctx context.Context,
-	c *gin.Context,
-	account *Account,
-	body []byte,
-	systemRaw any,
-	model string,
-) []byte {
-	if account == nil || len(body) == 0 {
-		return body
-	}
-
-	systemRewritten := false
-	if !strings.Contains(strings.ToLower(model), "haiku") {
-		body = rewriteSystemForNonClaudeCode(body, normalizeSystemParam(systemRaw))
-		systemRewritten = true
-	}
-
-	normalizeOpts := claudeOAuthNormalizeOptions{stripSystemCacheControl: !systemRewritten}
-
-	if s.identityService != nil && c != nil && c.Request != nil {
-		if fp, err := s.identityService.GetOrCreateFingerprint(ctx, account.ID, c.Request.Header); err == nil && fp != nil {
-			mimicMPT := false
-			if s.settingService != nil {
-				_, mimicMPT, _ = s.settingService.GetGatewayForwardingSettings(ctx)
-			}
-			if !mimicMPT {
-				if uid := s.buildOAuthMetadataUserIDFromBody(ctx, account, fp, body); uid != "" {
-					normalizeOpts.injectMetadata = true
-					normalizeOpts.metadataUserID = uid
-				}
-			}
-		}
-	}
-
-	body, _ = normalizeClaudeOAuthRequestBody(body, model, normalizeOpts)
-
-	// Phase D+E+F: messages cache 策略 + 工具名混淆 + tools[-1] 断点
-	// 对齐 Parrot transform_request 里剩余的字段级改写。顺序有语义约束：
-	//   1) messages cache：仅在配置开启时清除客户端断点并注入代理断点
-	//   2) tool rewrite：最后改 tools[*].name / tool_choice.name 并在 tools[-1]
-	//      上打断点；mapping 存入 gin.Context 供响应侧 bytes.Replace 还原。
-	body = s.rewriteMessageCacheControlIfEnabled(ctx, body)
-
-	if rw := buildToolNameRewriteFromBody(body); rw != nil {
-		body = applyToolNameRewriteToBody(body, rw)
-		if c != nil {
-			c.Set(toolNameRewriteKey, rw)
-		}
-	} else {
-		body = applyToolsLastCacheBreakpoint(body)
-	}
-
-	return body
-}
-
-// buildOAuthMetadataUserIDFromBody 是 buildOAuthMetadataUserID 的变体，
-// 适用于调用方手上没有 ParsedRequest 的场景（如 OpenAI 协议兼容层）。
-//
-// 与 buildOAuthMetadataUserID 的唯一区别：
-//   - session hash 从 body 本体按同样规则重算，而不是读取 ParsedRequest 缓存值。
-//   - 如果 body 里已经存在 metadata.user_id，则返回空（由 ensureClaudeOAuthMetadataUserID
-//     自行决定是否覆盖）。
-func (s *GatewayService) buildOAuthMetadataUserIDFromBody(
-	ctx context.Context,
-	account *Account,
-	fp *Fingerprint,
-	body []byte,
-) string {
-	_ = ctx
-	if account == nil {
-		return ""
-	}
-	if existing := gjson.GetBytes(body, "metadata.user_id").String(); existing != "" {
-		return ""
-	}
-
-	userID := strings.TrimSpace(account.GetClaudeUserID())
-	if userID == "" && fp != nil {
-		userID = fp.ClientID
-	}
-	if userID == "" {
-		userID = generateClientID()
-	}
-
-	// 与 buildOAuthMetadataUserID 一致：用会话级稳定种子，避免整 body 哈希导致
-	// 每轮（甚至每个 token 变化）都重算出不同的 session_id。
-	var clientDiscriminator string
-	if fp != nil {
-		clientDiscriminator = fp.ClientID
-	}
-	seed := buildStableSessionSeed(account.ID, clientDiscriminator, extractFirstUserText(body))
-	sessionID := generateSessionUUID(seed)
-
-	var uaVersion string
-	if fp != nil {
-		uaVersion = ExtractCLIVersion(fp.UserAgent)
-	}
-	accountUUID := strings.TrimSpace(account.GetExtraString("account_uuid"))
-	return FormatMetadataUserID(userID, accountUUID, sessionID, uaVersion)
-}
-
 // buildStableSessionSeed 为伪装路径合成的 metadata.user_id session_id 生成"会话级稳定"种子。
 //
 // 真实 Claude Code 的 session_id 是进程级随机 UUID，在一段会话内跨请求保持不变。无状态代理
@@ -4463,7 +4342,6 @@ func (s *GatewayService) Forward(ctx context.Context, c *gin.Context, account *A
 		})
 	}
 
-
 	// 强制执行 cache_control 块数量限制（最多 4 个）
 	if err := replaceBody(enforceCacheControlLimit(body)); err != nil {
 		return nil, err
@@ -6225,11 +6103,6 @@ func (s *GatewayService) buildUpstreamRequest(ctx context.Context, c *gin.Contex
 				}
 			}
 		}
-	}
-
-	// OAuth账号：应用缓存的指纹到请求头（覆盖白名单透传的头）
-	if fingerprint != nil {
-		s.identityService.ApplyFingerprint(req, fingerprint)
 	}
 
 	// 确保必要的headers存在（保持原始大小写）
@@ -8691,7 +8564,7 @@ type RecordUsageLongContextInput struct {
 	InboundProtocol string
 	// BridgeID Phase 4 P4-3：当桥路由介入时的桥 ID（如 "gemini_v1beta->openai_chat"）。
 	// 空 = native 路径（无桥）。
-	BridgeID string
+	BridgeID      string
 	QuotaPlatform string // user×platform 配额计量平台：handler 在请求 ctx 内经 QuotaPlatform() 算定后传入（后扣运行在 worker 池 background ctx 上，取不到 ForcePlatform）
 
 	ChannelUsageFields // 渠道映射信息（由 handler 在 Forward 前解析）
