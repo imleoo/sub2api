@@ -7,6 +7,7 @@ import (
 	_ "embed"
 	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -19,6 +20,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/handler"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
+	"github.com/Wei-Shaw/sub2api/internal/repository"
 	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 	"github.com/Wei-Shaw/sub2api/internal/setup"
@@ -59,11 +61,23 @@ func main() {
 
 	// Parse command line flags
 	setupMode := flag.Bool("setup", false, "Run setup wizard in CLI mode")
+	migrateMode := flag.Bool("migrate", false, "Apply pending database migrations and exit")
 	showVersion := flag.Bool("version", false, "Show version information")
 	flag.Parse()
 
 	if *showVersion {
 		log.Printf("TokenPanel %s (commit: %s, built: %s)\n", Version, Commit, Date)
+		return
+	}
+
+	// Migrate-only mode: apply pending migrations against the configured database and exit.
+	// 复用与首次安装相同的幂等迁移运行器（advisory lock + schema_migrations 跟踪），
+	// 供部署/本地脚本在每次启动前安全调用，避免「新增迁移在已初始化的库上从未执行」的问题。
+	if *migrateMode {
+		if err := runMigrateOnly(); err != nil {
+			log.Fatalf("Migrate failed: %v", err)
+		}
+		log.Println("Migrations applied successfully")
 		return
 	}
 
@@ -93,6 +107,28 @@ func main() {
 
 	// Normal server mode
 	runMainServer()
+}
+
+// runMigrateOnly 连接配置中的数据库并应用所有待执行迁移后返回（不启动 HTTP 服务）。
+func runMigrateOnly() error {
+	cfg, err := config.ProvideConfig()
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
+	client, err := repository.ProvideEnt(cfg)
+	if err != nil {
+		return fmt.Errorf("connect database: %w", err)
+	}
+	defer func() { _ = client.Close() }()
+
+	db, err := repository.ProvideSQLDB(client)
+	if err != nil {
+		return fmt.Errorf("resolve sql db: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+	return repository.ApplyMigrations(ctx, db)
 }
 
 func runSetupServer() {

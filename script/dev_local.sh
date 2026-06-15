@@ -311,6 +311,48 @@ ensure_frontend_deps() {
   pnpm --dir "$ROOT_DIR/frontend" install
 }
 
+# run_with_backend_env 在 backend 目录内、用本地调试所需的环境变量执行给定命令。
+# 由 run_migrations 与 start_backend 共用，避免环境变量重复维护导致漂移。
+run_with_backend_env() {
+  cd "$ROOT_DIR/backend"
+  env \
+    AUTO_SETUP=true \
+    DATA_DIR="$DATA_DIR" \
+    DATABASE_HOST="$DATABASE_HOST" \
+    DATABASE_PORT="$DATABASE_PORT" \
+    DATABASE_USER="$DATABASE_USER" \
+    DATABASE_PASSWORD="$DATABASE_PASSWORD" \
+    DATABASE_DBNAME="$DATABASE_DBNAME" \
+    DATABASE_SSLMODE="$DATABASE_SSLMODE" \
+    REDIS_HOST="$REDIS_HOST" \
+    REDIS_PORT="$REDIS_PORT" \
+    REDIS_PASSWORD="$REDIS_PASSWORD" \
+    REDIS_DB="$REDIS_DB" \
+    SERVER_HOST="$BACKEND_HOST" \
+    SERVER_PORT="$BACKEND_PORT" \
+    SERVER_MODE=debug \
+    RUN_MODE=standard \
+    ADMIN_EMAIL=admin@tokenpanel.local \
+    ADMIN_PASSWORD=admin123 \
+    JWT_SECRET="$JWT_SECRET" \
+    TOTP_ENCRYPTION_KEY="$TOTP_ENCRYPTION_KEY" \
+    TZ=Asia/Shanghai \
+    "$@"
+}
+
+# run_migrations 在启动服务前应用所有待执行的数据库迁移（幂等，复用服务内置迁移运行器）。
+# 解决「已初始化的库不会自动获得后续新增迁移」的问题：服务正常启动时仅在首次安装才迁移，
+# 因此每次 up 都先显式迁移再启动，新增的迁移（如新列）才不会缺失。
+run_migrations() {
+  echo "应用数据库迁移（go run ./cmd/server -migrate）..."
+  if ! ( run_with_backend_env go run ./cmd/server -migrate ) >>"$BACKEND_LOG" 2>&1; then
+    echo "数据库迁移失败，最近日志：" >&2
+    tail -n 40 "$BACKEND_LOG" >&2 || true
+    die "数据库迁移失败，已中止启动（详见 $BACKEND_LOG）"
+  fi
+  echo "数据库迁移完成。"
+}
+
 start_backend() {
   mkdir -p "$LOG_DIR" "$PID_DIR"
   if [[ -f "$BACKEND_PID_FILE" ]] && kill -0 "$(cat "$BACKEND_PID_FILE")" >/dev/null 2>&1; then
@@ -318,32 +360,7 @@ start_backend() {
   fi
 
   echo "启动后端..."
-  (
-    cd "$ROOT_DIR/backend"
-    env \
-      AUTO_SETUP=true \
-      DATA_DIR="$DATA_DIR" \
-      DATABASE_HOST="$DATABASE_HOST" \
-      DATABASE_PORT="$DATABASE_PORT" \
-      DATABASE_USER="$DATABASE_USER" \
-      DATABASE_PASSWORD="$DATABASE_PASSWORD" \
-      DATABASE_DBNAME="$DATABASE_DBNAME" \
-      DATABASE_SSLMODE="$DATABASE_SSLMODE" \
-      REDIS_HOST="$REDIS_HOST" \
-      REDIS_PORT="$REDIS_PORT" \
-      REDIS_PASSWORD="$REDIS_PASSWORD" \
-      REDIS_DB="$REDIS_DB" \
-      SERVER_HOST="$BACKEND_HOST" \
-      SERVER_PORT="$BACKEND_PORT" \
-      SERVER_MODE=debug \
-      RUN_MODE=standard \
-      ADMIN_EMAIL=admin@tokenpanel.local \
-      ADMIN_PASSWORD=admin123 \
-      JWT_SECRET="$JWT_SECRET" \
-      TOTP_ENCRYPTION_KEY="$TOTP_ENCRYPTION_KEY" \
-      TZ=Asia/Shanghai \
-      go run ./cmd/server
-  ) >"$BACKEND_LOG" 2>&1 &
+  ( run_with_backend_env go run ./cmd/server ) >"$BACKEND_LOG" 2>&1 &
   echo $! >"$BACKEND_PID_FILE"
 }
 
@@ -505,6 +522,7 @@ up() {
   ensure_frontend_deps
   touch "$BACKEND_LOG" "$FRONTEND_LOG"
 
+  run_migrations
   start_backend
   wait_for_backend 30
   start_frontend
@@ -543,11 +561,27 @@ up() {
   done
 }
 
+# migrate_cmd 单独应用数据库迁移（不启动服务），用于在已运行环境下补跑新增迁移。
+migrate_cmd() {
+  require_cmd go
+  require_cmd docker
+  mkdir -p "$LOG_DIR"
+  initialize_env
+  touch "$BACKEND_LOG"
+  echo "等待本机 PostgreSQL 就绪..."
+  wait_for_postgres "$POSTGRES_WAIT_TIMEOUT"
+  run_migrations
+  echo "迁移详情见：$BACKEND_LOG"
+}
+
 main() {
   local cmd="${1:-up}"
   case "$cmd" in
     up)
       up
+      ;;
+    migrate)
+      migrate_cmd
       ;;
     down)
       down
@@ -561,7 +595,8 @@ main() {
     help|-h|--help)
       cat <<EOF
 用法:
-  $0 up        启动后端 / 前端
+  $0 up        启动后端 / 前端（启动前会自动应用数据库迁移）
+  $0 migrate   仅应用数据库迁移，不启动服务
   $0 down      停止本地调试进程
   $0 status    查看当前状态
   $0 logs      查看日志，默认 all
