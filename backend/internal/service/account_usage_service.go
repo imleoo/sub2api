@@ -16,10 +16,8 @@ import (
 	openaipkg "github.com/Wei-Shaw/sub2api/internal/pkg/openai"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/timezone"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/tlsfingerprint"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/usagestats"
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/sync/singleflight"
 )
 
 type UsageLogRepository interface {
@@ -91,14 +89,6 @@ type accountWindowStatsBatchReader interface {
 	GetAccountWindowStatsBatch(ctx context.Context, accountIDs []int64, startTime time.Time) (map[int64]*usagestats.AccountStats, error)
 }
 
-// apiUsageCache 缓存从 Anthropic API 获取的使用率数据（utilization, resets_at）
-// 同时支持缓存错误响应（负缓存），防止 429 等错误导致的重试风暴
-type apiUsageCache struct {
-	response  *ClaudeUsageResponse
-	err       error // 非 nil 表示缓存的错误（负缓存）
-	timestamp time.Time
-}
-
 // windowStatsCache 缓存从本地数据库查询的窗口统计（requests, tokens, cost）
 type windowStatsCache struct {
 	stats     *WindowStats
@@ -127,10 +117,8 @@ const (
 
 // UsageCache 封装账户使用量相关的缓存
 type UsageCache struct {
-	apiCache         sync.Map           // accountID -> *apiUsageCache
 	windowStatsCache sync.Map           // accountID -> *windowStatsCache
 	geminiCache      sync.Map           // accountID -> *geminiUsageCache
-	apiFlight        singleflight.Group // 防止同一账号的并发请求击穿缓存（Anthropic）
 	openAIProbeCache sync.Map           // accountID -> time.Time
 }
 
@@ -183,43 +171,10 @@ type UsageInfo struct {
 	Error string `json:"error,omitempty"`
 }
 
-// ClaudeUsageResponse Anthropic API返回的usage结构
-type ClaudeUsageResponse struct {
-	FiveHour struct {
-		Utilization float64 `json:"utilization"`
-		ResetsAt    string  `json:"resets_at"`
-	} `json:"five_hour"`
-	SevenDay struct {
-		Utilization float64 `json:"utilization"`
-		ResetsAt    string  `json:"resets_at"`
-	} `json:"seven_day"`
-	SevenDaySonnet struct {
-		Utilization float64 `json:"utilization"`
-		ResetsAt    string  `json:"resets_at"`
-	} `json:"seven_day_sonnet"`
-}
-
-// ClaudeUsageFetchOptions 包含获取 Claude 用量数据所需的所有选项
-type ClaudeUsageFetchOptions struct {
-	AccessToken string                  // OAuth access token
-	ProxyURL    string                  // 代理 URL（可选）
-	AccountID   int64                   // 账号 ID（用于连接池隔离）
-	TLSProfile  *tlsfingerprint.Profile // TLS 指纹 Profile（nil 表示不启用）
-	Fingerprint *Fingerprint            // 缓存的指纹信息（User-Agent 等）
-}
-
-// ClaudeUsageFetcher fetches usage data from Anthropic OAuth API
-type ClaudeUsageFetcher interface {
-	FetchUsage(ctx context.Context, accessToken, proxyURL string) (*ClaudeUsageResponse, error)
-	// FetchUsageWithOptions 使用完整选项获取用量数据，支持 TLS 指纹和自定义 User-Agent
-	FetchUsageWithOptions(ctx context.Context, opts *ClaudeUsageFetchOptions) (*ClaudeUsageResponse, error)
-}
-
 // AccountUsageService 账号使用量查询服务
 type AccountUsageService struct {
 	accountRepo         AccountRepository
 	usageLogRepo        UsageLogRepository
-	usageFetcher        ClaudeUsageFetcher
 	geminiQuotaService  *GeminiQuotaService
 	cache               *UsageCache
 	identityCache       IdentityCache
@@ -230,7 +185,6 @@ type AccountUsageService struct {
 func NewAccountUsageService(
 	accountRepo AccountRepository,
 	usageLogRepo UsageLogRepository,
-	usageFetcher ClaudeUsageFetcher,
 	geminiQuotaService *GeminiQuotaService,
 	cache *UsageCache,
 	identityCache IdentityCache,
@@ -239,7 +193,6 @@ func NewAccountUsageService(
 	return &AccountUsageService{
 		accountRepo:         accountRepo,
 		usageLogRepo:        usageLogRepo,
-		usageFetcher:        usageFetcher,
 		geminiQuotaService:  geminiQuotaService,
 		cache:               cache,
 		identityCache:       identityCache,
@@ -914,38 +867,6 @@ func (s *AccountUsageService) GetStatsByProvider(ctx context.Context, providerKe
 	return stats, nil
 }
 
-// fetchOAuthUsageRaw 从 Anthropic API 获取原始响应（不构建 UsageInfo）
-// 如果账号开启了 TLS 指纹，则使用 TLS 指纹伪装
-// 如果有缓存的 Fingerprint，则使用缓存的 User-Agent 等信息
-func (s *AccountUsageService) fetchOAuthUsageRaw(ctx context.Context, account *Account) (*ClaudeUsageResponse, error) {
-	accessToken := account.GetCredential("access_token")
-	if accessToken == "" {
-		return nil, fmt.Errorf("no access token available")
-	}
-
-	var proxyURL string
-	if account.ProxyID != nil && account.Proxy != nil {
-		proxyURL = account.Proxy.URL()
-	}
-
-	// 构建完整的选项
-	opts := &ClaudeUsageFetchOptions{
-		AccessToken: accessToken,
-		ProxyURL:    proxyURL,
-		AccountID:   account.ID,
-		TLSProfile:  s.tlsFPProfileService.ResolveTLSProfile(account),
-	}
-
-	// 尝试获取缓存的 Fingerprint（包含 User-Agent 等信息）
-	if s.identityCache != nil {
-		if fp, err := s.identityCache.GetFingerprint(ctx, account.ID); err == nil && fp != nil {
-			opts.Fingerprint = fp
-		}
-	}
-
-	return s.usageFetcher.FetchUsageWithOptions(ctx, opts)
-}
-
 // parseTime 尝试多种格式解析时间
 func parseTime(s string) (time.Time, error) {
 	formats := []string{
@@ -986,60 +907,6 @@ func (s *AccountUsageService) tryClearRecoverableAccountError(ctx context.Contex
 
 	account.Status = StatusActive
 	account.ErrorMessage = ""
-}
-
-// buildUsageInfo 构建UsageInfo
-func (s *AccountUsageService) buildUsageInfo(resp *ClaudeUsageResponse, updatedAt *time.Time) *UsageInfo {
-	info := &UsageInfo{
-		UpdatedAt: updatedAt,
-	}
-
-	// 5小时窗口 - 始终创建对象（即使 ResetsAt 为空）
-	info.FiveHour = &UsageProgress{
-		Utilization: resp.FiveHour.Utilization,
-	}
-	if resp.FiveHour.ResetsAt != "" {
-		if fiveHourReset, err := parseTime(resp.FiveHour.ResetsAt); err == nil {
-			info.FiveHour.ResetsAt = &fiveHourReset
-			info.FiveHour.RemainingSeconds = int(time.Until(fiveHourReset).Seconds())
-		} else {
-			log.Printf("Failed to parse FiveHour.ResetsAt: %s, error: %v", resp.FiveHour.ResetsAt, err)
-		}
-	}
-
-	// 7天窗口
-	if resp.SevenDay.ResetsAt != "" {
-		if sevenDayReset, err := parseTime(resp.SevenDay.ResetsAt); err == nil {
-			info.SevenDay = &UsageProgress{
-				Utilization:      resp.SevenDay.Utilization,
-				ResetsAt:         &sevenDayReset,
-				RemainingSeconds: int(time.Until(sevenDayReset).Seconds()),
-			}
-		} else {
-			log.Printf("Failed to parse SevenDay.ResetsAt: %s, error: %v", resp.SevenDay.ResetsAt, err)
-			info.SevenDay = &UsageProgress{
-				Utilization: resp.SevenDay.Utilization,
-			}
-		}
-	}
-
-	// 7天Sonnet窗口
-	if resp.SevenDaySonnet.ResetsAt != "" {
-		if sonnetReset, err := parseTime(resp.SevenDaySonnet.ResetsAt); err == nil {
-			info.SevenDaySonnet = &UsageProgress{
-				Utilization:      resp.SevenDaySonnet.Utilization,
-				ResetsAt:         &sonnetReset,
-				RemainingSeconds: int(time.Until(sonnetReset).Seconds()),
-			}
-		} else {
-			log.Printf("Failed to parse SevenDaySonnet.ResetsAt: %s, error: %v", resp.SevenDaySonnet.ResetsAt, err)
-			info.SevenDaySonnet = &UsageProgress{
-				Utilization: resp.SevenDaySonnet.Utilization,
-			}
-		}
-	}
-
-	return info
 }
 
 // estimateSetupTokenUsage 根据session_window推算Setup Token账号的使用量
