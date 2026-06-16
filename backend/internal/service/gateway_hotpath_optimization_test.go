@@ -10,7 +10,6 @@ import (
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/ctxkey"
-	"github.com/Wei-Shaw/sub2api/internal/pkg/usagestats"
 	gocache "github.com/patrickmn/go-cache"
 	"github.com/stretchr/testify/require"
 )
@@ -33,77 +32,6 @@ func (s *userGroupRateRepoHotpathStub) GetByUserAndGroup(ctx context.Context, us
 		return nil, s.err
 	}
 	return s.rate, nil
-}
-
-type usageLogWindowBatchRepoStub struct {
-	UsageLogRepository
-
-	batchResult map[int64]*usagestats.AccountStats
-	batchErr    error
-	batchCalls  atomic.Int64
-
-	singleResult map[int64]*usagestats.AccountStats
-	singleErr    error
-	singleCalls  atomic.Int64
-}
-
-func (s *usageLogWindowBatchRepoStub) GetAccountWindowStatsBatch(ctx context.Context, accountIDs []int64, startTime time.Time) (map[int64]*usagestats.AccountStats, error) {
-	s.batchCalls.Add(1)
-	if s.batchErr != nil {
-		return nil, s.batchErr
-	}
-	out := make(map[int64]*usagestats.AccountStats, len(accountIDs))
-	for _, id := range accountIDs {
-		if stats, ok := s.batchResult[id]; ok {
-			out[id] = stats
-		}
-	}
-	return out, nil
-}
-
-func (s *usageLogWindowBatchRepoStub) GetAccountWindowStats(ctx context.Context, accountID int64, startTime time.Time) (*usagestats.AccountStats, error) {
-	s.singleCalls.Add(1)
-	if s.singleErr != nil {
-		return nil, s.singleErr
-	}
-	if stats, ok := s.singleResult[accountID]; ok {
-		return stats, nil
-	}
-	return &usagestats.AccountStats{}, nil
-}
-
-type sessionLimitCacheHotpathStub struct {
-	SessionLimitCache
-
-	batchData map[int64]float64
-	batchErr  error
-
-	setData map[int64]float64
-	setErr  error
-}
-
-func (s *sessionLimitCacheHotpathStub) GetWindowCostBatch(ctx context.Context, accountIDs []int64) (map[int64]float64, error) {
-	if s.batchErr != nil {
-		return nil, s.batchErr
-	}
-	out := make(map[int64]float64, len(accountIDs))
-	for _, id := range accountIDs {
-		if v, ok := s.batchData[id]; ok {
-			out[id] = v
-		}
-	}
-	return out, nil
-}
-
-func (s *sessionLimitCacheHotpathStub) SetWindowCost(ctx context.Context, accountID int64, cost float64) error {
-	if s.setErr != nil {
-		return s.setErr
-	}
-	if s.setData == nil {
-		s.setData = make(map[int64]float64)
-	}
-	s.setData[accountID] = cost
-	return nil
 }
 
 type modelsListAccountRepoStub struct {

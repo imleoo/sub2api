@@ -329,23 +329,6 @@ func applyCodexImageGenerationBridgeInstructions(reqBody map[string]any) bool {
 	return true
 }
 
-func applyCodexSparkImageUnsupportedInstructions(reqBody map[string]any) bool {
-	if len(reqBody) == 0 {
-		return false
-	}
-	existing, _ := reqBody["instructions"].(string)
-	if strings.Contains(existing, codexSparkImageUnsupportedMarker) {
-		return false
-	}
-	existing = strings.TrimRight(existing, " \t\r\n")
-	if strings.TrimSpace(existing) == "" {
-		reqBody["instructions"] = codexSparkImageUnsupportedText
-		return true
-	}
-	reqBody["instructions"] = existing + "\n\n" + codexSparkImageUnsupportedText
-	return true
-}
-
 func validateOpenAIResponsesImageModel(reqBody map[string]any, model string) error {
 	if !hasOpenAIImageGenerationTool(reqBody) {
 		return nil
@@ -472,32 +455,6 @@ func getNormalizedCodexModel(modelID string) string {
 		return mapped
 	}
 	return ""
-}
-
-// extractTextFromContent extracts plain text from a content value that is either
-// a Go string or a []any of text-like content-part maps.
-func extractTextFromContent(content any) string {
-	switch v := content.(type) {
-	case string:
-		return v
-	case []any:
-		var parts []string
-		for _, part := range v {
-			m, ok := part.(map[string]any)
-			if !ok {
-				continue
-			}
-			switch t, _ := m["type"].(string); t {
-			case "text", "input_text", "output_text":
-				if text, ok := m["text"].(string); ok {
-					parts = append(parts, text)
-				}
-			}
-		}
-		return strings.Join(parts, "")
-	default:
-		return ""
-	}
 }
 
 func defaultCodexSynthInstructions(model string) string {

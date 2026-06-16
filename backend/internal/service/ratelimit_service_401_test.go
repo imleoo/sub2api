@@ -36,7 +36,11 @@ func (r *rateLimitAccountRepoStub) SetTempUnschedulable(ctx context.Context, id 
 
 func (r *rateLimitAccountRepoStub) UpdateCredentials(ctx context.Context, id int64, credentials map[string]any) error {
 	r.updateCredentialsCalls++
-	r.lastCredentials = cloneCredentials(credentials)
+	cloned := make(map[string]any, len(credentials))
+	for k, v := range credentials {
+		cloned[k] = v
+	}
+	r.lastCredentials = cloned
 	return nil
 }
 

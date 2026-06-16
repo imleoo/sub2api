@@ -56,43 +56,6 @@ func appendOpenAICompatClaudeCodeTodoGuard(req *apicompat.ResponsesRequest) bool
 	return true
 }
 
-func appendOpenAICompatClaudeCodeTodoGuardToRequestBody(reqBody map[string]any) bool {
-	if reqBody == nil {
-		return false
-	}
-
-	input, ok := reqBody["input"].([]any)
-	if !ok || len(input) == 0 || inputContainsText(input, openAICompatClaudeCodeTodoGuardMarker) {
-		return false
-	}
-
-	guard := map[string]any{
-		"type": "message",
-		"role": "developer",
-		"content": []any{
-			map[string]any{
-				"type": "input_text",
-				"text": openAICompatClaudeCodeTodoGuardText,
-			},
-		},
-	}
-
-	insertAt := 0
-	for insertAt < len(input) {
-		item, ok := input[insertAt].(map[string]any)
-		if !ok || strings.TrimSpace(firstNonEmptyString(item["type"])) != "message" || strings.TrimSpace(firstNonEmptyString(item["role"])) != "developer" {
-			break
-		}
-		insertAt++
-	}
-
-	input = append(input, nil)
-	copy(input[insertAt+1:], input[insertAt:])
-	input[insertAt] = guard
-	reqBody["input"] = input
-	return true
-}
-
 func responsesInputItemsContainText(items []apicompat.ResponsesInputItem, needle string) bool {
 	needle = strings.TrimSpace(needle)
 	if needle == "" {
@@ -100,20 +63,6 @@ func responsesInputItemsContainText(items []apicompat.ResponsesInputItem, needle
 	}
 	for _, item := range items {
 		if strings.Contains(string(item.Content), needle) {
-			return true
-		}
-	}
-	return false
-}
-
-func inputContainsText(input []any, needle string) bool {
-	needle = strings.TrimSpace(needle)
-	if needle == "" {
-		return false
-	}
-	for _, item := range input {
-		b, err := json.Marshal(item)
-		if err == nil && strings.Contains(string(b), needle) {
 			return true
 		}
 	}
