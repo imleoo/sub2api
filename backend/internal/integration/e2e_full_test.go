@@ -107,6 +107,38 @@ func TestE2EFull_OpenAIForwarding(t *testing.T) {
 	t.Logf("✅ OpenAI 转发 OK：%q", r.Choices[0].Message.Content)
 }
 
+func TestE2EFull_GeminiForwarding(t *testing.T) {
+	pc := requireProvision(t)
+	pp := pc.requirePlatform(t, "gemini")
+
+	st, body, err := gwGemini(pp.gatewayKey, pp.model, "say GEM-OK in one word")
+	if err != nil {
+		t.Fatalf("请求错误: %v", err)
+	}
+	// 上游（第三方中转）gemini 后端不可用时（502/INTERNAL/upstream）→ skip，
+	// 我们的网关已正确转发并回传上游响应，非网关缺陷。
+	if st != 200 {
+		if st == 502 || st == 503 || bodyContains(body, "Upstream") || bodyContains(body, "INTERNAL") || bodyContains(body, "temporarily unavailable") {
+			t.Skipf("上游 gemini 暂不可用（网关已转发并回传上游响应 st=%d）：%s", st, truncate(body, 200))
+		}
+		t.Fatalf("期望 200，实际 %d：%s", st, truncate(body, 400))
+	}
+	var r struct {
+		Candidates []struct {
+			Content struct {
+				Parts []struct {
+					Text string `json:"text"`
+				} `json:"parts"`
+			} `json:"content"`
+		} `json:"candidates"`
+	}
+	_ = json.Unmarshal(body, &r)
+	if len(r.Candidates) == 0 || len(r.Candidates[0].Content.Parts) == 0 || strings.TrimSpace(r.Candidates[0].Content.Parts[0].Text) == "" {
+		t.Fatalf("响应无 candidates 文本：%s", truncate(body, 400))
+	}
+	t.Logf("✅ Gemini 转发 OK：%q", r.Candidates[0].Content.Parts[0].Text)
+}
+
 // ============================================================================
 // 2) 计费：可计费请求扣余额，count_tokens 不扣
 // ============================================================================

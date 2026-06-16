@@ -366,6 +366,20 @@ func gwOpenAIChat(gwKey, model, prompt string, maxTokens int) (int, []byte, erro
 	}, body)
 }
 
+// gwGemini 打 POST /v1beta/models/{model}:generateContent（Gemini 格式），
+// 用网关 key 走 Bearer。
+func gwGemini(gwKey, model, prompt string) (int, []byte, error) {
+	payload := map[string]any{
+		"contents": []map[string]any{
+			{"role": "user", "parts": []map[string]string{{"text": prompt}}},
+		},
+		"generationConfig": map[string]any{"maxOutputTokens": 32},
+	}
+	body, _ := json.Marshal(payload)
+	path := fmt.Sprintf("/v1beta/models/%s:generateContent", model)
+	return apiCall("POST", path, map[string]string{"Authorization": "Bearer " + gwKey}, body)
+}
+
 // jsonField 从原始 body 取一个顶层/嵌套字符串字段（用于轻量断言）。
 func bodyContains(b []byte, sub string) bool {
 	return strings.Contains(string(b), sub)
