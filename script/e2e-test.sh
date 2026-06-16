@@ -43,7 +43,7 @@ fi
 
 BACKEND_PORT="${E2E_BACKEND_PORT:-8091}"
 TIMEOUT="${E2E_TIMEOUT:-600s}"
-RUN_FILTER="${E2E_RUN:-TestE2EFull}"   # 默认只跑新全功能套件；设为空跑全部 e2e
+RUN_FILTER="${E2E_RUN-TestE2EFull}"    # 默认只跑新全功能套件；E2E_RUN="" 跑全部 e2e（无冒号以区分未设/显式空）
 
 BOOTED_SERVER=false
 
