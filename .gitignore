@@ -114,6 +114,9 @@ backend/.installed
 # ===================
 tests
 scripts
+# E2E 本地上游凭证（勿提交；模板见 script/e2e.env.example）
+script/e2e.env
+script/e2e.env.local
 .code-review-state
 #openspec/
 code-reviews/

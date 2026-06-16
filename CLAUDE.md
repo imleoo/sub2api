@@ -82,9 +82,9 @@ go test -tags=integration ./...
 # - 历史黑盒套件（需自行起服务 + 预置网关 key，BASE_URL/CLAUDE_API_KEY 等 env）：
 go test -tags=e2e -v -timeout=300s ./internal/integration/...
 # - 全功能自包含套件（自动起服务 + admin API seed + 计费/配额/限流/CRUD 断言）：
-#   上游凭证走 env 注入（勿入仓库），详见 script/e2e-test.sh 顶部说明
-E2E_ANTHROPIC_UPSTREAM_KEY=sk-xxx E2E_ANTHROPIC_MODEL=claude-sonnet-4-6 \
-  E2E_ANTHROPIC_UPSTREAM_BASE_URL=https://your-upstream ./script/e2e-test.sh   # 或 cd backend && make test-e2e
+#   上游凭证写入本地 script/e2e.env（已 gitignore，勿提交；模板 script/e2e.env.example）
+cp script/e2e.env.example script/e2e.env   # 然后编辑填入真实 key（仅首次）
+./script/e2e-test.sh                        # 自动加载 e2e.env；或 cd backend && make test-e2e
 
 # Lint 检查
 golangci-lint run ./...

@@ -30,6 +30,17 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 BACKEND_DIR="$ROOT_DIR/backend"
 DEV_LOCAL="$SCRIPT_DIR/dev_local.sh"
 
+# 加载本地 env 文件（含上游凭证，已 gitignore，勿提交）。
+# 优先 E2E_ENV_FILE，否则默认 script/e2e.env（可由 script/e2e.env.example 复制而来）。
+ENV_FILE="${E2E_ENV_FILE:-$SCRIPT_DIR/e2e.env}"
+if [[ -f "$ENV_FILE" ]]; then
+  echo "▶ 加载 env 文件 ${ENV_FILE}"
+  set -a
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+  set +a
+fi
+
 BACKEND_PORT="${E2E_BACKEND_PORT:-8091}"
 TIMEOUT="${E2E_TIMEOUT:-600s}"
 RUN_FILTER="${E2E_RUN:-TestE2EFull}"   # 默认只跑新全功能套件；设为空跑全部 e2e
