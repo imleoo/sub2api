@@ -8,22 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMergeAnthropicBeta(t *testing.T) {
-	got := mergeAnthropicBeta(
-		[]string{"oauth-2025-04-20", "interleaved-thinking-2025-05-14"},
-		"foo, oauth-2025-04-20,bar, foo",
-	)
-	require.Equal(t, "oauth-2025-04-20,interleaved-thinking-2025-05-14,foo,bar", got)
-}
-
-func TestMergeAnthropicBeta_EmptyIncoming(t *testing.T) {
-	got := mergeAnthropicBeta(
-		[]string{"oauth-2025-04-20", "interleaved-thinking-2025-05-14"},
-		"",
-	)
-	require.Equal(t, "oauth-2025-04-20,interleaved-thinking-2025-05-14", got)
-}
-
 func TestStripBetaTokens(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -99,47 +83,6 @@ func TestStripBetaTokens(t *testing.T) {
 			require.Equal(t, tt.want, got)
 		})
 	}
-}
-
-func TestMergeAnthropicBetaDropping_Context1M(t *testing.T) {
-	required := []string{"oauth-2025-04-20", "interleaved-thinking-2025-05-14"}
-	incoming := "context-1m-2025-08-07,foo-beta,oauth-2025-04-20"
-	drop := map[string]struct{}{"context-1m-2025-08-07": {}}
-
-	got := mergeAnthropicBetaDropping(required, incoming, drop)
-	require.Equal(t, "oauth-2025-04-20,interleaved-thinking-2025-05-14,foo-beta", got)
-	require.NotContains(t, got, "context-1m-2025-08-07")
-}
-
-func TestMergeAnthropicBetaDropping_DroppedBetas(t *testing.T) {
-	required := []string{"oauth-2025-04-20", "interleaved-thinking-2025-05-14"}
-	incoming := "context-1m-2025-08-07,fast-mode-2026-02-01,foo-beta,oauth-2025-04-20"
-	// DroppedBetas is now empty — filtering moved to configurable beta policy.
-	// Without a policy filter set, nothing gets dropped from the static set.
-	drop := droppedBetaSet()
-
-	got := mergeAnthropicBetaDropping(required, incoming, drop)
-	require.Equal(t, "oauth-2025-04-20,interleaved-thinking-2025-05-14,context-1m-2025-08-07,fast-mode-2026-02-01,foo-beta", got)
-	require.Contains(t, got, "context-1m-2025-08-07")
-	require.Contains(t, got, "fast-mode-2026-02-01")
-}
-
-func TestFullClaudeCodeMimicryBetas_DoesNotDefaultRedactThinking(t *testing.T) {
-	required := claude.FullClaudeCodeMimicryBetas()
-
-	require.NotContains(t, required, claude.BetaRedactThinking)
-	require.Contains(t, required, claude.BetaClaudeCode)
-	require.Contains(t, required, claude.BetaOAuth)
-	require.Contains(t, required, claude.BetaInterleavedThinking)
-}
-
-func TestMergeAnthropicBetaDropping_PreservesIncomingRedactThinking(t *testing.T) {
-	required := claude.FullClaudeCodeMimicryBetas()
-	incoming := claude.BetaRedactThinking
-
-	got := mergeAnthropicBetaDropping(required, incoming, droppedBetaSet())
-
-	require.Contains(t, got, claude.BetaRedactThinking)
 }
 
 func TestDroppedBetaSet(t *testing.T) {

@@ -63,12 +63,12 @@ func isOpenAIImageModel(model string) bool {
 
 // AccountTestService handles account testing operations
 type AccountTestService struct {
-	accountRepo               AccountRepository
-	geminiTokenProvider       *GeminiTokenProvider
-	claudeTokenProvider       *ClaudeTokenProvider
-	httpUpstream              HTTPUpstream
-	cfg                       *config.Config
-	tlsFPProfileService       *TLSFingerprintProfileService
+	accountRepo         AccountRepository
+	geminiTokenProvider *GeminiTokenProvider
+	claudeTokenProvider *ClaudeTokenProvider
+	httpUpstream        HTTPUpstream
+	cfg                 *config.Config
+	tlsFPProfileService *TLSFingerprintProfileService
 
 	endpointRepo EndpointRepository // 功能 25：generic 账号测试逐端点探测
 }
@@ -518,12 +518,10 @@ func (s *AccountTestService) testClaudeAccountConnection(c *gin.Context, account
 
 	// Determine authentication method and API URL
 	var authToken string
-	var useBearer bool
 	var apiURL string
 
 	if account.Type == "apikey" {
 		// API Key - use x-api-key header
-		useBearer = false
 		authToken = account.GetCredential("api_key")
 		if authToken == "" {
 			return s.sendErrorAndEnd(c, "No API key available")
@@ -573,14 +571,9 @@ func (s *AccountTestService) testClaudeAccountConnection(c *gin.Context, account
 		req.Header.Set(key, value)
 	}
 
-	// Set authentication header
-	if useBearer {
-		req.Header.Set("anthropic-beta", claude.DefaultBetaHeader)
-		req.Header.Set("Authorization", "Bearer "+authToken)
-	} else {
-		req.Header.Set("anthropic-beta", claude.APIKeyBetaHeader)
-		req.Header.Set("x-api-key", authToken)
-	}
+	// Set authentication header (API-key accounts use x-api-key)
+	req.Header.Set("anthropic-beta", claude.APIKeyBetaHeader)
+	req.Header.Set("x-api-key", authToken)
 
 	// Get proxy URL
 	proxyURL := ""
