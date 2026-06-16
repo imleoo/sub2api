@@ -1159,56 +1159,6 @@
           </div>
         </div>
 
-        <!-- 账号过滤控制 (OpenAI/Anthropic/Gemini) -->
-        <div
-          v-if="
-            ['openai', 'anthropic', 'gemini'].includes(
-              createForm.platform,
-            )
-          "
-          class="border-t border-gray-200 dark:border-dark-400 pt-4 mt-4 space-y-4"
-        >
-          <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            账号过滤控制
-          </h4>
-
-          <!-- require_privacy_set toggle -->
-          <div class="flex items-center justify-between">
-            <div>
-              <label class="text-sm text-gray-600 dark:text-gray-400"
-                >仅允许隐私保护已设置的账号</label
-              >
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                {{
-                  createForm.require_privacy_set
-                    ? "已启用 — Privacy 未设置的账号将被排除"
-                    : "未启用"
-                }}
-              </p>
-            </div>
-            <button
-              type="button"
-              @click="
-                createForm.require_privacy_set = !createForm.require_privacy_set
-              "
-              class="relative inline-flex h-6 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-              :class="
-                createForm.require_privacy_set
-                  ? 'bg-primary-500'
-                  : 'bg-gray-300 dark:bg-dark-600'
-              "
-            >
-              <span
-                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                :class="
-                  createForm.require_privacy_set
-                    ? 'translate-x-6'
-                    : 'translate-x-1'
-                "
-              />
-            </button>
-          </div>
-        </div>
 
         <!-- 无效请求兜底（仅 anthropic 平台，且非订阅分组） -->
         <div
@@ -2280,57 +2230,6 @@
           </div>
         </div>
 
-        <!-- 账号过滤控制 (OpenAI/Anthropic/Gemini) -->
-        <div
-          v-if="
-            ['openai', 'anthropic', 'gemini'].includes(
-              editForm.platform,
-            )
-          "
-          class="border-t border-gray-200 dark:border-dark-400 pt-4 mt-4 space-y-4"
-        >
-          <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            账号过滤控制
-          </h4>
-
-          <!-- require_privacy_set toggle -->
-          <div class="flex items-center justify-between">
-            <div>
-              <label class="text-sm text-gray-600 dark:text-gray-400"
-                >仅允许隐私保护已设置的账号</label
-              >
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                {{
-                  editForm.require_privacy_set
-                    ? "已启用 — Privacy 未设置的账号将被排除"
-                    : "未启用"
-                }}
-              </p>
-            </div>
-            <button
-              type="button"
-              @click="
-                editForm.require_privacy_set = !editForm.require_privacy_set
-              "
-              class="relative inline-flex h-6 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-              :class="
-                editForm.require_privacy_set
-                  ? 'bg-primary-500'
-                  : 'bg-gray-300 dark:bg-dark-600'
-              "
-            >
-              <span
-                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                :class="
-                  editForm.require_privacy_set
-                    ? 'translate-x-6'
-                    : 'translate-x-1'
-                "
-              />
-            </button>
-          </div>
-        </div>
-
         <!-- 无效请求兜底（仅 anthropic 平台，且非订阅分组） -->
         <div
           v-if="
@@ -3029,8 +2928,6 @@ const createForm = reactive({
   sonnet_mapped_model: createMessagesDispatchDefaults.sonnet_mapped_model,
   haiku_mapped_model: createMessagesDispatchDefaults.haiku_mapped_model,
   exact_model_mappings: [] as MessagesDispatchMappingRow[],
-  // 账号过滤控制
-  require_privacy_set: false,
   // 模型路由开关
   model_routing_enabled: false,
   // 支持的模型系列（已移除）
@@ -3339,8 +3236,6 @@ const editForm = reactive({
   sonnet_mapped_model: editMessagesDispatchDefaults.sonnet_mapped_model,
   haiku_mapped_model: editMessagesDispatchDefaults.haiku_mapped_model,
   exact_model_mappings: [] as MessagesDispatchMappingRow[],
-  // 账号过滤控制
-  require_privacy_set: false,
   // 模型路由开关
   model_routing_enabled: false,
   // 支持的模型系列（已移除）
@@ -3608,7 +3503,6 @@ const closeCreateModal = () => {
   createForm.fallback_group_id = null;
   createForm.fallback_group_id_on_invalid_request = null;
   resetMessagesDispatchFormState(createForm);
-  createForm.require_privacy_set = false;
   createForm.supported_model_scopes = ["claude", "gemini_text", "gemini_image"];
   createForm.copy_accounts_from_group_ids = [];
   createForm.rpm_limit = 0;
@@ -3743,7 +3637,6 @@ const handleEdit = async (group: AdminGroup) => {
   editForm.haiku_mapped_model = messagesDispatchFormState.haiku_mapped_model;
   editForm.exact_model_mappings =
     messagesDispatchFormState.exact_model_mappings;
-  editForm.require_privacy_set = group.require_privacy_set ?? false;
   editForm.model_routing_enabled = group.model_routing_enabled || false;
   editForm.supported_model_scopes = group.supported_model_scopes || [
     "claude",
@@ -3918,9 +3811,6 @@ watch(
     if (newVal !== "openai") {
       resetMessagesDispatchFormState(createForm);
     }
-    if (!["openai", "anthropic", "gemini"].includes(newVal)) {
-      createForm.require_privacy_set = false;
-    }
     resetModelsListState(createModelsListState);
     loadModelsListCandidates("create", 0, newVal);
   },
@@ -3934,9 +3824,6 @@ watch(
     }
     if (newVal !== "openai") {
       resetMessagesDispatchFormState(editForm);
-    }
-    if (!["openai", "anthropic", "gemini"].includes(newVal)) {
-      editForm.require_privacy_set = false;
     }
     if (editingGroup.value) {
       resetModelsListState(editModelsListState, editForm.platform === editingGroup.value.platform ? editingGroup.value.models_list_config : undefined);

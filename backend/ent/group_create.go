@@ -411,20 +411,6 @@ func (_c *GroupCreate) SetNillableAllowMessagesDispatch(v *bool) *GroupCreate {
 	return _c
 }
 
-// SetRequirePrivacySet sets the "require_privacy_set" field.
-func (_c *GroupCreate) SetRequirePrivacySet(v bool) *GroupCreate {
-	_c.mutation.SetRequirePrivacySet(v)
-	return _c
-}
-
-// SetNillableRequirePrivacySet sets the "require_privacy_set" field if the given value is not nil.
-func (_c *GroupCreate) SetNillableRequirePrivacySet(v *bool) *GroupCreate {
-	if v != nil {
-		_c.SetRequirePrivacySet(*v)
-	}
-	return _c
-}
-
 // SetDefaultMappedModel sets the "default_mapped_model" field.
 func (_c *GroupCreate) SetDefaultMappedModel(v string) *GroupCreate {
 	_c.mutation.SetDefaultMappedModel(v)
@@ -682,10 +668,6 @@ func (_c *GroupCreate) defaults() error {
 		v := group.DefaultAllowMessagesDispatch
 		_c.mutation.SetAllowMessagesDispatch(v)
 	}
-	if _, ok := _c.mutation.RequirePrivacySet(); !ok {
-		v := group.DefaultRequirePrivacySet
-		_c.mutation.SetRequirePrivacySet(v)
-	}
 	if _, ok := _c.mutation.DefaultMappedModel(); !ok {
 		v := group.DefaultDefaultMappedModel
 		_c.mutation.SetDefaultMappedModel(v)
@@ -782,9 +764,6 @@ func (_c *GroupCreate) check() error {
 	}
 	if _, ok := _c.mutation.AllowMessagesDispatch(); !ok {
 		return &ValidationError{Name: "allow_messages_dispatch", err: errors.New(`ent: missing required field "Group.allow_messages_dispatch"`)}
-	}
-	if _, ok := _c.mutation.RequirePrivacySet(); !ok {
-		return &ValidationError{Name: "require_privacy_set", err: errors.New(`ent: missing required field "Group.require_privacy_set"`)}
 	}
 	if _, ok := _c.mutation.DefaultMappedModel(); !ok {
 		return &ValidationError{Name: "default_mapped_model", err: errors.New(`ent: missing required field "Group.default_mapped_model"`)}
@@ -945,10 +924,6 @@ func (_c *GroupCreate) createSpec() (*Group, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.AllowMessagesDispatch(); ok {
 		_spec.SetField(group.FieldAllowMessagesDispatch, field.TypeBool, value)
 		_node.AllowMessagesDispatch = value
-	}
-	if value, ok := _c.mutation.RequirePrivacySet(); ok {
-		_spec.SetField(group.FieldRequirePrivacySet, field.TypeBool, value)
-		_node.RequirePrivacySet = value
 	}
 	if value, ok := _c.mutation.DefaultMappedModel(); ok {
 		_spec.SetField(group.FieldDefaultMappedModel, field.TypeString, value)
@@ -1599,18 +1574,6 @@ func (u *GroupUpsert) SetAllowMessagesDispatch(v bool) *GroupUpsert {
 // UpdateAllowMessagesDispatch sets the "allow_messages_dispatch" field to the value that was provided on create.
 func (u *GroupUpsert) UpdateAllowMessagesDispatch() *GroupUpsert {
 	u.SetExcluded(group.FieldAllowMessagesDispatch)
-	return u
-}
-
-// SetRequirePrivacySet sets the "require_privacy_set" field.
-func (u *GroupUpsert) SetRequirePrivacySet(v bool) *GroupUpsert {
-	u.Set(group.FieldRequirePrivacySet, v)
-	return u
-}
-
-// UpdateRequirePrivacySet sets the "require_privacy_set" field to the value that was provided on create.
-func (u *GroupUpsert) UpdateRequirePrivacySet() *GroupUpsert {
-	u.SetExcluded(group.FieldRequirePrivacySet)
 	return u
 }
 
@@ -2270,20 +2233,6 @@ func (u *GroupUpsertOne) SetAllowMessagesDispatch(v bool) *GroupUpsertOne {
 func (u *GroupUpsertOne) UpdateAllowMessagesDispatch() *GroupUpsertOne {
 	return u.Update(func(s *GroupUpsert) {
 		s.UpdateAllowMessagesDispatch()
-	})
-}
-
-// SetRequirePrivacySet sets the "require_privacy_set" field.
-func (u *GroupUpsertOne) SetRequirePrivacySet(v bool) *GroupUpsertOne {
-	return u.Update(func(s *GroupUpsert) {
-		s.SetRequirePrivacySet(v)
-	})
-}
-
-// UpdateRequirePrivacySet sets the "require_privacy_set" field to the value that was provided on create.
-func (u *GroupUpsertOne) UpdateRequirePrivacySet() *GroupUpsertOne {
-	return u.Update(func(s *GroupUpsert) {
-		s.UpdateRequirePrivacySet()
 	})
 }
 
@@ -3118,20 +3067,6 @@ func (u *GroupUpsertBulk) SetAllowMessagesDispatch(v bool) *GroupUpsertBulk {
 func (u *GroupUpsertBulk) UpdateAllowMessagesDispatch() *GroupUpsertBulk {
 	return u.Update(func(s *GroupUpsert) {
 		s.UpdateAllowMessagesDispatch()
-	})
-}
-
-// SetRequirePrivacySet sets the "require_privacy_set" field.
-func (u *GroupUpsertBulk) SetRequirePrivacySet(v bool) *GroupUpsertBulk {
-	return u.Update(func(s *GroupUpsert) {
-		s.SetRequirePrivacySet(v)
-	})
-}
-
-// UpdateRequirePrivacySet sets the "require_privacy_set" field to the value that was provided on create.
-func (u *GroupUpsertBulk) UpdateRequirePrivacySet() *GroupUpsertBulk {
-	return u.Update(func(s *GroupUpsert) {
-		s.UpdateRequirePrivacySet()
 	})
 }
 

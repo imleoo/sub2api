@@ -11,10 +11,10 @@ type OpenAIMessagesDispatchModelConfig = domain.OpenAIMessagesDispatchModelConfi
 type GroupModelsListConfig = domain.GroupModelsListConfig
 
 type Group struct {
-	ID             int64
-	Name           string
-	Description    string
-	Platform       string
+	ID          int64
+	Name        string
+	Description string
+	Platform    string
 	// InboundProtocol 入站协议（Phase 2 P2-1 引入；空 = 按 Platform 派生）
 	// 取值见 docs/glossary.md §1.1：anthropic_messages / openai_chat / openai_responses / gemini_v1beta
 	InboundProtocol string
@@ -58,7 +58,6 @@ type Group struct {
 
 	// OpenAI Messages 调度配置（仅 openai 平台使用）
 	AllowMessagesDispatch       bool
-	RequirePrivacySet           bool // 调度时仅允许 privacy 已成功设置的账号
 	DefaultMappedModel          string
 	MessagesDispatchModelConfig OpenAIMessagesDispatchModelConfig
 	ModelsListConfig            GroupModelsListConfig

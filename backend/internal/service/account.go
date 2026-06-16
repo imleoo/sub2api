@@ -154,12 +154,6 @@ func (a *Account) IsOverloaded() bool {
 	return time.Now().Before(*a.OverloadUntil)
 }
 
-// IsPrivacySet 检查账号的 privacy 是否已成功设置。
-// 当前所有平台均无 privacy 概念，始终返回 true。
-func (a *Account) IsPrivacySet() bool {
-	return true
-}
-
 func (a *Account) IsGemini() bool {
 	return a.Platform == PlatformGemini
 }

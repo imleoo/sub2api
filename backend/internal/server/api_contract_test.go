@@ -360,7 +360,6 @@ func TestAPIContracts(t *testing.T) {
 						"allow_messages_dispatch": false,
 						"fallback_group_id": null,
 						"fallback_group_id_on_invalid_request": null,
-						"require_privacy_set": false,
 						"rpm_limit": 0,
 						"created_at": "2025-01-02T03:04:05Z",
 						"updated_at": "2025-01-02T03:04:05Z"
@@ -1823,7 +1822,6 @@ func (s *stubAccountRepo) ClearTempUnschedulable(ctx context.Context, id int64) 
 func (s *stubAccountRepo) ClearRateLimit(ctx context.Context, id int64) error {
 	return errors.New("not implemented")
 }
-
 
 func (s *stubAccountRepo) ClearModelRateLimits(ctx context.Context, id int64) error {
 	return errors.New("not implemented")

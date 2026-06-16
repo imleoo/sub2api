@@ -534,7 +534,6 @@ export interface Group {
   allow_messages_dispatch?: boolean
   default_mapped_model?: string
   messages_dispatch_model_config?: OpenAIMessagesDispatchModelConfig
-  require_privacy_set: boolean
   created_at: string
   updated_at: string
 }
@@ -651,7 +650,6 @@ export interface CreateGroupRequest {
   model_routing?: Record<string, number[]> | null
   model_routing_enabled?: boolean
   rpm_limit?: number
-  require_privacy_set?: boolean
   // 从指定分组复制账号
   copy_accounts_from_group_ids?: number[]
 }
@@ -684,7 +682,6 @@ export interface UpdateGroupRequest {
   model_routing?: Record<string, number[]> | null
   model_routing_enabled?: boolean
   rpm_limit?: number
-  require_privacy_set?: boolean
   copy_accounts_from_group_ids?: number[]
 }
 

@@ -114,9 +114,6 @@ type Group struct {
 	// OpenAI Messages 调度开关（用户侧需要此字段判断是否展示 Claude Code 教程）
 	AllowMessagesDispatch bool `json:"allow_messages_dispatch"`
 
-	// 账号过滤控制（仅 OpenAI 平台有效）
-	RequirePrivacySet bool `json:"require_privacy_set"`
-
 	// RPMLimit 分组级每分钟请求数上限（0 = 不限制），设置后覆盖用户级 rpm_limit。
 	RPMLimit int `json:"rpm_limit"`
 
@@ -422,13 +419,13 @@ type BatchUpdateRedeemCodesRequest struct {
 
 // UsageLog 是普通用户接口使用的 usage log DTO（不包含管理员字段）。
 type UsageLog struct {
-	ID        int64  `json:"id"`
-	UserID    int64  `json:"user_id"`
-	APIKeyID  int64  `json:"api_key_id"`
-	AccountID int64  `json:"account_id"`
+	ID            int64   `json:"id"`
+	UserID        int64   `json:"user_id"`
+	APIKeyID      int64   `json:"api_key_id"`
+	AccountID     int64   `json:"account_id"`
 	RequestID     string  `json:"request_id"`
 	BillRequestID *string `json:"bill_request_id,omitempty"`
-	Model     string `json:"model"`
+	Model         string  `json:"model"`
 	// ServiceTier records the OpenAI service tier used for billing, e.g. "priority" / "flex".
 	ServiceTier *string `json:"service_tier,omitempty"`
 	// ReasoningEffort is the request's reasoning effort level.

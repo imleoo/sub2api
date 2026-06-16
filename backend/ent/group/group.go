@@ -74,8 +74,6 @@ const (
 	FieldSortOrder = "sort_order"
 	// FieldAllowMessagesDispatch holds the string denoting the allow_messages_dispatch field in the database.
 	FieldAllowMessagesDispatch = "allow_messages_dispatch"
-	// FieldRequirePrivacySet holds the string denoting the require_privacy_set field in the database.
-	FieldRequirePrivacySet = "require_privacy_set"
 	// FieldDefaultMappedModel holds the string denoting the default_mapped_model field in the database.
 	FieldDefaultMappedModel = "default_mapped_model"
 	// FieldMessagesDispatchModelConfig holds the string denoting the messages_dispatch_model_config field in the database.
@@ -188,7 +186,6 @@ var Columns = []string{
 	FieldSupportedModelScopes,
 	FieldSortOrder,
 	FieldAllowMessagesDispatch,
-	FieldRequirePrivacySet,
 	FieldDefaultMappedModel,
 	FieldMessagesDispatchModelConfig,
 	FieldModelsListConfig,
@@ -268,8 +265,6 @@ var (
 	DefaultSortOrder int
 	// DefaultAllowMessagesDispatch holds the default value on creation for the "allow_messages_dispatch" field.
 	DefaultAllowMessagesDispatch bool
-	// DefaultRequirePrivacySet holds the default value on creation for the "require_privacy_set" field.
-	DefaultRequirePrivacySet bool
 	// DefaultDefaultMappedModel holds the default value on creation for the "default_mapped_model" field.
 	DefaultDefaultMappedModel string
 	// DefaultMappedModelValidator is a validator for the "default_mapped_model" field. It is called by the builders before save.
@@ -423,11 +418,6 @@ func BySortOrder(opts ...sql.OrderTermOption) OrderOption {
 // ByAllowMessagesDispatch orders the results by the allow_messages_dispatch field.
 func ByAllowMessagesDispatch(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAllowMessagesDispatch, opts...).ToFunc()
-}
-
-// ByRequirePrivacySet orders the results by the require_privacy_set field.
-func ByRequirePrivacySet(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldRequirePrivacySet, opts...).ToFunc()
 }
 
 // ByDefaultMappedModel orders the results by the default_mapped_model field.
