@@ -2,6 +2,15 @@
 
 > 生成日期：2026-06-15 ｜ 分支：feature/reverse-cleanup-v6
 > 背景：逆向清理（删 antigravity/OAuth/Codex）采取了大量「就地阉割」（让守卫恒返回常量、stub 方法）而非「删分支」，留下成片不可达死代码。本轮已收尾大部分（见下「已完成」），本文件列出**剩余三类**，交给一个**带 integration/e2e + `golangci-lint unused`** 的专项一次性清除。
+>
+> **✅ 更新（2026-06-16）：剩余三类已全部完成**（Docker 恢复可达后专项执行，逐类独立提交）：
+> - 类 3 → commit `dfe1fe40`（openai unused 孤儿函数海）
+> - 类 2 → commit `8355b78f`（RequirePrivacySet/IsPrivacySet 死功能 + 迁移 161）
+> - 类 1 → commit `8327fcd0`（网关 tokenType==oauth 死分支链 + 5 个 constants OAuth 符号）
+>
+> 验收：build/vet/unit/e2e-compile/integration(Docker)/golangci-lint unused 全绿，rg 死符号清零。
+> 唯一遗留：类 1「真实 apikey/vertex 转发冒烟」需 live 上游凭证，手动补做。详见 `待办任务列表.md` T1。
+> 下方「剩余 1/2/3」为执行前的原始规格，保留作改动依据存档。
 
 ## 已完成（本轮，已提交、全程 build+vet+unit 绿）
 
