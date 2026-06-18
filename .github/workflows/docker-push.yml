@@ -7,6 +7,17 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     steps:
+      - name: Verify Docker credentials present
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [ -z "${DOCKERHUB_USERNAME}" ] || [ -z "${DOCKERHUB_TOKEN}" ]; then
+            echo "::error::缺少 DOCKERHUB_USERNAME / DOCKERHUB_TOKEN 仓库 secret，无法推送镜像。"
+            echo "::error::请先配置：gh secret set DOCKERHUB_USERNAME / DOCKERHUB_TOKEN，再重新触发本 workflow。"
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@v6
         with:
@@ -31,8 +42,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ env.DOCKER_REGISTRY }}
-          username: ${{ secrets.DOCKERHUB_USERNAME || 'builder' }}
-          password: ${{ secrets.DOCKERHUB_TOKEN || 'eqmBnPZhcrL12wwO' }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
