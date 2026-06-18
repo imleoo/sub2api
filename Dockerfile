@@ -30,6 +30,9 @@ RUN pnpm install --frozen-lockfile
 
 # Copy frontend source and build
 COPY frontend/ ./
+# 法务 md 位于仓库根 docs/legal/（frontend/ 之外），被 LegalDocumentView.vue 以 ?raw
+# 在构建期导入，相对路径解析到 /app/docs/legal/，需先拷到位再 build。
+COPY docs/legal/ /app/docs/legal/
 RUN pnpm run build
 
 # -----------------------------------------------------------------------------

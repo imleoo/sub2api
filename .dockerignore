@@ -11,6 +11,9 @@
 *.md
 !deploy/DOCKER.md
 docs/
+# 法务 md 被前端 LegalDocumentView.vue 以 ?raw 在构建期导入，需放行进构建上下文
+!docs/legal
+!docs/legal/*.md
 
 # IDE
 .idea/
