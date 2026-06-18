@@ -232,6 +232,28 @@ describe('BulkEditAccountModal', () => {
     expect(wrapper.text()).toContain('admin.accounts.openai.modelRestrictionDisabledByPassthrough')
   })
 
+  it('混选多平台时禁用模型限制：即使勾选也不写入 model_mapping（防覆盖各平台映射）', async () => {
+    const wrapper = mountModal({
+      selectedPlatforms: ['anthropic', 'openai'],
+      selectedTypes: ['apikey']
+    })
+
+    // 模型限制开关被禁用，并展示混选提示
+    const checkbox = wrapper.get('#bulk-edit-model-restriction-enabled')
+    expect((checkbox.element as HTMLInputElement).disabled).toBe(true)
+    expect(wrapper.text()).toContain('admin.accounts.bulkEdit.modelRestrictionDisabledByMixedPlatform')
+
+    // 即便强行开启模型限制 + 一个安全字段后提交，payload 不得含 credentials.model_mapping
+    await checkbox.setValue(true)
+    await wrapper.get('#bulk-edit-status-enabled').setValue(true)
+    await wrapper.get('#bulk-edit-account-form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(adminAPI.accounts.bulkUpdate).toHaveBeenCalledTimes(1)
+    const payload = vi.mocked(adminAPI.accounts.bulkUpdate).mock.calls[0][1] as Record<string, unknown>
+    expect(payload).not.toHaveProperty('credentials')
+  })
+
   it('filtered-results 模式下应提交 filters 而不是 account_ids', async () => {
     const wrapper = mountModal({
       accountIds: [],

@@ -129,8 +129,9 @@
             v-model="enableModelRestriction"
             id="bulk-edit-model-restriction-enabled"
             type="checkbox"
+            :disabled="isMixedPlatform"
             aria-controls="bulk-edit-model-restriction-body"
-            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50"
           />
         </div>
 
@@ -141,7 +142,16 @@
           aria-labelledby="bulk-edit-model-restriction-label"
         >
           <div
-            v-if="isOpenAIModelRestrictionDisabled"
+            v-if="isMixedPlatform"
+            class="rounded-lg bg-amber-50 p-3 dark:bg-amber-900/20"
+          >
+            <p class="text-xs text-amber-700 dark:text-amber-400">
+              {{ t('admin.accounts.bulkEdit.modelRestrictionDisabledByMixedPlatform') }}
+            </p>
+          </div>
+
+          <div
+            v-else-if="isOpenAIModelRestrictionDisabled"
             class="rounded-lg bg-amber-50 p-3 dark:bg-amber-900/20"
           >
             <p class="text-xs text-amber-700 dark:text-amber-400">
@@ -1342,7 +1352,9 @@ const buildUpdatePayload = (): Record<string, unknown> | null => {
     }
   }
 
-  if (enableModelRestriction.value && !isOpenAIModelRestrictionDisabled.value) {
+  // 混选多平台时不写 model_mapping：一份平台无关的映射会无差别覆盖各账号，
+  // 顶掉如 OpenAI 的精确映射（见「已知陷阱」批量改账号丢映射）。模型限制需按平台分别编辑。
+  if (enableModelRestriction.value && !isOpenAIModelRestrictionDisabled.value && !isMixedPlatform.value) {
     // 统一使用 model_mapping 字段
     if (modelRestrictionMode.value === 'whitelist') {
       // 白名单模式：将模型转换为 model_mapping 格式（key=value）
