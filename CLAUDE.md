@@ -31,7 +31,7 @@ fork 功能列表、高风险文件、合并检查清单详见 **[`claudedocs/�
 ### 版本与同步策略
 
 - `main` 对齐上游，版本保持上游 `0.x.y`
-- `zhiguofan` 使用 fork 版本线，`backend/cmd/server/VERSION` 主号固定为 `1`，次/修订号跟随上游（上游 `0.x.y` → 本分支 `1.x.y`）。**实际版本必须以仓库内 `backend/cmd/server/VERSION` 文件为准**（截至本次更新为 `1.1.133`，仅作分支新鲜度参考，不要在其他文档/代码中硬编码该值）
+- `zhiguofan` 使用 fork 版本线，`backend/cmd/server/VERSION` 主号固定为 `1`，次/修订号跟随上游（上游 `0.x.y` → 本分支 `1.x.y`）。**实际版本必须以仓库内 `backend/cmd/server/VERSION` 文件为准**（截至本次更新为 `1.1.136`，仅作分支新鲜度参考，不要在其他文档/代码中硬编码该值）
 - 同步上游优先使用 `./script/sync_upstream_to_zhiguofan.sh`，该脚本负责 `upstream/main → main → origin/main → zhiguofan → origin/zhiguofan`
 - 脚本同步到 `zhiguofan` 后会把版本主号改为 `1`；如果手动 merge，必须手动检查 `backend/cmd/server/VERSION`
 - `AGENTS.md` 是指向 `CLAUDE.md` 的 symlink，保留单一规则源，不要复制成两份。修改前用 `test -L AGENTS.md && readlink AGENTS.md`（应输出 `CLAUDE.md`）确认；若发现它变成了普通文件，恢复方式：`rm AGENTS.md && ln -s CLAUDE.md AGENTS.md`
