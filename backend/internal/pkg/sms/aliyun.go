@@ -90,7 +90,7 @@ func (c *AliyunClient) SendCode(ctx context.Context, phone, code string) error {
 	if err != nil {
 		return fmt.Errorf("send aliyun sms request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
@@ -126,10 +126,10 @@ func (c *AliyunClient) buildAuthorization(req *http.Request, bodyHash string) st
 
 	var canonicalHeaderLines strings.Builder
 	for _, name := range signedHeaderNames {
-		canonicalHeaderLines.WriteString(name)
-		canonicalHeaderLines.WriteByte(':')
-		canonicalHeaderLines.WriteString(req.Header.Get(name))
-		canonicalHeaderLines.WriteByte('\n')
+		_, _ = canonicalHeaderLines.WriteString(name)
+		_ = canonicalHeaderLines.WriteByte(':')
+		_, _ = canonicalHeaderLines.WriteString(req.Header.Get(name))
+		_ = canonicalHeaderLines.WriteByte('\n')
 	}
 	signedHeadersStr := strings.Join(signedHeaderNames, ";")
 
@@ -155,7 +155,7 @@ func (c *AliyunClient) buildAuthorization(req *http.Request, bodyHash string) st
 
 func acsHmacSHA256(key, data []byte) []byte {
 	h := hmac.New(sha256.New, key)
-	h.Write(data)
+	_, _ = h.Write(data)
 	return h.Sum(nil)
 }
 

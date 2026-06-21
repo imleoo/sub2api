@@ -55,7 +55,7 @@ func (c *VolcengineClient) SendCode(ctx context.Context, phone, code string) err
 		return fmt.Errorf("volcengine SMS not configured")
 	}
 
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"SmsAccountId": c.cfg.AccountID,
 		"Sign":         c.cfg.Sign,
 		"TemplateId":   c.cfg.TemplateID,
@@ -93,7 +93,7 @@ func (c *VolcengineClient) SendCode(ctx context.Context, phone, code string) err
 	if err != nil {
 		return fmt.Errorf("send sms request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
@@ -204,6 +204,6 @@ func sha256Hex(data []byte) string {
 
 func hmacSHA256(key, data []byte) []byte {
 	h := hmac.New(sha256.New, key)
-	h.Write(data)
+	_, _ = h.Write(data)
 	return h.Sum(nil)
 }

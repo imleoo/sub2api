@@ -100,7 +100,7 @@ func fetchMaasJSON(ctx context.Context, client *http.Client, url, token string) 
 	if err != nil {
 		return nil, fmt.Errorf("fetch maas api: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("maas api returned status %d", resp.StatusCode)

@@ -893,7 +893,7 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		balanceLowNotifyThreshold = v
 	}
 
-	var cnyRate float64 = 7.0
+	var cnyRate = 7.0
 	if v, err := strconv.ParseFloat(settings[SettingKeyCNYRate], 64); err == nil && v > 0 {
 		cnyRate = v
 	}

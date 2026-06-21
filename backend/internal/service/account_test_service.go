@@ -952,8 +952,8 @@ func (s *AccountTestService) testOpenAICompactConnection(c *gin.Context, account
 	isOAuth := false
 	chatgptAccountID := ""
 
-	switch {
-	case account.Type == AccountTypeAPIKey:
+	switch account.Type {
+	case AccountTypeAPIKey:
 		authToken = account.GetOpenAIApiKey()
 		if authToken == "" {
 			return s.sendErrorAndEnd(c, "No API key available")

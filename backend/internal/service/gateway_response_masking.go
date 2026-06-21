@@ -162,7 +162,7 @@ func extractLastUserText(messages []any) string {
 				if b, ok := block.(map[string]any); ok {
 					if b["type"] == "text" {
 						if t, ok := b["text"].(string); ok {
-							sb.WriteString(t)
+							_, _ = sb.WriteString(t)
 						}
 					}
 				}

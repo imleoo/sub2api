@@ -201,7 +201,7 @@ func (c *LingjingClient) SubmitTask(ctx context.Context, apiKey string, req Ling
 	if err != nil {
 		return nil, fmt.Errorf("lingjing: submit task: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -242,7 +242,7 @@ func (c *LingjingClient) QueryTaskResult(ctx context.Context, apiKey string, gen
 	if err != nil {
 		return nil, fmt.Errorf("lingjing: query task result: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBytes, err := io.ReadAll(resp.Body)
 	if err != nil {

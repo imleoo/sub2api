@@ -69,8 +69,8 @@ func ParseSSEStream(r io.Reader) ([]SSEEvent, error) {
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		raw.WriteString(line)
-		raw.WriteByte('\n')
+		_, _ = raw.WriteString(line)
+		_ = raw.WriteByte('\n')
 
 		// 空行 → dispatch
 		if line == "" {
@@ -98,9 +98,9 @@ func ParseSSEStream(r io.Reader) ([]SSEEvent, error) {
 			current.Event = value
 		case "data":
 			if dataBuf.Len() > 0 {
-				dataBuf.WriteByte('\n')
+				_ = dataBuf.WriteByte('\n')
 			}
-			dataBuf.WriteString(value)
+			_, _ = dataBuf.WriteString(value)
 		default:
 			// 忽略未知字段（id / retry / 其他）
 		}

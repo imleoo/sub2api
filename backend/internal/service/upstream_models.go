@@ -220,7 +220,7 @@ func (s *AccountTestService) buildAnthropicUpstreamModelsRequest(ctx context.Con
 		)
 	}
 
-	baseURL := "https://api.anthropic.com"
+	var baseURL string
 	authHeaderName := ""
 	authHeaderValue := ""
 	betaHeader := ""

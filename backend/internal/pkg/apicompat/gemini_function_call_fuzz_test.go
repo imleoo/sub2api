@@ -210,7 +210,7 @@ func loadGeminiSSEFixture(t *testing.T, name string) []SSEEvent {
 		t.Skipf("fixture 文件 %s 不存在，跳过", path)
 	}
 	require.NoError(t, err)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	events, err := ParseSSEStream(f)
 	require.NoError(t, err, "ParseSSEStream 失败")

@@ -133,10 +133,10 @@ func avgDurationSQL(column string) string {
 // 这是 P1-2 最核心的验收承诺：跨实体聚合调用栈不出现 group_id 强过滤
 // （docs/generic-channel-design.md §5.4 第 2 条）。
 func TestGetEntityUsageStats_NoGroupIDInSQL(t *testing.T) {
+	groupIDRe := regexp.MustCompile(`group_id\s*=`)
 	for _, col := range []string{"account_id", "user_id", "provider"} {
 		sql := historyAggregateSQL(col)
-		matched, err := regexp.MatchString(`group_id\s*=`, sql)
-		require.NoError(t, err)
+		matched := groupIDRe.MatchString(sql)
 		require.False(t, matched, "column=%q 的 history SQL 不应出现 group_id 过滤", col)
 	}
 }

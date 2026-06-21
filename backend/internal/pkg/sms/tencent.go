@@ -88,7 +88,7 @@ func (c *TencentClient) SendCode(ctx context.Context, phone, code string) error 
 	if err != nil {
 		return fmt.Errorf("send tencent sms request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
@@ -157,6 +157,6 @@ func (c *TencentClient) buildAuthorization(body []byte, dateStr, timestamp strin
 
 func tc3HmacSHA256(key, data []byte) []byte {
 	h := hmac.New(sha256.New, key)
-	h.Write(data)
+	_, _ = h.Write(data)
 	return h.Sum(nil)
 }
