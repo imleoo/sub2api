@@ -54,7 +54,7 @@ cd frontend && pnpm run lint:check
 
 > 当前 `Makefile` 是空文件（1 字节占位），没有可用 target。所有构建/测试/生成/开发环境命令请直接进入 `backend/`、`frontend/` 或调用 `script/dev_local.sh`（见下方）。
 >
-> 如未来要新增 Makefile target，**先与 `script/dev_local.sh`、`script/sync_upstream_to_zhiguofan.sh`、`script/push_zhiguofan_to_internal_git.sh` 比对**，避免与脚本入口重复或行为不一致。
+> 如未来要新增 Makefile target，**先与 `script/dev_local.sh`、`script/sync_upstream_to_zhiguofan.sh` 比对**，避免与脚本入口重复或行为不一致。
 
 ### 后端（Go）
 
@@ -121,10 +121,6 @@ pnpm test:coverage  # 测试覆盖率
 # 同步上游到 zhiguofan（需要 GitHub 网络）
 # 流程：upstream/main → main → origin/main → zhiguofan → origin/zhiguofan
 ./script/sync_upstream_to_zhiguofan.sh
-
-# 推送 zhiguofan 到内网 Git（切换到内网后执行）
-# 目标：ssh://git_prod_backend@192.168.1.10/home/git_prod_backend/wmtoken_platform.git
-./script/push_zhiguofan_to_internal_git.sh
 ```
 
 ## 架构

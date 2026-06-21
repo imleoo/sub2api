@@ -1,6 +1,6 @@
 # 脚本说明
 
-这个目录里放了两个彼此独立的 Git 脚本，方便你按网络环境分别执行。
+这个目录里放了上游同步与本地调试脚本。
 
 ## 1. `sync_upstream_to_zhiguofan.sh`
 
@@ -18,21 +18,6 @@
 - 你在 GitHub / 上游网络环境下做代码同步
 - 希望本地 `main` 始终和上游保持一致
 
-## 2. `push_zhiguofan_to_internal_git.sh`
-
-作用：
-
-- 仅把本地 `zhiguofan` 分支推送到内网 Git 服务器
-
-内网地址：
-
-- `ssh://git_prod_backend@192.168.1.10/home/git_prod_backend/wmtoken_platform.git`
-
-适用场景：
-
-- 你切到内网网络后，只做最终推送
-- 不影响 GitHub / 上游那边的同步流程
-
 ## 冲突处理原则
 
 - `main` 和上游冲突时，以上游为准，`main` 负责跟上游对齐
@@ -47,7 +32,7 @@ git merge --abort
 AI_RESOLVE=true ./script/sync_upstream_to_zhiguofan.sh
 ```
 
-## 3. `dev_local.sh`
+## 2. `dev_local.sh`
 
 作用：
 

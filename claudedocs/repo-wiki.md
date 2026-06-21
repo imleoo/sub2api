@@ -140,8 +140,7 @@ SubPanel/
 │
 ├── script/                   # 运维脚本
 │   ├── dev_local.sh          # 本地开发环境启停
-│   ├── sync_upstream_to_zhiguofan.sh  # 上游同步
-│   └── push_zhiguofan_to_internal_git.sh  # 推送内网 Git
+│   └── sync_upstream_to_zhiguofan.sh  # 上游同步
 │
 ├── deploy/                   # Docker Compose 部署配置
 │   ├── docker-compose.yml    # 主配置
@@ -1055,13 +1054,6 @@ docker compose -f docker-compose.yml -f docker-compose.production.yml up -d
 | `RUN_MODE` | 运行模式 | `production` / `simple` |
 | `AUTO_SETUP` | Docker 自动初始化 | `true` |
 | `SIMPLE_MODE_CONFIRM` | 确认 Simple 模式 | `true` |
-
-### 内网 Git 推送
-
-```bash
-# 目标：ssh://git_prod_backend@192.168.1.10/home/git_prod_backend/wmtoken_platform.git
-./script/push_zhiguofan_to_internal_git.sh
-```
 
 ### Caddy 反向代理（`deploy/Caddyfile`）
 

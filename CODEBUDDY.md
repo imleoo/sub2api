@@ -146,8 +146,7 @@ tokenpanel/
 ├── deploy/                   # Docker compose, install scripts
 ├── script/                   # Development scripts
 │   ├── dev_local.sh          # Local dev environment
-│   ├── sync_upstream_to_zhiguofan.sh
-│   └── push_zhiguofan_to_internal_git.sh
+│   └── sync_upstream_to_zhiguofan.sh
 └── claudedocs/               # Analysis documents
 ```
 
@@ -193,7 +192,6 @@ tokenpanel/
 - `main` branch tracks upstream `Wei-Shaw/tokenpanel`
 - `zhiguofan` branch is the development branch for this fork
 - Sync upstream: `./script/sync_upstream_to_zhiguofan.sh`
-- Push to internal: `./script/push_zhiguofan_to_internal_git.sh`
 
 ## Model Mapping Pitfall
 
