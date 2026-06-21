@@ -240,7 +240,6 @@ func TestHandleUpstreamError_PoolModeCustomErrorCodesOverride(t *testing.T) {
 	})
 }
 
-
 // ---------------------------------------------------------------------------
 // errorPolicyRepoStub — minimal AccountRepository stub for error policy tests
 // ---------------------------------------------------------------------------

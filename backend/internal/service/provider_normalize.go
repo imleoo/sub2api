@@ -27,10 +27,10 @@ func NormalizeProvider(s string) string {
 // 维护规约：新增条目必须先改 glossary.md，再加这里，再上线写入路径。
 var providerAliases = map[string]string{
 	// deepseek 系
-	"deepseek":           "deepseek",
-	"deep-seek":          "deepseek",
-	"deepseek-official":  "deepseek",
-	"deepseekofficial":   "deepseek",
+	"deepseek":          "deepseek",
+	"deep-seek":         "deepseek",
+	"deepseek-official": "deepseek",
+	"deepseekofficial":  "deepseek",
 
 	// siliconflow 系（含中文）
 	"siliconflow":  "siliconflow",

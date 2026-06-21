@@ -40,7 +40,7 @@ type AliyunClient struct {
 // NewAliyunClient 创建阿里云 SMS 客户端
 func NewAliyunClient(cfg AliyunConfig) *AliyunClient {
 	return &AliyunClient{
-		cfg: cfg,
+		cfg:        cfg,
 		httpClient: &http.Client{Timeout: 10 * time.Second},
 	}
 }

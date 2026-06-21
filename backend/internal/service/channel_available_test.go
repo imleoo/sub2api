@@ -316,18 +316,18 @@ func newStubPricingServiceFromMap(data map[string]*LiteLLMModelPricing) *Pricing
 	catalog := make(map[string]*DBModelPricing, len(data))
 	for modelID, lp := range data {
 		catalog[modelID] = &DBModelPricing{
-			ModelID:                 modelID,
-			Provider:                lp.LiteLLMProvider,
-			Mode:                    lp.Mode,
-			SupportsPromptCaching:   lp.SupportsPromptCaching,
-			IsEnabled:               true,
-			PricingStatus:           ModelPricingStatusPriced,
-			InputCostPerToken:       f(lp.InputCostPerToken),
-			OutputCostPerToken:      f(lp.OutputCostPerToken),
+			ModelID:                     modelID,
+			Provider:                    lp.LiteLLMProvider,
+			Mode:                        lp.Mode,
+			SupportsPromptCaching:       lp.SupportsPromptCaching,
+			IsEnabled:                   true,
+			PricingStatus:               ModelPricingStatusPriced,
+			InputCostPerToken:           f(lp.InputCostPerToken),
+			OutputCostPerToken:          f(lp.OutputCostPerToken),
 			CacheCreationInputTokenCost: f(lp.CacheCreationInputTokenCost),
-			CacheReadInputTokenCost: f(lp.CacheReadInputTokenCost),
-			OutputCostPerImage:      f(lp.OutputCostPerImage),
-			OutputCostPerImageToken: f(lp.OutputCostPerImageToken),
+			CacheReadInputTokenCost:     f(lp.CacheReadInputTokenCost),
+			OutputCostPerImage:          f(lp.OutputCostPerImage),
+			OutputCostPerImageToken:     f(lp.OutputCostPerImageToken),
 		}
 	}
 	return &PricingService{

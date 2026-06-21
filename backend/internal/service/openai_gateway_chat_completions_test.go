@@ -760,3 +760,14 @@ func TestForwardAsChatCompletions_UpstreamRequestIgnoresClientCancel(t *testing.
 	require.NotNil(t, upstream.lastReq)
 	require.NoError(t, upstream.lastReq.Context().Err())
 }
+
+// TestBuildChatStreamErrorSSE verifies F4: the error chunk payload follows the
+// OpenAI chat streaming error convention so third-party clients stop retrying.
+func TestBuildChatStreamErrorSSE(t *testing.T) {
+	got := buildChatStreamErrorSSE("cyber_policy", "blocked by policy")
+	require.True(t, strings.HasPrefix(got, "data: "), "must be an SSE data frame")
+	payload := strings.TrimSuffix(strings.TrimPrefix(got, "data: "), "\n\n")
+	require.Equal(t, "invalid_request_error", gjson.Get(payload, "error.type").String())
+	require.Equal(t, "cyber_policy", gjson.Get(payload, "error.code").String())
+	require.Equal(t, "blocked by policy", gjson.Get(payload, "error.message").String())
+}

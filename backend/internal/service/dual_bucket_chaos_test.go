@@ -147,9 +147,9 @@ func (noopSchedulerCache) GetSnapshot(_ context.Context, _ SchedulerBucket) ([]*
 func (noopSchedulerCache) SetSnapshot(_ context.Context, _ SchedulerBucket, _ []Account) error {
 	return nil
 }
-func (noopSchedulerCache) GetAccount(_ context.Context, _ int64) (*Account, error)   { return nil, nil }
-func (noopSchedulerCache) SetAccount(_ context.Context, _ *Account) error            { return nil }
-func (noopSchedulerCache) DeleteAccount(_ context.Context, _ int64) error            { return nil }
+func (noopSchedulerCache) GetAccount(_ context.Context, _ int64) (*Account, error)       { return nil, nil }
+func (noopSchedulerCache) SetAccount(_ context.Context, _ *Account) error                { return nil }
+func (noopSchedulerCache) DeleteAccount(_ context.Context, _ int64) error                { return nil }
 func (noopSchedulerCache) UpdateLastUsed(_ context.Context, _ map[int64]time.Time) error { return nil }
 func (noopSchedulerCache) TryLockBucket(_ context.Context, _ SchedulerBucket, _ time.Duration) (bool, error) {
 	return true, nil
@@ -158,8 +158,8 @@ func (noopSchedulerCache) UnlockBucket(_ context.Context, _ SchedulerBucket) err
 func (noopSchedulerCache) ListBuckets(_ context.Context) ([]SchedulerBucket, error) {
 	return nil, nil
 }
-func (noopSchedulerCache) GetOutboxWatermark(_ context.Context) (int64, error)   { return 0, nil }
-func (noopSchedulerCache) SetOutboxWatermark(_ context.Context, _ int64) error  { return nil }
+func (noopSchedulerCache) GetOutboxWatermark(_ context.Context) (int64, error) { return 0, nil }
+func (noopSchedulerCache) SetOutboxWatermark(_ context.Context, _ int64) error { return nil }
 func (noopSchedulerCache) IncrDualBucketTotal(_ context.Context, _ string) (int64, error) {
 	return 0, nil
 }

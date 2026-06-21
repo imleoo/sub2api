@@ -15,9 +15,9 @@ const (
 // LingjingVideoRequest 视频生成任务请求参数。
 type LingjingVideoRequest struct {
 	Prompt        string   `json:"prompt"`
-	TaskType      string   `json:"task_type"`       // "text2video" / "image2video"
-	Duration      string   `json:"duration"`        // "5" / "10" / "12"
-	Mode          string   `json:"mode"`            // "480p" / "720p" / "1080p"
+	TaskType      string   `json:"task_type"` // "text2video" / "image2video"
+	Duration      string   `json:"duration"`  // "5" / "10" / "12"
+	Mode          string   `json:"mode"`      // "480p" / "720p" / "1080p"
 	AspectRatio   string   `json:"aspect_ratio"`
 	GenerateAudio bool     `json:"generate_audio"`
 	ImageURLs     []string `json:"image_urls,omitempty"` // 图生视频时必填
@@ -494,7 +494,7 @@ func buildLingjingTestSubmitRequest(model, prompt string) (apiID string, params 
 	case "image-01":
 		return entry.SupportedTestAPIID, map[string]any{
 			"prompt": prompt, modelKey: canonical,
-			"aspect_ratio": "16:9",
+			"aspect_ratio":      "16:9",
 			"subject_reference": []string{},
 		}
 	}

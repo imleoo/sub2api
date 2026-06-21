@@ -87,6 +87,12 @@ func (e *OpenAIImagesUpstreamError) clientMessage() string {
 	return "Upstream request failed"
 }
 
+// IsOpenAIImagesRetryableUpstreamError reports whether an Images error is an
+// upstream server failure that may be retried on another account.
+func IsOpenAIImagesRetryableUpstreamError(err *OpenAIImagesUpstreamError) bool {
+	return err != nil && err.StatusCode >= http.StatusInternalServerError
+}
+
 func openAIResponsesImageResultKey(itemID string, result openAIResponsesImageResult) string {
 	if strings.TrimSpace(result.Result) != "" {
 		return strings.TrimSpace(result.OutputFormat) + "|" + strings.TrimSpace(result.Result)

@@ -233,6 +233,8 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		DefaultConcurrency:                     settings.DefaultConcurrency,
 		DefaultBalance:                         settings.DefaultBalance,
 		RiskControlEnabled:                     settings.RiskControlEnabled,
+		CyberSessionBlockEnabled:               settings.CyberSessionBlockEnabled,
+		CyberSessionBlockTTLSeconds:            settings.CyberSessionBlockTTLSeconds,
 		AffiliateRebateRate:                    settings.AffiliateRebateRate,
 		AffiliateRebateFreezeHours:             settings.AffiliateRebateFreezeHours,
 		AffiliateRebateDurationDays:            settings.AffiliateRebateDurationDays,
@@ -306,22 +308,22 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		CNYRate:      settings.CNYRate,
 
 		PhoneRegisterEnabled:                   settings.PhoneRegisterEnabled,
-		PasswordLoginEnabled:                    settings.PasswordLoginEnabled,
+		PasswordLoginEnabled:                   settings.PasswordLoginEnabled,
 		SmsProvider:                            settings.SmsProvider,
 		VolcengineSmsAccessKeyID:               settings.VolcengineSmsAccessKeyID,
 		VolcengineSmsAccessKeySecretConfigured: settings.VolcengineSmsAccessKeySecretConfigured,
 		VolcengineSmsAccountID:                 settings.VolcengineSmsAccountID,
 		VolcengineSmsSign:                      settings.VolcengineSmsSign,
 		VolcengineSmsTemplateID:                settings.VolcengineSmsTemplateID,
-		TencentSmsSecretID:              settings.TencentSmsSecretID,
-		TencentSmsSecretKeyConfigured:   settings.TencentSmsSecretKeyConfigured,
-		TencentSmsSdkAppID:              settings.TencentSmsSdkAppID,
-		TencentSmsSign:                  settings.TencentSmsSign,
-		TencentSmsTemplateID:            settings.TencentSmsTemplateID,
-		AliyunSmsAccessKeyID:               settings.AliyunSmsAccessKeyID,
-		AliyunSmsAccessKeySecretConfigured: settings.AliyunSmsAccessKeySecretConfigured,
-		AliyunSmsSign:                      settings.AliyunSmsSign,
-		AliyunSmsTemplateCode:              settings.AliyunSmsTemplateCode,
+		TencentSmsSecretID:                     settings.TencentSmsSecretID,
+		TencentSmsSecretKeyConfigured:          settings.TencentSmsSecretKeyConfigured,
+		TencentSmsSdkAppID:                     settings.TencentSmsSdkAppID,
+		TencentSmsSign:                         settings.TencentSmsSign,
+		TencentSmsTemplateID:                   settings.TencentSmsTemplateID,
+		AliyunSmsAccessKeyID:                   settings.AliyunSmsAccessKeyID,
+		AliyunSmsAccessKeySecretConfigured:     settings.AliyunSmsAccessKeySecretConfigured,
+		AliyunSmsSign:                          settings.AliyunSmsSign,
+		AliyunSmsTemplateCode:                  settings.AliyunSmsTemplateCode,
 
 		AllowUserViewErrorRequests: settings.AllowUserViewErrorRequests,
 	}
@@ -580,10 +582,10 @@ type UpdateSettingsRequest struct {
 	ForceEmailOnThirdPartySignup              *bool                             `json:"force_email_on_third_party_signup"`
 
 	// Model fallback configuration
-	EnableModelFallback      bool   `json:"enable_model_fallback"`
-	FallbackModelAnthropic   string `json:"fallback_model_anthropic"`
-	FallbackModelOpenAI      string `json:"fallback_model_openai"`
-	FallbackModelGemini      string `json:"fallback_model_gemini"`
+	EnableModelFallback    bool   `json:"enable_model_fallback"`
+	FallbackModelAnthropic string `json:"fallback_model_anthropic"`
+	FallbackModelOpenAI    string `json:"fallback_model_openai"`
+	FallbackModelGemini    string `json:"fallback_model_gemini"`
 
 	// Identity patch configuration (Claude -> Gemini)
 	EnableIdentityPatch bool   `json:"enable_identity_patch"`
@@ -677,6 +679,10 @@ type UpdateSettingsRequest struct {
 	// 风控中心功能开关
 	RiskControlEnabled *bool `json:"risk_control_enabled"`
 
+	// cyber 会话屏蔽开关 + TTL
+	CyberSessionBlockEnabled    *bool `json:"cyber_session_block_enabled"`
+	CyberSessionBlockTTLSeconds *int  `json:"cyber_session_block_ttl_seconds"`
+
 	// OpenAI fast/flex policy (optional, only updated when provided)
 	OpenAIFastPolicySettings *dto.OpenAIFastPolicySettings `json:"openai_fast_policy_settings,omitempty"`
 
@@ -694,7 +700,7 @@ type UpdateSettingsRequest struct {
 
 	// 手机号注册
 	PhoneRegisterEnabled *bool   `json:"phone_register_enabled"`
-	PasswordLoginEnabled  *bool   `json:"password_login_enabled"`
+	PasswordLoginEnabled *bool   `json:"password_login_enabled"`
 	SmsProvider          *string `json:"sms_provider"`
 	// 火山引擎 SMS
 	VolcengineSmsAccessKeyID     *string `json:"volcengine_sms_access_key_id"`
@@ -703,11 +709,11 @@ type UpdateSettingsRequest struct {
 	VolcengineSmsSign            *string `json:"volcengine_sms_sign"`
 	VolcengineSmsTemplateID      *string `json:"volcengine_sms_template_id"`
 	// 腾讯云 SMS
-	TencentSmsSecretID    *string `json:"tencent_sms_secret_id"`
-	TencentSmsSecretKey   *string `json:"tencent_sms_secret_key"`
-	TencentSmsSdkAppID    *string `json:"tencent_sms_sdk_app_id"`
-	TencentSmsSign        *string `json:"tencent_sms_sign"`
-	TencentSmsTemplateID  *string `json:"tencent_sms_template_id"`
+	TencentSmsSecretID   *string `json:"tencent_sms_secret_id"`
+	TencentSmsSecretKey  *string `json:"tencent_sms_secret_key"`
+	TencentSmsSdkAppID   *string `json:"tencent_sms_sdk_app_id"`
+	TencentSmsSign       *string `json:"tencent_sms_sign"`
+	TencentSmsTemplateID *string `json:"tencent_sms_template_id"`
 	// 阿里云 SMS
 	AliyunSmsAccessKeyID     *string `json:"aliyun_sms_access_key_id"`
 	AliyunSmsAccessKeySecret *string `json:"aliyun_sms_access_key_secret"`
@@ -1507,6 +1513,12 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		}
 	}
 
+	// cyber 会话屏蔽 TTL 校验：提供时必须 > 0
+	if req.CyberSessionBlockTTLSeconds != nil && *req.CyberSessionBlockTTLSeconds <= 0 {
+		response.BadRequest(c, "cyber_session_block_ttl_seconds must be > 0")
+		return
+	}
+
 	settings := &service.SystemSettings{
 		// 系统全局 platform quota 默认值（整体替换语义）
 		DefaultPlatformQuotas: req.DefaultPlatformQuotas,
@@ -1630,24 +1642,24 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			}
 			return previousSettings.UITheme
 		}(),
-		DefaultConcurrency:                     req.DefaultConcurrency,
-		DefaultBalance:                         req.DefaultBalance,
-		AffiliateRebateRate:                    affiliateRebateRate,
-		AffiliateRebateFreezeHours:             affiliateRebateFreezeHours,
-		AffiliateRebateDurationDays:            affiliateRebateDurationDays,
-		AffiliateRebatePerInviteeCap:           affiliateRebatePerInviteeCap,
-		DefaultUserRPMLimit:                    req.DefaultUserRPMLimit,
-		DefaultSubscriptions:                   defaultSubscriptions,
-		EnableModelFallback:                    req.EnableModelFallback,
-		FallbackModelAnthropic:                 req.FallbackModelAnthropic,
-		FallbackModelOpenAI:                    req.FallbackModelOpenAI,
-		FallbackModelGemini:                    req.FallbackModelGemini,
-		EnableIdentityPatch:                    req.EnableIdentityPatch,
-		IdentityPatchPrompt:                    req.IdentityPatchPrompt,
-		MinClaudeCodeVersion:                   req.MinClaudeCodeVersion,
-		MaxClaudeCodeVersion:                   req.MaxClaudeCodeVersion,
-		AllowUngroupedKeyScheduling:            req.AllowUngroupedKeyScheduling,
-		BackendModeEnabled:                     req.BackendModeEnabled,
+		DefaultConcurrency:           req.DefaultConcurrency,
+		DefaultBalance:               req.DefaultBalance,
+		AffiliateRebateRate:          affiliateRebateRate,
+		AffiliateRebateFreezeHours:   affiliateRebateFreezeHours,
+		AffiliateRebateDurationDays:  affiliateRebateDurationDays,
+		AffiliateRebatePerInviteeCap: affiliateRebatePerInviteeCap,
+		DefaultUserRPMLimit:          req.DefaultUserRPMLimit,
+		DefaultSubscriptions:         defaultSubscriptions,
+		EnableModelFallback:          req.EnableModelFallback,
+		FallbackModelAnthropic:       req.FallbackModelAnthropic,
+		FallbackModelOpenAI:          req.FallbackModelOpenAI,
+		FallbackModelGemini:          req.FallbackModelGemini,
+		EnableIdentityPatch:          req.EnableIdentityPatch,
+		IdentityPatchPrompt:          req.IdentityPatchPrompt,
+		MinClaudeCodeVersion:         req.MinClaudeCodeVersion,
+		MaxClaudeCodeVersion:         req.MaxClaudeCodeVersion,
+		AllowUngroupedKeyScheduling:  req.AllowUngroupedKeyScheduling,
+		BackendModeEnabled:           req.BackendModeEnabled,
 		AllowUserViewErrorRequests: func() bool {
 			if req.AllowUserViewErrorRequests != nil {
 				return *req.AllowUserViewErrorRequests
@@ -1930,6 +1942,18 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 				return strings.TrimSpace(*req.AliyunSmsTemplateCode)
 			}
 			return previousSettings.AliyunSmsTemplateCode
+		}(),
+		CyberSessionBlockEnabled: func() bool {
+			if req.CyberSessionBlockEnabled != nil {
+				return *req.CyberSessionBlockEnabled
+			}
+			return previousSettings.CyberSessionBlockEnabled
+		}(),
+		CyberSessionBlockTTLSeconds: func() int {
+			if req.CyberSessionBlockTTLSeconds != nil {
+				return *req.CyberSessionBlockTTLSeconds
+			}
+			return previousSettings.CyberSessionBlockTTLSeconds
 		}(),
 	}
 
@@ -2251,8 +2275,10 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 
 		AffiliateEnabled: updatedSettings.AffiliateEnabled,
 
-		RiskControlEnabled:         updatedSettings.RiskControlEnabled,
-		AllowUserViewErrorRequests: updatedSettings.AllowUserViewErrorRequests,
+		RiskControlEnabled:          updatedSettings.RiskControlEnabled,
+		CyberSessionBlockEnabled:    updatedSettings.CyberSessionBlockEnabled,
+		CyberSessionBlockTTLSeconds: updatedSettings.CyberSessionBlockTTLSeconds,
+		AllowUserViewErrorRequests:  updatedSettings.AllowUserViewErrorRequests,
 	}
 	if fastPolicy, err := h.settingService.GetOpenAIFastPolicySettings(c.Request.Context()); err != nil {
 		slog.Error("openai_fast_policy_settings_get_failed", "error", err)
@@ -2726,6 +2752,12 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	}
 	if before.RiskControlEnabled != after.RiskControlEnabled {
 		changed = append(changed, "risk_control_enabled")
+	}
+	if before.CyberSessionBlockEnabled != after.CyberSessionBlockEnabled {
+		changed = append(changed, "cyber_session_block_enabled")
+	}
+	if before.CyberSessionBlockTTLSeconds != after.CyberSessionBlockTTLSeconds {
+		changed = append(changed, "cyber_session_block_ttl_seconds")
 	}
 	// Default platform quotas（JSON map，整体比较）
 	if !equalPlatformQuotaSettings(before.DefaultPlatformQuotas, after.DefaultPlatformQuotas) {

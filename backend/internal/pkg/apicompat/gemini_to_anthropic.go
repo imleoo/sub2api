@@ -3,20 +3,20 @@
 // 实现状态：Stub（占位）
 //   - 完整实现路线（docs/relay-architecture-design.md §4.3 + sprint-plan §11）：
 //     请求：GeminiGenerateContentRequest → AnthropicRequest
-//         contents → messages（role 映射 user/model→user/assistant；parts→content blocks）
-//         systemInstruction → system 字段（string 或 []ContentBlock）
-//         tools[].functionDeclarations → tools（name/description/input_schema 直透）
-//         generationConfig.{temperature,topP,maxOutputTokens,stopSequences} → 对应 Anthropic 字段
-//         GeminiBlob(inlineData) → AnthropicContentBlock{type:"image",source:{type:"base64",...}}
+//     contents → messages（role 映射 user/model→user/assistant；parts→content blocks）
+//     systemInstruction → system 字段（string 或 []ContentBlock）
+//     tools[].functionDeclarations → tools（name/description/input_schema 直透）
+//     generationConfig.{temperature,topP,maxOutputTokens,stopSequences} → 对应 Anthropic 字段
+//     GeminiBlob(inlineData) → AnthropicContentBlock{type:"image",source:{type:"base64",...}}
 //     响应：AnthropicResponse → GeminiGenerateContentResponse
-//         content[].text → candidates[0].content.parts[0].text
-//         content[].tool_use → candidates[0].content.parts[0].functionCall
-//         stop_reason（end_turn/max_tokens/tool_use）→ STOP/MAX_TOKENS/STOP
-//         usage.{input_tokens,output_tokens} → usageMetadata
+//     content[].text → candidates[0].content.parts[0].text
+//     content[].tool_use → candidates[0].content.parts[0].functionCall
+//     stop_reason（end_turn/max_tokens/tool_use）→ STOP/MAX_TOKENS/STOP
+//     usage.{input_tokens,output_tokens} → usageMetadata
 //     流式：streamGenerateContent SSE → Anthropic stream_event → Gemini SSE chunk
-//         Anthropic text_delta → 对应 GeminiCandidate parts[text] chunk
-//         Anthropic tool_use 流式状态机 → functionCall chunk
-//         message_stop → 最后 finishReason 帧
+//     Anthropic text_delta → 对应 GeminiCandidate parts[text] chunk
+//     Anthropic tool_use 流式状态机 → functionCall chunk
+//     message_stop → 最后 finishReason 帧
 //   - function_calling：GeminiFunctionDeclarations.Parameters（JSON Schema）直透到
 //     AnthropicTool.InputSchema，零字段丢失
 //

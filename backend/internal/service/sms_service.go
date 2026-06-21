@@ -14,12 +14,12 @@ import (
 )
 
 var (
-	ErrSmsNotConfigured    = infraerrors.ServiceUnavailable("SMS_NOT_CONFIGURED", "SMS service not configured")
-	ErrInvalidSmsCode      = infraerrors.BadRequest("INVALID_SMS_CODE", "invalid or expired SMS verification code")
-	ErrSmsCodeTooFrequent  = infraerrors.TooManyRequests("SMS_CODE_TOO_FREQUENT", "please wait before requesting a new code")
-	ErrSmsCodeMaxAttempts  = infraerrors.TooManyRequests("SMS_CODE_MAX_ATTEMPTS", "too many failed attempts, please request a new code")
-	ErrInvalidPhoneNumber  = infraerrors.BadRequest("INVALID_PHONE_NUMBER", "invalid phone number format")
-	ErrPhoneAlreadyExists  = infraerrors.Conflict("PHONE_ALREADY_EXISTS", "phone number already registered")
+	ErrSmsNotConfigured   = infraerrors.ServiceUnavailable("SMS_NOT_CONFIGURED", "SMS service not configured")
+	ErrInvalidSmsCode     = infraerrors.BadRequest("INVALID_SMS_CODE", "invalid or expired SMS verification code")
+	ErrSmsCodeTooFrequent = infraerrors.TooManyRequests("SMS_CODE_TOO_FREQUENT", "please wait before requesting a new code")
+	ErrSmsCodeMaxAttempts = infraerrors.TooManyRequests("SMS_CODE_MAX_ATTEMPTS", "too many failed attempts, please request a new code")
+	ErrInvalidPhoneNumber = infraerrors.BadRequest("INVALID_PHONE_NUMBER", "invalid phone number format")
+	ErrPhoneAlreadyExists = infraerrors.Conflict("PHONE_ALREADY_EXISTS", "phone number already registered")
 )
 
 const (
@@ -209,4 +209,3 @@ func (s *SmsService) VerifyCode(ctx context.Context, phone, code string) error {
 
 	return nil
 }
-

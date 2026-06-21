@@ -25,7 +25,7 @@ func TestMatchFamilyInCatalog_GoldenAnchors(t *testing.T) {
 		wantInputPrice float64
 	}{
 		{
-			family:  "opus-4.7",
+			family: "opus-4.7",
 			catalogMap: map[string]*DBModelPricing{
 				"claude-opus-4-7-20251101": catalogEntry("claude-opus-4-7-20251101", 5e-6, 25e-6),
 			},

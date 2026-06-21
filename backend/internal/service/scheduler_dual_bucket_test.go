@@ -15,9 +15,9 @@ func TestPlatformToProtocol(t *testing.T) {
 		{PlatformAnthropic, domain.ProtocolAnthropicMessages},
 		{PlatformOpenAI, domain.ProtocolOpenAIChat},
 		{PlatformGemini, domain.ProtocolGeminiV1Beta},
-		{PlatformLingjing, ""},  // lingjing 不参与双桶
-		{PlatformGeneric, ""},   // generic 通过 Endpoint 实体路由，不参与双桶
-		{"unknown", ""},         // 未知 platform 不参与
+		{PlatformLingjing, ""}, // lingjing 不参与双桶
+		{PlatformGeneric, ""},  // generic 通过 Endpoint 实体路由，不参与双桶
+		{"unknown", ""},        // 未知 platform 不参与
 	}
 	for _, c := range cases {
 		got := platformToProtocol(c.platform)

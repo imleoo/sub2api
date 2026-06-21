@@ -117,9 +117,9 @@ const (
 
 // UsageCache 封装账户使用量相关的缓存
 type UsageCache struct {
-	windowStatsCache sync.Map           // accountID -> *windowStatsCache
-	geminiCache      sync.Map           // accountID -> *geminiUsageCache
-	openAIProbeCache sync.Map           // accountID -> time.Time
+	windowStatsCache sync.Map // accountID -> *windowStatsCache
+	geminiCache      sync.Map // accountID -> *geminiUsageCache
+	openAIProbeCache sync.Map // accountID -> time.Time
 }
 
 // NewUsageCache 创建 UsageCache 实例

@@ -107,8 +107,8 @@ func TestShouldClearStickySession(t *testing.T) {
 		{
 			name: "overloaded account",
 			account: &Account{
-				Status:       StatusActive,
-				Schedulable:  true,
+				Status:        StatusActive,
+				Schedulable:   true,
 				OverloadUntil: &future,
 			},
 			requestedModel: "",

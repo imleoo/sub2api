@@ -32,8 +32,8 @@ type wanjieModalRelation struct {
 }
 
 type wanjieTypeGroup struct {
-	ModalType    int                  `json:"modalType"`
-	DetailGroups []wanjieDetailGroup  `json:"detailGroups"`
+	ModalType    int                 `json:"modalType"`
+	DetailGroups []wanjieDetailGroup `json:"detailGroups"`
 }
 
 type wanjieDetailGroup struct {
@@ -43,7 +43,7 @@ type wanjieDetailGroup struct {
 type wanjieRelation struct {
 	ModalClass        int    `json:"modalClass"`
 	ModalType         int    `json:"modalType"`
-	ChargeValue       string `json:"chargeValue"`        // 折后价（万界实际收费）
+	ChargeValue       string `json:"chargeValue"`       // 折后价（万界实际收费）
 	OfficeChargeValue string `json:"officeChargeValue"` // 原价（官方定价）
 	ModalName         string `json:"modalName"`
 	ModalKey          string `json:"modalKey"`

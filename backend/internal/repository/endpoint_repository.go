@@ -170,7 +170,7 @@ func (r *endpointRepository) FindByStableID(ctx context.Context, accountID int64
 // --- helpers ---
 
 var (
-	errEndpointNotFound      = infraerrors.New(404, "ENDPOINT_NOT_FOUND", "endpoint not found")
+	errEndpointNotFound         = infraerrors.New(404, "ENDPOINT_NOT_FOUND", "endpoint not found")
 	errEndpointStableIDConflict = infraerrors.New(409, "ENDPOINT_STABLE_ID_CONFLICT", "endpoint stable_id already exists for this account")
 )
 

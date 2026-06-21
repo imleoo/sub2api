@@ -12,14 +12,14 @@ import (
 type DBEndpoint struct {
 	ID               int64     `json:"id"`
 	AccountID        int64     `json:"account_id"`
-	StableID         string    `json:"stable_id"`         // 应用层稳定标识符
-	OutboundProtocol string    `json:"outbound_protocol"` // anthropic_messages | openai_chat | openai_responses | gemini_v1beta
-	BaseURL          string    `json:"base_url"`          // 上游根地址，不含尾部斜杠
-	AuthHeader       string    `json:"auth_header"`       // 默认 Authorization
-	AuthScheme       string    `json:"auth_scheme"`       // 默认 Bearer
-	ModelsSource     string    `json:"models_source"`     // remote | manual | static_preset
-	Priority         int       `json:"priority"`          // 调度优先级，数值越小越优先
-	Health           string    `json:"health"`            // healthy | degraded | disabled
+	StableID         string    `json:"stable_id"`                  // 应用层稳定标识符
+	OutboundProtocol string    `json:"outbound_protocol"`          // anthropic_messages | openai_chat | openai_responses | gemini_v1beta
+	BaseURL          string    `json:"base_url"`                   // 上游根地址，不含尾部斜杠
+	AuthHeader       string    `json:"auth_header"`                // 默认 Authorization
+	AuthScheme       string    `json:"auth_scheme"`                // 默认 Bearer
+	ModelsSource     string    `json:"models_source"`              // remote | manual | static_preset
+	Priority         int       `json:"priority"`                   // 调度优先级，数值越小越优先
+	Health           string    `json:"health"`                     // healthy | degraded | disabled
 	Capabilities     []string  `json:"capabilities,omitempty"`     // 能力标签，对应 RequestFeatures
 	SupportedModels  []string  `json:"supported_models,omitempty"` // 功能 25：该端点支持转发的模型 ID 列表
 	CreatedAt        time.Time `json:"created_at"`

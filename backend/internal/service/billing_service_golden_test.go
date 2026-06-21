@@ -67,7 +67,7 @@ var goldenCases = []goldenCase{
 		// CacheCreation: 2000 × 3.75e-6 = 7.5e-3 ; CacheRead: 3000 × 0.3e-6 = 9e-4
 		wantInput: 3e-3, wantOutput: 7.5e-3,
 		wantCacheCreate: 7.5e-3, wantCacheRead: 9e-4,
-		wantTotal: 3e-3 + 7.5e-3 + 7.5e-3 + 9e-4,
+		wantTotal:  3e-3 + 7.5e-3 + 7.5e-3 + 9e-4,
 		wantActual: 3e-3 + 7.5e-3 + 7.5e-3 + 9e-4,
 	},
 	// ----- 3. claude-opus-4.5：rate multiplier 2× 应用到 ActualCost -----
@@ -116,17 +116,17 @@ var goldenCases = []goldenCase{
 		wantTotal: 30e-3, wantActual: 30e-3,
 	},
 	{
-		name:   "claude-opus-4.7 same as 4.5",
-		model:  "claude-opus-4.7",
-		tokens: UsageTokens{InputTokens: 1000, OutputTokens: 1000},
+		name:      "claude-opus-4.7 same as 4.5",
+		model:     "claude-opus-4.7",
+		tokens:    UsageTokens{InputTokens: 1000, OutputTokens: 1000},
 		wantInput: 5e-3, wantOutput: 25e-3,
 		wantTotal: 30e-3, wantActual: 30e-3,
 	},
 	// ----- 7. claude-3-5-sonnet：与 sonnet-4 同价 -----
 	{
-		name:   "claude-3-5-sonnet basic",
-		model:  "claude-3-5-sonnet",
-		tokens: UsageTokens{InputTokens: 1000, OutputTokens: 500},
+		name:      "claude-3-5-sonnet basic",
+		model:     "claude-3-5-sonnet",
+		tokens:    UsageTokens{InputTokens: 1000, OutputTokens: 500},
 		wantInput: 3e-3, wantOutput: 7.5e-3,
 		wantTotal: 0.0105, wantActual: 0.0105,
 	},
@@ -204,11 +204,11 @@ var goldenCases = []goldenCase{
 	},
 	// ----- 边界场景：仅 OutputTokens (text-only generation) -----
 	{
-		name:   "sonnet-4 only output",
-		model:  "claude-sonnet-4",
-		tokens: UsageTokens{OutputTokens: 1000},
+		name:       "sonnet-4 only output",
+		model:      "claude-sonnet-4",
+		tokens:     UsageTokens{OutputTokens: 1000},
 		wantOutput: 15e-3,
-		wantTotal: 15e-3, wantActual: 15e-3,
+		wantTotal:  15e-3, wantActual: 15e-3,
 	},
 	// ----- 边界场景：仅 CacheReadTokens (cache-only context restore) -----
 	{
@@ -217,7 +217,7 @@ var goldenCases = []goldenCase{
 		tokens: UsageTokens{CacheReadTokens: 10000},
 		// 10000 × 0.3e-6 = 3e-3
 		wantCacheRead: 3e-3,
-		wantTotal: 3e-3, wantActual: 3e-3,
+		wantTotal:     3e-3, wantActual: 3e-3,
 	},
 	// ----- rate_multiplier=0.5 边界（折半） -----
 	{

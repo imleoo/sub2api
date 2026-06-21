@@ -978,4 +978,3 @@ func TestAdminService_UpdateGroup_InvalidRequestFallbackSetSuccess(t *testing.T)
 	require.NotNil(t, repo.updated)
 	require.Equal(t, fallbackID, *repo.updated.FallbackGroupIDOnInvalidRequest)
 }
-

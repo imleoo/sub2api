@@ -15,9 +15,9 @@ import (
 // protocolBucketAccountRepoSpy 记录哪个查询方法被调用。
 type protocolBucketAccountRepoSpy struct {
 	accountRepoStub
-	calledProtocol         string
-	calledPlatform         string
-	returnedAccounts       []Account
+	calledProtocol   string
+	calledPlatform   string
+	returnedAccounts []Account
 }
 
 func (s *protocolBucketAccountRepoSpy) ListSchedulableByGroupIDAndOutboundProtocol(

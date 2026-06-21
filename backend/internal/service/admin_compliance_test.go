@@ -100,4 +100,3 @@ func TestAcceptAdminCompliancePersistsCurrentVersion(t *testing.T) {
 	require.Equal(t, AdminComplianceVersion, stored.Version)
 	require.Equal(t, AdminComplianceDocumentPathZH, stored.DocumentZH)
 }
-

@@ -38,25 +38,25 @@ type providerPricingResponse struct {
 	CacheCreationPrice float64 `json:"cache_creation_price"`
 	CacheReadPrice     float64 `json:"cache_read_price"`
 	Currency           string  `json:"currency"`
-	EffectiveFrom      int64   `json:"effective_from"`           // unix seconds
-	EffectiveTo        *int64  `json:"effective_to,omitempty"`   // unix seconds, NULL = 持续生效
+	EffectiveFrom      int64   `json:"effective_from"`         // unix seconds
+	EffectiveTo        *int64  `json:"effective_to,omitempty"` // unix seconds, NULL = 持续生效
 	Source             string  `json:"source"`
 	CreatedAt          int64   `json:"created_at"`
 	UpdatedAt          int64   `json:"updated_at"`
 }
 
 type createProviderPricingRequest struct {
-	Provider           string   `json:"provider" binding:"required"`
-	Model              string   `json:"model" binding:"required"`
-	BillingMode        string   `json:"billing_mode"` // 默认 token
-	InputPrice         float64  `json:"input_price"`
-	OutputPrice        float64  `json:"output_price"`
-	CacheCreationPrice float64  `json:"cache_creation_price"`
-	CacheReadPrice     float64  `json:"cache_read_price"`
-	Currency           string   `json:"currency"`           // 默认 USD
-	EffectiveFrom      *int64   `json:"effective_from"`     // unix seconds，缺省取 now
-	EffectiveTo        *int64   `json:"effective_to"`       // unix seconds 或 null
-	Source             string   `json:"source"`             // 默认 manual
+	Provider           string  `json:"provider" binding:"required"`
+	Model              string  `json:"model" binding:"required"`
+	BillingMode        string  `json:"billing_mode"` // 默认 token
+	InputPrice         float64 `json:"input_price"`
+	OutputPrice        float64 `json:"output_price"`
+	CacheCreationPrice float64 `json:"cache_creation_price"`
+	CacheReadPrice     float64 `json:"cache_read_price"`
+	Currency           string  `json:"currency"`       // 默认 USD
+	EffectiveFrom      *int64  `json:"effective_from"` // unix seconds，缺省取 now
+	EffectiveTo        *int64  `json:"effective_to"`   // unix seconds 或 null
+	Source             string  `json:"source"`         // 默认 manual
 }
 
 type updateProviderPricingRequest struct {

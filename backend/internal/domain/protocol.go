@@ -48,9 +48,9 @@ var platformDefaultInboundProtocol = map[string]string{
 
 // ResolveInboundProtocol 派生 Group 的 inbound_protocol：
 //
-//	1. 若 inboundProtocol 非空且合法 → 返回原值
-//	2. 否则按 platform 查派生表
-//	3. 派生表未命中 → 返回空串（调用方应回退到旧 platform 路由分流）
+//  1. 若 inboundProtocol 非空且合法 → 返回原值
+//  2. 否则按 platform 查派生表
+//  3. 派生表未命中 → 返回空串（调用方应回退到旧 platform 路由分流）
 //
 // Deprecated for future Phase 5: 双写期临时函数；Phase 5 切单桶后应直接读 inbound_protocol。
 func ResolveInboundProtocol(inboundProtocol, platform string) string {

@@ -40,9 +40,9 @@ type AccountHandler struct {
 	rpmCache              service.RPMCache
 	tokenCacheInvalidator service.TokenCacheInvalidator
 	endpointRepo          service.EndpointRepository
-	modelPricingRepo      service.ModelPricingRepository    // 功能 25：端点拉取模型后顺便去重入库到折扣表
-	pricingService        *service.PricingService           // 写完入库后触发 pricingData 重载
-	modelCatalogService   *service.ModelCatalogService      // PR-7：统一写路径
+	modelPricingRepo      service.ModelPricingRepository // 功能 25：端点拉取模型后顺便去重入库到折扣表
+	pricingService        *service.PricingService        // 写完入库后触发 pricingData 重载
+	modelCatalogService   *service.ModelCatalogService   // PR-7：统一写路径
 }
 
 // SetModelPricingRepository 注入模型定价仓库（Wire 完成后调用）。
@@ -89,11 +89,11 @@ func NewAccountHandler(
 
 // AccountEndpointInput 表示创建/更新账号时提交的 endpoint 数据（platform=generic 专用）。
 type AccountEndpointInput struct {
-	StableID         string   `json:"stable_id"`                                                                                    // 留空时由后端生成
+	StableID         string   `json:"stable_id"`                            // 留空时由后端生成
 	OutboundProtocol string   `json:"outbound_protocol" binding:"required"` // anthropic_messages | openai_chat | openai_responses | gemini_v1beta
 	BaseURL          string   `json:"base_url" binding:"required"`
-	AuthHeader       string   `json:"auth_header"`  // 默认 Authorization
-	AuthScheme       string   `json:"auth_scheme"`  // 默认 Bearer
+	AuthHeader       string   `json:"auth_header"`   // 默认 Authorization
+	AuthScheme       string   `json:"auth_scheme"`   // 默认 Bearer
 	ModelsSource     string   `json:"models_source"` // remote | manual | static_preset
 	Priority         int      `json:"priority"`
 	SupportedModels  []string `json:"supported_models"` // 功能 25：该端点支持的模型 ID 列表；空=未配置

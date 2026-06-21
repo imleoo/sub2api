@@ -20,9 +20,9 @@ func NewDualBucketStatsHandler(scheduler *service.SchedulerSnapshotService) *Dua
 }
 
 type dualBucketDayDTO struct {
-	Date        string  `json:"date"`
-	Total       int64   `json:"total"`
-	Diverged    int64   `json:"diverged"`
+	Date           string  `json:"date"`
+	Total          int64   `json:"total"`
+	Diverged       int64   `json:"diverged"`
 	DivergenceRate float64 `json:"divergence_rate"` // 0–1，0 表示 total=0
 }
 

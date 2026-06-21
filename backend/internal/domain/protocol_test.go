@@ -37,10 +37,10 @@ func TestIsValidProtocol(t *testing.T) {
 		// 空值视为未指定，由派生表兜底
 		"": false,
 		// 别名 / 错误形式
-		"openai_completions":     false,
-		"anthropic-messages":     false,
-		"Gemini_V1Beta":          false,
-		"anthropic_messages_v2":  false,
+		"openai_completions":    false,
+		"anthropic-messages":    false,
+		"Gemini_V1Beta":         false,
+		"anthropic_messages_v2": false,
 	}
 	for in, want := range cases {
 		if got := IsValidProtocol(in); got != want {
@@ -66,11 +66,11 @@ func TestResolveInboundProtocol_PreservesValid(t *testing.T) {
 
 func TestResolveInboundProtocol_FallsBackToPlatform(t *testing.T) {
 	cases := map[string]string{
-		"anthropic":   "anthropic_messages",
-		"openai":      "openai_chat",
-		"gemini":      "gemini_v1beta",
-		"lingjing":    "",                   // lingjing 不走通用 inbound 路由
-		"unknown":     "",                   // 未登记 platform 返回空（调用方应回退）
+		"anthropic": "anthropic_messages",
+		"openai":    "openai_chat",
+		"gemini":    "gemini_v1beta",
+		"lingjing":  "", // lingjing 不走通用 inbound 路由
+		"unknown":   "", // 未登记 platform 返回空（调用方应回退）
 	}
 	for platform, want := range cases {
 		if got := ResolveInboundProtocol("", platform); got != want {
@@ -81,11 +81,11 @@ func TestResolveInboundProtocol_FallsBackToPlatform(t *testing.T) {
 
 func TestResolveOutboundProtocol_FallsBackToPlatform(t *testing.T) {
 	cases := map[string]string{
-		"anthropic":   "anthropic_messages",
-		"openai":      "openai_chat", // 保守默认；Phase 3 P3-6 能力探测可升级到 openai_responses
-		"gemini":      "gemini_v1beta",
-		"lingjing":    "",
-		"unknown":     "",
+		"anthropic": "anthropic_messages",
+		"openai":    "openai_chat", // 保守默认；Phase 3 P3-6 能力探测可升级到 openai_responses
+		"gemini":    "gemini_v1beta",
+		"lingjing":  "",
+		"unknown":   "",
 	}
 	for platform, want := range cases {
 		if got := ResolveOutboundProtocol("", platform); got != want {

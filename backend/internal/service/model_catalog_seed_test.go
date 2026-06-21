@@ -49,13 +49,13 @@ func TestBootstrapPricingSeeds_PricingMatchesBillingFallback(t *testing.T) {
 	}
 
 	cases := []struct {
-		modelID                       string
-		wantInput, wantOutput         float64
+		modelID                        string
+		wantInput, wantOutput          float64
 		wantCacheCreate, wantCacheRead float64
 		// optional priority / long-context
-		wantInputPrio  *float64
-		wantOutputPrio *float64
-		wantCacheReadPrio *float64
+		wantInputPrio        *float64
+		wantOutputPrio       *float64
+		wantCacheReadPrio    *float64
 		wantLongCtxThreshold *int64
 		wantLongCtxInputMul  *float64
 		wantLongCtxOutputMul *float64

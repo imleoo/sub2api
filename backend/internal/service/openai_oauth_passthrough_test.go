@@ -58,7 +58,6 @@ func (u *httpUpstreamRecorder) DoWithTLS(req *http.Request, proxyURL string, acc
 	return u.Do(req, proxyURL, accountID, accountConcurrency)
 }
 
-
 func TestOpenAIGatewayService_NativeResponsesBodyModificationPreservesHTMLChars(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 

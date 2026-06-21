@@ -91,6 +91,7 @@ type BillingCache interface {
 type ModelPricing struct {
 	InputPricePerToken             float64 // 每token输入价格 (USD)
 	InputPricePerTokenPriority     float64 // priority service tier 下每token输入价格 (USD)
+	ImageInputPricePerToken        float64 // 图片输入 token 价格 (USD)，用于多模态 embedding 等图文不同价场景；为 0 时回退到 InputPricePerToken
 	OutputPricePerToken            float64 // 每token输出价格 (USD)
 	OutputPricePerTokenPriority    float64 // priority service tier 下每token输出价格 (USD)
 	CacheCreationPricePerToken     float64 // 缓存创建每token价格 (USD)
@@ -137,6 +138,7 @@ func serviceTierCostMultiplier(serviceTier string) float64 {
 // UsageTokens 使用的token数量
 type UsageTokens struct {
 	InputTokens           int
+	ImageInputTokens      int
 	OutputTokens          int
 	CacheCreationTokens   int
 	CacheReadTokens       int
@@ -464,7 +466,24 @@ func (s *BillingService) computeTokenBreakdown(
 	}
 
 	bd := &CostBreakdown{}
-	bd.InputCost = float64(tokens.InputTokens) * inputPrice
+	// 分离图片输入 token 与文本输入 token（多模态 embedding 等图文不同价场景）。
+	// ImageInputTokens 为 0 时（绝大多数 chat/vision 流量）走原始单价路径，行为不变。
+	if tokens.ImageInputTokens > 0 {
+		imageInputTokens := tokens.ImageInputTokens
+		textInputTokens := tokens.InputTokens - imageInputTokens
+		if textInputTokens < 0 {
+			textInputTokens = 0
+			imageInputTokens = tokens.InputTokens
+		}
+		imageInputPrice := pricing.ImageInputPricePerToken
+		if imageInputPrice == 0 {
+			// 未配置图片输入档时回退到文本 input 价（已含 priority / 长上下文调整）
+			imageInputPrice = inputPrice
+		}
+		bd.InputCost = float64(textInputTokens)*inputPrice + float64(imageInputTokens)*imageInputPrice
+	} else {
+		bd.InputCost = float64(tokens.InputTokens) * inputPrice
+	}
 
 	// 分离图片输出 token 与文本输出 token
 	textOutputTokens := tokens.OutputTokens - tokens.ImageOutputTokens

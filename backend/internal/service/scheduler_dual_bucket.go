@@ -98,7 +98,7 @@ func (s *SchedulerSnapshotService) runDualBucketShadow(
 				"platform", platform,
 				"protocol", protocol,
 				"group_id", groupID,
-				"added_ids", added,   // 仅在 protocol 桶有，platform 桶无
+				"added_ids", added, // 仅在 protocol 桶有，platform 桶无
 				"removed_ids", removed, // 仅在 platform 桶有，protocol 桶无
 			)
 		}

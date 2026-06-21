@@ -103,19 +103,19 @@ var identityKeywords = []string{"kiro", "anthropic"}
 
 // Claude 模型 ID → 展示名称映射
 var claudeModelDisplayNames = map[string]string{
-	"claude-opus-4-7":              "Claude Opus 4.7",
-	"claude-opus-4-6":              "Claude Opus 4.6",
-	"claude-opus-4-5":              "Claude Opus 4.5",
-	"claude-sonnet-4-6":            "Claude Sonnet 4.6",
-	"claude-sonnet-4-5":            "Claude Sonnet 4.5",
-	"claude-haiku-4-5-20251001":    "Claude Haiku 4.5",
-	"claude-haiku-4-5":             "Claude Haiku 4.5",
-	"claude-3-7-sonnet-20250219":   "Claude Sonnet 3.7",
-	"claude-3-5-sonnet-20241022":   "Claude Sonnet 3.5",
-	"claude-3-5-haiku-20241022":    "Claude Haiku 3.5",
-	"claude-3-opus-20240229":       "Claude Opus 3",
-	"claude-3-sonnet-20240229":     "Claude Sonnet 3",
-	"claude-3-haiku-20240307":      "Claude Haiku 3",
+	"claude-opus-4-7":            "Claude Opus 4.7",
+	"claude-opus-4-6":            "Claude Opus 4.6",
+	"claude-opus-4-5":            "Claude Opus 4.5",
+	"claude-sonnet-4-6":          "Claude Sonnet 4.6",
+	"claude-sonnet-4-5":          "Claude Sonnet 4.5",
+	"claude-haiku-4-5-20251001":  "Claude Haiku 4.5",
+	"claude-haiku-4-5":           "Claude Haiku 4.5",
+	"claude-3-7-sonnet-20250219": "Claude Sonnet 3.7",
+	"claude-3-5-sonnet-20241022": "Claude Sonnet 3.5",
+	"claude-3-5-haiku-20241022":  "Claude Haiku 3.5",
+	"claude-3-opus-20240229":     "Claude Opus 3",
+	"claude-3-sonnet-20240229":   "Claude Sonnet 3",
+	"claude-3-haiku-20240307":    "Claude Haiku 3",
 }
 
 func claudeModelName(modelID string) string {

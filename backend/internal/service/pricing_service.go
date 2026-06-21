@@ -19,7 +19,6 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/util/urlvalidator"
 )
 
-
 // LiteLLMModelPricing LiteLLM价格数据结构
 // 只保留我们需要的字段，使用指针来处理可能缺失的值
 type LiteLLMModelPricing struct {
@@ -157,9 +156,9 @@ func (s *PricingService) ReloadFromDB(ctx context.Context) {
 // 然后原子替换。任何步骤失败 → 保留旧 catalog，错误计数 +1（fail-open）。
 //
 // aliasIdx 来源（按优先级覆盖）：
-//   1. CodexAliasPairs() 51 条 OpenAI 别名归一化
-//   2. DB 每行 model_id 自身 + 小写 + normalizeModelNameForPricing 归一化
-//   注：matchByModelFamily 家族 fuzzy 不预计算，在 lookupCatalog 中按需调用，与现有行为一致
+//  1. CodexAliasPairs() 51 条 OpenAI 别名归一化
+//  2. DB 每行 model_id 自身 + 小写 + normalizeModelNameForPricing 归一化
+//     注：matchByModelFamily 家族 fuzzy 不预计算，在 lookupCatalog 中按需调用，与现有行为一致
 //
 // 计费路径在 PR-6 切流前仍走 pricingData，本结构仅供 GetModelPricingV2 / 测试用。
 func (s *PricingService) buildCatalogAndAliasIndex(ctx context.Context) {
@@ -196,8 +195,9 @@ func (s *PricingService) buildCatalogAndAliasIndex(ctx context.Context) {
 
 // buildAliasIndex 构建 normalizedID → canonical model_id 索引。
 // 三路来源（后写覆盖前写，但实际上没有冲突）：
-//   A. catalog 自身：每行 model_id 的小写形态 / normalizeModelNameForPricing 归一化形态 → 自身
-//   B. CodexAliasPairs：OpenAI 变体 → catalog 中的标准 model_id
+//
+//	A. catalog 自身：每行 model_id 的小写形态 / normalizeModelNameForPricing 归一化形态 → 自身
+//	B. CodexAliasPairs：OpenAI 变体 → catalog 中的标准 model_id
 func buildAliasIndex(catalog map[string]*DBModelPricing) map[string]string {
 	if len(catalog) == 0 {
 		return map[string]string{}
@@ -916,20 +916,19 @@ func (s *PricingService) matchFamilyInCatalog(model string) *DBModelPricing {
 	return nil
 }
 
-
 // GetStatus 获取服务状态
 func (s *PricingService) GetStatus() map[string]any {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	return map[string]any{
-		"last_updated":              s.lastUpdated,
-		"local_hash":                s.localHash[:min(8, len(s.localHash))],
-		"catalog_size":              len(s.catalog),
-		"alias_index_size":          len(s.aliasIdx),
-		"catalog_last_loaded_at":    s.lastCatalogLoadAt,
-		"remote_last_check_at":      s.lastRemoteCheckAt,
-		"catalog_load_error_count":  s.catalogLoadErrors,
+		"last_updated":             s.lastUpdated,
+		"local_hash":               s.localHash[:min(8, len(s.localHash))],
+		"catalog_size":             len(s.catalog),
+		"alias_index_size":         len(s.aliasIdx),
+		"catalog_last_loaded_at":   s.lastCatalogLoadAt,
+		"remote_last_check_at":     s.lastRemoteCheckAt,
+		"catalog_load_error_count": s.catalogLoadErrors,
 	}
 }
 

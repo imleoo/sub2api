@@ -13,70 +13,70 @@ import (
 )
 
 const (
-	lingjingBaseURL      = "https://model.jdcloud.com"
-	lingjingSubmitPath   = "/joycreator/openApi/submitTask"
-	lingjingQueryPath    = "/joycreator/openApi/queryTasKResult" // 保留官方 typo
-	lingjingHTTPTimeout  = 30 * time.Second
+	lingjingBaseURL     = "https://model.jdcloud.com"
+	lingjingSubmitPath  = "/joycreator/openApi/submitTask"
+	lingjingQueryPath   = "/joycreator/openApi/queryTasKResult" // 保留官方 typo
+	lingjingHTTPTimeout = 30 * time.Second
 
 	// apiId 常量。命名约定：LingjingAPIID<产品><版本><任务类型>
 	// 任务类型缩写：TTV=文生视频, PTV=图生视频, RTV=参考生视频, Pic=图片生成
 	//
 	// 豆包 (Doubao) ---------------------------------------------------------
-	LingjingAPIIDSeedream40      = "700" // doubao-seedream-4-0-250828 (图片)
-	LingjingAPIIDSeedream45      = "701" // doubao-seedream-4-5-251128 (图片)
-	LingjingAPIIDSeedream5Lite   = "707" // Doubao-Seedream-5.0-lite (图片)
-	LingjingAPIIDTextToVideo     = "750" // Doubao-Seedance-1.5-pro 文生视频
-	LingjingAPIIDImageToVideo    = "751" // Doubao-Seedance-1.5-pro 图生视频
+	LingjingAPIIDSeedream40       = "700" // doubao-seedream-4-0-250828 (图片)
+	LingjingAPIIDSeedream45       = "701" // doubao-seedream-4-5-251128 (图片)
+	LingjingAPIIDSeedream5Lite    = "707" // Doubao-Seedream-5.0-lite (图片)
+	LingjingAPIIDTextToVideo      = "750" // Doubao-Seedance-1.5-pro 文生视频
+	LingjingAPIIDImageToVideo     = "751" // Doubao-Seedance-1.5-pro 图生视频
 	LingjingAPIIDCinemaGenerate20 = "754" // cinema-generate-2.0 (Seedance 2.0 参考生视频)
 
 	// 可灵 (Kling) ----------------------------------------------------------
-	LingjingAPIIDKlingV21PTV     = "550" // kling-v2-1 图生视频
+	LingjingAPIIDKlingV21PTV      = "550" // kling-v2-1 图生视频
 	LingjingAPIIDKlingV25TurboTTV = "551" // kling-v2-5-turbo 文生视频
-	LingjingAPIIDKlingV16RTV     = "552" // kling-v1-6 参考生视频
-	LingjingAPIIDKlingV21Pic     = "553" // kling-v2-1 图片生成
-	LingjingAPIIDKlingV2Pic      = "554" // kling-v2 图片生成
-	LingjingAPIIDKlingO1TTV      = "560" // kling-video-o1 文生视频
-	LingjingAPIIDKlingO1PTV      = "561" // kling-video-o1 图生视频
-	LingjingAPIIDKlingO1RTV      = "562" // kling-video-o1 参考生视频
-	LingjingAPIIDKlingV26TTV     = "563" // kling-v2-6 文生视频
-	LingjingAPIIDKlingV26PTV     = "564" // kling-v2-6 图生视频
-	LingjingAPIIDKlingV3TTV      = "565" // Kling-V3 文生视频
-	LingjingAPIIDKlingV3PTV      = "566" // Kling-V3 图生视频
-	LingjingAPIIDKlingV3Pic      = "567" // Kling-V3 图片生成
+	LingjingAPIIDKlingV16RTV      = "552" // kling-v1-6 参考生视频
+	LingjingAPIIDKlingV21Pic      = "553" // kling-v2-1 图片生成
+	LingjingAPIIDKlingV2Pic       = "554" // kling-v2 图片生成
+	LingjingAPIIDKlingO1TTV       = "560" // kling-video-o1 文生视频
+	LingjingAPIIDKlingO1PTV       = "561" // kling-video-o1 图生视频
+	LingjingAPIIDKlingO1RTV       = "562" // kling-video-o1 参考生视频
+	LingjingAPIIDKlingV26TTV      = "563" // kling-v2-6 文生视频
+	LingjingAPIIDKlingV26PTV      = "564" // kling-v2-6 图生视频
+	LingjingAPIIDKlingV3TTV       = "565" // Kling-V3 文生视频
+	LingjingAPIIDKlingV3PTV       = "566" // Kling-V3 图生视频
+	LingjingAPIIDKlingV3Pic       = "567" // Kling-V3 图片生成
 
 	// 海螺 (MiniMax Hailuo) --------------------------------------------------
-	LingjingAPIIDHailuoImage01    = "456" // image-01 图片生成
-	LingjingAPIIDHailuo02PTV      = "457" // MiniMax-Hailuo-02 图生视频
-	LingjingAPIIDHailuo02TTV      = "458" // MiniMax-Hailuo-02 文生视频
-	LingjingAPIIDHailuoS2V01      = "459" // S2V-01 主体参考生视频
-	LingjingAPIIDHailuo23TTV      = "460" // MiniMax-Hailuo-2.3 文生视频
-	LingjingAPIIDHailuo23PTV      = "461" // MiniMax-Hailuo-2.3 图生视频
-	LingjingAPIIDHailuo23FastPTV  = "462" // MiniMax-Hailuo-2.3-Fast 图生视频
+	LingjingAPIIDHailuoImage01   = "456" // image-01 图片生成
+	LingjingAPIIDHailuo02PTV     = "457" // MiniMax-Hailuo-02 图生视频
+	LingjingAPIIDHailuo02TTV     = "458" // MiniMax-Hailuo-02 文生视频
+	LingjingAPIIDHailuoS2V01     = "459" // S2V-01 主体参考生视频
+	LingjingAPIIDHailuo23TTV     = "460" // MiniMax-Hailuo-2.3 文生视频
+	LingjingAPIIDHailuo23PTV     = "461" // MiniMax-Hailuo-2.3 图生视频
+	LingjingAPIIDHailuo23FastPTV = "462" // MiniMax-Hailuo-2.3-Fast 图生视频
 
 	// Vidu -----------------------------------------------------------------
-	LingjingAPIIDViduQ1PTV       = "0"   // viduq1 图生视频
-	LingjingAPIIDVidu20PTV       = "2"   // vidu2.0 图生视频
-	LingjingAPIIDViduQ1RTV       = "4"   // viduq1 参考生视频
-	LingjingAPIIDVidu20RTV       = "5"   // vidu2.0 参考生视频
-	LingjingAPIIDViduQ1TTV       = "7"   // viduq1 文生视频
-	LingjingAPIIDViduQ1Pic       = "16"  // viduq1 图片生成
-	LingjingAPIIDViduQ2ProPTV    = "17"  // viduq2-pro 图生视频
-	LingjingAPIIDViduQ2ProPTVAlt = "19"  // viduq2-pro 图生视频（单图 API 专版）
-	LingjingAPIIDViduQ2TTV       = "20"  // viduq2 文生视频
-	LingjingAPIIDViduQ2RTV       = "21"  // viduq2 参考生视频
-	LingjingAPIIDViduQ2Pic       = "22"  // viduq2 图片生成
-	LingjingAPIIDViduQ3ProTTV    = "23"  // viduq3-pro 文生视频
-	LingjingAPIIDViduQ3ProPTV    = "24"  // viduq3-pro 图生视频
+	LingjingAPIIDViduQ1PTV       = "0"  // viduq1 图生视频
+	LingjingAPIIDVidu20PTV       = "2"  // vidu2.0 图生视频
+	LingjingAPIIDViduQ1RTV       = "4"  // viduq1 参考生视频
+	LingjingAPIIDVidu20RTV       = "5"  // vidu2.0 参考生视频
+	LingjingAPIIDViduQ1TTV       = "7"  // viduq1 文生视频
+	LingjingAPIIDViduQ1Pic       = "16" // viduq1 图片生成
+	LingjingAPIIDViduQ2ProPTV    = "17" // viduq2-pro 图生视频
+	LingjingAPIIDViduQ2ProPTVAlt = "19" // viduq2-pro 图生视频（单图 API 专版）
+	LingjingAPIIDViduQ2TTV       = "20" // viduq2 文生视频
+	LingjingAPIIDViduQ2RTV       = "21" // viduq2 参考生视频
+	LingjingAPIIDViduQ2Pic       = "22" // viduq2 图片生成
+	LingjingAPIIDViduQ3ProTTV    = "23" // viduq3-pro 文生视频
+	LingjingAPIIDViduQ3ProPTV    = "24" // viduq3-pro 图生视频
 
 	// 拍我 / Pixverse -------------------------------------------------------
-	LingjingAPIIDPaiwoV5TTV      = "400" // v5 文生视频
-	LingjingAPIIDPaiwoV55TTV     = "401" // v5.5 文生视频
-	LingjingAPIIDPaiwoV55PTV     = "402" // v5.5 图生视频
-	LingjingAPIIDPaiwoV5PTV      = "501" // v5 图生视频
-	LingjingAPIIDPaiwoV5PTVAlt   = "502" // v5 图生视频（API 专版）
-	LingjingAPIIDPaiwoV5RTV      = "503" // v5 参考生视频
-	LingjingAPIIDPixverseV6PTV   = "504" // v6 图生视频
-	LingjingAPIIDPixverseV6TTV   = "505" // v6 文生视频
+	LingjingAPIIDPaiwoV5TTV    = "400" // v5 文生视频
+	LingjingAPIIDPaiwoV55TTV   = "401" // v5.5 文生视频
+	LingjingAPIIDPaiwoV55PTV   = "402" // v5.5 图生视频
+	LingjingAPIIDPaiwoV5PTV    = "501" // v5 图生视频
+	LingjingAPIIDPaiwoV5PTVAlt = "502" // v5 图生视频（API 专版）
+	LingjingAPIIDPaiwoV5RTV    = "503" // v5 参考生视频
+	LingjingAPIIDPixverseV6PTV = "504" // v6 图生视频
+	LingjingAPIIDPixverseV6TTV = "505" // v6 文生视频
 
 	// Happy Horse ----------------------------------------------------------
 	LingjingAPIIDHappyHorse10TTV = "200202" // HappyHorse-1.0 文生视频
@@ -126,10 +126,10 @@ type LingjingQueryRequest struct {
 
 // LingjingSubTaskResult 子任务结果。
 type LingjingSubTaskResult struct {
-	SubStatus   int    `json:"subStatus"`
-	URL         string `json:"url"`          // 无水印地址
+	SubStatus    int    `json:"subStatus"`
+	URL          string `json:"url"`          // 无水印地址
 	WatermarkURL string `json:"watermarkUrl"` // 有水印地址
-	ErrorReason string `json:"errorReason,omitempty"`
+	ErrorReason  string `json:"errorReason,omitempty"`
 }
 
 // LingjingQueryResponse 查询任务结果响应。

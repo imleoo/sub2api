@@ -41,7 +41,7 @@ type TencentClient struct {
 // NewTencentClient 创建腾讯云 SMS 客户端
 func NewTencentClient(cfg TencentConfig) *TencentClient {
 	return &TencentClient{
-		cfg: cfg,
+		cfg:        cfg,
 		httpClient: &http.Client{Timeout: 10 * time.Second},
 	}
 }

@@ -117,7 +117,6 @@ const gatewayForwardingCacheTTL = 60 * time.Second
 const gatewayForwardingErrorTTL = 5 * time.Second
 const gatewayForwardingDBTimeout = 5 * time.Second
 
-
 // DefaultOpenAICodexUserAgent OpenAI Codex 默认 User-Agent（用于规避 Cloudflare 对浏览器 UA 的质询）
 const DefaultOpenAICodexUserAgent = "codex-tui/0.125.0 (Ubuntu 22.4.0; x86_64) xterm-256color (codex-tui; 0.125.0)"
 
@@ -147,6 +146,18 @@ const openAIAllowCodexPluginCacheTTL = 60 * time.Second
 const openAIAllowCodexPluginErrorTTL = 5 * time.Second
 const openAIAllowCodexPluginDBTimeout = 5 * time.Second
 
+// cachedCyberSessionBlockRuntime cyber 会话屏蔽开关+TTL 进程内缓存（60s TTL）。
+// GetCyberSessionBlockRuntime 在网关请求热路径上被调用，避免每次访问 DB。
+type cachedCyberSessionBlockRuntime struct {
+	enabled   bool
+	ttl       time.Duration
+	expiresAt int64 // unix nano
+}
+
+const cyberSessionBlockRuntimeCacheTTL = 60 * time.Second
+const cyberSessionBlockRuntimeErrorTTL = 5 * time.Second
+const cyberSessionBlockRuntimeDBTimeout = 5 * time.Second
+
 const openAIQuotaAutoPauseSettingsCacheTTL = 60 * time.Second
 const openAIQuotaAutoPauseSettingsErrorTTL = 5 * time.Second
 const openAIQuotaAutoPauseSettingsDBTimeout = 5 * time.Second
@@ -175,6 +186,9 @@ type SettingService struct {
 	openAICodexUASF             singleflight.Group
 	openAIAllowCodexPluginCache atomic.Value // *cachedOpenAIAllowCodexPlugin
 	openAIAllowCodexPluginSF    singleflight.Group
+
+	cyberSessionBlockRuntimeCache atomic.Value // *cachedCyberSessionBlockRuntime
+	cyberSessionBlockRuntimeSF    singleflight.Group
 
 	// openAIQuotaAutoPauseSettingsCache holds the most recently observed quota auto-pause
 	// settings. GetOpenAIQuotaAutoPauseSettings reads this atomic.Value on the request hot
@@ -690,6 +704,62 @@ func (s *SettingService) GetFrontendURL(ctx context.Context) string {
 	return s.cfg.Server.FrontendURL
 }
 
+// GetCyberSessionBlockRuntime 返回 (开关, TTL)，进程内缓存 ~60s，
+// 模式对齐 IsOpenAIAllowClaudeCodeCodexPluginEnabled（热路径零 DB 往返）。
+// 两个 setting key 在单次 singleflight 里一起读取，减少 DB 往返。
+// 默认值：开关 false，TTL 1h（与粘性会话对齐）。
+func (s *SettingService) GetCyberSessionBlockRuntime(ctx context.Context) (bool, time.Duration) {
+	if cached, ok := s.cyberSessionBlockRuntimeCache.Load().(*cachedCyberSessionBlockRuntime); ok && cached != nil {
+		if time.Now().UnixNano() < cached.expiresAt {
+			return cached.enabled, cached.ttl
+		}
+	}
+	result, _, _ := s.cyberSessionBlockRuntimeSF.Do("cyber_session_block_runtime", func() (any, error) {
+		if cached, ok := s.cyberSessionBlockRuntimeCache.Load().(*cachedCyberSessionBlockRuntime); ok && cached != nil {
+			if time.Now().UnixNano() < cached.expiresAt {
+				return cached, nil
+			}
+		}
+		dbCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), cyberSessionBlockRuntimeDBTimeout)
+		defer cancel()
+
+		enabledVal, enabledErr := s.settingRepo.GetValue(dbCtx, SettingKeyCyberSessionBlockEnabled)
+		ttlVal, ttlErr := s.settingRepo.GetValue(dbCtx, SettingKeyCyberSessionBlockTTLSeconds)
+
+		if enabledErr != nil && !errors.Is(enabledErr, ErrSettingNotFound) {
+			slog.Warn("failed to get cyber_session_block_enabled setting", "error", enabledErr)
+			entry := &cachedCyberSessionBlockRuntime{
+				enabled:   false,
+				ttl:       time.Hour,
+				expiresAt: time.Now().Add(cyberSessionBlockRuntimeErrorTTL).UnixNano(),
+			}
+			s.cyberSessionBlockRuntimeCache.Store(entry)
+			return entry, nil
+		}
+
+		enabled := enabledErr == nil && strings.TrimSpace(enabledVal) == "true"
+
+		ttl := time.Hour
+		if ttlErr == nil {
+			if n, perr := strconv.Atoi(strings.TrimSpace(ttlVal)); perr == nil && n > 0 {
+				ttl = time.Duration(n) * time.Second
+			}
+		}
+
+		entry := &cachedCyberSessionBlockRuntime{
+			enabled:   enabled,
+			ttl:       ttl,
+			expiresAt: time.Now().Add(cyberSessionBlockRuntimeCacheTTL).UnixNano(),
+		}
+		s.cyberSessionBlockRuntimeCache.Store(entry)
+		return entry, nil
+	})
+	if entry, ok := result.(*cachedCyberSessionBlockRuntime); ok && entry != nil {
+		return entry.enabled, entry.ttl
+	}
+	return false, time.Hour
+}
+
 // GetPublicSettings 获取公开设置（无需登录）
 func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings, error) {
 	keys := []string{
@@ -883,12 +953,12 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 
 		AffiliateEnabled: settings[SettingKeyAffiliateEnabled] == "true",
 
-		CurrencyMode:       strings.TrimSpace(settings[SettingKeyCurrencyMode]),
-		CNYRate:            cnyRate,
-		RiskControlEnabled:    settings[SettingKeyRiskControlEnabled] == "true",
-		ShowOverseasModels:    settings[SettingKeyShowOverseasModels] != "false",
-		PhoneRegisterEnabled:  settings[SettingKeyPhoneRegisterEnabled] == "true",
-		PasswordLoginEnabled:  settings[SettingKeyPasswordLoginEnabled] != "false", // 默认 true
+		CurrencyMode:         strings.TrimSpace(settings[SettingKeyCurrencyMode]),
+		CNYRate:              cnyRate,
+		RiskControlEnabled:   settings[SettingKeyRiskControlEnabled] == "true",
+		ShowOverseasModels:   settings[SettingKeyShowOverseasModels] != "false",
+		PhoneRegisterEnabled: settings[SettingKeyPhoneRegisterEnabled] == "true",
+		PasswordLoginEnabled: settings[SettingKeyPasswordLoginEnabled] != "false", // 默认 true
 
 		AllowUserViewErrorRequests: settings[SettingKeyAllowUserViewErrorRequests] == "true",
 	}, nil
@@ -1165,7 +1235,7 @@ type PublicSettingsInjectionPayload struct {
 
 	// 手机号注册
 	PhoneRegisterEnabled bool `json:"phone_register_enabled"`
-	PasswordLoginEnabled  bool `json:"password_login_enabled"`
+	PasswordLoginEnabled bool `json:"password_login_enabled"`
 
 	// 允许终端用户在用量页查看自己的失败请求
 	AllowUserViewErrorRequests bool `json:"allow_user_view_error_requests"`
@@ -1236,7 +1306,7 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		RiskControlEnabled:                   settings.RiskControlEnabled,
 		ShowOverseasModels:                   settings.ShowOverseasModels,
 		PhoneRegisterEnabled:                 settings.PhoneRegisterEnabled,
-		PasswordLoginEnabled:                  settings.PasswordLoginEnabled,
+		PasswordLoginEnabled:                 settings.PasswordLoginEnabled,
 		AllowUserViewErrorRequests:           settings.AllowUserViewErrorRequests,
 	}, nil
 }
@@ -1879,6 +1949,12 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 
 	// 风控中心功能开关
 	updates[SettingKeyRiskControlEnabled] = strconv.FormatBool(settings.RiskControlEnabled)
+
+	// cyber 会话屏蔽开关 + TTL
+	updates[SettingKeyCyberSessionBlockEnabled] = strconv.FormatBool(settings.CyberSessionBlockEnabled)
+	if settings.CyberSessionBlockTTLSeconds > 0 {
+		updates[SettingKeyCyberSessionBlockTTLSeconds] = strconv.Itoa(settings.CyberSessionBlockTTLSeconds)
+	}
 
 	// Claude Code version check
 	updates[SettingKeyMinClaudeCodeVersion] = settings.MinClaudeCodeVersion
@@ -2812,10 +2888,10 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeySMTPPort:                                  "587",
 		SettingKeySMTPUseTLS:                                "false",
 		// Model fallback defaults
-		SettingKeyEnableModelFallback:      "false",
-		SettingKeyFallbackModelAnthropic:   "claude-3-5-sonnet-20241022",
-		SettingKeyFallbackModelOpenAI:      "gpt-4o",
-		SettingKeyFallbackModelGemini:      "gemini-2.5-pro",
+		SettingKeyEnableModelFallback:    "false",
+		SettingKeyFallbackModelAnthropic: "claude-3-5-sonnet-20241022",
+		SettingKeyFallbackModelOpenAI:    "gpt-4o",
+		SettingKeyFallbackModelGemini:    "gemini-2.5-pro",
 		// Identity patch defaults
 		SettingKeyEnableIdentityPatch: "true",
 		SettingKeyIdentityPatchPrompt: "",
@@ -2838,6 +2914,10 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 
 		// 风控中心功能（默认关闭，显式启用）
 		SettingKeyRiskControlEnabled: "false",
+
+		// cyber 会话屏蔽（默认关闭，TTL 默认 3600s）
+		SettingKeyCyberSessionBlockEnabled:    "false",
+		SettingKeyCyberSessionBlockTTLSeconds: "3600",
 
 		// Claude Code version check (default: empty = disabled)
 		SettingKeyMinClaudeCodeVersion: "",
@@ -3357,6 +3437,14 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	// 风控中心功能（默认关闭，严格 true 才启用）
 	result.RiskControlEnabled = settings[SettingKeyRiskControlEnabled] == "true"
 
+	// cyber 会话屏蔽（默认关闭，TTL 默认 3600s）
+	result.CyberSessionBlockEnabled = settings[SettingKeyCyberSessionBlockEnabled] == "true"
+	if v, err := strconv.Atoi(strings.TrimSpace(settings[SettingKeyCyberSessionBlockTTLSeconds])); err == nil && v > 0 {
+		result.CyberSessionBlockTTLSeconds = v
+	} else {
+		result.CyberSessionBlockTTLSeconds = 3600
+	}
+
 	// Claude Code version check
 	result.MinClaudeCodeVersion = settings[SettingKeyMinClaudeCodeVersion]
 	result.MaxClaudeCodeVersion = settings[SettingKeyMaxClaudeCodeVersion]
@@ -3364,7 +3452,8 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	// 分组隔离
 	result.AllowUngroupedKeyScheduling = settings[SettingKeyAllowUngroupedKeyScheduling] == "true"
 
-	// Gateway forwarding behavior (defaults: fingerprint=true, metadata_passthrough=false, cch_signing=false)
+	// Gateway forwarding behavior (defaults: fingerprint=true, metadata_passthrough=false,
+	// cch_signing=false, claude_oauth_system_prompt_injection=true)
 	if v, ok := settings[SettingKeyEnableFingerprintUnification]; ok && v != "" {
 		result.EnableFingerprintUnification = v == "true"
 	} else {

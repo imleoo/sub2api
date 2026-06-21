@@ -153,10 +153,10 @@ type SystemSettings struct {
 	DefaultSubscriptions         []DefaultSubscriptionSetting `json:"default_subscriptions"`
 
 	// Model fallback configuration
-	EnableModelFallback      bool   `json:"enable_model_fallback"`
-	FallbackModelAnthropic   string `json:"fallback_model_anthropic"`
-	FallbackModelOpenAI      string `json:"fallback_model_openai"`
-	FallbackModelGemini      string `json:"fallback_model_gemini"`
+	EnableModelFallback    bool   `json:"enable_model_fallback"`
+	FallbackModelAnthropic string `json:"fallback_model_anthropic"`
+	FallbackModelOpenAI    string `json:"fallback_model_openai"`
+	FallbackModelGemini    string `json:"fallback_model_gemini"`
 
 	// Identity patch configuration (Claude -> Gemini)
 	EnableIdentityPatch bool   `json:"enable_identity_patch"`
@@ -245,6 +245,10 @@ type SystemSettings struct {
 
 	// 风控中心功能开关
 	RiskControlEnabled bool `json:"risk_control_enabled"`
+
+	// cyber 会话屏蔽开关 + TTL
+	CyberSessionBlockEnabled    bool `json:"cyber_session_block_enabled"`
+	CyberSessionBlockTTLSeconds int  `json:"cyber_session_block_ttl_seconds"`
 
 	// Affiliate (邀请返利) feature switch
 	AffiliateEnabled bool `json:"affiliate_enabled"`

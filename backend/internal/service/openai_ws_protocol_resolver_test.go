@@ -43,7 +43,7 @@ func TestOpenAIWSProtocolResolver_Resolve(t *testing.T) {
 		account := *openAIWSEnabled
 		account.Extra = map[string]any{
 			"openai_apikey_responses_websockets_v2_enabled": true,
-			"openai_passthrough":                           true,
+			"openai_passthrough":                            true,
 		}
 		decision := NewOpenAIWSProtocolResolver(baseCfg).Resolve(&account)
 		require.Equal(t, OpenAIUpstreamTransportResponsesWebsocketV2, decision.Transport)
@@ -54,7 +54,7 @@ func TestOpenAIWSProtocolResolver_Resolve(t *testing.T) {
 		account := *openAIWSEnabled
 		account.Extra = map[string]any{
 			"openai_apikey_responses_websockets_v2_enabled": true,
-			"openai_ws_force_http":                         true,
+			"openai_ws_force_http":                          true,
 		}
 		decision := NewOpenAIWSProtocolResolver(baseCfg).Resolve(&account)
 		require.Equal(t, OpenAIUpstreamTransportHTTPSSE, decision.Transport)

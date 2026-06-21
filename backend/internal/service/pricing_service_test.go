@@ -35,7 +35,6 @@ func TestParsePricingData_ParsesPriorityAndServiceTierFields(t *testing.T) {
 	require.True(t, pricing.SupportsServiceTier)
 }
 
-
 func TestParsePricingData_PreservesPriorityAndServiceTierFields(t *testing.T) {
 	raw := map[string]any{
 		"gpt-5.4": map[string]any{

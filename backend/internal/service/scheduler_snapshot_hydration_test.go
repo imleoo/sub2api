@@ -6,7 +6,6 @@ import (
 	"context"
 	"testing"
 	"time"
-
 )
 
 type snapshotHydrationCache struct {
@@ -197,4 +196,3 @@ func TestGatewaySelectAccountWithLoadAwareness_HydratesSelectedAccountFromSchedu
 		t.Fatalf("expected hydrated api key, got %q", got)
 	}
 }
-

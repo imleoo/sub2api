@@ -357,7 +357,7 @@ func TestOpenAIGatewayService_ProxyResponsesWebSocketFromClient_InjectsCodexImag
 		},
 		Extra: map[string]any{
 			"openai_apikey_responses_websockets_v2_enabled": true,
-			"codex_image_generation_bridge":                true,
+			"codex_image_generation_bridge":                 true,
 		},
 	}
 
@@ -753,7 +753,7 @@ func TestOpenAIGatewayService_ProxyResponsesWebSocketFromClient_PassthroughHeade
 			"access_token": "oauth-token",
 		},
 		Extra: map[string]any{
-			"openai_apikey_responses_websockets_v2_mode":  OpenAIWSIngressModePassthrough,
+			"openai_apikey_responses_websockets_v2_mode": OpenAIWSIngressModePassthrough,
 		},
 	}
 

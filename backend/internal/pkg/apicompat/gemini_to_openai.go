@@ -3,17 +3,17 @@
 // 实现状态：Stub（占位）
 //   - 完整实现路线（docs/relay-architecture-design.md §4.3 + sprint-plan §11）：
 //     请求：GeminiGenerateContentRequest → ChatCompletionsRequest
-//         contents[].parts → messages (role 映射 user/model→user/assistant)
-//         tools[].functionDeclarations → tools[].function（JSON Schema 直透，零丢失）
-//         systemInstruction → ChatMessage{role:"system"}
-//         generationConfig → temperature / max_tokens / stop
+//     contents[].parts → messages (role 映射 user/model→user/assistant)
+//     tools[].functionDeclarations → tools[].function（JSON Schema 直透，零丢失）
+//     systemInstruction → ChatMessage{role:"system"}
+//     generationConfig → temperature / max_tokens / stop
 //     响应：ChatCompletionsResponse → GeminiGenerateContentResponse
-//         choices[0].message → candidates[0].content
-//         finish_reason（stop/length/tool_calls）→ STOP/MAX_TOKENS/STOP
-//         usage → usageMetadata
+//     choices[0].message → candidates[0].content
+//     finish_reason（stop/length/tool_calls）→ STOP/MAX_TOKENS/STOP
+//     usage → usageMetadata
 //     流式：streamGenerateContent SSE → ChatCompletions chunk
-//         每条 Gemini `data: {...}` chunk → 对应一条 ChatCompletionsChunk
-//         finishReason 在最后一条 chunk 写入
+//     每条 Gemini `data: {...}` chunk → 对应一条 ChatCompletionsChunk
+//     finishReason 在最后一条 chunk 写入
 //   - function_calling schema 映射零丢失（GeminiFunctionDeclarations.Parameters 直透，不转换）
 //
 // 用户端通过 /v1beta/models/:model:generateContent 访问 DeepSeek/Kimi/Qwen 等 OpenAI 兼容上游。

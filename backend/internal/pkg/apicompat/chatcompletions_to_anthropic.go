@@ -4,8 +4,8 @@
 //   - Registry 注册：让桥矩阵在 P3-6 BridgeCapabilities 编排时可见
 //   - 完整实现路线（docs/relay-architecture-design.md §4.3 P3-5）：
 //     请求方向：ChatCompletionsRequest → ChatCompletionsToResponses（已有）→
-//               ResponsesToAnthropic 请求形态（fork apicompat 已有 ResponsesToAnthropic 是响应方向，
-//               需写请求方向 responses_to_anthropic_request.go - **该文件已存在**）
+//     ResponsesToAnthropic 请求形态（fork apicompat 已有 ResponsesToAnthropic 是响应方向，
+//     需写请求方向 responses_to_anthropic_request.go - **该文件已存在**）
 //     响应方向：AnthropicResponse → AnthropicToResponsesResponse → ResponsesToChatCompletions
 //     流式：    Anthropic SSE → Responses event → ChatCompletions chunk
 //

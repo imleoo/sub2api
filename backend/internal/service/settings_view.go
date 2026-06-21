@@ -146,6 +146,8 @@ type SystemSettings struct {
 	DefaultConcurrency           int
 	DefaultBalance               float64
 	RiskControlEnabled           bool
+	CyberSessionBlockEnabled     bool
+	CyberSessionBlockTTLSeconds  int
 	AffiliateEnabled             bool
 	AffiliateRebateRate          float64
 	AffiliateRebateFreezeHours   int
@@ -155,10 +157,10 @@ type SystemSettings struct {
 	DefaultSubscriptions         []DefaultSubscriptionSetting
 
 	// Model fallback configuration
-	EnableModelFallback      bool   `json:"enable_model_fallback"`
-	FallbackModelAnthropic   string `json:"fallback_model_anthropic"`
-	FallbackModelOpenAI      string `json:"fallback_model_openai"`
-	FallbackModelGemini      string `json:"fallback_model_gemini"`
+	EnableModelFallback    bool   `json:"enable_model_fallback"`
+	FallbackModelAnthropic string `json:"fallback_model_anthropic"`
+	FallbackModelOpenAI    string `json:"fallback_model_openai"`
+	FallbackModelGemini    string `json:"fallback_model_gemini"`
 
 	// Identity patch configuration (Claude -> Gemini)
 	EnableIdentityPatch bool   `json:"enable_identity_patch"`
@@ -232,7 +234,7 @@ type SystemSettings struct {
 
 	// 手机号注册
 	PhoneRegisterEnabled bool
-	PasswordLoginEnabled  bool // 是否允许账号密码登录（默认 true）
+	PasswordLoginEnabled bool   // 是否允许账号密码登录（默认 true）
 	SmsProvider          string // "volcengine" | "tencent" | "aliyun"
 	// 火山引擎 SMS
 	VolcengineSmsAccessKeyID               string
@@ -242,12 +244,12 @@ type SystemSettings struct {
 	VolcengineSmsSign                      string
 	VolcengineSmsTemplateID                string
 	// 腾讯云 SMS
-	TencentSmsSecretID              string
-	TencentSmsSecretKey             string // write-only
-	TencentSmsSecretKeyConfigured   bool
-	TencentSmsSdkAppID              string
-	TencentSmsSign                  string
-	TencentSmsTemplateID            string
+	TencentSmsSecretID            string
+	TencentSmsSecretKey           string // write-only
+	TencentSmsSecretKeyConfigured bool
+	TencentSmsSdkAppID            string
+	TencentSmsSign                string
+	TencentSmsTemplateID          string
 	// 阿里云 SMS
 	AliyunSmsAccessKeyID               string
 	AliyunSmsAccessKeySecret           string // write-only
@@ -338,7 +340,7 @@ type PublicSettings struct {
 
 	// 手机号注册
 	PhoneRegisterEnabled bool `json:"phone_register_enabled"`
-	PasswordLoginEnabled  bool `json:"password_login_enabled"`
+	PasswordLoginEnabled bool `json:"password_login_enabled"`
 
 	// 允许终端用户在用量页查看自己的失败请求
 	AllowUserViewErrorRequests bool `json:"allow_user_view_error_requests"`
