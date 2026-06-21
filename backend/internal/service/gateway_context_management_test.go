@@ -182,43 +182,6 @@ func TestComputeFinalCountTokensAnthropicBeta_APIKey_NoClientBetaInjectOff_Shoul
 // 与 model 无关。strip 责任移交 sanitizeAnthropicBodyForBetaTokens（在
 // buildUpstreamRequest 层按最终 beta header 执行）。
 
-func TestNormalizeClaudeOAuthRequestBody_InjectsContextManagement_ThinkingEnabled(t *testing.T) {
-	body := []byte(`{"model":"claude-sonnet-4-6","thinking":{"type":"enabled","budget_tokens":1000},"messages":[]}`)
-	out, _ := normalizeClaudeOAuthRequestBody(body, "claude-sonnet-4-6", claudeOAuthNormalizeOptions{})
-	require.True(t, gjson.GetBytes(out, "context_management").Exists())
-	require.Equal(t, "clear_thinking_20251015",
-		gjson.GetBytes(out, "context_management.edits.0.type").String())
-}
-
-func TestNormalizeClaudeOAuthRequestBody_InjectsContextManagement_ThinkingAdaptive(t *testing.T) {
-	body := []byte(`{"model":"claude-opus-4-7","thinking":{"type":"adaptive"},"messages":[]}`)
-	out, _ := normalizeClaudeOAuthRequestBody(body, "claude-opus-4-7", claudeOAuthNormalizeOptions{})
-	require.True(t, gjson.GetBytes(out, "context_management").Exists())
-}
-
-func TestNormalizeClaudeOAuthRequestBody_HaikuStillInjects_StripDeferredToSanitize(t *testing.T) {
-	// haiku + thinking=enabled：normalize 阶段仍按 CLI mimicry 行为补齐字段；
-	// strip 由 buildUpstreamRequest 层的 sanitize 兜底（如果 final beta 不含 token）。
-	body := []byte(`{"model":"claude-haiku-4-5","thinking":{"type":"enabled","budget_tokens":1000},"messages":[]}`)
-	out, _ := normalizeClaudeOAuthRequestBody(body, "claude-haiku-4-5", claudeOAuthNormalizeOptions{})
-	require.True(t, gjson.GetBytes(out, "context_management").Exists(),
-		"normalize 不再按 model 名短路；strip 责任移交 sanitize 层")
-}
-
-func TestNormalizeClaudeOAuthRequestBody_PreservesClientContextManagement(t *testing.T) {
-	body := []byte(`{"model":"claude-opus-4-7","context_management":{"edits":[{"type":"custom_strategy"}]},"thinking":{"type":"enabled","budget_tokens":1000},"messages":[]}`)
-	out, _ := normalizeClaudeOAuthRequestBody(body, "claude-opus-4-7", claudeOAuthNormalizeOptions{})
-	require.Equal(t, "custom_strategy",
-		gjson.GetBytes(out, "context_management.edits.0.type").String(),
-		"客户端透传的 context_management 内容必须原样保留")
-}
-
-func TestNormalizeClaudeOAuthRequestBody_NoThinking_NoInject(t *testing.T) {
-	body := []byte(`{"model":"claude-sonnet-4-6","messages":[]}`)
-	out, _ := normalizeClaudeOAuthRequestBody(body, "claude-sonnet-4-6", claudeOAuthNormalizeOptions{})
-	require.False(t, gjson.GetBytes(out, "context_management").Exists())
-}
-
 // ============================================================================
 // passthrough 集成测试：buildUpstreamRequest-
 // AnthropicAPIKeyPassthrough 与 buildCountTokensRequestAnthropicAPIKeyPassthrough
@@ -326,7 +289,7 @@ func TestBuildUpstreamRequest_APIKeyHaikuWithRealCCBeta_PreservesField(t *testin
 	svc := &GatewayService{cfg: &config.Config{}}
 	req, _, err := svc.buildUpstreamRequest(
 		context.Background(), c, account, body,
-		"sk-ant-xxx", "apikey", "claude-haiku-4-5", false, false,
+		"sk-ant-xxx", "apikey", "claude-haiku-4-5", false,
 	)
 	require.NoError(t, err)
 
@@ -417,7 +380,7 @@ func TestBuildCountTokensRequest_APIKeyHaiku_StripsContextManagementEndToEnd(t *
 	svc := &GatewayService{cfg: &config.Config{}}
 	req, _, err := svc.buildCountTokensRequest(
 		context.Background(), c, account, body,
-		"sk-ant-xxx", "apikey", "claude-haiku-4-5", false,
+		"sk-ant-xxx", "apikey", "claude-haiku-4-5",
 	)
 	require.NoError(t, err)
 
@@ -461,7 +424,7 @@ func TestBuildUpstreamRequest_APIKeyHaikuWithContextManagement_StripsField(t *te
 	svc := &GatewayService{cfg: &config.Config{}}
 	req, _, err := svc.buildUpstreamRequest(
 		context.Background(), c, account, body,
-		"sk-ant-xxx", "apikey", "claude-haiku-4-5", false, false,
+		"sk-ant-xxx", "apikey", "claude-haiku-4-5", false,
 	)
 	require.NoError(t, err)
 

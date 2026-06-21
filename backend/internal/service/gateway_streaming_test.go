@@ -155,7 +155,7 @@ func TestHandleStreamingResponse_CacheTokens(t *testing.T) {
 		_, _ = pw.Write([]byte("data: [DONE]\n\n"))
 	}()
 
-	result, err := svc.handleStreamingResponse(context.Background(), resp, c, &Account{ID: 1}, time.Now(), "model", "model", false)
+	result, err := svc.handleStreamingResponse(context.Background(), resp, c, &Account{ID: 1}, time.Now(), "model", "model")
 	_ = pr.Close()
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -182,7 +182,7 @@ func TestHandleStreamingResponse_EmptyStream(t *testing.T) {
 		_ = pw.Close()
 	}()
 
-	result, err := svc.handleStreamingResponse(context.Background(), resp, c, &Account{ID: 1}, time.Now(), "model", "model", false)
+	result, err := svc.handleStreamingResponse(context.Background(), resp, c, &Account{ID: 1}, time.Now(), "model", "model")
 	_ = pr.Close()
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "missing terminal event")
@@ -209,7 +209,7 @@ func TestHandleStreamingResponse_SpecialCharactersInJSON(t *testing.T) {
 		_, _ = pw.Write([]byte("data: [DONE]\n\n"))
 	}()
 
-	result, err := svc.handleStreamingResponse(context.Background(), resp, c, &Account{ID: 1}, time.Now(), "model", "model", false)
+	result, err := svc.handleStreamingResponse(context.Background(), resp, c, &Account{ID: 1}, time.Now(), "model", "model")
 	_ = pr.Close()
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -238,7 +238,7 @@ func TestHandleStreamingResponse_StreamReadErrorBeforeOutput_TriggersFailover(t 
 		Body:       &streamReadCloser{err: io.ErrUnexpectedEOF},
 	}
 
-	result, err := svc.handleStreamingResponse(context.Background(), resp, c, &Account{ID: 1}, time.Now(), "model", "model", false)
+	result, err := svc.handleStreamingResponse(context.Background(), resp, c, &Account{ID: 1}, time.Now(), "model", "model")
 
 	require.Error(t, err)
 	require.Nil(t, result, "失败移交场景下不应返回 streamingResult")
@@ -281,7 +281,7 @@ func TestHandleStreamingResponse_StreamReadErrorAfterOutput_PassesThrough(t *tes
 		},
 	}
 
-	result, err := svc.handleStreamingResponse(context.Background(), resp, c, &Account{ID: 1}, time.Now(), "model", "model", false)
+	result, err := svc.handleStreamingResponse(context.Background(), resp, c, &Account{ID: 1}, time.Now(), "model", "model")
 
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "stream read error", "已开始流后应透传普通 stream read error")
@@ -378,7 +378,7 @@ func TestHandleStreamingResponse_FailoverBodyDoesNotLeakAddresses(t *testing.T) 
 		Body:       &streamReadCloser{err: netErr},
 	}
 
-	_, err := svc.handleStreamingResponse(context.Background(), resp, c, &Account{ID: 1}, time.Now(), "model", "model", false)
+	_, err := svc.handleStreamingResponse(context.Background(), resp, c, &Account{ID: 1}, time.Now(), "model", "model")
 	require.Error(t, err)
 
 	var failoverErr *UpstreamFailoverError
@@ -415,7 +415,7 @@ func TestHandleStreamingResponse_SSEErrorEvent_ReturnsTypedErrorWithRawData(t *t
 		_, _ = pw.Write([]byte("event: error\ndata: " + errorJSON + "\n\n"))
 	}()
 
-	result, err := svc.handleStreamingResponse(context.Background(), resp, c, &Account{ID: 1}, time.Now(), "model", "model", false)
+	result, err := svc.handleStreamingResponse(context.Background(), resp, c, &Account{ID: 1}, time.Now(), "model", "model")
 	_ = pr.Close()
 
 	require.Error(t, err)
@@ -452,7 +452,7 @@ func TestHandleStreamingResponse_SSEErrorEvent_EmptyDataLine(t *testing.T) {
 		_, _ = pw.Write([]byte("event: error\n\n"))
 	}()
 
-	_, err := svc.handleStreamingResponse(context.Background(), resp, c, &Account{ID: 1}, time.Now(), "model", "model", false)
+	_, err := svc.handleStreamingResponse(context.Background(), resp, c, &Account{ID: 1}, time.Now(), "model", "model")
 	_ = pr.Close()
 
 	require.Error(t, err)
@@ -486,7 +486,7 @@ func TestHandleStreamingResponse_SSEErrorEvent_AfterPartialStreamOutput(t *testi
 		_, _ = pw.Write([]byte("event: error\ndata: " + errorJSON + "\n\n"))
 	}()
 
-	_, err := svc.handleStreamingResponse(context.Background(), resp, c, &Account{ID: 1}, time.Now(), "model", "model", false)
+	_, err := svc.handleStreamingResponse(context.Background(), resp, c, &Account{ID: 1}, time.Now(), "model", "model")
 	_ = pr.Close()
 
 	require.Error(t, err)
@@ -519,7 +519,7 @@ func TestHandleStreamingResponse_SSEErrorEvent_NonJSONDataLine(t *testing.T) {
 		_, _ = pw.Write([]byte("event: error\ndata: not-a-json-payload\n\n"))
 	}()
 
-	_, err := svc.handleStreamingResponse(context.Background(), resp, c, &Account{ID: 1}, time.Now(), "model", "model", false)
+	_, err := svc.handleStreamingResponse(context.Background(), resp, c, &Account{ID: 1}, time.Now(), "model", "model")
 	_ = pr.Close()
 
 	require.Error(t, err)

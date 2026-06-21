@@ -28,7 +28,6 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/claude"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/ctxkey"
-	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/usagestats"
 	"github.com/Wei-Shaw/sub2api/internal/util/responseheaders"
@@ -237,13 +236,6 @@ func (s *GatewayService) debugModelRoutingEnabled() bool {
 	return s.debugModelRouting.Load()
 }
 
-func (s *GatewayService) debugClaudeMimicEnabled() bool {
-	if s == nil {
-		return false
-	}
-	return s.debugClaudeMimic.Load()
-}
-
 func parseDebugEnvBool(raw string) bool {
 	switch strings.ToLower(strings.TrimSpace(raw)) {
 	case "1", "true", "yes", "on":
@@ -285,107 +277,6 @@ func safeHeaderValueForLog(key string, v string) string {
 	}
 }
 
-func extractSystemPreviewFromBody(body []byte) string {
-	if len(body) == 0 {
-		return ""
-	}
-	sys := gjson.GetBytes(body, "system")
-	if !sys.Exists() {
-		return ""
-	}
-
-	switch {
-	case sys.IsArray():
-		for _, item := range sys.Array() {
-			if !item.IsObject() {
-				continue
-			}
-			if strings.EqualFold(item.Get("type").String(), "text") {
-				if t := item.Get("text").String(); strings.TrimSpace(t) != "" {
-					return t
-				}
-			}
-		}
-		return ""
-	case sys.Type == gjson.String:
-		return sys.String()
-	default:
-		return ""
-	}
-}
-
-func buildClaudeMimicDebugLine(req *http.Request, body []byte, account *Account, tokenType string, mimicClaudeCode bool) string {
-	if req == nil {
-		return ""
-	}
-
-	// Only log a minimal fingerprint to avoid leaking user content.
-	interesting := []string{
-		"user-agent",
-		"x-app",
-		"anthropic-dangerous-direct-browser-access",
-		"anthropic-version",
-		"anthropic-beta",
-		"x-stainless-lang",
-		"x-stainless-package-version",
-		"x-stainless-os",
-		"x-stainless-arch",
-		"x-stainless-runtime",
-		"x-stainless-runtime-version",
-		"x-stainless-retry-count",
-		"x-stainless-timeout",
-		"authorization",
-		"x-api-key",
-		"content-type",
-		"accept",
-		"x-stainless-helper-method",
-	}
-
-	h := make([]string, 0, len(interesting))
-	for _, k := range interesting {
-		if v := req.Header.Get(k); v != "" {
-			h = append(h, fmt.Sprintf("%s=%q", k, safeHeaderValueForLog(k, v)))
-		}
-	}
-
-	metaUserID := strings.TrimSpace(gjson.GetBytes(body, "metadata.user_id").String())
-	sysPreview := strings.TrimSpace(extractSystemPreviewFromBody(body))
-
-	// Truncate preview to keep logs sane.
-	if len(sysPreview) > 300 {
-		sysPreview = sysPreview[:300] + "..."
-	}
-	sysPreview = strings.ReplaceAll(sysPreview, "\n", "\\n")
-	sysPreview = strings.ReplaceAll(sysPreview, "\r", "\\r")
-
-	aid := int64(0)
-	aname := ""
-	if account != nil {
-		aid = account.ID
-		aname = account.Name
-	}
-
-	return fmt.Sprintf(
-		"url=%s account=%d(%s) tokenType=%s mimic=%t meta.user_id=%q system.preview=%q headers={%s}",
-		req.URL.String(),
-		aid,
-		aname,
-		tokenType,
-		mimicClaudeCode,
-		metaUserID,
-		sysPreview,
-		strings.Join(h, " "),
-	)
-}
-
-func logClaudeMimicDebug(req *http.Request, body []byte, account *Account, tokenType string, mimicClaudeCode bool) {
-	line := buildClaudeMimicDebugLine(req, body, account, tokenType, mimicClaudeCode)
-	if line == "" {
-		return
-	}
-	logger.LegacyPrintf("service.gateway", "[ClaudeMimicDebug] %s", line)
-}
-
 func isClaudeCodeCredentialScopeError(msg string) bool {
 	m := strings.ToLower(strings.TrimSpace(msg))
 	if m == "" {
@@ -398,18 +289,7 @@ func isClaudeCodeCredentialScopeError(msg string) bool {
 // sseDataRe matches SSE data lines with optional whitespace after colon.
 // Some upstream APIs return non-standard "data:" without space (should be "data: ").
 var (
-	sseDataRe            = regexp.MustCompile(`^data:\s*`)
-	claudeCliUserAgentRe = regexp.MustCompile(`(?i)^claude-cli/\d+\.\d+\.\d+`)
-
-	// claudeCodePromptPrefixes 用于检测 Claude Code 系统提示词的前缀列表
-	// 支持多种变体：标准版、Agent SDK 版、Explore Agent 版、Compact 版等
-	// 注意：前缀之间不应存在包含关系，否则会导致冗余匹配
-	claudeCodePromptPrefixes = []string{
-		"You are Claude Code, Anthropic's official CLI for Claude",             // 标准版 & Agent SDK 版（含 running within...）
-		"You are a Claude agent, built on Anthropic's Claude Agent SDK",        // Agent SDK 变体
-		"You are a file search specialist for Claude Code",                     // Explore Agent 版
-		"You are a helpful AI assistant tasked with summarizing conversations", // Compact 版
-	}
+	sseDataRe = regexp.MustCompile(`^data:\s*`)
 )
 
 // ErrNoAvailableAccounts 表示没有可用的账号
@@ -1114,31 +994,10 @@ func (s *GatewayService) hashContent(content string) string {
 	return strconv.FormatUint(h, 36)
 }
 
-type anthropicCacheControlPayload struct {
-	Type string `json:"type"`
-	TTL  string `json:"ttl,omitempty"`
-}
-
-type anthropicSystemTextBlockPayload struct {
-	Type         string                        `json:"type"`
-	Text         string                        `json:"text"`
-	CacheControl *anthropicCacheControlPayload `json:"cache_control,omitempty"`
-}
-
-type anthropicMetadataPayload struct {
-	UserID string `json:"user_id"`
-}
-
 // replaceModelInBody 替换请求体中的model字段
 // 优先使用定点修改，尽量保持客户端原始字段顺序。
 func (s *GatewayService) replaceModelInBody(body []byte, newModel string) []byte {
 	return ReplaceModelInBody(body, newModel)
-}
-
-type claudeOAuthNormalizeOptions struct {
-	injectMetadata          bool
-	metadataUserID          string
-	stripSystemCacheControl bool
 }
 
 // sanitizeSystemText rewrites only the fixed OpenCode identity sentence (if present).
@@ -1159,259 +1018,12 @@ func sanitizeSystemText(text string) string {
 	return text
 }
 
-func marshalAnthropicSystemTextBlock(text string, includeCacheControl bool) ([]byte, error) {
-	block := anthropicSystemTextBlockPayload{
-		Type: "text",
-		Text: text,
-	}
-	if includeCacheControl {
-		block.CacheControl = &anthropicCacheControlPayload{
-			Type: "ephemeral",
-			TTL:  claude.DefaultCacheControlTTL,
-		}
-	}
-	return json.Marshal(block)
-}
-
-func marshalAnthropicSystemTextBlockWithCacheControl(text string, cacheControl any) ([]byte, error) {
-	block := map[string]any{
-		"type": "text",
-		"text": text,
-	}
-	if cacheControl != nil {
-		block["cache_control"] = cacheControl
-	}
-	return json.Marshal(block)
-}
-
-func marshalAnthropicMetadata(userID string) ([]byte, error) {
-	return json.Marshal(anthropicMetadataPayload{UserID: userID})
-}
-
-func buildJSONArrayRaw(items [][]byte) []byte {
-	if len(items) == 0 {
-		return []byte("[]")
-	}
-
-	total := 2
-	for _, item := range items {
-		total += len(item)
-	}
-	total += len(items) - 1
-
-	buf := make([]byte, 0, total)
-	buf = append(buf, '[')
-	for i, item := range items {
-		if i > 0 {
-			buf = append(buf, ',')
-		}
-		buf = append(buf, item...)
-	}
-	buf = append(buf, ']')
-	return buf
-}
-
-func setJSONValueBytes(body []byte, path string, value any) ([]byte, bool) {
-	next, err := sjson.SetBytes(body, path, value)
-	if err != nil {
-		return body, false
-	}
-	return next, true
-}
-
-func setJSONRawBytes(body []byte, path string, raw []byte) ([]byte, bool) {
-	next, err := sjson.SetRawBytes(body, path, raw)
-	if err != nil {
-		return body, false
-	}
-	return next, true
-}
-
 func deleteJSONPathBytes(body []byte, path string) ([]byte, bool) {
 	next, err := sjson.DeleteBytes(body, path)
 	if err != nil {
 		return body, false
 	}
 	return next, true
-}
-
-func normalizeClaudeOAuthSystemBody(body []byte, opts claudeOAuthNormalizeOptions) ([]byte, bool) {
-	sys := gjson.GetBytes(body, "system")
-	if !sys.Exists() {
-		return body, false
-	}
-
-	out := body
-	modified := false
-
-	switch {
-	case sys.Type == gjson.String:
-		sanitized := sanitizeSystemText(sys.String())
-		if sanitized != sys.String() {
-			if next, ok := setJSONValueBytes(out, "system", sanitized); ok {
-				out = next
-				modified = true
-			}
-		}
-	case sys.IsArray():
-		index := 0
-		sys.ForEach(func(_, item gjson.Result) bool {
-			if item.Get("type").String() == "text" {
-				textResult := item.Get("text")
-				if textResult.Exists() && textResult.Type == gjson.String {
-					text := textResult.String()
-					sanitized := sanitizeSystemText(text)
-					if sanitized != text {
-						if next, ok := setJSONValueBytes(out, fmt.Sprintf("system.%d.text", index), sanitized); ok {
-							out = next
-							modified = true
-						}
-					}
-				}
-			}
-
-			if opts.stripSystemCacheControl && item.Get("cache_control").Exists() {
-				if next, ok := deleteJSONPathBytes(out, fmt.Sprintf("system.%d.cache_control", index)); ok {
-					out = next
-					modified = true
-				}
-			}
-
-			index++
-			return true
-		})
-	}
-
-	return out, modified
-}
-
-func ensureClaudeOAuthMetadataUserID(body []byte, userID string) ([]byte, bool) {
-	if strings.TrimSpace(userID) == "" {
-		return body, false
-	}
-
-	metadata := gjson.GetBytes(body, "metadata")
-	if !metadata.Exists() || metadata.Type == gjson.Null {
-		raw, err := marshalAnthropicMetadata(userID)
-		if err != nil {
-			return body, false
-		}
-		return setJSONRawBytes(body, "metadata", raw)
-	}
-
-	trimmedRaw := strings.TrimSpace(metadata.Raw)
-	if strings.HasPrefix(trimmedRaw, "{") {
-		existing := metadata.Get("user_id")
-		if existing.Exists() && existing.Type == gjson.String && existing.String() != "" {
-			return body, false
-		}
-		return setJSONValueBytes(body, "metadata.user_id", userID)
-	}
-
-	raw, err := marshalAnthropicMetadata(userID)
-	if err != nil {
-		return body, false
-	}
-	return setJSONRawBytes(body, "metadata", raw)
-}
-
-func normalizeClaudeOAuthRequestBody(body []byte, modelID string, opts claudeOAuthNormalizeOptions) ([]byte, string) {
-	if len(body) == 0 {
-		return body, modelID
-	}
-
-	out := body
-	modified := false
-
-	if next, changed := normalizeClaudeOAuthSystemBody(out, opts); changed {
-		out = next
-		modified = true
-	}
-
-	rawModel := gjson.GetBytes(out, "model")
-	if rawModel.Exists() && rawModel.Type == gjson.String {
-		normalized := claude.NormalizeModelID(rawModel.String())
-		if normalized != rawModel.String() {
-			if next, ok := setJSONValueBytes(out, "model", normalized); ok {
-				out = next
-				modified = true
-			}
-			modelID = normalized
-		}
-	}
-
-	// 确保 tools 字段存在（即使为空数组）
-	if !gjson.GetBytes(out, "tools").Exists() {
-		if next, ok := setJSONRawBytes(out, "tools", []byte("[]")); ok {
-			out = next
-			modified = true
-		}
-	}
-
-	if opts.injectMetadata && opts.metadataUserID != "" {
-		if next, changed := ensureClaudeOAuthMetadataUserID(out, opts.metadataUserID); changed {
-			out = next
-			modified = true
-		}
-	}
-
-	// temperature：真实 Claude Code CLI 总是发送 temperature（默认 1，客户端可覆盖）。
-	// 之前的实现直接 delete 会导致 payload 缺字段，与真实 CLI 字节级不一致。
-	// 策略：客户端传了什么就透传；没传则补默认 1。
-	if !gjson.GetBytes(out, "temperature").Exists() {
-		if next, ok := setJSONValueBytes(out, "temperature", 1); ok {
-			out = next
-			modified = true
-		}
-	}
-
-	// max_tokens：真实 CLI 的默认值是 128000。缺失时补齐以对齐指纹。
-	if !gjson.GetBytes(out, "max_tokens").Exists() {
-		if next, ok := setJSONValueBytes(out, "max_tokens", 128000); ok {
-			out = next
-			modified = true
-		}
-	}
-
-	// context_management：thinking.type 为 enabled/adaptive 时，真实 CLI 会自动
-	// 附带 {"edits":[{"type":"clear_thinking_20251015","keep":"all"}]}。
-	// 客户端显式传了就透传；否则按 CLI 行为补齐。
-	//
-	// 注：本函数不按 model 名决定是否保留 context_management。“最终 beta
-	// header 不含 context-management-2025-06-27 时 strip 字段”的能力维度
-	// 对称约束由 sanitizeAnthropicBodyForBetaTokens 在 buildUpstreamRequest /
-	// buildCountTokensRequest 层统一执行，与 Bedrock 路径的
-	// sanitizeBedrockFieldsForBetaTokens 对称。
-	if !gjson.GetBytes(out, "context_management").Exists() {
-		thinkingType := gjson.GetBytes(out, "thinking.type").String()
-		if thinkingType == "enabled" || thinkingType == "adaptive" {
-			const cmDefault = `{"edits":[{"type":"clear_thinking_20251015","keep":"all"}]}`
-			if next, ok := setJSONRawBytes(out, "context_management", []byte(cmDefault)); ok {
-				out = next
-				modified = true
-			}
-		}
-	}
-
-	// tool_choice：与 Parrot 对齐，不再无条件删除。
-	// - 客户端传了 {"type":"tool","name":"X"} → 保留结构，name 由
-	//   applyToolNameRewriteToBody 同步映射为假名
-	// - 其他形态（auto/any/none）原样透传
-	// 如果 body 里完全没有 tools（空数组），tool_choice 没意义时才删除
-	if !gjson.GetBytes(out, "tools").IsArray() || len(gjson.GetBytes(out, "tools").Array()) == 0 {
-		if gjson.GetBytes(out, "tool_choice").Exists() {
-			if next, ok := deleteJSONPathBytes(out, "tool_choice"); ok {
-				out = next
-				modified = true
-			}
-		}
-	}
-
-	if !modified {
-		return body, modelID
-	}
-
-	return out, modelID
 }
 
 func (s *GatewayService) buildOAuthMetadataUserID(parsed *ParsedRequest, account *Account, fp *Fingerprint) string {
@@ -3815,439 +3427,6 @@ func sleepWithContext(ctx context.Context, d time.Duration) error {
 	}
 }
 
-// isClaudeCodeClient 判断请求是否来自真正的 Claude Code 客户端。
-// 判定条件：
-//  1. User-Agent 匹配 claude-cli/X.Y.Z（大小写不敏感）
-//  2. metadata.user_id 符合 Claude Code 格式（legacy 或 JSON 格式）
-//
-// 只检查 metadata.user_id 非空不够严格：第三方工具（opencode 等）可能伪造 UA
-// 并附带任意 metadata.user_id 字符串，从而绕过 mimicry。必须通过 ParseMetadataUserID
-// 验证格式才能确认是真正的 Claude Code 客户端。
-func isClaudeCodeClient(userAgent string, metadataUserID string) bool {
-	if !claudeCliUserAgentRe.MatchString(userAgent) {
-		return false
-	}
-	return ParseMetadataUserID(metadataUserID) != nil
-}
-
-// normalizeSystemParam 将 json.RawMessage 类型的 system 参数转为标准 Go 类型（string / []any / nil），
-// 避免 type switch 中 json.RawMessage（底层 []byte）无法匹配 case string / case []any / case nil 的问题。
-// 这是 Go 的 typed nil 陷阱：(json.RawMessage, nil) ≠ (nil, nil)。
-func normalizeSystemParam(system any) any {
-	raw, ok := system.(json.RawMessage)
-	if !ok {
-		return system
-	}
-	if len(raw) == 0 {
-		return nil
-	}
-	var parsed any
-	if err := json.Unmarshal(raw, &parsed); err != nil {
-		return nil
-	}
-	return parsed
-}
-
-// systemIncludesClaudeCodePrompt 检查 system 中是否已包含 Claude Code 提示词
-// 使用前缀匹配支持多种变体（标准版、Agent SDK 版等）
-func systemIncludesClaudeCodePrompt(system any) bool {
-	system = normalizeSystemParam(system)
-	switch v := system.(type) {
-	case string:
-		return hasClaudeCodePrefix(v)
-	case []any:
-		for _, item := range v {
-			if m, ok := item.(map[string]any); ok {
-				if text, ok := m["text"].(string); ok && hasClaudeCodePrefix(text) {
-					return true
-				}
-			}
-		}
-	}
-	return false
-}
-
-// hasClaudeCodePrefix 检查文本是否以 Claude Code 提示词的特征前缀开头
-func hasClaudeCodePrefix(text string) bool {
-	for _, prefix := range claudeCodePromptPrefixes {
-		if strings.HasPrefix(text, prefix) {
-			return true
-		}
-	}
-	return false
-}
-
-// injectClaudeCodePrompt 在 system 开头注入 Claude Code 提示词
-// 处理 null、字符串、数组三种格式
-func injectClaudeCodePrompt(body []byte, system any) []byte {
-	system = normalizeSystemParam(system)
-	claudeCodeBlock, err := marshalAnthropicSystemTextBlock(claudeCodeSystemPrompt, true)
-	if err != nil {
-		logger.LegacyPrintf("service.gateway", "Warning: failed to build Claude Code prompt block: %v", err)
-		return body
-	}
-	// Opencode plugin applies an extra safeguard: it not only prepends the Claude Code
-	// banner, it also prefixes the next system instruction with the same banner plus
-	// a blank line. This helps when upstream concatenates system instructions.
-	claudeCodePrefix := strings.TrimSpace(claudeCodeSystemPrompt)
-
-	var items [][]byte
-
-	switch v := system.(type) {
-	case nil:
-		items = [][]byte{claudeCodeBlock}
-	case string:
-		// Be tolerant of older/newer clients that may differ only by trailing whitespace/newlines.
-		if strings.TrimSpace(v) == "" || strings.TrimSpace(v) == strings.TrimSpace(claudeCodeSystemPrompt) {
-			items = [][]byte{claudeCodeBlock}
-		} else {
-			// Mirror opencode behavior: keep the banner as a separate system entry,
-			// but also prefix the next system text with the banner.
-			merged := v
-			if !strings.HasPrefix(v, claudeCodePrefix) {
-				merged = claudeCodePrefix + "\n\n" + v
-			}
-			nextBlock, buildErr := marshalAnthropicSystemTextBlock(merged, false)
-			if buildErr != nil {
-				logger.LegacyPrintf("service.gateway", "Warning: failed to build prefixed Claude Code system block: %v", buildErr)
-				return body
-			}
-			items = [][]byte{claudeCodeBlock, nextBlock}
-		}
-	case []any:
-		items = make([][]byte, 0, len(v)+1)
-		items = append(items, claudeCodeBlock)
-		prefixedNext := false
-		systemResult := gjson.GetBytes(body, "system")
-		if systemResult.IsArray() {
-			systemResult.ForEach(func(_, item gjson.Result) bool {
-				textResult := item.Get("text")
-				if textResult.Exists() && textResult.Type == gjson.String &&
-					strings.TrimSpace(textResult.String()) == strings.TrimSpace(claudeCodeSystemPrompt) {
-					return true
-				}
-
-				raw := []byte(item.Raw)
-				// Prefix the first subsequent text system block once.
-				if !prefixedNext && item.Get("type").String() == "text" && textResult.Exists() && textResult.Type == gjson.String {
-					text := textResult.String()
-					if strings.TrimSpace(text) != "" && !strings.HasPrefix(text, claudeCodePrefix) {
-						next, setErr := sjson.SetBytes(raw, "text", claudeCodePrefix+"\n\n"+text)
-						if setErr == nil {
-							raw = next
-							prefixedNext = true
-						}
-					}
-				}
-				items = append(items, raw)
-				return true
-			})
-		} else {
-			for _, item := range v {
-				m, ok := item.(map[string]any)
-				if !ok {
-					raw, marshalErr := json.Marshal(item)
-					if marshalErr == nil {
-						items = append(items, raw)
-					}
-					continue
-				}
-				if text, ok := m["text"].(string); ok && strings.TrimSpace(text) == strings.TrimSpace(claudeCodeSystemPrompt) {
-					continue
-				}
-				if !prefixedNext {
-					if blockType, _ := m["type"].(string); blockType == "text" {
-						if text, ok := m["text"].(string); ok && strings.TrimSpace(text) != "" && !strings.HasPrefix(text, claudeCodePrefix) {
-							m["text"] = claudeCodePrefix + "\n\n" + text
-							prefixedNext = true
-						}
-					}
-				}
-				raw, marshalErr := json.Marshal(m)
-				if marshalErr == nil {
-					items = append(items, raw)
-				}
-			}
-		}
-	default:
-		items = [][]byte{claudeCodeBlock}
-	}
-
-	result, ok := setJSONRawBytes(body, "system", buildJSONArrayRaw(items))
-	if !ok {
-		logger.LegacyPrintf("service.gateway", "Warning: failed to inject Claude Code prompt")
-		return body
-	}
-	return result
-}
-
-// rewriteSystemForNonClaudeCode 将非 Claude Code 客户端的 system prompt 迁移至 messages，
-// system 字段仅保留 Claude Code 标识提示词。
-// Anthropic 基于 system 参数内容检测第三方应用，仅前置追加 Claude Code 提示词
-// 无法通过检测，因为后续内容仍为非 Claude Code 格式。
-// 策略：将原始 system prompt 提取并注入为 user/assistant 消息对，system 仅保留 Claude Code 标识。
-func rewriteSystemForNonClaudeCode(body []byte, system any) []byte {
-	return rewriteSystemForNonClaudeCodeWithPromptBlocks(body, system, "", "")
-}
-
-func rewriteSystemForNonClaudeCodeWithPrompt(body []byte, system any, expansionPrompt string) []byte {
-	return rewriteSystemForNonClaudeCodeWithPromptBlocks(body, system, expansionPrompt, "")
-}
-
-type claudeOAuthSystemPromptBlockConfig struct {
-	Enabled      *bool           `json:"enabled,omitempty"`
-	Type         string          `json:"type,omitempty"`
-	Text         string          `json:"text,omitempty"`
-	CacheControl json.RawMessage `json:"cache_control,omitempty"`
-}
-
-type claudeOAuthSystemPromptBlocksEnvelope struct {
-	Blocks []claudeOAuthSystemPromptBlockConfig `json:"blocks"`
-}
-
-func defaultClaudeOAuthExpansionPrompt(expansionPrompt string) string {
-	expansionPrompt = strings.TrimSpace(expansionPrompt)
-	if expansionPrompt == "" {
-		return claudeCodeSystemPromptExpansion
-	}
-	return expansionPrompt
-}
-
-func parseClaudeOAuthSystemPromptBlocksConfig(raw string) ([]claudeOAuthSystemPromptBlockConfig, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
-		return nil, nil
-	}
-	if strings.HasPrefix(raw, "[") {
-		var blocks []claudeOAuthSystemPromptBlockConfig
-		if err := json.Unmarshal([]byte(raw), &blocks); err != nil {
-			return nil, err
-		}
-		return blocks, nil
-	}
-	var envelope claudeOAuthSystemPromptBlocksEnvelope
-	if err := json.Unmarshal([]byte(raw), &envelope); err != nil {
-		return nil, err
-	}
-	return envelope.Blocks, nil
-}
-
-func decodeClaudeOAuthSystemPromptCacheControl(raw json.RawMessage) (any, error) {
-	trimmed := bytes.TrimSpace(raw)
-	if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) || bytes.Equal(trimmed, []byte("false")) {
-		return nil, nil
-	}
-	if bytes.Equal(trimmed, []byte("true")) {
-		return map[string]string{
-			"type": "ephemeral",
-			"ttl":  claude.DefaultCacheControlTTL,
-		}, nil
-	}
-	var value any
-	if err := json.Unmarshal(trimmed, &value); err != nil {
-		return nil, err
-	}
-	if _, ok := value.(map[string]any); !ok {
-		return nil, fmt.Errorf("cache_control must be boolean, null, or object")
-	}
-	return value, nil
-}
-
-func expandClaudeOAuthSystemPromptTextTemplate(body []byte, text string, expansionPrompt string) (string, error) {
-	if text == "" {
-		return "", nil
-	}
-	expansionPrompt = defaultClaudeOAuthExpansionPrompt(expansionPrompt)
-	billingText, err := buildBillingAttributionText(body, claude.CLICurrentVersion)
-	if err != nil {
-		return "", err
-	}
-	fp := computeClaudeCodeFingerprint(body, claude.CLICurrentVersion)
-	replacer := strings.NewReplacer(
-		"{billing_header}", billingText,
-		"{cc_version}", claude.CLICurrentVersion,
-		"{fp}", fp,
-		"{claude_code_system_prompt}", claudeCodeSystemPrompt,
-		"{claude_code_expansion_prompt}", expansionPrompt,
-	)
-	return replacer.Replace(text), nil
-}
-
-func defaultClaudeOAuthSystemPromptBlockConfig() []claudeOAuthSystemPromptBlockConfig {
-	enabled := true
-	return []claudeOAuthSystemPromptBlockConfig{
-		{
-			Enabled: &enabled,
-			Type:    "text",
-			Text:    "{billing_header}",
-		},
-		{
-			Enabled: &enabled,
-			Type:    "text",
-			Text:    "{claude_code_system_prompt}",
-		},
-		{
-			Enabled: &enabled,
-			Type:    "text",
-			Text:    "{claude_code_expansion_prompt}",
-			CacheControl: json.RawMessage(
-				fmt.Sprintf(`{"type":"ephemeral","ttl":%q}`, claude.DefaultCacheControlTTL),
-			),
-		},
-	}
-}
-
-func buildClaudeOAuthSystemPromptBlocksJSON(body []byte, expansionPrompt string, blocksConfig string) ([][]byte, error) {
-	blocks, err := parseClaudeOAuthSystemPromptBlocksConfig(blocksConfig)
-	if err != nil {
-		return nil, err
-	}
-	if len(blocks) == 0 {
-		blocks = defaultClaudeOAuthSystemPromptBlockConfig()
-	}
-
-	items := make([][]byte, 0, len(blocks))
-	for i, block := range blocks {
-		if block.Enabled != nil && !*block.Enabled {
-			continue
-		}
-		blockType := strings.TrimSpace(block.Type)
-		if blockType == "" {
-			blockType = "text"
-		}
-		if blockType != "text" {
-			return nil, fmt.Errorf("system block %d type %q is not supported", i, block.Type)
-		}
-		text, err := expandClaudeOAuthSystemPromptTextTemplate(body, block.Text, expansionPrompt)
-		if err != nil {
-			return nil, err
-		}
-		if strings.TrimSpace(text) == "" {
-			continue
-		}
-		cacheControl, err := decodeClaudeOAuthSystemPromptCacheControl(block.CacheControl)
-		if err != nil {
-			return nil, fmt.Errorf("system block %d cache_control: %w", i, err)
-		}
-		raw, err := marshalAnthropicSystemTextBlockWithCacheControl(text, cacheControl)
-		if err != nil {
-			return nil, err
-		}
-		items = append(items, raw)
-	}
-	return items, nil
-}
-
-func ValidateClaudeOAuthSystemPromptBlocksConfig(raw string) error {
-	if strings.TrimSpace(raw) == "" {
-		return nil
-	}
-	blocks, err := parseClaudeOAuthSystemPromptBlocksConfig(raw)
-	if err != nil {
-		return infraerrors.BadRequest("INVALID_CLAUDE_OAUTH_SYSTEM_PROMPT_BLOCKS", "claude oauth system prompt blocks must be valid JSON")
-	}
-	for i, block := range blocks {
-		blockType := strings.TrimSpace(block.Type)
-		if blockType == "" {
-			blockType = "text"
-		}
-		if blockType != "text" {
-			return infraerrors.BadRequest("INVALID_CLAUDE_OAUTH_SYSTEM_PROMPT_BLOCKS", fmt.Sprintf("system block %d type must be text", i))
-		}
-		if _, err := decodeClaudeOAuthSystemPromptCacheControl(block.CacheControl); err != nil {
-			return infraerrors.BadRequest("INVALID_CLAUDE_OAUTH_SYSTEM_PROMPT_BLOCKS", fmt.Sprintf("system block %d cache_control is invalid", i))
-		}
-	}
-	return nil
-}
-
-func rewriteSystemForNonClaudeCodeWithPromptBlocks(body []byte, system any, expansionPrompt string, blocksConfig string) []byte {
-	system = normalizeSystemParam(system)
-	expansionPrompt = defaultClaudeOAuthExpansionPrompt(expansionPrompt)
-
-	// 1. 提取原始 system prompt 文本
-	var originalSystemText string
-	switch v := system.(type) {
-	case string:
-		originalSystemText = strings.TrimSpace(v)
-	case []any:
-		var parts []string
-		for _, item := range v {
-			if m, ok := item.(map[string]any); ok {
-				if text, ok := m["text"].(string); ok && strings.TrimSpace(text) != "" {
-					parts = append(parts, text)
-				}
-			}
-		}
-		originalSystemText = strings.Join(parts, "\n\n")
-	}
-
-	// 2. 构造 system 数组，对齐真实 Claude Code CLI 的 3-block 形态：
-	//    [0] billing attribution block（cc_version={cliVer}.{fp}; cc_entrypoint=cli; cch=00000;）
-	//    [1] "You are Claude Code..." 身份前缀 block（默认不带 cache_control）
-	//    [2] 工具无关的通用提示词扩充 block（带 cache_control 作为稳定缓存断点）
-	//
-	//    真实 CC 的 system 在身份前缀之后还有大段提示词，仅有 2 块会在块数/体量上明显
-	//    区别于真实 CLI。这里注入 claudeCodeSystemPromptExpansion（中性段落）把形态做到
-	//    接近真实，同时不注入会污染被代理用户行为的工具专属指令。
-	//
-	//    billing block 的 cch=00000 是占位符，会被 buildUpstreamRequest 里的
-	//    signBillingHeaderCCH 替换成 xxhash64 签名。缺失 billing block 的系统 payload
-	//    是 Anthropic 判定第三方的关键信号之一（真实 CLI 每个请求都带）。
-	systemBlocks, blockErr := buildClaudeOAuthSystemPromptBlocksJSON(body, expansionPrompt, blocksConfig)
-	if blockErr != nil {
-		logger.LegacyPrintf("service.gateway", "Warning: failed to build configured Claude OAuth system blocks: %v", blockErr)
-		systemBlocks, blockErr = buildClaudeOAuthSystemPromptBlocksJSON(body, expansionPrompt, "")
-	}
-	if blockErr != nil {
-		logger.LegacyPrintf("service.gateway", "Warning: failed to build default Claude OAuth system blocks: %v", blockErr)
-		return body
-	}
-	out, ok := setJSONRawBytes(body, "system", buildJSONArrayRaw(systemBlocks))
-	if !ok {
-		logger.LegacyPrintf("service.gateway", "Warning: failed to set Claude Code system prompt")
-		return body
-	}
-
-	// 3. 将原始 system prompt 作为 user/assistant 消息对注入到 messages 开头
-	//    模型仍通过 messages 接收完整指令，保留客户端功能
-	ccPromptTrimmed := strings.TrimSpace(claudeCodeSystemPrompt)
-	if originalSystemText != "" && originalSystemText != ccPromptTrimmed && !hasClaudeCodePrefix(originalSystemText) {
-		instrMsg, err1 := json.Marshal(map[string]any{
-			"role": "user",
-			"content": []map[string]any{
-				{"type": "text", "text": "[System Instructions]\n" + originalSystemText},
-			},
-		})
-		ackMsg, err2 := json.Marshal(map[string]any{
-			"role": "assistant",
-			"content": []map[string]any{
-				{"type": "text", "text": "Understood. I will follow these instructions."},
-			},
-		})
-		if err1 != nil || err2 != nil {
-			logger.LegacyPrintf("service.gateway", "Warning: failed to marshal system-to-messages injection")
-			return out
-		}
-
-		// 重建 messages 数组：[instruction, ack, ...originalMessages]
-		items := [][]byte{instrMsg, ackMsg}
-		messagesResult := gjson.GetBytes(out, "messages")
-		if messagesResult.IsArray() {
-			messagesResult.ForEach(func(_, msg gjson.Result) bool {
-				items = append(items, []byte(msg.Raw))
-				return true
-			})
-		}
-
-		if next, setOk := setJSONRawBytes(out, "messages", buildJSONArrayRaw(items)); setOk {
-			out = next
-		}
-	}
-
-	return out
-}
-
 type cacheControlPath struct {
 	path string
 	log  string
@@ -4674,7 +3853,7 @@ func (s *GatewayService) Forward(ctx context.Context, c *gin.Context, account *A
 	for attempt := 1; attempt <= maxRetryAttempts; attempt++ {
 		// 构建上游请求（每次重试需要重新构建，因为请求体需要重新读取）
 		upstreamCtx, releaseUpstreamCtx := detachStreamUpstreamContext(ctx, reqStream)
-		upstreamReq, wireBody, err := s.buildUpstreamRequest(upstreamCtx, c, account, body, token, tokenType, reqModel, reqStream, false)
+		upstreamReq, wireBody, err := s.buildUpstreamRequest(upstreamCtx, c, account, body, token, tokenType, reqModel, reqStream)
 		releaseUpstreamCtx()
 		if err != nil {
 			return nil, err
@@ -4758,7 +3937,7 @@ func (s *GatewayService) Forward(ctx context.Context, c *gin.Context, account *A
 
 					filteredBody := FilterThinkingBlocksForRetry(body, reqModel)
 					retryCtx, releaseRetryCtx := detachStreamUpstreamContext(ctx, reqStream)
-					retryReq, retryWireBody, buildErr := s.buildUpstreamRequest(retryCtx, c, account, filteredBody, token, tokenType, reqModel, reqStream, false)
+					retryReq, retryWireBody, buildErr := s.buildUpstreamRequest(retryCtx, c, account, filteredBody, token, tokenType, reqModel, reqStream)
 					releaseRetryCtx()
 					if buildErr == nil {
 						retryResp, retryErr := s.httpUpstream.DoWithTLS(retryReq, proxyURL, account.ID, account.Concurrency, tlsProfile)
@@ -4799,7 +3978,7 @@ func (s *GatewayService) Forward(ctx context.Context, c *gin.Context, account *A
 									logger.LegacyPrintf("service.gateway", "Account %d: signature retry still failing and looks tool-related, retrying with tool blocks downgraded", account.ID)
 									filteredBody2 := FilterSignatureSensitiveBlocksForRetry(body, reqModel)
 									retryCtx2, releaseRetryCtx2 := detachStreamUpstreamContext(ctx, reqStream)
-									retryReq2, retryWireBody2, buildErr2 := s.buildUpstreamRequest(retryCtx2, c, account, filteredBody2, token, tokenType, reqModel, reqStream, false)
+									retryReq2, retryWireBody2, buildErr2 := s.buildUpstreamRequest(retryCtx2, c, account, filteredBody2, token, tokenType, reqModel, reqStream)
 									releaseRetryCtx2()
 									if buildErr2 == nil {
 										retryResp2, retryErr2 := s.httpUpstream.DoWithTLS(retryReq2, proxyURL, account.ID, account.Concurrency, tlsProfile)
@@ -4878,7 +4057,7 @@ func (s *GatewayService) Forward(ctx context.Context, c *gin.Context, account *A
 					if applied && time.Since(retryStart) < maxRetryElapsed {
 						logger.LegacyPrintf("service.gateway", "Account %d: detected budget_tokens constraint error, retrying with rectified budget (budget_tokens=%d, max_tokens=%d)", account.ID, BudgetRectifyBudgetTokens, BudgetRectifyMaxTokens)
 						budgetRetryCtx, releaseBudgetRetryCtx := detachStreamUpstreamContext(ctx, reqStream)
-						budgetRetryReq, budgetWireBody, buildErr := s.buildUpstreamRequest(budgetRetryCtx, c, account, rectifiedBody, token, tokenType, reqModel, reqStream, false)
+						budgetRetryReq, budgetWireBody, buildErr := s.buildUpstreamRequest(budgetRetryCtx, c, account, rectifiedBody, token, tokenType, reqModel, reqStream)
 						releaseBudgetRetryCtx()
 						if buildErr == nil {
 							budgetRetryResp, retryErr := s.httpUpstream.DoWithTLS(budgetRetryReq, proxyURL, account.ID, account.Concurrency, tlsProfile)
@@ -5103,7 +4282,7 @@ func (s *GatewayService) Forward(ctx context.Context, c *gin.Context, account *A
 	var firstTokenMs *int
 	var clientDisconnect bool
 	if reqStream {
-		streamResult, err := s.handleStreamingResponse(ctx, resp, c, account, startTime, originalModel, reqModel, false)
+		streamResult, err := s.handleStreamingResponse(ctx, resp, c, account, startTime, originalModel, reqModel)
 		if err != nil {
 			var sseErr *sseStreamErrorEventError
 			if errors.As(err, &sseErr) {
@@ -6347,7 +5526,7 @@ func (s *GatewayService) handleBedrockNonStreamingResponse(
 	return usage, nil
 }
 
-func (s *GatewayService) buildUpstreamRequest(ctx context.Context, c *gin.Context, account *Account, body []byte, token, tokenType, modelID string, reqStream bool, mimicClaudeCode bool) (*http.Request, []byte, error) {
+func (s *GatewayService) buildUpstreamRequest(ctx context.Context, c *gin.Context, account *Account, body []byte, token, tokenType, modelID string, reqStream bool) (*http.Request, []byte, error) {
 	if account.Platform == PlatformAnthropic && account.Type == AccountTypeServiceAccount {
 		req, err := s.buildUpstreamRequestAnthropicVertex(ctx, c, account, body, token, modelID, reqStream)
 		return req, body, err
@@ -6462,17 +5641,10 @@ func (s *GatewayService) buildUpstreamRequest(ctx context.Context, c *gin.Contex
 	s.debugLogGatewaySnapshot("UPSTREAM_FORWARD", req.Header, body, map[string]string{
 		"url":                 req.URL.String(),
 		"token_type":          tokenType,
-		"mimic_claude_code":   strconv.FormatBool(mimicClaudeCode),
 		"fingerprint_applied": strconv.FormatBool(fingerprint != nil),
 		"enable_fp":           strconv.FormatBool(enableFP),
 		"enable_mpt":          strconv.FormatBool(enableMPT),
 	})
-
-	// Capture a compact fingerprint line for later error diagnostics
-	// when the explicit debug flag is enabled.
-	if s.debugClaudeMimicEnabled() {
-		logClaudeMimicDebug(req, body, account, tokenType, mimicClaudeCode)
-	}
 
 	return req, body, nil
 }
@@ -7446,7 +6618,7 @@ type streamingResult struct {
 	clientDisconnect bool // 客户端是否在流式传输过程中断开
 }
 
-func (s *GatewayService) handleStreamingResponse(ctx context.Context, resp *http.Response, c *gin.Context, account *Account, startTime time.Time, originalModel, mappedModel string, mimicClaudeCode bool) (*streamingResult, error) {
+func (s *GatewayService) handleStreamingResponse(ctx context.Context, resp *http.Response, c *gin.Context, account *Account, startTime time.Time, originalModel, mappedModel string) (*streamingResult, error) {
 	// 更新5h窗口状态
 	s.rateLimitService.UpdateSessionWindow(ctx, account, resp.Header)
 
@@ -9405,7 +8577,7 @@ func (s *GatewayService) ForwardCountTokens(ctx context.Context, c *gin.Context,
 	}
 
 	// 构建上游请求
-	upstreamReq, wireBody, err := s.buildCountTokensRequest(ctx, c, account, body, token, tokenType, reqModel, false)
+	upstreamReq, wireBody, err := s.buildCountTokensRequest(ctx, c, account, body, token, tokenType, reqModel)
 	if err != nil {
 		s.countTokensError(c, http.StatusInternalServerError, "api_error", "Failed to build request")
 		return err
@@ -9447,7 +8619,7 @@ func (s *GatewayService) ForwardCountTokens(ctx context.Context, c *gin.Context,
 		logger.LegacyPrintf("service.gateway", "Account %d: detected thinking block signature error on count_tokens, retrying with filtered thinking blocks", account.ID)
 
 		filteredBody := FilterThinkingBlocksForRetry(body, reqModel)
-		retryReq, retryWireBody, buildErr := s.buildCountTokensRequest(ctx, c, account, filteredBody, token, tokenType, reqModel, false)
+		retryReq, retryWireBody, buildErr := s.buildCountTokensRequest(ctx, c, account, filteredBody, token, tokenType, reqModel)
 		if buildErr == nil {
 			retryResp, retryErr := s.httpUpstream.DoWithTLS(retryReq, proxyURL, account.ID, account.Concurrency, s.tlsFPProfileService.ResolveTLSProfile(account))
 			if retryErr == nil {
@@ -9701,7 +8873,7 @@ func (s *GatewayService) buildCountTokensRequestAnthropicAPIKeyPassthrough(
 }
 
 // buildCountTokensRequest 构建 count_tokens 上游请求
-func (s *GatewayService) buildCountTokensRequest(ctx context.Context, c *gin.Context, account *Account, body []byte, token, tokenType, modelID string, mimicClaudeCode bool) (*http.Request, []byte, error) {
+func (s *GatewayService) buildCountTokensRequest(ctx context.Context, c *gin.Context, account *Account, body []byte, token, tokenType, modelID string) (*http.Request, []byte, error) {
 	// 确定目标 URL
 	targetURL := claudeAPICountTokensURL
 	if account.Type == AccountTypeAPIKey {
@@ -9792,10 +8964,6 @@ func (s *GatewayService) buildCountTokensRequest(ctx context.Context, c *gin.Con
 				setHeaderRaw(req.Header, "X-Claude-Code-Session-Id", parsed.SessionID)
 			}
 		}
-	}
-
-	if s.debugClaudeMimicEnabled() {
-		logClaudeMimicDebug(req, body, account, tokenType, mimicClaudeCode)
 	}
 
 	return req, body, nil
