@@ -1,5 +1,5 @@
 /**
- * Vue Router configuration for TokenPanel frontend
+ * Vue Router configuration for Sub2API frontend
  * Defines all application routes with lazy loading and navigation guards
  */
 
@@ -12,7 +12,7 @@ import { useNavigationLoadingState } from '@/composables/useNavigationLoading'
 import { useRoutePrefetch } from '@/composables/useRoutePrefetch'
 import { getSetupStatus } from '@/api/setup'
 import { resolveCompletedSetupRedirectPath } from './setupRedirect'
-import { resolveDocumentTitle } from './title'
+import { resolveRouteDocumentTitle } from './title'
 
 /**
  * Route definitions with lazy loading
@@ -362,18 +362,6 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
-    path: '/models',
-    name: 'SupportedModels',
-    component: () => import('@/views/user/ModelsView.vue'),
-    meta: {
-      requiresAuth: true,
-      requiresAdmin: false,
-      title: 'Supported Models',
-      titleKey: 'models.title',
-      descriptionKey: 'models.description'
-    }
-  },
-  {
     path: '/custom/:id',
     name: 'CustomPage',
     component: () => import('@/views/user/CustomPageView.vue'),
@@ -587,16 +575,6 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
-    path: '/admin/model-discounts',
-    redirect: '/admin/model-pricings'
-  },
-  {
-    path: '/admin/model-pricings',
-    name: 'AdminModelPricings',
-    component: () => import('@/views/admin/ModelPricingsView.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true }
-  },
-  {
     path: '/admin/affiliates',
     redirect: '/admin/affiliates/invites'
   },
@@ -754,22 +732,12 @@ router.beforeEach(async (to, _from, next) => {
 
   // Set page title
   const appStore = useAppStore()
-  // For custom pages, use menu item label as document title
-  if (to.name === 'CustomPage') {
-    const id = to.params.id as string
-    const publicItems = appStore.cachedPublicSettings?.custom_menu_items ?? []
-    const adminSettingsStore = useAdminSettingsStore()
-    const menuItem = publicItems.find((item) => item.id === id)
-      ?? (authStore.isAdmin ? adminSettingsStore.customMenuItems.find((item) => item.id === id) : undefined)
-    if (menuItem?.label) {
-      const siteName = appStore.siteName || 'TokenPanel'
-      document.title = `${menuItem.label} - ${siteName}`
-    } else {
-      document.title = resolveDocumentTitle(to.meta.title, appStore.siteName, to.meta.titleKey as string)
-    }
-  } else {
-    document.title = resolveDocumentTitle(to.meta.title, appStore.siteName, to.meta.titleKey as string)
-  }
+  const adminSettingsStore = useAdminSettingsStore()
+  const customMenuItems = [
+    ...(appStore.cachedPublicSettings?.custom_menu_items ?? []),
+    ...(authStore.isAdmin ? adminSettingsStore.customMenuItems : []),
+  ]
+  document.title = resolveRouteDocumentTitle(to, appStore.siteName, customMenuItems)
 
   // Check if route requires authentication
   const requiresAuth = to.meta.requiresAuth !== false // Default to true
