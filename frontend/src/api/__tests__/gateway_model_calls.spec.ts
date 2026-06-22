@@ -560,7 +560,7 @@ describe('API Key 用量查询 - GET /v1/usage', () => {
 
 describe('API Token 认证方式', () => {
   it('Authorization Bearer 头（推荐方式）', () => {
-    const client = createGatewayClient('sk_live_abc123')
+    createGatewayClient('sk_live_abc123')
     expect(axios.create).toHaveBeenCalledWith(expect.objectContaining({
       headers: expect.objectContaining({
         Authorization: 'Bearer sk_live_abc123',

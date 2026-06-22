@@ -532,8 +532,10 @@ const formatNumber = (value: number): string => {
 }
 
 const formatCost = (value: number): string => {
-  const v = appStore.currencyMode === 'cny' ? value * appStore.cnyRate : value
   const prefix = appStore.currencyMode === 'cny' ? '¥' : '$'
+  // 数据加载中/异步重渲染时 value 可能为 undefined/NaN，兜底为 0 避免 toFixed 崩溃
+  if (value == null || !Number.isFinite(value)) return prefix + '0.00'
+  const v = appStore.currencyMode === 'cny' ? value * appStore.cnyRate : value
   if (v >= 1000) return prefix + (v / 1000).toFixed(2) + 'K'
   if (v >= 1) return prefix + v.toFixed(2)
   if (v >= 0.01) return prefix + v.toFixed(3)
