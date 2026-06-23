@@ -97,7 +97,7 @@ func buildProvision() (*provisionCtx, error) {
 	candidates := []upCfg{
 		{"anthropic", "E2E_ANTHROPIC_UPSTREAM_KEY", "E2E_ANTHROPIC_UPSTREAM_BASE_URL", "https://api.anthropic.com", "E2E_ANTHROPIC_MODEL", "claude-sonnet-4-6"},
 		{"openai", "E2E_OPENAI_UPSTREAM_KEY", "E2E_OPENAI_UPSTREAM_BASE_URL", "https://api.openai.com/v1", "E2E_OPENAI_MODEL", "gpt-4o-mini"},
-		{"gemini", "E2E_GEMINI_UPSTREAM_KEY", "E2E_GEMINI_UPSTREAM_BASE_URL", "https://generativelanguage.googleapis.com", "E2E_GEMINI_MODEL", "gemini-2.5-flash"},
+		{"gemini", "E2E_GEMINI_UPSTREAM_KEY", "E2E_GEMINI_UPSTREAM_BASE_URL", "https://generativelanguage.googleapis.com", "E2E_GEMINI_MODEL", "gemini-3.5-flash"},
 	}
 
 	if strings.TrimSpace(os.Getenv("E2E_ANTHROPIC_UPSTREAM_KEY")) == "" {
@@ -373,7 +373,12 @@ func gwGemini(gwKey, model, prompt string) (int, []byte, error) {
 		"contents": []map[string]any{
 			{"role": "user", "parts": []map[string]string{{"text": prompt}}},
 		},
-		"generationConfig": map[string]any{"maxOutputTokens": 32},
+		// gemini 2.5+/3.x flash 默认开启 thinking，会先消耗 thoughtsTokenCount，
+		// 预算过小会导致 finishReason=MAX_TOKENS 且无正文。关闭 thinking 并留足预算。
+		"generationConfig": map[string]any{
+			"maxOutputTokens": 64,
+			"thinkingConfig":  map[string]any{"thinkingBudget": 0},
+		},
 	}
 	body, _ := json.Marshal(payload)
 	path := fmt.Sprintf("/v1beta/models/%s:generateContent", model)
