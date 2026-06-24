@@ -22,6 +22,7 @@ package integration
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -37,6 +38,11 @@ const (
 	e2eAdminEmailEnv    = "E2E_ADMIN_EMAIL"
 	e2eAdminPasswordEnv = "E2E_ADMIN_PASSWORD"
 )
+
+// errE2ENotConfigured 是「合法未启用」哨兵：仅当未配 anthropic 上游凭证时返回，
+// 据此让 requireProvision 走 Skip。其它任何 provision 失败（登录崩、seed 失败）
+// 都属「配置就绪却初始化失败」，必须 Fatal——否则 exit 0 假绿（前置不满足却静默全 SKIP）。
+var errE2ENotConfigured = errors.New("E2E 自包含套件未启用：未配置上游凭证")
 
 // platformProvision 是某个上游平台 seed 后的句柄。
 type platformProvision struct {
@@ -73,7 +79,11 @@ func requireProvision(t *testing.T) *provisionCtx {
 	t.Helper()
 	provOnce.Do(func() { provCtx, provErr = buildProvision() })
 	if provErr != nil {
-		t.Skipf("E2E 自包含套件未启用：%v", provErr)
+		// 合法未启用（没配 key）→ Skip；配了却初始化失败 → Fatal（杜绝假绿）。
+		if errors.Is(provErr, errE2ENotConfigured) {
+			t.Skipf("%v", provErr)
+		}
+		t.Fatalf("E2E provision 失败（配置就绪却初始化失败，非环境未启用）：%v", provErr)
 	}
 	return provCtx
 }
@@ -101,7 +111,7 @@ func buildProvision() (*provisionCtx, error) {
 	}
 
 	if strings.TrimSpace(os.Getenv("E2E_ANTHROPIC_UPSTREAM_KEY")) == "" {
-		return nil, fmt.Errorf("未设置 E2E_ANTHROPIC_UPSTREAM_KEY")
+		return nil, fmt.Errorf("%w（未设置 E2E_ANTHROPIC_UPSTREAM_KEY）", errE2ENotConfigured)
 	}
 
 	token, err := adminLogin(adminEmail, adminPassword)

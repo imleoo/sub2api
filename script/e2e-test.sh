@@ -66,6 +66,13 @@ fi
 if [[ -n "${E2E_BASE_URL:-}" ]]; then
   export BASE_URL="$E2E_BASE_URL"
   echo "▶ 使用已运行服务 ${BASE_URL} (不自动起停)"
+elif curl -sS -m 3 "http://127.0.0.1:${BACKEND_PORT}/health" >/dev/null 2>&1; then
+  # 端口已有健康服务 → 自动复用，绝不 dev_local up（它会 kill_port 杀掉该服务，
+  # 造成 kill→restart 空窗期、测试 connection refused 的假绿竞态）。
+  export BASE_URL="http://127.0.0.1:${BACKEND_PORT}"
+  export E2E_ADMIN_EMAIL="${E2E_ADMIN_EMAIL:-admin@sub2api.local}"
+  export E2E_ADMIN_PASSWORD="${E2E_ADMIN_PASSWORD:-admin123}"
+  echo "▶ 探测到 ${BASE_URL} 已有健康服务，自动复用（不 boot 不 kill）"
 else
   if [[ ! -x "$DEV_LOCAL" ]]; then
     echo "❌ 找不到 ${DEV_LOCAL} 无法自动起服务。请改用 E2E_BASE_URL 指向已运行实例。"
@@ -97,8 +104,26 @@ fi
 # ── 跑测试 ───────────────────────────────────────────────────────────────────
 echo "▶ 运行 E2E -run='${RUN_FILTER}' timeout=${TIMEOUT} ..."
 cd "$BACKEND_DIR"
+E2E_OUT="$(mktemp)"
+set +e
 if [[ -n "$RUN_FILTER" ]]; then
-  go test -tags=e2e -v -timeout="$TIMEOUT" -run "$RUN_FILTER" ./internal/integration/...
+  go test -tags=e2e -v -timeout="$TIMEOUT" -run "$RUN_FILTER" ./internal/integration/... 2>&1 | tee "$E2E_OUT"
 else
-  go test -tags=e2e -v -timeout="$TIMEOUT" ./internal/integration/...
+  go test -tags=e2e -v -timeout="$TIMEOUT" ./internal/integration/... 2>&1 | tee "$E2E_OUT"
 fi
+rc=${PIPESTATUS[0]}
+set -e
+
+# 假绿防护：anthropic 凭证已配 = 意图要跑。若 go test 退 0 却 0 条顶层 PASS（疑似前置
+# 不满足全 SKIP），判为失败——区分"通过"与"根本没跑"，杜绝 exit 0 假绿。
+pass_count=$(grep -c '^--- PASS' "$E2E_OUT" 2>/dev/null || true)
+rm -f "$E2E_OUT"
+if [[ "$rc" -ne 0 ]]; then
+  echo "❌ E2E 失败（go test exit=${rc}）"
+  exit "$rc"
+fi
+if [[ -n "${E2E_ANTHROPIC_UPSTREAM_KEY:-}" && "${pass_count:-0}" -eq 0 ]]; then
+  echo "❌ 假绿防护：go test exit=0 但顶层 PASS=0（anthropic 凭证已配却无用例执行，疑似全 SKIP）。判为失败。"
+  exit 1
+fi
+echo "✅ E2E 通过（顶层 PASS=${pass_count:-0}）"

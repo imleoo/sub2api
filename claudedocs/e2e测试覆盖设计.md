@@ -53,6 +53,46 @@
 | P2 | **JWT refresh-token 轮转** | 自包含可闭环：登录→refresh 换新→旧 token 作废+改密失效 |
 | P3 | **Simple 模式** | 起 `RUN_MODE=simple` 实例断言跳计费/配额 |
 
+## 3.3 端点 × 计费模式矩阵（完整性扫描新增，**最大遗漏**）
+
+之前覆盖图把"转发"笼统当一条，实际网关暴露 **~9 条转发端点、≥4 种计费模式**（`routes/gateway.go`）。e2e 只覆盖 token 模式的三条，其余全是盲区——且**不同计费模式各有独立钱风险**。
+
+| 端点 | 计费模式 | e2e 覆盖 | 备注 |
+|------|---------|---------|------|
+| `POST /v1/messages` | token | ✅ | Claude |
+| `POST /v1/chat/completions` | token | ✅ | OpenAI |
+| `/v1beta/models/*:generateContent` | token | ✅ | Gemini |
+| `POST /v1/messages/count_tokens` | 不计费 | ⚠️ skip | 上游不支持即 skip |
+| `POST /v1/responses` + `/responses/*` | token | 🔴 **零** | OpenAI Responses API / Codex direct |
+| `GET /v1/responses`（**WebSocket**） | **WS 有状态** | 🔴 **零** | `ResponsesWebSocket`/`openai_ws_v2`，usage 在 WS 流中解析（有 `UsageParseFailureTotal` 指标→会失败），**最高风险** |
+| `POST /v1/embeddings` | token（仅 input） | 🔴 **零** | |
+| `POST /v1/images/generations` | **image（按张）** | 🔴 **零** | `image billing_mode`，对应 usage_log `image_count`/`image_size_*` |
+| `POST /v1/images/edits` | **image（按张）** | 🔴 **零** | |
+
+**结论**：3.2 里"多模态计费"只是冰山一角。真正盲区是**整个 image billing_mode（按张）+ WebSocket 有状态计费 + responses/embeddings 协议**，每条都有独立的成本计算路径未验证。
+
+**openclaw 可达性（已实证探针 2026-06-24，直连 `openclaw.zhiguo.fan/v1`）**：
+| 端点 | 探针结果 | 真实 e2e 可行性 |
+|------|---------|----------------|
+| `/responses` POST | HTTP 200，真实 `resp_...` completed | ✅ **可达可测** |
+| `/images/generations` | HTTP 400「requires an image model」（非 404） | ✅ **端点已路由**，需有效 image model（真生成=真付费） |
+| `/embeddings` | HTTP 503「temporarily unavailable」 | 🔶 已路由但上游抖动 → skip-on-503 模式可测 |
+| `GET /responses` WebSocket | **真 WS 客户端握手 101**（curl 的 426 是 curl 做不了 WS upgrade 的假象） | ✅ **可达可测**，需 `OpenAI-Beta: realtime=v1` 头 + 真 WS 客户端（`coder/websocket`） |
+
+→ **四条全部真实 e2e 可落地**：responses(POST)/images/WebSocket 确认可达，embeddings 需容忍 503。WS 用 `coder/websocket`（项目已依赖）+ realtime beta 头。无悬而未决项。
+
+## 3.4 完整性扫描·其余发现
+
+| 盲点 | 现状 | openclaw 可测? | 优先级 |
+|------|------|---------------|--------|
+| **账号并发等待队列** | `concurrency_service.go`：账号级并发上限 + 等待队列 + 超时（CLAUDE.md 点名特性），零 e2e | ✅ 设低并发上限、并发打、断言排队/超时 | P1（与并发计费配套） |
+| **模型映射 / wildcard 解析** | 仅 batch-edit repro 覆盖一例（`gpt-5.3-codex→gpt-5.4-mini`），通用映射/通配未系统 e2e | ✅ | P1 |
+| **beta-header / body 透传** | 本次改动相关：`context_management` 字段 + `anthropic-beta: context-management-2025-06-27` 透传（断错会废 Claude Code CLI 客户端），仅单元测试 | ✅ 若上游校验该字段 | P2 |
+| **web-search-emulation** | 账号/渠道级特性（`GetWebSearchEmulationMode`），计费相邻，零 e2e | 🔶 视实现 | P3 |
+| **Vertex（Claude on GCP）** | `vertex_service_account.go` 独立网关路径，GCP service-account 鉴权，零 e2e | ⛔ **不走 openclaw**（GCP 鉴权）→ 同 OAuth 归"超 openclaw 范围" | 排除 |
+
+> Vertex 加入第 1 节"明确排除"的同类（openclaw 够不到）。其余四条纳入对应优先级。
+
 ## 4. 命门：账号观测机制
 
 P0 选号/sticky/转移的全部断言，依赖"观测请求落到哪个账号"。**已确认可行**：
@@ -86,7 +126,8 @@ P0 选号/sticky/转移的全部断言，依赖"观测请求落到哪个账号"�
 2. 它读的 `session_window_end` **只由上游响应头驱动**（`rateLimitService.UpdateSessionWindow(ctx, account, resp.Header)`），**admin API 无字段、无路由可设**。无法 seed 出"账号 A 比 B 更早重置"的确定状态。
 3. 更糟：openclaw 是中转站，**未必透传 Anthropic 的窗口重置头** → 该 flag 在此环境下可能根本拿不到 window 值，`filterBySoonestReset` 退化为 no-op，**改动代码在 e2e 里等于休眠、无法被真实触发**。
 
-**出路（三选一，需你定）**：(a) 直连 DB seed `session_window_end`（仍属 seed 状态、非 mock 上游，可接受）；(b) 加一个 test-only/admin setter 写窗口字段；(c) 接受 PreferSoonestReset 永远只有单元测试覆盖，e2e 只测 priority/load/LRU 三维。
+**出路（已定 = (a)，2026-06-24）**：测试起一个 `prefer_soonest_reset=true` 的实例，建两账号后**直连 DB seed 不同 `session_window_end`**，发请求断言命中"最早重置"者。属 seed 状态（非 mock 上游），不违背"不 mock"原则，是唯一能确定性触发 `filterBySoonestReset` 改动代码的路径。
+> 备选 (b) 加 test-only/admin setter（污染生产面，否决）、(c) 仅单元测试（改动代码 e2e 裸奔，否决）。
 
 ### 约束
 - `usage_log` **无 status/error 字段** → 失败尝试不记账 → 故障转移靠上述"优先级排序+最终账号"证明，不靠失败行。
