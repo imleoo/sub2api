@@ -4810,6 +4810,11 @@ func (s *GatewayService) handleStreamingResponseAnthropicAPIKeyPassthrough(
 	if contentType == "" {
 		contentType = "text/event-stream"
 	}
+	// 账号级协议适配：adapter 接管时覆盖出站 Content-Type（如 Bedrock Converse 二进制流）。
+	streamAdapter := streamAdapterFromCtx(c)
+	if streamAdapter != nil {
+		contentType = streamAdapter.StreamContentType()
+	}
 	c.Header("Content-Type", contentType)
 	if c.Writer.Header().Get("Cache-Control") == "" {
 		c.Header("Cache-Control", "no-cache")
@@ -4902,6 +4907,7 @@ func (s *GatewayService) handleStreamingResponseAnthropicAPIKeyPassthrough(
 	lastDataAt := time.Now()
 	inPartialEvent := false
 	needMask := account != nil && account.IsResponseMaskingEnabled()
+	var pendingEventType string // adapter 接管时聚合 "event:" 行，与随后 data 行配对成事件
 
 	for {
 		select {
@@ -4919,6 +4925,12 @@ func (s *GatewayService) handleStreamingResponseAnthropicAPIKeyPassthrough(
 						}
 					}
 					return &streamingResult{usage: usage, firstTokenMs: firstTokenMs, clientDisconnect: clientDisconnected}, fmt.Errorf("stream usage incomplete: missing terminal event")
+				}
+				// 正常结束（已见终止事件）：adapter 接管时写末尾收尾帧（Converse: metadata{usage}）。
+				if streamAdapter != nil && !clientDisconnected {
+					if err := streamAdapter.FinishStream(w); err == nil {
+						flusher.Flush()
+					}
 				}
 				return &streamingResult{usage: usage, firstTokenMs: firstTokenMs, clientDisconnect: clientDisconnected}, nil
 			}
@@ -4950,10 +4962,36 @@ func (s *GatewayService) handleStreamingResponseAnthropicAPIKeyPassthrough(
 					firstTokenMs = &ms
 				}
 				s.parseSSEUsagePassthrough(data, usage)
+
+				// adapter 接管：把聚合的 event+data 转目标帧写出，跳过原逐行透传。
+				if streamAdapter != nil {
+					if !clientDisconnected && trimmed != "" && trimmed != "[DONE]" {
+						et := pendingEventType
+						if et == "" {
+							et = gjson.Get(data, "type").String()
+						}
+						if werr := streamAdapter.EmitStreamEvent(w, et, []byte(data)); werr != nil {
+							clientDisconnected = true
+							logger.LegacyPrintf("service.gateway", "[Anthropic passthrough] Client disconnected during streaming (adapter): account=%d", account.ID)
+						} else {
+							flusher.Flush()
+							lastDataAt = time.Now()
+						}
+					}
+					pendingEventType = ""
+					continue
+				}
 			} else {
 				trimmed := strings.TrimSpace(line)
 				if strings.HasPrefix(trimmed, "event:") && anthropicStreamEventIsTerminal(strings.TrimSpace(strings.TrimPrefix(trimmed, "event:")), "") {
 					sawTerminalEvent = true
+				}
+				// adapter 接管：记下 event 行名，待随后 data 行配对；不直接透传。
+				if streamAdapter != nil {
+					if strings.HasPrefix(trimmed, "event:") {
+						pendingEventType = strings.TrimSpace(strings.TrimPrefix(trimmed, "event:"))
+					}
+					continue
 				}
 			}
 
@@ -4997,6 +5035,10 @@ func (s *GatewayService) handleStreamingResponseAnthropicAPIKeyPassthrough(
 				continue
 			}
 			if time.Since(lastDataAt) < keepaliveInterval {
+				continue
+			}
+			// adapter 接管时跳过 Anthropic 文本 ping：Converse 二进制流不能混入文本帧。
+			if streamAdapter != nil {
 				continue
 			}
 			if _, err := fmt.Fprint(w, "event: ping\ndata: {\"type\": \"ping\"}\n\n"); err != nil {

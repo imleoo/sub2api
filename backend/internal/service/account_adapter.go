@@ -97,14 +97,12 @@ func applyAdapterNonStream(c *gin.Context, body []byte) []byte {
 
 // streamAdapterFromCtx 返回接管流式的 adapter（仅当 StreamTakesOver），否则 nil。
 //
-// 接管点目前仅挂在**通用** handleStreamingResponse（bedrock_compat 的主路径：标准
-// anthropic 上游账号走此路）。两条特殊路径**不接管**流式，按 native 输出：
-//   - APIKey 直通 *AnthropicAPIKeyPassthrough：逐行透传模型与按事件接口不匹配；且
-//     passthrough(原样直通) 与 bedrock_compat(改写响应) 语义冲突，属非典型组合。
-//   - AWS Bedrock handleBedrockStreamingResponse：上游本就是 Bedrock，叠加 Converse 改写无意义。
+// 接管点已挂在全部三条流式响应路径（type-agnostic）：
+//   - 通用 handleStreamingResponse（bedrock_compat 主路径）
+//   - APIKey 直通 *AnthropicAPIKeyPassthrough（逐行模型，聚合 event+data 后转帧）
+//   - AWS Bedrock handleBedrockStreamingResponse（已有 eventType+sseData，直接转帧）
 //
-// 即：这两类账号若打了 bedrock_compat，非流式仍转 Converse（三路都接 applyAdapterNonStream），
-// 流式则保持 native。该限制是有意的范围控制（避免高风险重构边缘路径）。
+// adapter=nil 时三条路径均走原 native 输出，零行为变化。
 func streamAdapterFromCtx(c *gin.Context) AccountProtocolAdapter {
 	if c == nil {
 		return nil

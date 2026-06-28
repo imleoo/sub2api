@@ -126,3 +126,65 @@ func TestE2EFull_BedrockCompatConverse(t *testing.T) {
 		t.Logf("✅ Bedrock Converse 流式 OK（含 messageStart + metadata 帧）")
 	})
 }
+
+// createBedrockCompatPassthroughAccount 建一个同时启用 anthropic_passthrough + bedrock_compat
+// 的账号（走 APIKey 直通流式路径），验证该特殊路径的 adapter 流式接管。
+func createBedrockCompatPassthroughAccount(token, name, upstreamKey, baseURL string, groupID int64) (int64, error) {
+	env, err := adminAPI(token, "POST", "/api/v1/admin/accounts", map[string]any{
+		"name":     name,
+		"platform": "anthropic",
+		"type":     "apikey",
+		"credentials": map[string]any{
+			"api_key":  upstreamKey,
+			"base_url": baseURL,
+		},
+		"group_ids":   []int64{groupID},
+		"concurrency": 10,
+		"extra":       map[string]any{"anthropic_passthrough": true, "bedrock_compat": true},
+	})
+	if err != nil {
+		return 0, err
+	}
+	id, ok := dataObj(env)["id"].(float64)
+	if !ok {
+		return 0, fmt.Errorf("建账号响应无 id：%v", env)
+	}
+	return int64(id), nil
+}
+
+// TestE2EFull_BedrockCompatPassthroughStream 验证 APIKey 直通路径的流式 Converse 接管。
+func TestE2EFull_BedrockCompatPassthroughStream(t *testing.T) {
+	pc := requireProvision(t)
+	pp := pc.requirePlatform(t, "anthropic")
+
+	suffix := runNonce()
+	gid, err := createGroup(pc.adminToken, "e2e-brpass-"+suffix, "anthropic")
+	if err != nil {
+		t.Fatalf("建分组失败：%v", err)
+	}
+	if _, err := createBedrockCompatPassthroughAccount(pc.adminToken, "e2e-brpass-acct-"+suffix, pp.upstream, pp.baseURL, gid); err != nil {
+		t.Fatalf("建 passthrough+bedrock_compat 账号失败：%v", err)
+	}
+	gwKey, _, err := createGatewayKey(pc.adminToken, "e2e-brpass-key-"+suffix, gid, nil, nil)
+	if err != nil {
+		t.Fatalf("建网关 key 失败：%v", err)
+	}
+
+	st, body, err := gwClaudeMessages(gwKey, pp.model, "say STREAM in one word", true, 24)
+	if err != nil {
+		t.Fatalf("请求错误：%v", err)
+	}
+	if st != 200 {
+		t.Fatalf("期望 200，实际 %d：%s", st, truncate(body, 400))
+	}
+	if !bodyContains(body, "messageStart") {
+		t.Fatalf("passthrough 流式缺 messageStart 帧（adapter 未接管）：%s", truncate(body, 200))
+	}
+	if !bodyContains(body, "metadata") || !bodyContains(body, "inputTokens") {
+		t.Fatalf("passthrough 流式缺末尾 metadata{usage}：%s", truncate(body, 200))
+	}
+	if bodyContains(body, "event: message_start") {
+		t.Fatalf("passthrough 流式仍是 native SSE，未转 Converse：%s", truncate(body, 200))
+	}
+	t.Logf("✅ APIKey 直通路径流式 Converse 接管 OK（messageStart + metadata 帧）")
+}

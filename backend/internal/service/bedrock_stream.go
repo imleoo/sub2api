@@ -36,7 +36,13 @@ func (s *GatewayService) handleBedrockStreamingResponse(
 		return nil, errors.New("streaming not supported")
 	}
 
-	c.Header("Content-Type", "text/event-stream")
+	// 账号级协议适配：adapter 接管时覆盖出站 Content-Type（如 Bedrock Converse 二进制流）。
+	streamAdapter := streamAdapterFromCtx(c)
+	streamContentType := "text/event-stream"
+	if streamAdapter != nil {
+		streamContentType = streamAdapter.StreamContentType()
+	}
+	c.Header("Content-Type", streamContentType)
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
 	c.Header("X-Accel-Buffering", "no")
@@ -109,6 +115,9 @@ func (s *GatewayService) handleBedrockStreamingResponse(
 		case ev, ok := <-events:
 			if !ok {
 				if !clientDisconnected {
+					if streamAdapter != nil {
+						_ = streamAdapter.FinishStream(w) // Converse: 写末尾 metadata{usage} 帧
+					}
 					flusher.Flush()
 				}
 				return &streamingResult{usage: usage, firstTokenMs: firstTokenMs, clientDisconnect: clientDisconnected}, nil
@@ -144,10 +153,12 @@ func (s *GatewayService) handleBedrockStreamingResponse(
 			// 确定 SSE event type
 			eventType := gjson.GetBytes(sseData, "type").String()
 
-			// 写入标准 SSE 格式
+			// 写入：adapter 接管时转目标帧（Converse 二进制），否则标准 SSE 文本。
 			if !clientDisconnected {
 				var writeErr error
-				if eventType != "" {
+				if streamAdapter != nil {
+					writeErr = streamAdapter.EmitStreamEvent(w, eventType, sseData)
+				} else if eventType != "" {
 					_, writeErr = fmt.Fprintf(w, "event: %s\ndata: %s\n\n", eventType, sseData)
 				} else {
 					_, writeErr = fmt.Fprintf(w, "data: %s\n\n", sseData)

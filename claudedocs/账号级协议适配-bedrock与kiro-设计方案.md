@@ -656,7 +656,7 @@ bedrockCompatDesc:
 
 ### 14.4 与原设计的偏离（均有实测依据）
 
-1. **P3 流式接管仅通用上游路径**：passthrough/AWS-Bedrock 两条流式路径不接管（逐行透传模型不适配按事件接口 + 非典型组合），非流式仍转 Converse。见 `streamAdapterFromCtx` 注释。
+1. **P3 流式接管已覆盖全部三条路径**（type-agnostic）：通用 `handleStreamingResponse` + APIKey 直通 `*AnthropicAPIKeyPassthrough`（逐行聚合 event+data 后转帧）+ AWS Bedrock `handleBedrockStreamingResponse`（已有 eventType+sseData 直接转帧）。adapter=nil 时三路均走 native，零行为变化。见 `streamAdapterFromCtx` 注释。
 2. **reroute 改为跨分组兜底（非同组剔除）**：原设计假设「Kiro 报错→同组换号」，实测 Kiro 不硬拒绝能力（image/document 静默忽略）。按需求改为：Kiro 遇 image/document → **跨组 reroute 到兜底组**（如 Claude 官方组），见 14.5。
 
 ### 14.5 Kiro 能力兜底（跨组 reroute，task 12，commit `086be436`）
