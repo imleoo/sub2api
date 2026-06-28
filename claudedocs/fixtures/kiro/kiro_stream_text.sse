@@ -1,0 +1,33 @@
+event: message_start
+data: {"message":{"content":[],"id":"msg_2476600d78504931b531a73717f8e235","model":"claude-sonnet-4.6","role":"assistant","stop_reason":null,"stop_sequence":null,"type":"message","usage":{"input_tokens":11,"output_tokens":1,"cache_read_input_tokens":0,"cache_creation_input_tokens":0,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":0}}},"type":"message_start"}
+
+event: ping
+data: {"type": "ping"}
+
+event: content_block_start
+data: {"content_block":{"text":"","type":"text"},"index":0,"type":"content_block_start"}
+
+event: content_block_delta
+data: {"delta":{"text":"Ready","type":"text_delta"},"index":0,"type":"content_block_delta"}
+
+event: content_block_delta
+data: {"delta":{"text":" to help —","type":"text_delta"},"index":0,"type":"content_block_delta"}
+
+event: content_block_delta
+data: {"delta":{"text":" what are","type":"text_delta"},"index":0,"type":"content_block_delta"}
+
+event: ping
+data: {"type": "ping"}
+
+event: content_block_delta
+data: {"delta":{"text":" you working on?","type":"text_delta"},"index":0,"type":"content_block_delta"}
+
+event: content_block_stop
+data: {"index":0,"type":"content_block_stop"}
+
+event: message_delta
+data: {"delta":{"stop_reason":"end_turn","stop_sequence":null},"type":"message_delta","usage":{"input_tokens":11,"output_tokens":12,"cache_read_input_tokens":0,"cache_creation_input_tokens":0,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":0}}}
+
+event: message_stop
+data: {"type":"message_stop"}
+

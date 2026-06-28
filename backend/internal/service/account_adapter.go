@@ -8,6 +8,7 @@ import (
 	"github.com/tidwall/gjson"
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/claude/conversecompat"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/claude/kirocompat"
 )
 
 // account_adapter.go —— 账号级协议适配器（Account Protocol Adapter）
@@ -116,24 +117,28 @@ func streamAdapterFromCtx(c *gin.Context) AccountProtocolAdapter {
 
 // KiroCompatAdapter —— Kiro 兼容适配器。
 //
-// 阶段一为「零回归接壳」：仅在 adapter 框架中在册，不接管任何响应改写。
-// 现有 Kiro 行为仍由 response_masking 的 needMask 逻辑驱动（响应路径逐块
-// maskResponseBody），故此处 CorrectNonStreamResponse 必须原样返回，避免双重 masking。
-// 真正接管（身份遮蔽迁入 adapter + 响应归一标准 Anthropic）留待后续批次（P5）。
+// 非流式响应归一为标准 Anthropic（P5，基于真实 Kiro 样本）：移除 usage.inference_geo、
+// 补缺失的 stop_reason。归一与现有 response_masking 的身份遮蔽（needMask 逐块
+// maskResponseBody）**正交**——归一改 usage/stop_reason，遮蔽改文本身份，互不冲突，
+// 故不移除 needMask，也不会双重处理。
+//
+// 流式不接管（StreamTakesOver=false）：实测 Kiro 流式无 stop_reason 偏差，仅 usage 偶带
+// inference_geo（多余字段，不破坏客户端解析），归一价值低、改造成本高，保持现状走 needMask。
 type KiroCompatAdapter struct{}
 
 func newKiroCompatAdapter() *KiroCompatAdapter { return &KiroCompatAdapter{} }
 
 func (k *KiroCompatAdapter) InspectRequest(_ *ParsedRequest) RequestAction {
+	// 实测 Kiro 不硬拒绝任何能力（vision/document 静默忽略并 200 响应），无明确
+	// reroute 触发条件，故请求侧一律放行。
 	return RequestAction{Kind: ActionPass}
 }
 
 func (k *KiroCompatAdapter) CorrectNonStreamResponse(body []byte) []byte {
-	return body // 不接管：现有 needMask 路径负责，避免双重 masking
+	return kirocompat.NormalizeNonStream(body) // 归一为标准 Anthropic（与 needMask 正交）
 }
 
-// 阶段一 Kiro 不接管流式：StreamTakesOver=false → 流式走原生 needMask 路径，
-// 故下面三个方法不会被调用（仅为满足接口）。真正接管留 P5。
+// 流式不接管：保持现状走原生 needMask 路径（理由见类型注释）。
 func (k *KiroCompatAdapter) StreamTakesOver() bool                           { return false }
 func (k *KiroCompatAdapter) StreamContentType() string                       { return "text/event-stream" }
 func (k *KiroCompatAdapter) EmitStreamEvent(io.Writer, string, []byte) error { return nil }

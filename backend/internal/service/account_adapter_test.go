@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"testing"
 )
 
@@ -90,15 +91,24 @@ func TestBedrockFixAdapter_PassPlain(t *testing.T) {
 	}
 }
 
-// TestKiroCompatAdapter_ZeroRegression 验证 Kiro 接壳零回归：请求放行、响应原样返回。
-func TestKiroCompatAdapter_ZeroRegression(t *testing.T) {
+// TestKiroCompatAdapter_Normalize 验证 Kiro 非流式归一：补 stop_reason、移除 inference_geo；
+// 请求侧放行；流式不接管（走 needMask）。
+func TestKiroCompatAdapter_Normalize(t *testing.T) {
 	k := &KiroCompatAdapter{}
 	if act := k.InspectRequest(nil); act.Kind != ActionPass {
 		t.Errorf("KiroCompatAdapter should Pass, got %v", act.Kind)
 	}
-	body := []byte(`{"type":"message","content":[{"type":"text","text":"hi"}]}`)
-	if got := k.CorrectNonStreamResponse(body); string(got) != string(body) {
-		t.Errorf("KiroCompatAdapter must return body unchanged (zero regression), got %s", got)
+	// tool_use 响应缺 stop_reason + 带 inference_geo → 归一。
+	body := []byte(`{"type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_x","name":"f","input":{}}],"usage":{"input_tokens":1,"output_tokens":1,"inference_geo":"global"}}`)
+	got := k.CorrectNonStreamResponse(body)
+	if !bytes.Contains(got, []byte(`"stop_reason":"tool_use"`)) {
+		t.Errorf("应补 stop_reason=tool_use：%s", got)
+	}
+	if bytes.Contains(got, []byte("inference_geo")) {
+		t.Errorf("应移除 inference_geo：%s", got)
+	}
+	if k.StreamTakesOver() {
+		t.Errorf("KiroCompat 不应接管流式（保持 needMask 现状）")
 	}
 }
 
