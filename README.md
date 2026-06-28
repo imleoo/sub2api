@@ -28,7 +28,7 @@ This repository is maintained as the `zhiguofan` fork branch. When merging from 
 - Use `./script/sync_upstream_to_zhiguofan.sh` for upstream sync
 - `AGENTS.md` is a symlink to `CLAUDE.md`; keep `CLAUDE.md` as the single maintained agent instruction source
 
-For the full list of fork features, high-risk files, and the post-merge verification checklist, see **[`claudedocs/自定义开发功能列表.md`](claudedocs/自定义开发功能列表.md)**.
+For the full list of fork features, high-risk files, and the post-merge verification checklist, see **[`自定义开发功能列表.md`](自定义开发功能列表.md)**.
 
 ## Features
 

@@ -70,7 +70,7 @@
 | **P2-3** | `routes/gateway.go` **~10-11 处条件改造**"先新字段后回退" | 7 处 platform 分流（行号见 `glossary.md` §5）+ L168 `/v1/images/generations` 的 lingjing 分支（fork 12）+ 4 处 ForcePlatform middleware（L198/216/232/256，其中 L198 是 fork 12 lingjing 第 4 处）；**必须保留** promptAnalytics 中间件（fork 4，7 处挂载，见 `glossary.md §5` fork 锚点）和 `/lingjing/v1/video/*` 路由组（fork 12） | 6 | P2-2 | 旧 group（仅 `platform`）所有路径正常；新 group（只填 `inbound_protocol`）所有路径正常；5 个 platform 路由全通；promptAnalytics 中间件采集不丢失；lingjing 路由组完整 |
 | **P2-4** | 启动健康检查 + 监控告警 | 新增 startup check 扫描所有 group/account 双字段一致性 + 不一致行计数 metric | 2 | P2-3 | 启动时若发现不一致打 ERROR 日志；监控面板可见不一致行数 |
 | **P2-5** | 6 入口路径端到端回归集 | 6 入口路径 × **5 平台**（含 lingjing） × 流式/非流式 测试用例（强内聚不可再切：同一套 fixture 与断言库） | 4 | P2-4 | 全集通过；新增任意桥时复用该回归集 |
-| **P2-6** | fork 12 项功能回归测试集（**合并守护**） | 5 个 platform 路由 × promptAnalytics 中间件采集 × masking 短路 × lingjing 视频任务 202+poll × 折扣 + 人民币换算 × 模型广场白名单 | 1 | P2-5 | 全集通过；CI 增加 `grep -q 'promptAnalytics\|/lingjing/v1/video' backend/internal/server/routes/gateway.go` 守护检查；fork 12 项功能列表（`claudedocs/自定义开发功能列表.md`）逐项扫描 |
+| **P2-6** | fork 12 项功能回归测试集（**合并守护**） | 5 个 platform 路由 × promptAnalytics 中间件采集 × masking 短路 × lingjing 视频任务 202+poll × 折扣 + 人民币换算 × 模型广场白名单 | 1 | P2-5 | 全集通过；CI 增加 `grep -q 'promptAnalytics\|/lingjing/v1/video' backend/internal/server/routes/gateway.go` 守护检查；fork 12 项功能列表（`自定义开发功能列表.md`）逐项扫描 |
 
 **回滚**：drop 新字段 + 还原 routes/gateway.go 即可（但需手动恢复 fork 12 项功能的 lingjing 路由组——通过 P2-6 守护检查）。
 

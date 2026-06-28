@@ -16,7 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - [`claudedocs/repo-wiki.md`](claudedocs/repo-wiki.md) — 仓库结构 wiki
 - [`claudedocs/api-reference.md`](claudedocs/api-reference.md) / [`API_DOCUMENTATION.md`](API_DOCUMENTATION.md) — REST API 契约
 - [`claudedocs/admin-manual.md`](claudedocs/admin-manual.md) — 管理后台行为与字段含义
-- [`claudedocs/自定义开发功能列表.md`](claudedocs/自定义开发功能列表.md) — fork 自定义功能、高风险文件、合并清单（**唯一源**）
+- [`自定义开发功能列表.md`](自定义开发功能列表.md) — fork 自定义功能、高风险文件、合并清单（**唯一源**）
 - [`DEV_GUIDE.md`](DEV_GUIDE.md) — 仓库自带的开发指南
 
 > **多 AI 助手规则文件的关系**：
@@ -26,7 +26,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## zhiguofan 分支差异化开发
 
-fork 功能列表、高风险文件、合并检查清单详见 **[`claudedocs/自定义开发功能列表.md`](claudedocs/自定义开发功能列表.md)**，该文档为唯一维护源，本节不再重复。
+fork 功能列表、高风险文件、合并检查清单详见 **[`自定义开发功能列表.md`](自定义开发功能列表.md)**，该文档为唯一维护源，本节不再重复。
 
 ### 版本与同步策略
 
