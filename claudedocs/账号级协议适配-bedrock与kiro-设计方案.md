@@ -651,11 +651,23 @@ bedrockCompatDesc:
 |------|----------|------|
 | `cache_control` | 支持（cache_creation_input_tokens>0） | 透传 |
 | `tool_use` / `streaming` / `count_tokens` | 支持 | 透传 |
-| `vision`(image) / `document` | **静默忽略**（200，模型看不到，不报错） | 透传（见下） |
+| `vision`(image) / `document` | **静默忽略**（200，模型看不到，不报错） | **reroute 兜底**（见 14.5） |
 | `thinking` | 接受但不输出 thinking 块（降级） | 透传 |
 
 ### 14.4 与原设计的偏离（均有实测依据）
 
 1. **P3 流式接管仅通用上游路径**：passthrough/AWS-Bedrock 两条流式路径不接管（逐行透传模型不适配按事件接口 + 非典型组合），非流式仍转 Converse。见 `streamAdapterFromCtx` 注释。
-2. **P5 RerouteError 同组剔除不实施**：设计假设「Kiro 遇不支持能力→报错→reroute」，但实测 Kiro **不硬拒绝任何能力**（vision/document 静默忽略并 200），触发条件不成立。若需对「静默忽略」类能力做质量保证 reroute，应作为独立特性单独设计（高风险热路径），不在本次范围。
-3. **跨分组兜底**：维持 §4.2 结论，不在 P0–P5 范围内。
+2. **reroute 改为跨分组兜底（非同组剔除）**：原设计假设「Kiro 报错→同组换号」，实测 Kiro 不硬拒绝能力（image/document 静默忽略）。按需求改为：Kiro 遇 image/document → **跨组 reroute 到兜底组**（如 Claude 官方组），见 14.5。
+
+### 14.5 Kiro 能力兜底（跨组 reroute，task 12，commit `086be436`）
+
+复用现有预留字段 `groups.fallback_group_id_on_invalid_request`（DB+CRUD+前端 UI 已有，网关此前未消费）。
+
+- **触发**：`KiroCompatAdapter.InspectRequest` 检测请求含 image/document 块 → `ActionReroute`。
+- **决策**：`Forward` 查当前组 `FallbackGroupIDOnInvalidRequest`——配了则返回 `RequestRerouteError` 让 handler 换组；**未配则放行**（退化为 Kiro 静默忽略现状，零回归）。
+- **换组**：handler 选号循环捕获 `RequestRerouteError` → 换 `currentGroupID` + 重置 failover 状态 + 重进循环。防循环计数 max=1。
+- **口径**：计费/quota 仍按**原 key**（用户同一 key），仅**选号组**变到兜底组。
+- **安全性**（比 §4.2 review 担心的低风险）：reroute 在转发前（未写客户端字节，`writerSize` 守卫天然满足）；并发槽/串行锁已由 Forward 返回后的释放逻辑自动回收；换组后兜底组的官方账号 `adapter=nil`，不会再次 reroute（天然防无限循环）。
+- **验证**：单测（image/document/text 检测）+ e2e 对比强证明——文本走 Kiro(200) / vision reroute 到官方组(官方真处理 image) / vision reroute 到空组(503，证明请求确实离开 Kiro)。
+
+> **真正的跨分组兜底已落地**（推翻 §4.2 review「不在 P0–P5 范围」的保守结论）——得益于现有 `FallbackGroupIDOnInvalidRequest` 预留字段 + 槽/锁自动释放，实际风险远低于 review 预估。
