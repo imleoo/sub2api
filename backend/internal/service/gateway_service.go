@@ -6740,8 +6740,15 @@ func (s *GatewayService) handleStreamingResponse(ctx context.Context, resp *http
 		responseheaders.WriteFilteredHeaders(c.Writer.Header(), resp.Header, s.responseHeaderFilter)
 	}
 
+	// 账号级协议适配：若 adapter 接管流式（如 Bedrock Converse），覆盖出站 Content-Type。
+	streamAdapter := streamAdapterFromCtx(c)
+	streamContentType := "text/event-stream"
+	if streamAdapter != nil {
+		streamContentType = streamAdapter.StreamContentType()
+	}
+
 	// 设置SSE响应头
-	c.Header("Content-Type", "text/event-stream")
+	c.Header("Content-Type", streamContentType)
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
 	c.Header("X-Accel-Buffering", "no")
@@ -7000,6 +7007,12 @@ func (s *GatewayService) handleStreamingResponse(ctx context.Context, resp *http
 				if !sawTerminalEvent {
 					return &streamingResult{usage: usage, firstTokenMs: firstTokenMs, clientDisconnect: clientDisconnected}, fmt.Errorf("stream usage incomplete: missing terminal event")
 				}
+				// adapter 接管时，正常结束需写末尾收尾帧（Converse: metadata{usage}）。
+				if streamAdapter != nil && !clientDisconnected {
+					if err := streamAdapter.FinishStream(w); err == nil {
+						flusher.Flush()
+					}
+				}
 				return &streamingResult{usage: usage, firstTokenMs: firstTokenMs, clientDisconnect: clientDisconnected}, nil
 			}
 			if ev.err != nil {
@@ -7062,6 +7075,30 @@ func (s *GatewayService) handleStreamingResponse(ctx context.Context, resp *http
 					return nil, err
 				}
 
+				if streamAdapter != nil {
+					// adapter 接管：先记 firstToken/合并 usage（§6 顺序），再把 native 事件转目标帧写真实 w。
+					if data != "" && data != "[DONE]" {
+						if firstTokenMs == nil {
+							ms := int(time.Since(startTime).Milliseconds())
+							firstTokenMs = &ms
+						}
+						if usagePatch != nil {
+							mergeSSEUsagePatch(usage, usagePatch)
+						}
+						if !clientDisconnected {
+							eventType := gjson.Get(data, "type").String()
+							if werr := streamAdapter.EmitStreamEvent(w, eventType, []byte(data)); werr != nil {
+								clientDisconnected = true
+								logger.LegacyPrintf("service.gateway", "Client disconnected during streaming (adapter), continuing to drain upstream for billing")
+							} else {
+								flusher.Flush()
+								lastDataAt = time.Now()
+							}
+						}
+					}
+					continue
+				}
+
 				for _, block := range outputBlocks {
 					if !clientDisconnected {
 						restored := reverseToolNamesIfPresent(c, []byte(block))
@@ -7112,6 +7149,10 @@ func (s *GatewayService) handleStreamingResponse(ctx context.Context, resp *http
 				continue
 			}
 			if time.Since(lastDataAt) < keepaliveInterval {
+				continue
+			}
+			// adapter 接管时跳过 Anthropic 文本 ping：Converse 二进制流不能混入文本帧。
+			if streamAdapter != nil {
 				continue
 			}
 			// SSE ping 事件：Anthropic 原生格式，客户端会正确处理，

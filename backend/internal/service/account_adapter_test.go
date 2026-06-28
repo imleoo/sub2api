@@ -31,8 +31,8 @@ func TestPickAdapter(t *testing.T) {
 	}
 }
 
-// TestBedrockFixAdapter_RejectStream 验证流式请求被 Reject（P3 前的安全闸）。
-func TestBedrockFixAdapter_RejectStream(t *testing.T) {
+// TestBedrockFixAdapter_PassStream 验证流式请求放行（P3 已实现流式 Converse）。
+func TestBedrockFixAdapter_PassStream(t *testing.T) {
 	parsed, err := ParseGatewayRequest(
 		NewRequestBodyRef([]byte(`{"stream":true,"messages":[{"role":"user","content":"hi"}]}`)), "")
 	if err != nil {
@@ -42,8 +42,22 @@ func TestBedrockFixAdapter_RejectStream(t *testing.T) {
 		t.Fatalf("expected parsed.Stream==true")
 	}
 	act := (&BedrockFixAdapter{}).InspectRequest(parsed)
-	if act.Kind != ActionReject {
-		t.Errorf("streaming request should be Reject, got %v", act.Kind)
+	if act.Kind != ActionPass {
+		t.Errorf("streaming request should now Pass (P3 implemented), got %v", act.Kind)
+	}
+}
+
+// TestBedrockFixAdapter_StreamInterface 验证流式接口：接管 + Content-Type。
+func TestBedrockFixAdapter_StreamInterface(t *testing.T) {
+	b := &BedrockFixAdapter{}
+	if !b.StreamTakesOver() {
+		t.Error("BedrockFixAdapter should take over streaming")
+	}
+	if ct := b.StreamContentType(); ct != "application/vnd.amazon.eventstream" {
+		t.Errorf("StreamContentType got %q", ct)
+	}
+	if k := (&KiroCompatAdapter{}); k.StreamTakesOver() {
+		t.Error("KiroCompatAdapter must not take over streaming (zero regression)")
 	}
 }
 

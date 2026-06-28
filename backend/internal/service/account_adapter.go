@@ -1,8 +1,8 @@
 package service
 
 import (
-	"errors"
 	"fmt"
+	"io"
 
 	"github.com/gin-gonic/gin"
 	"github.com/tidwall/gjson"
@@ -16,8 +16,8 @@ import (
 // 与现有 response_masking 同源（账号 flag + 选号后判断 + 响应侧处理），是其一般化。
 // adapter=nil 的账号（绝大多数）链路零行为变化。
 //
-// 阶段一接口精简为「请求能力门 + 非流式响应改写」两个钩子；流式 Converse（二进制
-// EventStream）留待后续批次（P3）再扩接口。
+// 接口含「请求能力门 + 非流式响应改写 + 流式接管」三组钩子。流式 Converse（二进制
+// EventStream）已实现并挂在通用 handleStreamingResponse（接管范围见 streamAdapterFromCtx）。
 
 // ActionKind 是请求侧能力检查的结果类型。
 type ActionKind int
@@ -35,12 +35,25 @@ type RequestAction struct {
 	Err  error // Reject 时携带，用于构造标准 Anthropic 错误体
 }
 
-// AccountProtocolAdapter 暴露请求侧 / 响应侧两个钩子。
+// AccountProtocolAdapter 暴露请求侧 / 响应侧钩子。
+//
+// 流式：当 StreamTakesOver()==true 时，adapter 接管出站写帧（自定 Content-Type，
+// 逐事件 EmitStreamEvent，末尾 FinishStream）；为 false 时流式走原生逻辑（如 Kiro
+// 仍走 needMask 路径），此时 Stream* 方法不会被调用。
+// 每个请求一个 adapter 实例（pickAdapter 每次新建），故可持有 per-request 流式状态。
 type AccountProtocolAdapter interface {
 	// InspectRequest 检查上游能力。返回 Pass（放行）或 Reject（报错）。
 	InspectRequest(parsed *ParsedRequest) RequestAction
 	// CorrectNonStreamResponse 把非流式响应体改写为目标形态。
 	CorrectNonStreamResponse(body []byte) []byte
+	// StreamTakesOver 是否由 adapter 接管流式出站写帧。
+	StreamTakesOver() bool
+	// StreamContentType 出站 Content-Type（接管时覆盖默认 text/event-stream）。
+	StreamContentType() string
+	// EmitStreamEvent 把一条 native SSE 事件转目标格式并写真实 w。
+	EmitStreamEvent(w io.Writer, eventType string, data []byte) error
+	// FinishStream 流末尾收尾（Converse：合成并写 metadata{usage} 帧）。
+	FinishStream(w io.Writer) error
 }
 
 // accountAdapterCtxKey 是 adapter 在 gin.Context 中的存取键。
@@ -76,6 +89,28 @@ func applyAdapterNonStream(c *gin.Context, body []byte) []byte {
 	return body
 }
 
+// streamAdapterFromCtx 返回接管流式的 adapter（仅当 StreamTakesOver），否则 nil。
+//
+// 接管点目前仅挂在**通用** handleStreamingResponse（bedrock_compat 的主路径：标准
+// anthropic 上游账号走此路）。两条特殊路径**不接管**流式，按 native 输出：
+//   - APIKey 直通 *AnthropicAPIKeyPassthrough：逐行透传模型与按事件接口不匹配；且
+//     passthrough(原样直通) 与 bedrock_compat(改写响应) 语义冲突，属非典型组合。
+//   - AWS Bedrock handleBedrockStreamingResponse：上游本就是 Bedrock，叠加 Converse 改写无意义。
+//
+// 即：这两类账号若打了 bedrock_compat，非流式仍转 Converse（三路都接 applyAdapterNonStream），
+// 流式则保持 native。该限制是有意的范围控制（避免高风险重构边缘路径）。
+func streamAdapterFromCtx(c *gin.Context) AccountProtocolAdapter {
+	if c == nil {
+		return nil
+	}
+	if v, ok := c.Get(accountAdapterCtxKey); ok {
+		if ad, ok := v.(AccountProtocolAdapter); ok && ad != nil && ad.StreamTakesOver() {
+			return ad
+		}
+	}
+	return nil
+}
+
 // 注：Reject 早返回复用现有的 writeAnthropicError（openai_gateway_messages.go），
 // 签名 (c *gin.Context, statusCode int, errType, message string)，标准 Anthropic 错误体。
 
@@ -97,28 +132,28 @@ func (k *KiroCompatAdapter) CorrectNonStreamResponse(body []byte) []byte {
 	return body // 不接管：现有 needMask 路径负责，避免双重 masking
 }
 
+// 阶段一 Kiro 不接管流式：StreamTakesOver=false → 流式走原生 needMask 路径，
+// 故下面三个方法不会被调用（仅为满足接口）。真正接管留 P5。
+func (k *KiroCompatAdapter) StreamTakesOver() bool                           { return false }
+func (k *KiroCompatAdapter) StreamContentType() string                       { return "text/event-stream" }
+func (k *KiroCompatAdapter) EmitStreamEvent(io.Writer, string, []byte) error { return nil }
+func (k *KiroCompatAdapter) FinishStream(io.Writer) error                    { return nil }
+
 // BedrockFixAdapter —— Bedrock Converse 兼容适配器。
 //
 // 把标准 Anthropic 响应改写为 AWS Bedrock Converse 形态返回客户端。
-//   - InspectRequest（P2）：流式请求 + 上游不支持的能力 → Reject。
-//   - CorrectNonStreamResponse（P1）：native JSON → Converse JSON。
-//
-// 流式 Converse（二进制 EventStream）留待后续批次（P3）；在此之前由 InspectRequest
-// 对流式请求直接 Reject 兜底。
-type BedrockFixAdapter struct{}
+//   - InspectRequest：上游不支持的能力（如 document 块）→ Reject。
+//   - CorrectNonStreamResponse：native JSON → Converse JSON。
+//   - Stream*：接管流式，输出 Converse 二进制 EventStream（usage 末尾 metadata 帧）。
+type BedrockFixAdapter struct {
+	streamConv *conversecompat.StreamConverter // per-request 流式 usage 缓存（懒初始化）
+}
 
 func newBedrockFixAdapter() *BedrockFixAdapter { return &BedrockFixAdapter{} }
 
 func (b *BedrockFixAdapter) InspectRequest(parsed *ParsedRequest) RequestAction {
 	if parsed == nil {
 		return RequestAction{Kind: ActionPass}
-	}
-	// 流式 Converse（二进制 EventStream）尚未实现 → 先明确 Reject（后续批次 P3 落地后移除此条）。
-	if parsed.Stream {
-		return RequestAction{
-			Kind: ActionReject,
-			Err:  errors.New("streaming responses are not yet supported in Bedrock Converse compatibility mode"),
-		}
 	}
 	// 上游不支持的能力（最小集：document 块）→ Reject。后续可在此集中扩充清单。
 	if unsupported := bedrockUnsupportedCapability(parsed); unsupported != "" {
@@ -163,4 +198,28 @@ func hasDocumentBlock(messagesRaw []byte) bool {
 func (b *BedrockFixAdapter) CorrectNonStreamResponse(body []byte) []byte {
 	// native Anthropic JSON → Bedrock Converse JSON（§5.4②/§11.2 表 A）。
 	return conversecompat.AnthropicToConverseJSON(body)
+}
+
+// 流式：接管出站写帧，输出 Converse 二进制 EventStream。
+func (b *BedrockFixAdapter) StreamTakesOver() bool     { return true }
+func (b *BedrockFixAdapter) StreamContentType() string { return "application/vnd.amazon.eventstream" }
+
+func (b *BedrockFixAdapter) EmitStreamEvent(w io.Writer, eventType string, data []byte) error {
+	if b.streamConv == nil {
+		b.streamConv = conversecompat.NewStreamConverter()
+	}
+	frame := b.streamConv.Convert(eventType, data)
+	if frame == nil {
+		return nil // ping / message_stop / 未知 → 无对应 Converse 帧
+	}
+	_, err := w.Write(frame)
+	return err
+}
+
+func (b *BedrockFixAdapter) FinishStream(w io.Writer) error {
+	if b.streamConv == nil {
+		b.streamConv = conversecompat.NewStreamConverter()
+	}
+	_, err := w.Write(b.streamConv.Finish()) // 末尾 metadata{usage} 帧
+	return err
 }
