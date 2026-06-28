@@ -3610,6 +3610,9 @@ export default {
         responseMasking: 'Response Masking (Kiro Compat)',
         responseMaskingDesc:
           'For Anthropic-compatible upstreams (e.g. Kiro). When enabled, identity/model/tool questions are intercepted and answered with "Claude Code + model ID". Kiro/Kiro CLI strings in responses are also replaced. Disabled by default.',
+        bedrockCompat: 'Bedrock Converse Compatibility',
+        bedrockCompatDesc:
+          'Rewrites the response returned to the client into AWS Bedrock Converse shape (field remapping; streaming not yet supported). For clients that consume the Converse protocol; independent of whether the account is an AWS Bedrock account. Mutually exclusive with "Response Masking (Kiro Compat)". Disabled by default.',
       },
       modelRestriction: 'Model Restriction (Optional)',
       modelWhitelist: 'Model Whitelist',

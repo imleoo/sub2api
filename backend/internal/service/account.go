@@ -1448,6 +1448,18 @@ func (a *Account) IsResponseMaskingEnabled() bool {
 	return ok && enabled
 }
 
+// IsBedrockCompatEnabled 返回账号是否启用 Bedrock Converse 兼容模式（出站响应改写）。
+// 字段：accounts.extra.bedrock_compat。
+// 开启后，返回给客户端的响应会被改写为 AWS Bedrock Converse 协议形态。
+// 与账号是否为 AWS Bedrock 类型无关；字段缺失或类型不正确时按 false（关闭）处理。
+func (a *Account) IsBedrockCompatEnabled() bool {
+	if a == nil || a.Extra == nil {
+		return false
+	}
+	enabled, ok := a.Extra["bedrock_compat"].(bool)
+	return ok && enabled
+}
+
 // IsCodexCLIOnlyEnabled 返回 OpenAI OAuth 账号是否启用"仅允许 Codex 官方客户端"。
 // 字段：accounts.extra.codex_cli_only。
 // 字段缺失或类型不正确时，按 false（关闭）处理。

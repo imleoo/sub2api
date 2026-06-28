@@ -3761,6 +3761,9 @@ export default {
         responseMasking: '响应遮蔽（Kiro 兼容）',
         responseMaskingDesc:
           '适用于 Kiro 等 Anthropic 兼容上游。开启后，身份/模型/工具类问题将被拦截并固定回答"Claude Code + 模型名"；响应中的 Kiro/Kiro CLI 字样也会被替换。默认关闭。',
+        bedrockCompat: 'Bedrock Converse 兼容',
+        bedrockCompatDesc:
+          '把返回给客户端的响应改写为 AWS Bedrock Converse 协议形态（字段重映射；流式暂不支持）。用于客户端按 Converse 协议消费的场景，与账号是否为 AWS Bedrock 类型无关。与「响应遮蔽（Kiro 兼容）」互斥。默认关闭。',
       },
       modelRestriction: '模型限制（可选）',
       modelWhitelist: '模型白名单',

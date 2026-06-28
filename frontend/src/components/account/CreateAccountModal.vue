@@ -1777,6 +1777,37 @@
         </div>
       </div>
 
+      <!-- Anthropic: Bedrock Converse 兼容（出站响应改写，与 AWS Bedrock 账号类型无关） -->
+      <div
+        v-if="form.platform === 'anthropic'"
+        class="border-t border-gray-200 pt-4 dark:border-dark-600"
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <label class="input-label mb-0">{{ t('admin.accounts.anthropic.bedrockCompat') }}</label>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {{ t('admin.accounts.anthropic.bedrockCompatDesc') }}
+            </p>
+          </div>
+          <button
+            type="button"
+            data-testid="bedrock-compat-toggle"
+            @click="bedrockCompatEnabled = !bedrockCompatEnabled"
+            :class="[
+              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+              bedrockCompatEnabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+            ]"
+          >
+            <span
+              :class="[
+                'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                bedrockCompatEnabled ? 'translate-x-5' : 'translate-x-0'
+              ]"
+            />
+          </button>
+        </div>
+      </div>
+
       <!-- OpenAI Compact 能力配置 -->
       <div
         v-if="form.platform === 'openai' && accountCategory === 'apikey'"
@@ -2354,6 +2385,14 @@ const openaiAPIKeyResponsesWebSocketV2Mode = ref<OpenAIWSMode>(OPENAI_WS_MODE_OF
 const anthropicPassthroughEnabled = ref(false)
 const webSearchEmulationMode = ref('default')
 const responseMaskingEnabled = ref(false)
+const bedrockCompatEnabled = ref(false)
+// 互斥：一个账号不会既是 Kiro 又是 Bedrock 上游（设计 §2），两开关不可同时开。
+watch(bedrockCompatEnabled, (v) => {
+  if (v) responseMaskingEnabled.value = false
+})
+watch(responseMaskingEnabled, (v) => {
+  if (v) bedrockCompatEnabled.value = false
+})
 const webSearchGlobalEnabled = ref(false)
 const {
   globalEnabled: quotaNotifyGlobalEnabled,
@@ -3148,6 +3187,11 @@ const buildAnthropicExtra = (base?: Record<string, unknown>): Record<string, unk
       extra.response_masking = true
     } else {
       delete extra.response_masking
+    }
+    if (bedrockCompatEnabled.value) {
+      extra.bedrock_compat = true
+    } else {
+      delete extra.bedrock_compat
     }
   }
 

@@ -3723,6 +3723,23 @@ func (s *GatewayService) Forward(ctx context.Context, c *gin.Context, account *A
 		}
 	}
 
+	// 账号级协议适配器（Account Protocol Adapter）：选到账号后按 flag 取 adapter。
+	// 请求侧能力门 Reject → 构造标准 Anthropic 错误体早返回（不 failover）；
+	// 正常路径把 adapter 存入 ctx，响应侧（非流式各处理器）在写出前取用做改写。
+	if account != nil && c != nil {
+		if adapter := pickAdapter(account); adapter != nil {
+			if act := adapter.InspectRequest(parsed); act.Kind == ActionReject {
+				msg := "request uses a capability not supported by this account's upstream"
+				if act.Err != nil {
+					msg = act.Err.Error()
+				}
+				writeAnthropicError(c, http.StatusBadRequest, "invalid_request_error", msg)
+				return &ForwardResult{Masked: true}, nil
+			}
+			c.Set(accountAdapterCtxKey, adapter)
+		}
+	}
+
 	// 功能 25：generic 渠道 anthropic_messages 端点走 API Key 直通（flag 守卫）。
 	if account != nil && (account.IsAnthropicAPIKeyPassthroughEnabled() || (account.IsGeneric() && s.genericRuntimeEnabled())) {
 		passthroughBody := parsed.Body.Bytes()
@@ -5147,6 +5164,7 @@ func (s *GatewayService) handleNonStreamingResponseAnthropicAPIKeyPassthrough(
 		contentType = "application/json"
 	}
 	body = reverseToolNamesIfPresent(c, body)
+	body = applyAdapterNonStream(c, body) // 账号级协议适配（如 Bedrock Converse 改写）；无 adapter 时原样
 	if account != nil && account.IsResponseMaskingEnabled() {
 		body = maskResponseBody(body)
 	}
@@ -5554,6 +5572,9 @@ func (s *GatewayService) handleBedrockNonStreamingResponse(
 	body = transformBedrockInvocationMetrics(body)
 
 	usage := parseClaudeUsageFromResponseBody(body)
+
+	// 账号级协议适配（如 Bedrock Converse 改写）；usage 已在上方从 native 解析，改写不影响计费。
+	body = applyAdapterNonStream(c, body)
 
 	c.Header("Content-Type", "application/json")
 	if v := resp.Header.Get("x-amzn-requestid"); v != "" {
@@ -7404,6 +7425,7 @@ func (s *GatewayService) handleNonStreamingResponse(ctx context.Context, resp *h
 	}
 
 	body = reverseToolNamesIfPresent(c, body)
+	body = applyAdapterNonStream(c, body) // 账号级协议适配（如 Bedrock Converse 改写）；无 adapter 时原样
 	if account != nil && account.IsResponseMaskingEnabled() {
 		body = maskResponseBody(body)
 	}

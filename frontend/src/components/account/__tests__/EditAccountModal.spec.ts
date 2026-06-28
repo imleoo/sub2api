@@ -167,6 +167,30 @@ function buildVertexAccount() {
   } as any
 }
 
+function buildAnthropicAccount() {
+  return {
+    id: 3,
+    name: 'Claude',
+    notes: '',
+    platform: 'anthropic',
+    type: 'apikey',
+    credentials: {
+      api_key: 'sk-ant-test',
+      base_url: 'https://api.anthropic.com'
+    },
+    credentials_status: { has_api_key: true },
+    extra: {},
+    proxy_id: null,
+    concurrency: 1,
+    priority: 1,
+    rate_multiplier: 1,
+    status: 'active',
+    group_ids: [],
+    expires_at: null,
+    auto_pause_on_expired: false
+  } as any
+}
+
 function mountModal(account = buildAccount()) {
   return mount(EditAccountModal, {
     props: {
@@ -578,5 +602,61 @@ describe('EditAccountModal', () => {
     await wrapper.get('form#edit-account-form').trigger('submit.prevent')
 
     expect(updateAccountMock).not.toHaveBeenCalled()
+  })
+
+  it('loads bedrock_compat from extra and persists it on submit', async () => {
+    const account = buildAnthropicAccount()
+    account.extra = { bedrock_compat: true }
+    updateAccountMock.mockReset()
+    checkMixedChannelRiskMock.mockReset()
+    checkMixedChannelRiskMock.mockResolvedValue({ has_risk: false })
+    updateAccountMock.mockResolvedValue(account)
+
+    const wrapper = mountModal(account)
+
+    // 回填后开关应为开启态；直接提交应保留 bedrock_compat。
+    const toggle = wrapper.get<HTMLButtonElement>('[data-testid="bedrock-compat-toggle"]')
+    expect(toggle.classes()).toContain('bg-primary-600')
+
+    await wrapper.get('form#edit-account-form').trigger('submit.prevent')
+
+    expect(updateAccountMock).toHaveBeenCalledTimes(1)
+    expect(updateAccountMock.mock.calls[0]?.[1]?.extra?.bedrock_compat).toBe(true)
+  })
+
+  it('clears bedrock_compat when toggled off', async () => {
+    const account = buildAnthropicAccount()
+    account.extra = { bedrock_compat: true }
+    updateAccountMock.mockReset()
+    checkMixedChannelRiskMock.mockReset()
+    checkMixedChannelRiskMock.mockResolvedValue({ has_risk: false })
+    updateAccountMock.mockResolvedValue(account)
+
+    const wrapper = mountModal(account)
+
+    await wrapper.get('[data-testid="bedrock-compat-toggle"]').trigger('click')
+    await wrapper.get('form#edit-account-form').trigger('submit.prevent')
+
+    expect(updateAccountMock).toHaveBeenCalledTimes(1)
+    expect(updateAccountMock.mock.calls[0]?.[1]?.extra).not.toHaveProperty('bedrock_compat')
+  })
+
+  it('enabling bedrock compat disables response masking (mutual exclusion)', async () => {
+    const account = buildAnthropicAccount()
+    account.extra = { response_masking: true }
+    updateAccountMock.mockReset()
+    checkMixedChannelRiskMock.mockReset()
+    checkMixedChannelRiskMock.mockResolvedValue({ has_risk: false })
+    updateAccountMock.mockResolvedValue(account)
+
+    const wrapper = mountModal(account)
+
+    await wrapper.get('[data-testid="bedrock-compat-toggle"]').trigger('click')
+    await wrapper.get('form#edit-account-form').trigger('submit.prevent')
+
+    expect(updateAccountMock).toHaveBeenCalledTimes(1)
+    const extra = updateAccountMock.mock.calls[0]?.[1]?.extra
+    expect(extra?.bedrock_compat).toBe(true)
+    expect(extra).not.toHaveProperty('response_masking')
   })
 })
