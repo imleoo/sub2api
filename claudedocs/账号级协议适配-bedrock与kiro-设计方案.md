@@ -1,6 +1,6 @@
 # 账号级协议适配（Bedrock 协议修正 / Kiro 兼容）— 设计方案
 
-> 文档状态：草稿 · 2026-06-27 · 已过一轮 codex 真实代码 review（挂载点行号已核验，缺口已回填，见各节 **[review]** 标注与 §12）
+> 文档状态：草稿 · 2026-06-27 · 已过一轮 codex 真实代码 review（挂载点行号已核验，缺口已回填，见各节 **[review]** 标注与 §12）· **2026-06-28 全部 P0–P5 已实现落地，见 §14**
 > **两端都是标准 `/v1/messages`，不存在协议转换、不新增任何 URL/路径**。
 >
 > **一句话**：客户端始终走标准 `/v1/messages`、上游也走标准协议；网关在**选到账号之后**，按账号 flag 对**请求做能力检查**（放行/报错/兜底路由）、对**响应做针对性修正**。这是与 Kiro 兼容模式（`response_masking`，`account.go:1443`）同一类的**账号级**机制，**不碰协议、不加路由、不重构热路径**。
@@ -617,3 +617,45 @@ bedrockCompatDesc:
 | `BulkEditAccountModal.vue` | **不改**（与 masking 现状一致，§13.0②） |
 | `zh.ts` / `en.ts`（全 locale） | 新增 `bedrockCompat` / `bedrockCompatDesc`，文案强调"与 AWS Bedrock 账号类型无关 + 与 Kiro 互斥" |
 | `*.spec.ts` | 开关默认关 / toggle / 互斥 / load 回填 |
+
+---
+
+## 14. 实现落地状态（2026-06-28）
+
+全部 P0–P5 已实现并经真实上游 e2e 验证。提交：阶段一 `47bf3ed5` · P3 `c510bd8c` · P5 `34284e21`（分支 `feature/bedrock-converse-compat`）。
+
+### 14.1 已落地
+
+| 批次 | 内容 | 验证 |
+|------|------|------|
+| **P0** | `IsBedrockCompatEnabled()` + `account_adapter.go`（接口/pickAdapter/helper）+ Forward gating + 前端开关（与 Kiro 互斥） | 单测 + e2e PASS=14 |
+| **P1** | `conversecompat/mapping.go` 非流式 Anthropic→Converse（表 A 全量）+ 三路接入 | golden 对拍 + e2e Converse JSON |
+| **P2** | `InspectRequest`：document 块 → Reject | 单测 |
+| **P3** | `conversecompat/eventstream.go`（编码器 + 纯帧 decoder）+ `stream.go`（事件映射）+ 通用流式接管 | 往返自洽 + **现有 bedrockEventStreamDecoder 交叉验证** + e2e 流式二进制帧 |
+| **P4→P5** | `KiroCompatAdapter` 归一（见 14.2） | 单测 + 真实 kiro e2e |
+
+### 14.2 Kiro 真实偏差表（基于 openclaw kiro 分组实测，2026-06-28）
+
+实测结论与设计假设不同：**Kiro 响应高度符合标准 Anthropic**，偏差仅两处，已由 `kirocompat.NormalizeNonStream` 修正：
+
+| 偏差 | 位置 | 标准 Anthropic | Kiro 实测 | 归一动作 |
+|------|------|---------------|----------|---------|
+| 缺 `stop_reason` | 非流式 tool_use 响应 | `"tool_use"` | **字段缺失** | 补齐（有 tool_use→`tool_use`，否则 `end_turn`）|
+| 多余 `usage.inference_geo` | text/probe 响应 | 无 | `"global"`/`"not_available"` | 移除 |
+
+归一与现有 `response_masking` 身份遮蔽**正交**（改 usage/stop_reason vs 改文本），不移除 `needMask`、不双重处理。流式实测无 stop_reason 偏差（`message_delta` 正常带），故 KiroCompat 流式不接管。
+
+### 14.3 能力探测结果（请求侧）
+
+| 能力 | Kiro 行为 | 处理 |
+|------|----------|------|
+| `cache_control` | 支持（cache_creation_input_tokens>0） | 透传 |
+| `tool_use` / `streaming` / `count_tokens` | 支持 | 透传 |
+| `vision`(image) / `document` | **静默忽略**（200，模型看不到，不报错） | 透传（见下） |
+| `thinking` | 接受但不输出 thinking 块（降级） | 透传 |
+
+### 14.4 与原设计的偏离（均有实测依据）
+
+1. **P3 流式接管仅通用上游路径**：passthrough/AWS-Bedrock 两条流式路径不接管（逐行透传模型不适配按事件接口 + 非典型组合），非流式仍转 Converse。见 `streamAdapterFromCtx` 注释。
+2. **P5 RerouteError 同组剔除不实施**：设计假设「Kiro 遇不支持能力→报错→reroute」，但实测 Kiro **不硬拒绝任何能力**（vision/document 静默忽略并 200），触发条件不成立。若需对「静默忽略」类能力做质量保证 reroute，应作为独立特性单独设计（高风险热路径），不在本次范围。
+3. **跨分组兜底**：维持 §4.2 结论，不在 P0–P5 范围内。
