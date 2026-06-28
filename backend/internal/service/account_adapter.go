@@ -1,8 +1,10 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"slices"
 
 	"github.com/gin-gonic/gin"
 	"github.com/tidwall/gjson"
@@ -28,6 +30,9 @@ const (
 	ActionPass ActionKind = iota
 	// ActionReject 表示上游不支持请求用到的能力，构造错误体直接回客户端（不 failover）。
 	ActionReject
+	// ActionReroute 表示当前账号上游处理不了该能力，请求应换到兜底组（若配置了
+	// FallbackGroupIDOnInvalidRequest）；未配兜底组时退化为放行。
+	ActionReroute
 )
 
 // RequestAction 是 InspectRequest 的返回：Pass 放行 / Reject 报错。
@@ -128,9 +133,17 @@ type KiroCompatAdapter struct{}
 
 func newKiroCompatAdapter() *KiroCompatAdapter { return &KiroCompatAdapter{} }
 
-func (k *KiroCompatAdapter) InspectRequest(_ *ParsedRequest) RequestAction {
-	// 实测 Kiro 不硬拒绝任何能力（vision/document 静默忽略并 200 响应），无明确
-	// reroute 触发条件，故请求侧一律放行。
+func (k *KiroCompatAdapter) InspectRequest(parsed *ParsedRequest) RequestAction {
+	// 实测 Kiro 对 image(vision)/document 块**静默忽略**（200 但模型看不到内容）。
+	// 若请求用到这两类能力 → ActionReroute：由 Forward 检查当前组是否配了
+	// FallbackGroupIDOnInvalidRequest（如 Claude 官方组），配了则换组兜底，未配则放行
+	// （退化为 Kiro 静默忽略的现状，零回归）。
+	if parsed != nil && hasContentBlockType(parsed.MessagesRaw(), "image", "document") {
+		return RequestAction{
+			Kind: ActionReroute,
+			Err:  errors.New("image/document blocks are silently ignored by Kiro; rerouting to fallback group"),
+		}
+	}
 	return RequestAction{Kind: ActionPass}
 }
 
@@ -180,6 +193,11 @@ func bedrockUnsupportedCapability(parsed *ParsedRequest) string {
 
 // hasDocumentBlock 检测 messages 中是否存在 Anthropic document 内容块。
 func hasDocumentBlock(messagesRaw []byte) bool {
+	return hasContentBlockType(messagesRaw, "document")
+}
+
+// hasContentBlockType 检测 messages 中是否存在指定 type 的任一 content 块。
+func hasContentBlockType(messagesRaw []byte, types ...string) bool {
 	if len(messagesRaw) == 0 {
 		return false
 	}
@@ -188,7 +206,7 @@ func hasDocumentBlock(messagesRaw []byte) bool {
 		content := msg.Get("content")
 		if content.IsArray() {
 			content.ForEach(func(_, block gjson.Result) bool {
-				if block.Get("type").String() == "document" {
+				if slices.Contains(types, block.Get("type").String()) {
 					found = true
 					return false // 停止内层遍历
 				}

@@ -112,6 +112,30 @@ func TestKiroCompatAdapter_Normalize(t *testing.T) {
 	}
 }
 
+// TestKiroCompatAdapter_RerouteOnVisionDocument 验证 image/document 请求 → ActionReroute。
+func TestKiroCompatAdapter_RerouteOnVisionDocument(t *testing.T) {
+	k := &KiroCompatAdapter{}
+	cases := []struct {
+		name string
+		body string
+		want ActionKind
+	}{
+		{"image", `{"messages":[{"role":"user","content":[{"type":"image","source":{"type":"base64","media_type":"image/png","data":"AAAB"}}]}]}`, ActionReroute},
+		{"document", `{"messages":[{"role":"user","content":[{"type":"document","source":{}}]}]}`, ActionReroute},
+		{"text only", `{"messages":[{"role":"user","content":[{"type":"text","text":"hi"}]}]}`, ActionPass},
+		{"string content", `{"messages":[{"role":"user","content":"hi"}]}`, ActionPass},
+	}
+	for _, tc := range cases {
+		parsed, err := ParseGatewayRequest(NewRequestBodyRef([]byte(tc.body)), "")
+		if err != nil {
+			t.Fatalf("%s: parse: %v", tc.name, err)
+		}
+		if act := k.InspectRequest(parsed); act.Kind != tc.want {
+			t.Errorf("%s: InspectRequest kind=%v want %v", tc.name, act.Kind, tc.want)
+		}
+	}
+}
+
 // TestHasDocumentBlock 覆盖 document 检测的各情况。
 func TestHasDocumentBlock(t *testing.T) {
 	cases := []struct {

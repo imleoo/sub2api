@@ -525,6 +525,10 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 	currentAPIKey := apiKey
 	currentSubscription := subscription
 	fallbackUsed := false
+	// 请求侧能力 reroute（如 Kiro 遇 image/document → 兜底组）只改选号组，不动计费 key：
+	// quota/订阅仍按原 key 计（用户用同一 key），仅账号选择落到兜底组。
+	currentGroupID := apiKey.GroupID
+	groupRerouteCount := 0
 
 	{
 		fs := NewFailoverState(h.maxAccountSwitches, hasBoundSession)
@@ -543,13 +547,13 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 				zap.Bool("has_bound_session", hasBoundSession),
 				zap.Int("failed_account_count", len(fs.FailedAccountIDs)),
 			)
-			selection, err := h.gatewayService.SelectAccountWithLoadAwareness(c.Request.Context(), currentAPIKey.GroupID, sessionKey, reqModel, fs.FailedAccountIDs, parsedReq.MetadataUserID, subject.UserID)
+			selection, err := h.gatewayService.SelectAccountWithLoadAwareness(c.Request.Context(), currentGroupID, sessionKey, reqModel, fs.FailedAccountIDs, parsedReq.MetadataUserID, subject.UserID)
 			if err != nil {
 				if len(fs.FailedAccountIDs) == 0 {
 					markOpsRoutingCapacityLimitedIfNoAvailable(c, err)
 					reqLog.Warn("gateway.select_account_no_available",
 						zap.String("model", reqModel),
-						zap.Int64p("group_id", currentAPIKey.GroupID),
+						zap.Int64p("group_id", currentGroupID),
 						zap.String("platform", platform),
 						zap.Bool("fallback_used", fallbackUsed),
 						zap.Error(err),
@@ -658,7 +662,7 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 					zap.String("session_key", sessionKey),
 					zap.Int64("account_id", account.ID),
 				)
-				if err := h.gatewayService.BindStickySession(c.Request.Context(), currentAPIKey.GroupID, sessionKey, account.ID); err != nil {
+				if err := h.gatewayService.BindStickySession(c.Request.Context(), currentGroupID, sessionKey, account.ID); err != nil {
 					reqLog.Warn("gateway.bind_sticky_session_failed", zap.Int64("account_id", account.ID), zap.Error(err))
 				}
 			}
@@ -752,6 +756,33 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 				accountReleaseFunc()
 			}
 			if err != nil {
+				// 请求侧能力 reroute：换到兜底组重选（确定性能力缺失，非上游抖动）。
+				// reroute 发生在转发前（InspectRequest），未写客户端字节；并发槽/串行锁已在
+				// 上方 Forward 返回后释放，故此处只需换组 + 重置 failover 状态后重进循环。
+				var rerouteErr *service.RequestRerouteError
+				if errors.As(err, &rerouteErr) {
+					if groupRerouteCount >= 1 {
+						reqLog.Warn("gateway.reroute_exhausted",
+							zap.Int64("fallback_group_id", rerouteErr.FallbackGroupID),
+							zap.String("reason", rerouteErr.Reason),
+						)
+						h.handleStreamingAwareError(c, http.StatusBadGateway, "api_error",
+							"fallback group is also unable to handle this request", streamStarted)
+						return
+					}
+					groupRerouteCount++
+					fallbackUsed = true
+					reqLog.Info("gateway.request_reroute",
+						zap.Int64p("from_group_id", currentGroupID),
+						zap.Int64("to_group_id", rerouteErr.FallbackGroupID),
+						zap.String("reason", rerouteErr.Reason),
+					)
+					newGID := rerouteErr.FallbackGroupID
+					currentGroupID = &newGID
+					fs = NewFailoverState(h.maxAccountSwitches, false) // 新组无 sticky，重置 failover 状态
+					continue
+				}
+
 				// Beta policy block: return 400 immediately, no failover
 				var betaBlockedErr *service.BetaBlockedError
 				if errors.As(err, &betaBlockedErr) {
@@ -825,7 +856,7 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 			// - 粘性账号因负载/RPM 被跳过、选中了其他账号：不覆盖原绑定，
 			//   下次请求粘性账号恢复后仍可命中
 			if sessionKey != "" && (sessionBoundAccountID == 0 || sessionBoundAccountID == account.ID) {
-				if err := h.gatewayService.BindStickySession(c.Request.Context(), currentAPIKey.GroupID, sessionKey, account.ID); err != nil {
+				if err := h.gatewayService.BindStickySession(c.Request.Context(), currentGroupID, sessionKey, account.ID); err != nil {
 					reqLog.Warn("gateway.bind_sticky_session_failed", zap.Int64("account_id", account.ID), zap.Error(err))
 				}
 			}

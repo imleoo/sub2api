@@ -479,6 +479,20 @@ func (e *UpstreamFailoverError) Error() string {
 	return fmt.Sprintf("upstream error: %d (failover)", e.StatusCode)
 }
 
+// RequestRerouteError 表示请求用到了当前账号上游处理不了的能力（如 Kiro 静默忽略
+// image/document），且当前组配置了 FallbackGroupIDOnInvalidRequest，应换到该兜底组重选。
+// 与 UpstreamFailoverError 区分：这是确定性的能力缺失（换组），不是上游抖动（同组换号）。
+// 由 handler 选号循环识别并换组重试。reroute 发生在转发前（InspectRequest），未写任何
+// 客户端字节，故 writerSize 守卫天然满足、并发槽/串行锁已由 Forward 后的释放逻辑回收。
+type RequestRerouteError struct {
+	FallbackGroupID int64
+	Reason          string
+}
+
+func (e *RequestRerouteError) Error() string {
+	return fmt.Sprintf("reroute to fallback group %d: %s", e.FallbackGroupID, e.Reason)
+}
+
 // sseStreamErrorEventError 表示上游 SSE 流体内出现 event:error 帧。
 // RawData 是该事件 data: 行的原始 JSON 字符串
 // （Anthropic 标准结构 {"type":"error","error":{"type":"...","message":"..."}}）。
@@ -1896,6 +1910,19 @@ func (s *GatewayService) resolveGroupByID(ctx context.Context, groupID int64) (*
 
 func (s *GatewayService) ResolveGroupByID(ctx context.Context, groupID int64) (*Group, error) {
 	return s.resolveGroupByID(ctx, groupID)
+}
+
+// invalidRequestFallbackGroupID 返回当前组配置的「无效请求兜底组」ID
+// （FallbackGroupIDOnInvalidRequest）；无配置或查询失败返回 nil。
+func (s *GatewayService) invalidRequestFallbackGroupID(ctx context.Context, groupID *int64) *int64 {
+	if groupID == nil {
+		return nil
+	}
+	group, err := s.resolveGroupByID(ctx, *groupID)
+	if err != nil || group == nil {
+		return nil
+	}
+	return group.FallbackGroupIDOnInvalidRequest
 }
 
 func (s *GatewayService) routingAccountIDsForRequest(ctx context.Context, groupID *int64, requestedModel string, platform string) []int64 {
@@ -3728,15 +3755,28 @@ func (s *GatewayService) Forward(ctx context.Context, c *gin.Context, account *A
 	// 正常路径把 adapter 存入 ctx，响应侧（非流式各处理器）在写出前取用做改写。
 	if account != nil && c != nil {
 		if adapter := pickAdapter(account); adapter != nil {
-			if act := adapter.InspectRequest(parsed); act.Kind == ActionReject {
+			switch act := adapter.InspectRequest(parsed); act.Kind {
+			case ActionReject:
 				msg := "request uses a capability not supported by this account's upstream"
 				if act.Err != nil {
 					msg = act.Err.Error()
 				}
 				writeAnthropicError(c, http.StatusBadRequest, "invalid_request_error", msg)
 				return &ForwardResult{Masked: true}, nil
+			case ActionReroute:
+				// 当前组配了无效请求兜底组 → 返回 reroute 让 handler 换组重选；
+				// 未配则放行（退化为现状，零回归）。
+				if fb := s.invalidRequestFallbackGroupID(ctx, parsed.GroupID); fb != nil {
+					reason := "capability not effectively supported by upstream"
+					if act.Err != nil {
+						reason = act.Err.Error()
+					}
+					return nil, &RequestRerouteError{FallbackGroupID: *fb, Reason: reason}
+				}
+				c.Set(accountAdapterCtxKey, adapter)
+			default: // ActionPass
+				c.Set(accountAdapterCtxKey, adapter)
 			}
-			c.Set(accountAdapterCtxKey, adapter)
 		}
 	}
 
