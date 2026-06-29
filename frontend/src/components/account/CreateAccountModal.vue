@@ -3375,13 +3375,8 @@ const handleSubmit = async () => {
     return
   }
 
-  // For apikey type, create directly
-  if (!apiKeyValue.value.trim()) {
-    appStore.showError(t('admin.accounts.pleaseEnterApiKey'))
-    return
-  }
-
   // Generic Channel: create directly with endpoint list (一个账号级 key 共享给所有 endpoint)
+  // 注意：必须在下方通用 apikey 校验之前处理，generic 的 key 存在 genericApiKey 而非 apiKeyValue
   if (form.platform === 'generic') {
     if (!form.name.trim()) {
       appStore.showError(t('admin.accounts.pleaseEnterAccountName'))
@@ -3401,6 +3396,12 @@ const handleSubmit = async () => {
       return
     }
     await createAccountAndFinish('generic', 'apikey' as AccountType, { api_key: genericApiKey.value.trim() })
+    return
+  }
+
+  // For apikey type, create directly
+  if (!apiKeyValue.value.trim()) {
+    appStore.showError(t('admin.accounts.pleaseEnterApiKey'))
     return
   }
 
