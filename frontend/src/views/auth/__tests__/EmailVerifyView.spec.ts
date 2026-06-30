@@ -138,7 +138,6 @@ describe('EmailVerifyView', () => {
       JSON.stringify({
         email: 'fresh@example.com',
         password: 'secret-123',
-        aff_code: 'AFF123',
       })
     )
 
@@ -306,6 +305,7 @@ describe('EmailVerifyView', () => {
       JSON.stringify({
         email: 'fresh@example.com',
         password: 'secret-123',
+        aff_code: 'AFF123',
       })
     )
     // register_data 不含 aff_code，验证回退到已存储的推荐码（loadAffiliateReferralCode）
