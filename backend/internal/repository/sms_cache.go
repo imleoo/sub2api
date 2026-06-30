@@ -15,6 +15,22 @@ func smsVerifyCodeKey(phone string) string {
 	return smsVerifyCodeKeyPrefix + phone
 }
 
+func smsVerifyAttemptsKey(phone string) string {
+	return smsVerifyCodeKeyPrefix + phone + ":attempts"
+}
+
+// smsVerifyAttemptsIncrScript 原子自增失败尝试次数；首次自增时设置 TTL，避免孤儿键。
+// 返回自增后的当前值，供调用方判断是否超过上限。
+var smsVerifyAttemptsIncrScript = redis.NewScript(`
+	local key = KEYS[1]
+	local ttl = tonumber(ARGV[1])
+	local count = redis.call('INCR', key)
+	if count == 1 then
+		redis.call('EXPIRE', key, ttl)
+	end
+	return count
+`)
+
 type smsCache struct {
 	rdb *redis.Client
 }
@@ -47,6 +63,14 @@ func (c *smsCache) SetSmsVerifyCode(ctx context.Context, phone string, data *ser
 }
 
 func (c *smsCache) DeleteSmsVerifyCode(ctx context.Context, phone string) error {
-	key := smsVerifyCodeKey(phone)
-	return c.rdb.Del(ctx, key).Err()
+	// 同时清除验证码与失败尝试计数，保持两键一致。
+	return c.rdb.Del(ctx, smsVerifyCodeKey(phone), smsVerifyAttemptsKey(phone)).Err()
+}
+
+// IncrSmsVerifyAttempts 原子自增失败尝试次数并返回自增后的值。
+// ttl 用于首次自增时设置计数键过期时间（跟随验证码剩余有效期）。
+func (c *smsCache) IncrSmsVerifyAttempts(ctx context.Context, phone string, ttl time.Duration) (int64, error) {
+	ttlSeconds := max(int64(ttl.Seconds()), 1)
+	key := smsVerifyAttemptsKey(phone)
+	return smsVerifyAttemptsIncrScript.Run(ctx, c.rdb, []string{key}, ttlSeconds).Int64()
 }

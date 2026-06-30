@@ -157,6 +157,10 @@ func (r *ModelPricingResolver) applyTokenOverrides(chPricing *ChannelModelPricin
 			resolved.BasePricing.ImageOutputPricePerToken = 0
 		}
 		resolved.BasePricing.ImageOutputPriceExplicit = true
+		// 图片输入价：渠道显式配置则覆盖；未配置时计费回退到文本输入价。
+		if chPricing.ImageInputPrice != nil {
+			resolved.BasePricing.ImageInputPricePerToken = *chPricing.ImageInputPrice
+		}
 		return
 	}
 
@@ -189,6 +193,10 @@ func (r *ModelPricingResolver) applyTokenOverrides(chPricing *ChannelModelPricin
 		resolved.BasePricing.ImageOutputPricePerToken = 0
 	}
 	resolved.BasePricing.ImageOutputPriceExplicit = true
+	// 图片输入价：渠道显式配置则覆盖；未配置时计费回退到文本输入价。
+	if chPricing.ImageInputPrice != nil {
+		resolved.BasePricing.ImageInputPricePerToken = *chPricing.ImageInputPrice
+	}
 }
 
 // applyRequestTierOverrides 应用按次/图片模式的渠道覆盖
@@ -255,6 +263,10 @@ func intervalToModelPricing(iv *PricingInterval, supportsCacheBreakdown bool, ch
 		pricing.ImageOutputPriceExplicit = true
 		if chPricing.ImageOutputPrice != nil {
 			pricing.ImageOutputPricePerToken = *chPricing.ImageOutputPrice
+		}
+		// 图片输入价：渠道显式配置则覆盖；未配置时计费回退到文本输入价。
+		if chPricing.ImageInputPrice != nil {
+			pricing.ImageInputPricePerToken = *chPricing.ImageInputPrice
 		}
 	}
 	return pricing

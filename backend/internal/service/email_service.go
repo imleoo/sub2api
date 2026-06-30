@@ -34,6 +34,8 @@ type EmailCache interface {
 	GetVerificationCode(ctx context.Context, email string) (*VerificationCodeData, error)
 	SetVerificationCode(ctx context.Context, email string, data *VerificationCodeData, ttl time.Duration) error
 	DeleteVerificationCode(ctx context.Context, email string) error
+	// IncrVerifyAttempts 原子自增失败尝试次数并返回自增后的值。
+	IncrVerifyAttempts(ctx context.Context, email string, ttl time.Duration) (int64, error)
 
 	// Notify email verification code methods
 	GetNotifyVerifyCode(ctx context.Context, email string) (*VerificationCodeData, error)
@@ -382,29 +384,32 @@ func (s *EmailService) SendVerifyCode(ctx context.Context, email, siteName strin
 	return nil
 }
 
-// VerifyCode 验证验证码
+// VerifyCode 验证验证码。
+// 失败尝试次数通过 Redis 原子自增计数，避免"读-改-写"并发竞态绕过次数上限。
 func (s *EmailService) VerifyCode(ctx context.Context, email, code string) error {
 	data, err := s.cache.GetVerificationCode(ctx, email)
 	if err != nil || data == nil {
 		return ErrInvalidVerifyCode
 	}
 
-	// 检查是否已达到最大尝试次数
-	if data.Attempts >= maxVerifyCodeAttempts {
-		return ErrVerifyCodeMaxAttempts
+	remaining := time.Until(data.ExpiresAt)
+	if remaining <= 0 {
+		return ErrInvalidVerifyCode
 	}
 
 	// 验证码不匹配 (constant-time comparison to prevent timing attacks)
 	if subtle.ConstantTimeCompare([]byte(data.Code), []byte(code)) != 1 {
-		data.Attempts++
-		remaining := time.Until(data.ExpiresAt)
-		if remaining <= 0 {
+		attempts, incrErr := s.cache.IncrVerifyAttempts(ctx, email, remaining)
+		if incrErr != nil {
+			// 计数失败时保守拒绝本次校验，不放行。
+			slog.Error("failed to increment verification attempt count", "email", email, "error", incrErr)
 			return ErrInvalidVerifyCode
 		}
-		if err := s.cache.SetVerificationCode(ctx, email, data, remaining); err != nil {
-			slog.Error("failed to update verification attempt count", "email", email, "error", err)
-		}
-		if data.Attempts >= maxVerifyCodeAttempts {
+		if attempts >= maxVerifyCodeAttempts {
+			// 达到上限：删除验证码强制重新获取，阻断爆破。
+			if delErr := s.cache.DeleteVerificationCode(ctx, email); delErr != nil {
+				slog.Error("failed to delete verification code after max attempts", "email", email, "error", delErr)
+			}
 			return ErrVerifyCodeMaxAttempts
 		}
 		return ErrInvalidVerifyCode

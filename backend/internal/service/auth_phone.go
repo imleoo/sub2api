@@ -70,7 +70,8 @@ func (s *AuthService) RegisterWithPhone(ctx context.Context, phone, code, userna
 }
 
 // LoginWithPhone 通过手机号+短信验证码登录。首次登录时自动注册。
-func (s *AuthService) LoginWithPhone(ctx context.Context, phone, code string) (*User, error) {
+// invitationCode 仅在自动注册且系统开启强制邀请码时使用；老用户登录忽略该参数。
+func (s *AuthService) LoginWithPhone(ctx context.Context, phone, code, invitationCode string) (*User, error) {
 	if s.settingService == nil || !s.settingService.IsPhoneRegisterEnabled(ctx) {
 		return nil, ErrRegDisabled
 	}
@@ -97,7 +98,7 @@ func (s *AuthService) LoginWithPhone(ctx context.Context, phone, code string) (*
 		if len(suffix) >= 4 {
 			suffix = suffix[len(suffix)-4:]
 		}
-		return s.createPhoneUser(ctx, normalized, "user_"+suffix, "", "", "")
+		return s.createPhoneUser(ctx, normalized, "user_"+suffix, "", invitationCode, "")
 	}
 
 	if !user.IsActive() {

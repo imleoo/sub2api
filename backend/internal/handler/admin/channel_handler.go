@@ -65,6 +65,7 @@ type channelModelPricingRequest struct {
 	CacheWritePrice  *float64                 `json:"cache_write_price" binding:"omitempty,min=0"`
 	CacheReadPrice   *float64                 `json:"cache_read_price" binding:"omitempty,min=0"`
 	ImageOutputPrice *float64                 `json:"image_output_price" binding:"omitempty,min=0"`
+	ImageInputPrice  *float64                 `json:"image_input_price" binding:"omitempty,min=0"`
 	PerRequestPrice  *float64                 `json:"per_request_price" binding:"omitempty,min=0"`
 	Intervals        []pricingIntervalRequest `json:"intervals"`
 }
@@ -116,6 +117,7 @@ type channelModelPricingResponse struct {
 	CacheWritePrice  *float64                  `json:"cache_write_price"`
 	CacheReadPrice   *float64                  `json:"cache_read_price"`
 	ImageOutputPrice *float64                  `json:"image_output_price"`
+	ImageInputPrice  *float64                  `json:"image_input_price"`
 	PerRequestPrice  *float64                  `json:"per_request_price"`
 	Intervals        []pricingIntervalResponse `json:"intervals"`
 }
@@ -223,6 +225,7 @@ func pricingToResponse(p *service.ChannelModelPricing) channelModelPricingRespon
 		CacheWritePrice:  p.CacheWritePrice,
 		CacheReadPrice:   p.CacheReadPrice,
 		ImageOutputPrice: p.ImageOutputPrice,
+		ImageInputPrice:  p.ImageInputPrice,
 		PerRequestPrice:  p.PerRequestPrice,
 		Intervals:        intervals,
 	}
@@ -274,6 +277,7 @@ func pricingRequestToService(reqs []channelModelPricingRequest) []service.Channe
 			CacheWritePrice:  r.CacheWritePrice,
 			CacheReadPrice:   r.CacheReadPrice,
 			ImageOutputPrice: r.ImageOutputPrice,
+			ImageInputPrice:  r.ImageInputPrice,
 			PerRequestPrice:  r.PerRequestPrice,
 			Intervals:        intervals,
 		})
@@ -499,6 +503,7 @@ func (h *ChannelHandler) GetModelDefaultPricing(c *gin.Context) {
 		"cache_write_price":  pricing.CacheCreationPricePerToken,
 		"cache_read_price":   pricing.CacheReadPricePerToken,
 		"image_output_price": pricing.ImageOutputPricePerToken,
+		"image_input_price":  pricing.ImageInputPricePerToken,
 	})
 }
 

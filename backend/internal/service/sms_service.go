@@ -33,6 +33,8 @@ type SmsCache interface {
 	GetSmsVerifyCode(ctx context.Context, phone string) (*VerificationCodeData, error)
 	SetSmsVerifyCode(ctx context.Context, phone string, data *VerificationCodeData, ttl time.Duration) error
 	DeleteSmsVerifyCode(ctx context.Context, phone string) error
+	// IncrSmsVerifyAttempts 原子自增失败尝试次数并返回自增后的值。
+	IncrSmsVerifyAttempts(ctx context.Context, phone string, ttl time.Duration) (int64, error)
 }
 
 // SendSmsCodeResult 发送短信验证码返回结果
@@ -176,27 +178,31 @@ func (s *SmsService) SendVerifyCode(ctx context.Context, phone string) (*SendSms
 	return &SendSmsCodeResult{Countdown: int(smsVerifyCodeCooldown.Seconds())}, nil
 }
 
-// VerifyCode 验证短信验证码（验证后自动删除，防重放）
+// VerifyCode 验证短信验证码（验证后自动删除，防重放）。
+// 失败尝试次数通过 Redis 原子自增计数，避免"读-改-写"并发竞态绕过次数上限。
 func (s *SmsService) VerifyCode(ctx context.Context, phone, code string) error {
 	data, err := s.cache.GetSmsVerifyCode(ctx, phone)
 	if err != nil || data == nil {
 		return ErrInvalidSmsCode
 	}
 
-	if data.Attempts >= smsMaxVerifyCodeAttempts {
-		return ErrSmsCodeMaxAttempts
+	remaining := time.Until(data.ExpiresAt)
+	if remaining <= 0 {
+		return ErrInvalidSmsCode
 	}
 
 	if subtle.ConstantTimeCompare([]byte(data.Code), []byte(code)) != 1 {
-		data.Attempts++
-		remaining := time.Until(data.ExpiresAt)
-		if remaining <= 0 {
+		attempts, incrErr := s.cache.IncrSmsVerifyAttempts(ctx, phone, remaining)
+		if incrErr != nil {
+			// 计数失败时保守拒绝本次校验，不放行。
+			slog.Error("failed to increment sms code attempt count", "phone_prefix", phone[:min(4, len(phone))], "error", incrErr)
 			return ErrInvalidSmsCode
 		}
-		if err := s.cache.SetSmsVerifyCode(ctx, phone, data, remaining); err != nil {
-			slog.Error("failed to update sms code attempt count", "phone_prefix", phone[:min(4, len(phone))], "error", err)
-		}
-		if data.Attempts >= smsMaxVerifyCodeAttempts {
+		if attempts >= smsMaxVerifyCodeAttempts {
+			// 达到上限：删除验证码强制重新获取，阻断爆破。
+			if delErr := s.cache.DeleteSmsVerifyCode(ctx, phone); delErr != nil {
+				slog.Error("failed to delete sms code after max attempts", "error", delErr)
+			}
 			return ErrSmsCodeMaxAttempts
 		}
 		return ErrInvalidSmsCode

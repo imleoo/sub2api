@@ -236,6 +236,7 @@ func (s *BillingService) resolveEffectivePriceWithEntry(model string, p *ModelPr
 	result.CacheReadPricePerToken *= rate
 	result.CacheReadPricePerTokenPriority *= rate
 	result.ImageOutputPricePerToken *= rate
+	result.ImageInputPricePerToken *= rate
 
 	return &result
 }
@@ -346,6 +347,10 @@ func (s *BillingService) GetModelPricingWithChannel(model string, channelPricing
 		pricing.ImageOutputPricePerToken = 0
 	}
 	pricing.ImageOutputPriceExplicit = true
+	// 图片输入价：渠道显式配置则覆盖，否则保留基础值（计费时为 0 会回退到文本输入价）。
+	if channelPricing.ImageInputPrice != nil {
+		pricing.ImageInputPricePerToken = *channelPricing.ImageInputPrice
+	}
 	return pricing, nil
 }
 

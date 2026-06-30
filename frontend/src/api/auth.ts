@@ -680,6 +680,7 @@ export interface PhoneRegisterRequest {
 export interface PhoneLoginRequest {
   phone: string
   code: string
+  invitation_code?: string
   turnstile_token?: string
 }
 

@@ -973,3 +973,41 @@ func TestComputeTokenBreakdown_NonExplicitZeroImagePrice_FallsBackToOutput(t *te
 	// textOutputTokens = 200 - 50 = 150
 	require.InDelta(t, 150*15e-6, bd.OutputCost, 1e-12)
 }
+
+func TestComputeTokenBreakdown_ImageInputPrice_Differentiated(t *testing.T) {
+	svc := newTestBillingService()
+
+	pricing := &ModelPricing{
+		InputPricePerToken:      3e-6,
+		OutputPricePerToken:     15e-6,
+		ImageInputPricePerToken: 10e-6,
+	}
+	tokens := UsageTokens{
+		InputTokens:      100, // 含 40 个图片输入 token
+		ImageInputTokens: 40,
+		OutputTokens:     0,
+	}
+	bd := svc.computeTokenBreakdown(pricing, tokens, 1.0, "", false)
+
+	// textInputTokens = 100 - 40 = 60，按文本价；图片 40 个按图片输入价。
+	require.InDelta(t, 60*3e-6+40*10e-6, bd.InputCost, 1e-12)
+}
+
+func TestComputeTokenBreakdown_ImageInputPrice_ZeroFallsBackToInput(t *testing.T) {
+	svc := newTestBillingService()
+
+	pricing := &ModelPricing{
+		InputPricePerToken:      3e-6,
+		OutputPricePerToken:     15e-6,
+		ImageInputPricePerToken: 0, // 未配置 → 回退文本输入价
+	}
+	tokens := UsageTokens{
+		InputTokens:      100,
+		ImageInputTokens: 40,
+		OutputTokens:     0,
+	}
+	bd := svc.computeTokenBreakdown(pricing, tokens, 1.0, "", false)
+
+	// 全部 100 个 input token 按文本价计费。
+	require.InDelta(t, 100*3e-6, bd.InputCost, 1e-12)
+}

@@ -460,6 +460,11 @@ func (s *userHandlerEmailCacheStub) DeleteVerificationCode(context.Context, stri
 	return nil
 }
 
+// IncrVerifyAttempts stub：测试不走失败次数上限路径，恒返回 1。
+func (s *userHandlerEmailCacheStub) IncrVerifyAttempts(context.Context, string, time.Duration) (int64, error) {
+	return 1, nil
+}
+
 func (s *userHandlerEmailCacheStub) GetNotifyVerifyCode(context.Context, string) (*service.VerificationCodeData, error) {
 	return nil, nil
 }

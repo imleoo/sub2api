@@ -65,6 +65,27 @@
           </div>
         </div>
 
+        <!-- Invitation Code Input (phone mode, required when enabled) -->
+        <div v-if="phoneLoginMode && invitationCodeEnabled">
+          <label for="login-invitation-code" class="input-label">
+            {{ t('auth.invitationCodeLabel') }}
+          </label>
+          <div class="relative">
+            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+              <Icon name="key" size="md" class="text-gray-400 dark:text-dark-500" />
+            </div>
+            <input
+              id="login-invitation-code"
+              v-model="phoneLoginForm.invitationCode"
+              type="text"
+              :disabled="authActionDisabled"
+              class="input pl-11"
+              :placeholder="t('auth.invitationCodePlaceholder')"
+            />
+          </div>
+          <p class="input-hint">{{ t('auth.phoneLoginInvitationHint') }}</p>
+        </div>
+
         <!-- Email Input (email mode) -->
         <div v-if="!phoneLoginMode">
           <label for="email" class="input-label">
@@ -323,10 +344,11 @@ const googleOAuthEnabled = ref<boolean>(false)
 const passwordResetEnabled = ref<boolean>(false)
 const phoneRegisterEnabled = ref<boolean>(false)
 const passwordLoginEnabled = ref<boolean>(true)
+const invitationCodeEnabled = ref<boolean>(false)
 const phoneLoginMode = ref<boolean>(false) // true = show phone form, false = show email form
 
 // Phone login state
-const phoneLoginForm = reactive({ phone: '', smsCode: '' })
+const phoneLoginForm = reactive({ phone: '', smsCode: '', invitationCode: '' })
 const smsLoginCountdown = ref<number>(0)
 let smsLoginTimer: ReturnType<typeof setInterval> | null = null
 const loginAgreementEnabled = ref<boolean>(false)
@@ -414,6 +436,7 @@ onMounted(async () => {
     passwordResetEnabled.value = settings.password_reset_enabled
     phoneRegisterEnabled.value = settings.phone_register_enabled ?? false
     passwordLoginEnabled.value = settings.password_login_enabled ?? true
+    invitationCodeEnabled.value = settings.invitation_code_enabled ?? false
     if (phoneRegisterEnabled.value) {
       phoneLoginMode.value = true
     }
@@ -687,11 +710,18 @@ async function handlePhoneLogin(): Promise<void> {
     errorMessage.value = t('auth.smsCodeRequired')
     return
   }
+  // 开启强制邀请码时，新用户首次登录即自动注册，需在提交前带上邀请码，
+  // 否则短信码在后端被消耗后才触发邀请码校验，用户需重新获取验证码。
+  if (invitationCodeEnabled.value && !phoneLoginForm.invitationCode.trim()) {
+    errorMessage.value = t('auth.invitationCodeRequired')
+    return
+  }
   isLoading.value = true
   try {
     await authStore.phoneLogin({
       phone: phoneLoginForm.phone.trim(),
       code: phoneLoginForm.smsCode.trim(),
+      invitation_code: phoneLoginForm.invitationCode.trim() || undefined,
       turnstile_token: turnstileEnabled.value ? turnstileToken.value : undefined,
     })
     clearAllAffiliateReferralCodes()

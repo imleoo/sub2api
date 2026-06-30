@@ -646,6 +646,7 @@ func checkPricesNotNegative(p ChannelModelPricing) error {
 		{"cache_write_price", p.CacheWritePrice},
 		{"cache_read_price", p.CacheReadPrice},
 		{"image_output_price", p.ImageOutputPrice},
+		{"image_input_price", p.ImageInputPrice},
 		{"per_request_price", p.PerRequestPrice},
 	}
 	for _, c := range checks {

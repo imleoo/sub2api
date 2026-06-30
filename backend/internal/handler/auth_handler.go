@@ -774,6 +774,7 @@ type PhoneRegisterRequest struct {
 type PhoneLoginRequest struct {
 	Phone          string `json:"phone"`
 	Code           string `json:"code"`
+	InvitationCode string `json:"invitation_code"`
 	TurnstileToken string `json:"turnstile_token"`
 }
 
@@ -863,7 +864,7 @@ func (h *AuthHandler) PhoneLogin(c *gin.Context) {
 		return
 	}
 
-	user, err := h.authService.LoginWithPhone(c.Request.Context(), req.Phone, req.Code)
+	user, err := h.authService.LoginWithPhone(c.Request.Context(), req.Phone, req.Code, req.InvitationCode)
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return

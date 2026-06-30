@@ -25,6 +25,11 @@ func verifyCodeKey(email string) string {
 	return verifyCodeKeyPrefix + strings.ToLower(email)
 }
 
+// verifyAttemptsKey generates the Redis key for email verification failed-attempt counter.
+func verifyAttemptsKey(email string) string {
+	return verifyCodeKeyPrefix + strings.ToLower(email) + ":attempts"
+}
+
 // notifyVerifyKey generates the Redis key for notify email verification code.
 // Email is lowercased to prevent case-sensitive key mismatch (the business layer
 // uses strings.EqualFold for comparison).
@@ -73,8 +78,25 @@ func (c *emailCache) SetVerificationCode(ctx context.Context, email string, data
 }
 
 func (c *emailCache) DeleteVerificationCode(ctx context.Context, email string) error {
-	key := verifyCodeKey(email)
-	return c.rdb.Del(ctx, key).Err()
+	// 同时清除验证码与失败尝试计数，保持两键一致。
+	return c.rdb.Del(ctx, verifyCodeKey(email), verifyAttemptsKey(email)).Err()
+}
+
+// IncrVerifyAttempts 原子自增失败尝试次数并返回自增后的值。
+// ttl 用于首次自增时设置计数键过期时间（跟随验证码剩余有效期）。
+func (c *emailCache) IncrVerifyAttempts(ctx context.Context, email string, ttl time.Duration) (int64, error) {
+	key := verifyAttemptsKey(email)
+	count, err := c.rdb.Incr(ctx, key).Result()
+	if err != nil {
+		return 0, err
+	}
+	// 仅在首次自增时设置 TTL，使计数键跟随验证码剩余有效期过期。
+	if count == 1 {
+		if err := c.rdb.Expire(ctx, key, ttl).Err(); err != nil {
+			return count, fmt.Errorf("expire verify attempts key: %w", err)
+		}
+	}
+	return count, nil
 }
 
 // Password reset token methods
