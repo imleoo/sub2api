@@ -362,6 +362,18 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/models',
+    name: 'SupportedModels',
+    component: () => import('@/views/user/ModelsView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'Supported Models',
+      titleKey: 'models.title',
+      descriptionKey: 'models.description'
+    }
+  },
+  {
     path: '/custom/:id',
     name: 'CustomPage',
     component: () => import('@/views/user/CustomPageView.vue'),
