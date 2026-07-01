@@ -95,10 +95,11 @@ func TestGeminiForwardAsChatCompletions_StreamsOpenAIChunksFromGeminiSSE(t *test
 	require.Contains(t, out, "data: [DONE]")
 }
 
-// TestGeminiForwardAsChatCompletions_SafetyBlockedImageStillBillsOneImage 同上两个测试，复现
-// forwardClaudeBodyAsChatCompletions()（gemini_chat_completions_compat_service.go）里的同一处
-// 硬编码 imageCount=1（见 claudedocs/待办任务列表.md「T2」）。PASS = 复现成功；修复后应改断言为 0。
-func TestGeminiForwardAsChatCompletions_SafetyBlockedImageStillBillsOneImage(t *testing.T) {
+// TestGeminiForwardAsChatCompletions_SafetyBlockedImageBillsZero 回归守护
+// forwardClaudeBodyAsChatCompletions()（gemini_chat_completions_compat_service.go）——安全策略
+// 拦截、无 inlineData 产出时应计 0 张图，不能仅凭请求模型名判断（claudedocs/待办任务列表.md「T2」，
+// 修复前 imageCount 曾硬编码为 1）。
+func TestGeminiForwardAsChatCompletions_SafetyBlockedImageBillsZero(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	safetyBlockedBody := `{"candidates":[{"finishReason":"SAFETY","content":{"role":"model"},"safetyRatings":[{"category":"HARM_CATEGORY_DANGEROUS_CONTENT","probability":"HIGH","blocked":true}]}],"usageMetadata":{"promptTokenCount":11,"candidatesTokenCount":0,"totalTokenCount":11}}`
@@ -131,8 +132,45 @@ func TestGeminiForwardAsChatCompletions_SafetyBlockedImageStillBillsOneImage(t *
 	result, err := svc.ForwardAsChatCompletions(context.Background(), c, account, body)
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	// 已知 bug：应为 0（没有实际产出图片），当前实现硬编码为 1。
-	require.Equal(t, 1, result.ImageCount, "复现已知 bug：安全拦截、零图片产出的场景仍被计费 1 张图")
+	require.Equal(t, 0, result.ImageCount, "安全拦截、零图片产出的场景不应计费图片")
+}
+
+// TestGeminiForwardAsChatCompletions_ActualImageBillsOne 正向用例：确认修复没有连带破坏正常
+// 产出图片场景的计费——响应里带 inlineData 时应正确计 1 张图。
+func TestGeminiForwardAsChatCompletions_ActualImageBillsOne(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	imageBody := `{"candidates":[{"finishReason":"STOP","content":{"role":"model","parts":[{"inlineData":{"mimeType":"image/png","data":"iVBORw0KGgo="}}]}}],"usageMetadata":{"promptTokenCount":11,"candidatesTokenCount":1290,"totalTokenCount":1301}}`
+	httpStub := &geminiCompatHTTPUpstreamStub{
+		response: &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+			Body:       io.NopCloser(strings.NewReader(imageBody)),
+		},
+	}
+	svc := &GeminiMessagesCompatService{
+		httpUpstream: httpStub,
+		cfg:          &config.Config{},
+	}
+	account := &Account{
+		ID:       104,
+		Platform: PlatformGemini,
+		Type:     AccountTypeAPIKey,
+		Credentials: map[string]any{
+			"api_key": "gemini-api-key",
+		},
+		Concurrency: 1,
+	}
+
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	body := []byte(`{"model":"gemini-2.5-flash-image","stream":false,"messages":[{"role":"user","content":"draw a cat"}]}`)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader(body))
+
+	result, err := svc.ForwardAsChatCompletions(context.Background(), c, account, body)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, 1, result.ImageCount, "实际产出 1 张图片时应正确计费 1 张")
 }
 
 // TestConvertClaudeToolsToGeminiTools_CustomType 测试custom类型工具转换
@@ -357,9 +395,10 @@ func TestGeminiHandleNativeNonStreamingResponse_DebugDisabledDoesNotEmitHeaderLo
 		Body: io.NopCloser(strings.NewReader(`{"usageMetadata":{"promptTokenCount":10,"candidatesTokenCount":2}}`)),
 	}
 
-	usage, err := svc.handleNativeNonStreamingResponse(c, resp)
+	usage, imageCount, err := svc.handleNativeNonStreamingResponse(c, resp)
 	require.NoError(t, err)
 	require.NotNil(t, usage)
+	require.Equal(t, 0, imageCount)
 	require.False(t, logSink.ContainsMessage("[GeminiAPI]"), "debug 关闭时不应输出 Gemini 响应头日志")
 }
 
@@ -399,20 +438,17 @@ func TestGeminiMessagesCompatServiceForward_PreservesRequestedModelAndMappedUpst
 	require.Contains(t, httpStub.lastReq.URL.String(), "/models/claude-sonnet-4-20250514:")
 }
 
-// TestGeminiMessagesCompatServiceForward_SafetyBlockedImageStillBillsOneImage 复现已知 bug
-// （claudedocs/待办任务列表.md「T2 · Gemini 生图计费：安全拦截场景错误计费」）：
-// Forward() 里 imageCount 只看模型名是否命中 isImageGenerationModel()，不解析上游响应，
-// 所以即使上游因内容安全策略拦截、finishReason=SAFETY 且没有任何 inlineData（没产出图片），
-// 依然会被计费 1 张图。本测试断言的是【当前】（有 bug 的）行为，PASS = 复现成功；
-// 修复后 result.ImageCount 应改为 0，届时需要同步把这里的断言改成 require.Equal(t, 0, ...)。
-func TestGeminiMessagesCompatServiceForward_SafetyBlockedImageStillBillsOneImage(t *testing.T) {
+// TestGeminiMessagesCompatServiceForward_SafetyBlockedImageBillsZero 回归守护
+// （claudedocs/待办任务列表.md「T2 · Gemini 生图计费：安全拦截场景错误计费」，修复前 Forward()
+// 的 imageCount 曾只看模型名是否命中 isImageGenerationModel()、不解析上游响应，硬编码为 1）：
+// 上游因内容安全策略拦截、finishReason=SAFETY 且没有任何 inlineData（没产出图片）时，
+// HTTP 状态码依然是 200（网关判定为"请求成功"），此时应计 0 张图，不能计费。
+func TestGeminiMessagesCompatServiceForward_SafetyBlockedImageBillsZero(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest(http.MethodPost, "/v1/messages", nil)
 
-	// 模拟 Gemini 图片生成模型因安全策略拦截：finishReason=SAFETY，content 无 parts（没有 inlineData），
-	// 但 HTTP 状态码依然是 200（这是导致误计费的关键——网关判定为"请求成功"）。
 	safetyBlockedBody := `{"candidates":[{"finishReason":"SAFETY","content":{"role":"model"},"safetyRatings":[{"category":"HARM_CATEGORY_DANGEROUS_CONTENT","probability":"HIGH","blocked":true}]}],"usageMetadata":{"promptTokenCount":12,"candidatesTokenCount":0,"totalTokenCount":12}}`
 	httpStub := &geminiCompatHTTPUpstreamStub{
 		response: &http.Response{
@@ -435,14 +471,45 @@ func TestGeminiMessagesCompatServiceForward_SafetyBlockedImageStillBillsOneImage
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Equal(t, 0, result.Usage.OutputTokens, "安全拦截时上游不应产出任何 candidates token")
-	// 已知 bug：应为 0（没有实际产出图片），当前实现硬编码为 1。
-	require.Equal(t, 1, result.ImageCount, "复现已知 bug：安全拦截、零图片产出的场景仍被计费 1 张图")
+	require.Equal(t, 0, result.ImageCount, "安全拦截、零图片产出的场景不应计费图片")
 }
 
-// TestGeminiMessagesCompatServiceForwardNative_SafetyBlockedImageStillBillsOneImage 同上一个测试，
-// 复现的是 ForwardNative()（Gemini 原生透传路径）里的同一处硬编码 imageCount=1（见
-// claudedocs/待办任务列表.md「T2」）。PASS = 复现成功；修复后应改断言为 0。
-func TestGeminiMessagesCompatServiceForwardNative_SafetyBlockedImageStillBillsOneImage(t *testing.T) {
+// TestGeminiMessagesCompatServiceForward_ActualImageBillsOne 正向用例：确认修复没有连带破坏
+// 正常产出图片场景的计费——响应里带 inlineData 时应正确计 1 张图。
+func TestGeminiMessagesCompatServiceForward_ActualImageBillsOne(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/messages", nil)
+
+	imageBody := `{"candidates":[{"finishReason":"STOP","content":{"role":"model","parts":[{"inlineData":{"mimeType":"image/png","data":"iVBORw0KGgo="}}]}}],"usageMetadata":{"promptTokenCount":12,"candidatesTokenCount":1290,"totalTokenCount":1302}}`
+	httpStub := &geminiCompatHTTPUpstreamStub{
+		response: &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     http.Header{"x-request-id": []string{"gemini-img-ok-1"}},
+			Body:       io.NopCloser(strings.NewReader(imageBody)),
+		},
+	}
+	svc := &GeminiMessagesCompatService{httpUpstream: httpStub, cfg: &config.Config{}}
+	account := &Account{
+		ID:   1,
+		Type: AccountTypeAPIKey,
+		Credentials: map[string]any{
+			"api_key": "test-key",
+		},
+	}
+	body := []byte(`{"model":"gemini-2.5-flash-image","max_tokens":16,"messages":[{"role":"user","content":"draw a cat"}]}`)
+
+	result, err := svc.Forward(context.Background(), c, account, body)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, 1, result.ImageCount, "实际产出 1 张图片时应正确计费 1 张")
+}
+
+// TestGeminiMessagesCompatServiceForwardNative_SafetyBlockedImageBillsZero 同上一个测试，回归
+// 守护的是 ForwardNative()（Gemini 原生透传路径）的同一处 imageCount 逻辑（见
+// claudedocs/待办任务列表.md「T2」）。
+func TestGeminiMessagesCompatServiceForwardNative_SafetyBlockedImageBillsZero(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -469,8 +536,39 @@ func TestGeminiMessagesCompatServiceForwardNative_SafetyBlockedImageStillBillsOn
 	result, err := svc.ForwardNative(context.Background(), c, account, "gemini-2.5-flash-image", "generateContent", false, body)
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	// 已知 bug：应为 0（没有实际产出图片），当前实现硬编码为 1。
-	require.Equal(t, 1, result.ImageCount, "复现已知 bug：安全拦截、零图片产出的场景仍被计费 1 张图")
+	require.Equal(t, 0, result.ImageCount, "安全拦截、零图片产出的场景不应计费图片")
+}
+
+// TestGeminiMessagesCompatServiceForwardNative_ActualImageBillsOne 正向用例，同
+// TestGeminiMessagesCompatServiceForward_ActualImageBillsOne，覆盖 ForwardNative 路径。
+func TestGeminiMessagesCompatServiceForwardNative_ActualImageBillsOne(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1beta/models/gemini-2.5-flash-image:generateContent", nil)
+
+	imageBody := `{"candidates":[{"finishReason":"STOP","content":{"role":"model","parts":[{"inlineData":{"mimeType":"image/png","data":"iVBORw0KGgo="}}]}}],"usageMetadata":{"promptTokenCount":9,"candidatesTokenCount":1290,"totalTokenCount":1299}}`
+	httpStub := &geminiCompatHTTPUpstreamStub{
+		response: &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     http.Header{"x-request-id": []string{"gemini-img-ok-2"}},
+			Body:       io.NopCloser(strings.NewReader(imageBody)),
+		},
+	}
+	svc := &GeminiMessagesCompatService{httpUpstream: httpStub, cfg: &config.Config{}}
+	account := &Account{
+		ID:   1,
+		Type: AccountTypeAPIKey,
+		Credentials: map[string]any{
+			"api_key": "test-key",
+		},
+	}
+	body := []byte(`{"contents":[{"role":"user","parts":[{"text":"draw a cat"}]}]}`)
+
+	result, err := svc.ForwardNative(context.Background(), c, account, "gemini-2.5-flash-image", "generateContent", false, body)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, 1, result.ImageCount, "实际产出 1 张图片时应正确计费 1 张")
 }
 
 func TestGeminiMessagesCompatServiceForward_NormalizesWebSearchToolForAIStudio(t *testing.T) {
