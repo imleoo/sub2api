@@ -95,6 +95,46 @@ func TestGeminiForwardAsChatCompletions_StreamsOpenAIChunksFromGeminiSSE(t *test
 	require.Contains(t, out, "data: [DONE]")
 }
 
+// TestGeminiForwardAsChatCompletions_SafetyBlockedImageStillBillsOneImage 同上两个测试，复现
+// forwardClaudeBodyAsChatCompletions()（gemini_chat_completions_compat_service.go）里的同一处
+// 硬编码 imageCount=1（见 claudedocs/待办任务列表.md「T2」）。PASS = 复现成功；修复后应改断言为 0。
+func TestGeminiForwardAsChatCompletions_SafetyBlockedImageStillBillsOneImage(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	safetyBlockedBody := `{"candidates":[{"finishReason":"SAFETY","content":{"role":"model"},"safetyRatings":[{"category":"HARM_CATEGORY_DANGEROUS_CONTENT","probability":"HIGH","blocked":true}]}],"usageMetadata":{"promptTokenCount":11,"candidatesTokenCount":0,"totalTokenCount":11}}`
+	httpStub := &geminiCompatHTTPUpstreamStub{
+		response: &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+			Body:       io.NopCloser(strings.NewReader(safetyBlockedBody)),
+		},
+	}
+	svc := &GeminiMessagesCompatService{
+		httpUpstream: httpStub,
+		cfg:          &config.Config{},
+	}
+	account := &Account{
+		ID:       103,
+		Platform: PlatformGemini,
+		Type:     AccountTypeAPIKey,
+		Credentials: map[string]any{
+			"api_key": "gemini-api-key",
+		},
+		Concurrency: 1,
+	}
+
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	body := []byte(`{"model":"gemini-2.5-flash-image","stream":false,"messages":[{"role":"user","content":"draw something the policy would block"}]}`)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader(body))
+
+	result, err := svc.ForwardAsChatCompletions(context.Background(), c, account, body)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	// 已知 bug：应为 0（没有实际产出图片），当前实现硬编码为 1。
+	require.Equal(t, 1, result.ImageCount, "复现已知 bug：安全拦截、零图片产出的场景仍被计费 1 张图")
+}
+
 // TestConvertClaudeToolsToGeminiTools_CustomType 测试custom类型工具转换
 func TestConvertClaudeToolsToGeminiTools_CustomType(t *testing.T) {
 	tests := []struct {
@@ -357,6 +397,80 @@ func TestGeminiMessagesCompatServiceForward_PreservesRequestedModelAndMappedUpst
 	require.Equal(t, 1, httpStub.calls)
 	require.NotNil(t, httpStub.lastReq)
 	require.Contains(t, httpStub.lastReq.URL.String(), "/models/claude-sonnet-4-20250514:")
+}
+
+// TestGeminiMessagesCompatServiceForward_SafetyBlockedImageStillBillsOneImage 复现已知 bug
+// （claudedocs/待办任务列表.md「T2 · Gemini 生图计费：安全拦截场景错误计费」）：
+// Forward() 里 imageCount 只看模型名是否命中 isImageGenerationModel()，不解析上游响应，
+// 所以即使上游因内容安全策略拦截、finishReason=SAFETY 且没有任何 inlineData（没产出图片），
+// 依然会被计费 1 张图。本测试断言的是【当前】（有 bug 的）行为，PASS = 复现成功；
+// 修复后 result.ImageCount 应改为 0，届时需要同步把这里的断言改成 require.Equal(t, 0, ...)。
+func TestGeminiMessagesCompatServiceForward_SafetyBlockedImageStillBillsOneImage(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/messages", nil)
+
+	// 模拟 Gemini 图片生成模型因安全策略拦截：finishReason=SAFETY，content 无 parts（没有 inlineData），
+	// 但 HTTP 状态码依然是 200（这是导致误计费的关键——网关判定为"请求成功"）。
+	safetyBlockedBody := `{"candidates":[{"finishReason":"SAFETY","content":{"role":"model"},"safetyRatings":[{"category":"HARM_CATEGORY_DANGEROUS_CONTENT","probability":"HIGH","blocked":true}]}],"usageMetadata":{"promptTokenCount":12,"candidatesTokenCount":0,"totalTokenCount":12}}`
+	httpStub := &geminiCompatHTTPUpstreamStub{
+		response: &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     http.Header{"x-request-id": []string{"gemini-img-safety-1"}},
+			Body:       io.NopCloser(strings.NewReader(safetyBlockedBody)),
+		},
+	}
+	svc := &GeminiMessagesCompatService{httpUpstream: httpStub, cfg: &config.Config{}}
+	account := &Account{
+		ID:   1,
+		Type: AccountTypeAPIKey,
+		Credentials: map[string]any{
+			"api_key": "test-key",
+		},
+	}
+	body := []byte(`{"model":"gemini-2.5-flash-image","max_tokens":16,"messages":[{"role":"user","content":"draw something the policy would block"}]}`)
+
+	result, err := svc.Forward(context.Background(), c, account, body)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, 0, result.Usage.OutputTokens, "安全拦截时上游不应产出任何 candidates token")
+	// 已知 bug：应为 0（没有实际产出图片），当前实现硬编码为 1。
+	require.Equal(t, 1, result.ImageCount, "复现已知 bug：安全拦截、零图片产出的场景仍被计费 1 张图")
+}
+
+// TestGeminiMessagesCompatServiceForwardNative_SafetyBlockedImageStillBillsOneImage 同上一个测试，
+// 复现的是 ForwardNative()（Gemini 原生透传路径）里的同一处硬编码 imageCount=1（见
+// claudedocs/待办任务列表.md「T2」）。PASS = 复现成功；修复后应改断言为 0。
+func TestGeminiMessagesCompatServiceForwardNative_SafetyBlockedImageStillBillsOneImage(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1beta/models/gemini-2.5-flash-image:generateContent", nil)
+
+	safetyBlockedBody := `{"candidates":[{"finishReason":"SAFETY","content":{"role":"model"},"safetyRatings":[{"category":"HARM_CATEGORY_DANGEROUS_CONTENT","probability":"HIGH","blocked":true}]}],"usageMetadata":{"promptTokenCount":9,"candidatesTokenCount":0,"totalTokenCount":9}}`
+	httpStub := &geminiCompatHTTPUpstreamStub{
+		response: &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     http.Header{"x-request-id": []string{"gemini-img-safety-2"}},
+			Body:       io.NopCloser(strings.NewReader(safetyBlockedBody)),
+		},
+	}
+	svc := &GeminiMessagesCompatService{httpUpstream: httpStub, cfg: &config.Config{}}
+	account := &Account{
+		ID:   1,
+		Type: AccountTypeAPIKey,
+		Credentials: map[string]any{
+			"api_key": "test-key",
+		},
+	}
+	body := []byte(`{"contents":[{"role":"user","parts":[{"text":"draw something the policy would block"}]}]}`)
+
+	result, err := svc.ForwardNative(context.Background(), c, account, "gemini-2.5-flash-image", "generateContent", false, body)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	// 已知 bug：应为 0（没有实际产出图片），当前实现硬编码为 1。
+	require.Equal(t, 1, result.ImageCount, "复现已知 bug：安全拦截、零图片产出的场景仍被计费 1 张图")
 }
 
 func TestGeminiMessagesCompatServiceForward_NormalizesWebSearchToolForAIStudio(t *testing.T) {
