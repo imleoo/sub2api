@@ -40,6 +40,39 @@ func TestModelPricingHandlerListFallsBackToFullSetWithoutRouting(t *testing.T) {
 	require.False(t, repo.filter.VisibleOnly)
 }
 
+// TestModelPricingHandlerListForWhitelistSkipsRoutableFilter 验证 for_whitelist=true 时跳过
+// 广场可路由集交集过滤（修复 ModelWhitelistSelector.vue 搜不到「已同步定价数据但还没被任何
+// 账号引用过」的新模型的循环依赖 bug，见 claudedocs/待办任务列表.md）。
+// modelRouting 用 accountRepo=nil 构造：OperatorRoutableModelInfos 在这种情况下返回
+// ([]ModelInfo{}, nil)（无错误、空集），足以让 hasRouting=true 而 routable 集合为空——
+// 正好模拟"新模型完全不在可路由集合里"的场景。
+func TestModelPricingHandlerListForWhitelistSkipsRoutableFilter(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	repo := &modelPricingHandlerRepoStub{}
+	mr := service.NewModelRoutingService(nil, nil, nil)
+	handler := NewModelPricingHandler(service.NewModelPricingService(repo), repo, nil, nil, nil, mr)
+	router := gin.New()
+	router.GET("/api/v1/admin/model-pricings", handler.List)
+
+	t.Run("默认（模型定价管理页）仍套广场口径", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/model-pricings", nil)
+		router.ServeHTTP(rec, req)
+
+		require.Equal(t, http.StatusOK, rec.Code)
+		require.True(t, repo.filter.VisibleOnly, "不带 for_whitelist 时应保持广场可见集过滤（后台=广场口径）")
+	})
+
+	t.Run("for_whitelist=true 跳过广场口径", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/model-pricings?for_whitelist=true", nil)
+		router.ServeHTTP(rec, req)
+
+		require.Equal(t, http.StatusOK, rec.Code)
+		require.False(t, repo.filter.VisibleOnly, "for_whitelist=true 时应跳过广场可路由集过滤，否则新模型永远搜不到")
+	})
+}
+
 func TestComputePricingHealth(t *testing.T) {
 	f := func(v float64) *float64 { return &v }
 	routable := map[string]struct{}{"m-routable": {}}

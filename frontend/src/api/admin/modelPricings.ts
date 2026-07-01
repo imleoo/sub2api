@@ -39,6 +39,10 @@ export interface ModelPricingListFilter {
   is_custom?: boolean
   is_enabled?: boolean
   visible_only?: boolean
+  // 跳过后端默认的「广场可路由集」交集过滤，用于账号编辑弹窗的模型白名单选择器——
+  // 该场景要展示的正是「已同步定价数据、但还没被任何账号引用过」的模型，套用广场口径
+  // 会导致新模型永远搜不到（循环依赖）。仅供 ModelWhitelistSelector.vue 使用。
+  for_whitelist?: boolean
   page?: number
   page_size?: number
 }

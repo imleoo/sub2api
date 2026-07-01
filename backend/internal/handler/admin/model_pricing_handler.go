@@ -207,6 +207,10 @@ func (h *ModelPricingHandler) List(c *gin.Context) {
 		}
 		pageSize = v
 	}
+	// for_whitelist=true：账号编辑弹窗的模型白名单选择器专用，跳过下方的广场可路由集交集过滤。
+	// 该选择器要展示的恰恰是「已同步定价数据、但还没被任何账号引用过、因此不在可路由集合里」的
+	// 模型——如果也套用广场口径会形成循环依赖（新模型永远搜不到，因为它还没被任何账号选中过）。
+	forWhitelist := c.Query("for_whitelist") == "true" || c.Query("for_whitelist") == "1"
 
 	// 后台「模型折扣」默认 = 用户模型广场口径，使运营所见 = 用户所见（不再提供「只看可见」手工开关）。
 	// 一次性物化「active 账号可路由」的 ModelInfo（与广场同口径，ModelRoutingService），防 N+1，派生：
@@ -245,7 +249,8 @@ func (h *ModelPricingHandler) List(c *gin.Context) {
 		PageSize:  pageSize,
 	}
 	// 默认始终按广场可见集过滤（= 用户所见）。路由信息不可用时（理论上不会发生）退回全集，避免后台空白。
-	if hasRouting {
+	// for_whitelist=true 时跳过这层过滤，见上方注释。
+	if hasRouting && !forWhitelist {
 		filter.VisibleOnly = true
 		filter.RoutableModelIDs = make([]string, 0, len(visible))
 		for id := range visible {

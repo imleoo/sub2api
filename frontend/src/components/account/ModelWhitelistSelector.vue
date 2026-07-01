@@ -220,6 +220,7 @@ const fetchModels = async (q: string) => {
   try {
     const params: Record<string, unknown> = {
       is_enabled: true,
+      for_whitelist: true,
       page: 1,
       page_size: 50,
     }
@@ -290,7 +291,7 @@ const fillRelated = async () => {
   // Fetch all enabled models for the platform and add any not already selected
   searchLoading.value = true
   try {
-    const params: Record<string, unknown> = { is_enabled: true, page: 1, page_size: 200 }
+    const params: Record<string, unknown> = { is_enabled: true, for_whitelist: true, page: 1, page_size: 200 }
     const provider = getProviderParam()
     if (provider) params.provider = provider
     const { data } = await listModelPricings(params)
