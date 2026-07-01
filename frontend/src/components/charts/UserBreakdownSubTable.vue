@@ -25,7 +25,7 @@
           <td class="py-1 text-right text-green-600 dark:text-green-400">
             {{ formatCost(user.actual_cost) }}
           </td>
-          <td class="py-1 text-right text-orange-500 dark:text-orange-400">
+          <td v-if="showAccountCost" class="py-1 text-right text-orange-500 dark:text-orange-400">
             {{ formatCost(user.account_cost) }}
           </td>
           <td class="py-1 pr-1 text-right text-gray-400 dark:text-gray-500">
@@ -38,6 +38,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import type { UserBreakdownItem } from '@/types'
@@ -46,10 +47,16 @@ import { useAppStore } from '@/stores/app'
 const { t } = useI18n()
 const appStore = useAppStore()
 
-defineProps<{
+const props = withDefaults(defineProps<{
   items: UserBreakdownItem[]
   loading?: boolean
-}>()
+  showAccountCost?: boolean
+}>(), {
+  loading: false,
+  showAccountCost: true,
+})
+
+const showAccountCost = computed(() => props.showAccountCost)
 
 const formatTokens = (value: number): string => {
   if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(2)}B`
@@ -58,9 +65,10 @@ const formatTokens = (value: number): string => {
   return value.toLocaleString()
 }
 
-const formatCost = (value: number): string => {
-  const v = appStore.currencyMode === 'cny' ? value * appStore.cnyRate : value
+const formatCost = (value: number | undefined | null): string => {
   const prefix = appStore.currencyMode === 'cny' ? '¥' : '$'
+  if (value == null) return prefix + '0.0000'
+  const v = appStore.currencyMode === 'cny' ? value * appStore.cnyRate : value
   if (v >= 1000) return prefix + (v / 1000).toFixed(2) + 'K'
   if (v >= 1) return prefix + v.toFixed(2)
   if (v >= 0.01) return prefix + v.toFixed(3)
