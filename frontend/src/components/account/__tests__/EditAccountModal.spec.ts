@@ -1,10 +1,11 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent } from 'vue'
 import { mount } from '@vue/test-utils'
 
-const { updateAccountMock, checkMixedChannelRiskMock } = vi.hoisted(() => ({
+const { updateAccountMock, checkMixedChannelRiskMock, authIsSimpleMode } = vi.hoisted(() => ({
   updateAccountMock: vi.fn(),
-  checkMixedChannelRiskMock: vi.fn()
+  checkMixedChannelRiskMock: vi.fn(),
+  authIsSimpleMode: { value: true }
 }))
 
 vi.mock('@/stores/app', () => ({
@@ -17,7 +18,9 @@ vi.mock('@/stores/app', () => ({
 
 vi.mock('@/stores/auth', () => ({
   useAuthStore: () => ({
-    isSimpleMode: true
+    get isSimpleMode() {
+      return authIsSimpleMode.value
+    }
   })
 }))
 
@@ -115,6 +118,28 @@ const SelectStub = defineComponent({
   `
 })
 
+const GroupSelectorStub = defineComponent({
+  name: 'GroupSelector',
+  props: {
+    modelValue: {
+      type: Array,
+      default: () => []
+    }
+  },
+  emits: ['update:modelValue'],
+  template: `
+    <div data-testid="group-selector">
+      <button
+        type="button"
+        data-testid="set-shadow-group"
+        @click="$emit('update:modelValue', [7])"
+      >
+        group
+      </button>
+    </div>
+  `
+})
+
 function buildAccount() {
   return {
     id: 1,
@@ -205,7 +230,7 @@ function mountModal(account = buildAccount()) {
         Select: SelectStub,
         Icon: true,
         ProxySelector: true,
-        GroupSelector: true,
+        GroupSelector: GroupSelectorStub,
         ModelWhitelistSelector: ModelWhitelistSelectorStub
       }
     }
@@ -213,6 +238,10 @@ function mountModal(account = buildAccount()) {
 }
 
 describe('EditAccountModal', () => {
+  beforeEach(() => {
+    authIsSimpleMode.value = true
+  })
+
   it('reopening the same account rehydrates the OpenAI whitelist from props', async () => {
     const account = buildAccount()
     updateAccountMock.mockReset()

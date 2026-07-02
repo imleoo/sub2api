@@ -561,6 +561,7 @@ export interface SystemSettings {
   claude_oauth_system_prompt_blocks: string;
   enable_anthropic_cache_ttl_1h_injection: boolean;
   rewrite_message_cache_control: boolean;
+  enable_client_dateline_normalization: boolean;
   openai_codex_user_agent: string;
   openai_allow_claude_code_codex_plugin: boolean;
   web_search_emulation_enabled?: boolean;
@@ -833,6 +834,7 @@ export interface UpdateSettingsRequest {
   claude_oauth_system_prompt_blocks?: string;
   enable_anthropic_cache_ttl_1h_injection?: boolean;
   rewrite_message_cache_control?: boolean;
+  enable_client_dateline_normalization?: boolean;
   openai_codex_user_agent?: string;
   openai_allow_claude_code_codex_plugin?: boolean;
   // Payment configuration

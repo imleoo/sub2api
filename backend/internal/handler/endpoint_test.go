@@ -28,6 +28,8 @@ func TestNormalizeInboundEndpoint(t *testing.T) {
 		{"/v1/responses", EndpointResponses},
 		{"/v1/images/generations", EndpointImagesGenerations},
 		{"/v1/images/edits", EndpointImagesEdits},
+		{"/v1/videos/generations", EndpointVideosGenerations},
+		{"/v1/videos/req_123", EndpointVideos},
 		{"/v1beta/models", EndpointGeminiModels},
 
 		// Prefixed paths (openai).

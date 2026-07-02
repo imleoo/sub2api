@@ -636,7 +636,7 @@ func isOpenAIGPT54Model(model string) bool {
 	// normalizeCodexModel 的默认兜底把非 OpenAI 模型（claude-*、gemini-*、gpt-4o）
 	// 误识别为 gpt-5.4。
 	normalized := normalizeKnownOpenAICodexModel(model)
-	return normalized == "gpt-5.4" || normalized == "gpt-5.5"
+	return normalized == "gpt-5.4" || normalized == "gpt-5.5" || normalized == "gpt-5.5-pro"
 }
 
 // CalculateCostWithConfig 使用配置中的默认倍率计算费用
@@ -656,15 +656,19 @@ func (s *BillingService) CalculateCostWithConfig(model string, tokens UsageToken
 // 拆分为：范围内 (200k, 0) + 范围外 (10k, 10k)
 // 范围内正常计费，范围外 × 2 计费
 func (s *BillingService) CalculateCostWithLongContext(model string, tokens UsageTokens, rateMultiplier float64, threshold int, extraMultiplier float64) (*CostBreakdown, error) {
+	return s.calculateCostWithLongContext(model, tokens, rateMultiplier, threshold, extraMultiplier)
+}
+
+func (s *BillingService) calculateCostWithLongContext(model string, tokens UsageTokens, rateMultiplier float64, threshold int, extraMultiplier float64) (*CostBreakdown, error) {
 	// 未启用长上下文计费，直接走正常计费
 	if threshold <= 0 || extraMultiplier <= 1 {
-		return s.CalculateCost(model, tokens, rateMultiplier)
+		return s.calculateCostInternal(model, tokens, rateMultiplier, "", nil)
 	}
 
 	// 计算总输入 token（缓存读取 + 新输入）
 	total := tokens.CacheReadTokens + tokens.InputTokens
 	if total <= threshold {
-		return s.CalculateCost(model, tokens, rateMultiplier)
+		return s.calculateCostInternal(model, tokens, rateMultiplier, "", nil)
 	}
 
 	// 拆分成范围内和范围外
@@ -695,7 +699,7 @@ func (s *BillingService) CalculateCostWithLongContext(model string, tokens Usage
 		CacheCreation1hTokens: tokens.CacheCreation1hTokens,
 		ImageOutputTokens:     tokens.ImageOutputTokens,
 	}
-	inRangeCost, err := s.CalculateCost(model, inRangeTokens, rateMultiplier)
+	inRangeCost, err := s.calculateCostInternal(model, inRangeTokens, rateMultiplier, "", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -705,7 +709,7 @@ func (s *BillingService) CalculateCostWithLongContext(model string, tokens Usage
 		InputTokens:     outRangeInputTokens,
 		CacheReadTokens: outRangeCacheTokens,
 	}
-	outRangeCost, err := s.CalculateCost(model, outRangeTokens, rateMultiplier*extraMultiplier)
+	outRangeCost, err := s.calculateCostInternal(model, outRangeTokens, rateMultiplier*extraMultiplier, "", nil)
 	if err != nil {
 		return inRangeCost, fmt.Errorf("out-range cost: %w", err)
 	}

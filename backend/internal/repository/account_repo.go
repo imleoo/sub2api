@@ -288,10 +288,13 @@ func (r *accountRepository) GetByCRSAccountID(ctx context.Context, crsAccountID 
 }
 
 func (r *accountRepository) ListCRSAccountIDs(ctx context.Context) (map[string]int64, error) {
+	// parent_account_id IS NULL 排除 spark 影子账号:影子不是 CRS 账号,绝不能进 CRS 同步映射
+	// (否则会被当普通账号更新而覆盖 type/credentials/proxy)(外审第7轮 P1)。
 	rows, err := r.sql.QueryContext(ctx, `
 		SELECT id, extra->>'crs_account_id'
 		FROM accounts
 		WHERE deleted_at IS NULL
+			AND parent_account_id IS NULL
 			AND extra->>'crs_account_id' IS NOT NULL
 			AND extra->>'crs_account_id' != ''
 	`)
@@ -560,7 +563,11 @@ func (r *accountRepository) ListWithFilters(ctx context.Context, params paginati
 		}))
 	}
 
-	total, err := q.Count(ctx)
+	// Clone before Count so interceptor-appended predicates (SoftDeleteMixin's
+	// deleted_at IS NULL) don't accumulate on the shared builder and pollute the
+	// subsequent list query. Same pattern used in group_repo/promo_code_repo/user_repo
+	// (P1-03 audit fix, commit 2588fa6a).
+	total, err := q.Clone().Count(ctx)
 	if err != nil {
 		return nil, nil, err
 	}

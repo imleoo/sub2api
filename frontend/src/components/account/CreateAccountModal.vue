@@ -2012,7 +2012,7 @@
                 rel="noreferrer"
                 class="text-sm text-blue-600 hover:underline dark:text-blue-400"
               >
-                修改归属地
+                {{ t('admin.accounts.gemini.setupGuide.links.countryChange') }}
               </a>
               <span class="text-gray-400">·</span>
               <a

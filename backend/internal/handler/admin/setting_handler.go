@@ -260,6 +260,7 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		EnableCCHSigning:                       settings.EnableCCHSigning,
 		EnableAnthropicCacheTTL1hInjection:     settings.EnableAnthropicCacheTTL1hInjection,
 		RewriteMessageCacheControl:             settings.RewriteMessageCacheControl,
+		EnableClientDatelineNormalization:      settings.EnableClientDatelineNormalization,
 		OpenAICodexUserAgent:                   settings.OpenAICodexUserAgent,
 		OpenAIAllowClaudeCodeCodexPlugin:       settings.OpenAIAllowClaudeCodeCodexPlugin,
 		WebSearchEmulationEnabled:              settings.WebSearchEmulationEnabled,
@@ -612,6 +613,7 @@ type UpdateSettingsRequest struct {
 	EnableCCHSigning                   *bool   `json:"enable_cch_signing"`
 	EnableAnthropicCacheTTL1hInjection *bool   `json:"enable_anthropic_cache_ttl_1h_injection"`
 	RewriteMessageCacheControl         *bool   `json:"rewrite_message_cache_control"`
+	EnableClientDatelineNormalization  *bool   `json:"enable_client_dateline_normalization"`
 	OpenAICodexUserAgent               *string `json:"openai_codex_user_agent"`
 	OpenAIAllowClaudeCodeCodexPlugin   *bool   `json:"openai_allow_claude_code_codex_plugin"`
 
@@ -1720,6 +1722,12 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			}
 			return previousSettings.RewriteMessageCacheControl
 		}(),
+		EnableClientDatelineNormalization: func() bool {
+			if req.EnableClientDatelineNormalization != nil {
+				return *req.EnableClientDatelineNormalization
+			}
+			return previousSettings.EnableClientDatelineNormalization
+		}(),
 		OpenAICodexUserAgent: func() string {
 			if req.OpenAICodexUserAgent != nil {
 				return *req.OpenAICodexUserAgent
@@ -2233,6 +2241,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		EnableCCHSigning:                       updatedSettings.EnableCCHSigning,
 		EnableAnthropicCacheTTL1hInjection:     updatedSettings.EnableAnthropicCacheTTL1hInjection,
 		RewriteMessageCacheControl:             updatedSettings.RewriteMessageCacheControl,
+		EnableClientDatelineNormalization:      updatedSettings.EnableClientDatelineNormalization,
 		OpenAICodexUserAgent:                   updatedSettings.OpenAICodexUserAgent,
 		OpenAIAllowClaudeCodeCodexPlugin:       updatedSettings.OpenAIAllowClaudeCodeCodexPlugin,
 		PaymentVisibleMethodAlipaySource:       updatedSettings.PaymentVisibleMethodAlipaySource,
@@ -2697,6 +2706,9 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	}
 	if before.RewriteMessageCacheControl != after.RewriteMessageCacheControl {
 		changed = append(changed, "rewrite_message_cache_control")
+	}
+	if before.EnableClientDatelineNormalization != after.EnableClientDatelineNormalization {
+		changed = append(changed, "enable_client_dateline_normalization")
 	}
 	if before.OpenAICodexUserAgent != after.OpenAICodexUserAgent {
 		changed = append(changed, "openai_codex_user_agent")
@@ -3850,7 +3862,7 @@ func slotOf(s *service.DefaultPlatformQuotaSetting, win string) *float64 {
 	return nil
 }
 
-// equalPlatformQuotaSettings reports whether two platform-quota maps are identical across all 12 slots.
+// equalPlatformQuotaSettings reports whether two platform-quota maps are identical across all allowed slots.
 func equalPlatformQuotaSettings(before, after map[string]*service.DefaultPlatformQuotaSetting) bool {
 	for _, platform := range service.AllowedQuotaPlatforms {
 		b := before[platform]

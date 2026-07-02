@@ -27,6 +27,7 @@ type stubAdminService struct {
 	testedProxyIDs       []int64
 	getUserErr           error
 	createAccountErr     error
+	createSparkShadowErr error
 	updateAccountErr     error
 	bulkUpdateAccountErr error
 	checkMixedErr        error

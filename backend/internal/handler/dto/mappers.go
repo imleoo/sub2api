@@ -181,6 +181,10 @@ func groupFromServiceBase(g *service.Group) Group {
 		AllowImageGeneration:            g.AllowImageGeneration,
 		ImageRateIndependent:            g.ImageRateIndependent,
 		ImageRateMultiplier:             g.ImageRateMultiplier,
+		PeakRateEnabled:                 g.PeakRateEnabled,
+		PeakStart:                       g.PeakStart,
+		PeakEnd:                         g.PeakEnd,
+		PeakRateMultiplier:              g.PeakRateMultiplier,
 		ImagePrice1K:                    g.ImagePrice1K,
 		ImagePrice2K:                    g.ImagePrice2K,
 		ImagePrice4K:                    g.ImagePrice4K,
@@ -701,6 +705,7 @@ func userSubscriptionFromServiceBase(sub *service.UserSubscription) UserSubscrip
 		MonthlyUsageUSD:    sub.MonthlyUsageUSD,
 		CreatedAt:          sub.CreatedAt,
 		UpdatedAt:          sub.UpdatedAt,
+		RevokedAt:          sub.DeletedAt,
 		User:               UserFromServiceShallow(sub.User),
 		Group:              GroupFromServiceShallow(sub.Group),
 	}

@@ -1059,6 +1059,7 @@ func (s *defaultOpenAIAccountScheduler) isAccountTransportCompatible(account *Ac
 	return s.service.isOpenAIAccountTransportCompatible(account, requiredTransport)
 }
 
+
 func (s *defaultOpenAIAccountScheduler) isAccountRequestCompatible(ctx context.Context, account *Account, req OpenAIAccountScheduleRequest) bool {
 	if account == nil {
 		return false

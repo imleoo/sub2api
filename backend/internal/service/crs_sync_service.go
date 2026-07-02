@@ -327,6 +327,7 @@ func (s *CRSSyncService) SyncFromCRS(ctx context.Context, input SyncFromCRSInput
 			continue
 		}
 
+
 		existing.Extra = mergeMap(existing.Extra, extra)
 		existing.Name = defaultName(src.Name, src.ID)
 		existing.Platform = PlatformAnthropic
@@ -552,6 +553,7 @@ func (s *CRSSyncService) SyncFromCRS(ctx context.Context, input SyncFromCRSInput
 			result.Items = append(result.Items, item)
 			continue
 		}
+
 
 		existing.Extra = mergeMap(existing.Extra, extra)
 		existing.Name = defaultName(src.Name, src.ID)

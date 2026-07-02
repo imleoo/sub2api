@@ -27,6 +27,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/openai"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/openai_compat"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/timezone"
 	"github.com/Wei-Shaw/sub2api/internal/util/responseheaders"
 	"github.com/Wei-Shaw/sub2api/internal/util/urlvalidator"
 	"github.com/cespare/xxhash/v2"
@@ -3314,8 +3315,11 @@ func (s *OpenAIGatewayService) forwardOpenAIPassthrough(
 	}
 	s.bindHTTPResponseAccount(ctx, c, account, responseID)
 
-	if snapshot := ParseCodexRateLimitHeaders(resp.Header); snapshot != nil {
-		s.updateCodexUsageSnapshot(ctx, account.ID, snapshot)
+	// 排除 spark 影子:其 codex_* 仅由 QueryUsage(/wham/usage bengalfox)更新(外审第7轮 P1)。
+	if !account.IsShadow() {
+		if snapshot := ParseCodexRateLimitHeaders(resp.Header); snapshot != nil {
+			s.updateCodexUsageSnapshot(ctx, account.ID, snapshot)
+		}
 	}
 
 	if usage == nil {
@@ -5751,7 +5755,9 @@ func (s *OpenAIGatewayService) RecordUsage(ctx context.Context, input *OpenAIRec
 		}
 		multiplier = resolver.Resolve(ctx, user.ID, *apiKey.GroupID, apiKey.Group.RateMultiplier)
 	}
-	imageMultiplier := resolveImageRateMultiplier(apiKey, multiplier)
+	// token 倍率叠加高峰因子（token 计费含图片 token，图片按次倍率不受影响）。高峰因子按请求时刻现算，
+	// 不并入上面的 Resolve，以免污染 user:group 倍率缓存。
+	multiplier, imageMultiplier := computePeakAwareMultipliers(apiKey, multiplier, timezone.Now())
 
 	var cost *CostBreakdown
 	var err error
@@ -6243,6 +6249,10 @@ func buildCodexUsageExtraUpdates(snapshot *OpenAICodexUsageSnapshot, fallbackNow
 }
 
 // updateCodexUsageSnapshot saves the Codex usage snapshot to account's Extra field
+// updateCodexUsageSnapshot 把 /responses 的 x-codex-* 全局头快照写入账号 codex_* Extra。
+// ⚠️ 调用方必须排除 spark 影子账号(account.IsShadow()):影子的 codex_* 仅由 QueryUsage
+// (/wham/usage bengalfox 道)更新,不能被全局头口径污染(外审第7轮 P1)。本函数仅持 accountID,
+// 无法在此自检影子,故守卫前置到各调用点。
 func (s *OpenAIGatewayService) updateCodexUsageSnapshot(ctx context.Context, accountID int64, snapshot *OpenAICodexUsageSnapshot) {
 	if snapshot == nil {
 		return

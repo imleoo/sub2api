@@ -211,6 +211,7 @@ func TestCalculateCost_OpenAIGPT54LongContextAppliesWholeSessionMultipliers(t *t
 	require.InDelta(t, expectedInput+expectedOutput, cost.ActualCost, 1e-10)
 }
 
+
 // 回归测试 #2293：长上下文计费触发时，cache_read_tokens 也应应用 LongContextInputMultiplier。
 // 修复前：CacheReadCost = tokens * 0.25e-6 （漏乘倍率，少计费用）。
 // 修复后：CacheReadCost = tokens * 0.25e-6 * LongContextInputMultiplier(=2.0)。

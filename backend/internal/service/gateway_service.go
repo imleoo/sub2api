@@ -26,9 +26,11 @@ import (
 	"unsafe"
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/anthropicfp"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/claude"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/ctxkey"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/timezone"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/usagestats"
 	"github.com/Wei-Shaw/sub2api/internal/util/responseheaders"
 	"github.com/Wei-Shaw/sub2api/internal/util/urlvalidator"
@@ -3723,6 +3725,27 @@ func forceEphemeralCacheControlTTL(body []byte, ttl string) []byte {
 // 该账号类型随订阅逆向移除后恒为 false。
 func (s *GatewayService) shouldInjectAnthropicCacheTTL1h(_ context.Context, _ *Account) bool {
 	return false
+}
+
+// shouldNormalizeClientDateline 历史上仅对 Anthropic OAuth/SetupToken 账号生效，
+// 该账号类型随订阅逆向移除后恒为 false。
+func (s *GatewayService) shouldNormalizeClientDateline(_ context.Context, _ *Account) bool {
+	return false
+}
+
+// normalizeClientDatelineIfEnabled applies dateline normalization to body when
+// the switch is on and the account qualifies. Returns (nextBody, true) only
+// when the body actually changed; otherwise returns (nil, false) so callers
+// can skip the writeback.
+func (s *GatewayService) normalizeClientDatelineIfEnabled(ctx context.Context, account *Account, body []byte) ([]byte, bool) {
+	if !s.shouldNormalizeClientDateline(ctx, account) {
+		return nil, false
+	}
+	next, _, changed := anthropicfp.NormalizeDateline(body)
+	if !changed {
+		return nil, false
+	}
+	return next, true
 }
 
 // Forward 转发请求到Claude API
@@ -8223,7 +8246,9 @@ func (s *GatewayService) recordUsageCore(ctx context.Context, input *recordUsage
 		groupDefault := apiKey.Group.RateMultiplier
 		multiplier = s.getUserGroupRateMultiplier(ctx, user.ID, *apiKey.GroupID, groupDefault)
 	}
-	imageMultiplier := resolveImageRateMultiplier(apiKey, multiplier)
+	// token 倍率叠加高峰因子（token 计费含图片 token，图片按次倍率不受影响）。高峰因子按请求时刻现算，
+	// 不并入上面的 getUserGroupRateMultiplier，以免污染 user:group 倍率缓存。
+	multiplier, imageMultiplier := computePeakAwareMultipliers(apiKey, multiplier, timezone.Now())
 
 	// 确定计费模型
 	billingModel := forwardResultBillingModel(result.Model, result.UpstreamModel)
@@ -8467,12 +8492,9 @@ func (s *GatewayService) calculateTokenCost(
 		})
 	} else if opts.LongContextThreshold > 0 {
 		// 长上下文双倍计费（如 Gemini 200K 阈值）
-		cost, err = s.billingService.CalculateCostWithLongContext(
-			billingModel, tokens, multiplier,
-			opts.LongContextThreshold, opts.LongContextMultiplier,
-		)
+		cost, err = s.billingService.CalculateCostWithLongContext(billingModel, tokens, multiplier, opts.LongContextThreshold, opts.LongContextMultiplier)
 	} else {
-		cost, err = s.billingService.CalculateCost(billingModel, tokens, multiplier)
+		cost, err = s.billingService.CalculateCostWithServiceTier(billingModel, tokens, multiplier, "")
 	}
 	if err != nil {
 		logger.LegacyPrintf("service.gateway", "Calculate cost failed: %v", err)

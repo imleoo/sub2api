@@ -992,6 +992,16 @@ func (a *Account) IsOpenAIOAuth() bool {
 	return false
 }
 
+// IsShadow 已随 spark 影子账号功能移除，恒为 false。
+func (a *Account) IsShadow() bool {
+	return false
+}
+
+// IsCredentialShadow 已随 spark 影子账号功能移除，恒为 false。
+func (a *Account) IsCredentialShadow() bool {
+	return false
+}
+
 // IsGeneric 报告账号是否为通用渠道（多协议 endpoint，账号级单 key）。
 func (a *Account) IsGeneric() bool {
 	return a.Platform == PlatformGeneric

@@ -216,11 +216,11 @@
             <div class="flex flex-col">
               <span class="font-medium text-gray-900 dark:text-white">{{ value }}</span>
               <span
-                v-if="row.extra?.email_address || row.extra?.email || row.credentials?.email"
+                v-if="accountDisplayEmail(row)"
                 class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]"
-                :title="String(row.extra?.email_address || row.extra?.email || row.credentials?.email)"
+                :title="accountDisplayEmail(row) + (row.parent_chatgpt_account_id ? ' · ' + row.parent_chatgpt_account_id : '')"
               >
-                {{ row.extra?.email_address || row.extra?.email || row.credentials?.email }}
+                {{ accountDisplayEmail(row) }}
               </span>
             </div>
           </template>
@@ -1042,6 +1042,12 @@ const { pause: pauseAutoRefresh, resume: resumeAutoRefresh } = useIntervalFn(
   { immediate: false }
 )
 
+// 账号显示邮箱:优先账号自身(extra/credentials),影子账号回退母账号 parent_email。
+// 供名称单元格 v-if/标题/文本三处共用,避免同一回退链在模板里重复三次。
+function accountDisplayEmail(row: any): string {
+  return row.extra?.email_address || row.extra?.email || row.credentials?.email || row.parent_email || ''
+}
+
 type OpenAICompactBadgeState = 'active' | 'blocked' | 'auto'
 
 function getOpenAICompactState(row: any): OpenAICompactBadgeState | null {
@@ -1486,7 +1492,13 @@ const handleExportData = async () => {
     link.download = filename
     link.click()
     URL.revokeObjectURL(url)
-    appStore.showSuccess(t('admin.accounts.dataExported'))
+    // spark 影子账号被后端排除出备份(其凭据透传母账号、调度配置不可经凭据型导入重建);
+    // 跳过非零时明确提示用户,避免「下载成功但少了账号」的静默丢失。
+    if (dataPayload.skipped_shadows && dataPayload.skipped_shadows > 0) {
+      appStore.showWarning(t('admin.accounts.dataExportedSkippedShadows', { count: dataPayload.skipped_shadows }))
+    } else {
+      appStore.showSuccess(t('admin.accounts.dataExported'))
+    }
   } catch (error: any) {
     appStore.showError(error?.message || t('admin.accounts.dataExportFailed'))
   } finally {

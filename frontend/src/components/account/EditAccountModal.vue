@@ -1152,7 +1152,7 @@
         </div>
       </div>
 
-      <div>
+      <div v-if="!isSparkShadow">
         <div class="mb-1 flex items-center gap-2">
           <label class="input-label mb-0">{{ t('admin.accounts.proxy') }}</label>
           <ProxyAdBanner />
@@ -1880,6 +1880,10 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const appStore = useAppStore()
 const authStore = useAuthStore()
+
+// Spark 影子账号(parent_account_id 非空):代理恒继承母账号,不可独立编辑(外审 B/P1),
+// 故隐藏代理选择器。
+const isSparkShadow = computed(() => props.account?.parent_account_id != null)
 
 // Platform-specific hint for Base URL
 const baseUrlHint = computed(() => {

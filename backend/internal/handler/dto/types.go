@@ -98,12 +98,17 @@ type Group struct {
 	MonthlyLimitUSD  *float64 `json:"monthly_limit_usd"`
 
 	// 图片生成计费配置（仅 gemini 平台使用）
-	AllowImageGeneration bool     `json:"allow_image_generation"`
-	ImageRateIndependent bool     `json:"image_rate_independent"`
-	ImageRateMultiplier  float64  `json:"image_rate_multiplier"`
-	ImagePrice1K         *float64 `json:"image_price_1k"`
-	ImagePrice2K         *float64 `json:"image_price_2k"`
-	ImagePrice4K         *float64 `json:"image_price_4k"`
+	AllowImageGeneration bool    `json:"allow_image_generation"`
+	ImageRateIndependent bool    `json:"image_rate_independent"`
+	ImageRateMultiplier  float64 `json:"image_rate_multiplier"`
+	// 高峰时段倍率配置
+	PeakRateEnabled    bool     `json:"peak_rate_enabled"`
+	PeakStart          string   `json:"peak_start"`
+	PeakEnd            string   `json:"peak_end"`
+	PeakRateMultiplier float64  `json:"peak_rate_multiplier"`
+	ImagePrice1K       *float64 `json:"image_price_1k"`
+	ImagePrice2K       *float64 `json:"image_price_2k"`
+	ImagePrice4K       *float64 `json:"image_price_4k"`
 
 	// Claude Code 客户端限制
 	ClaudeCodeOnly  bool   `json:"claude_code_only"`
@@ -578,8 +583,9 @@ type UserSubscription struct {
 	WeeklyUsageUSD  float64 `json:"weekly_usage_usd"`
 	MonthlyUsageUSD float64 `json:"monthly_usage_usd"`
 
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	RevokedAt *time.Time `json:"revoked_at,omitempty"`
 
 	User  *User  `json:"user,omitempty"`
 	Group *Group `json:"group,omitempty"`

@@ -265,7 +265,8 @@ pnpm run build
 
 # 4. Build backend with embedded frontend
 cd ../backend
-go build -tags embed -o tokenpanel ./cmd/server
+VERSION="$(./scripts/resolve-version.sh)"
+go build -tags embed -ldflags="-X main.Version=${VERSION}" -o tokenpanel ./cmd/server
 
 # 5. Create configuration file
 cp ../deploy/config.example.yaml ./config.yaml

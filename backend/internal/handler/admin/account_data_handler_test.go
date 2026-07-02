@@ -18,10 +18,11 @@ type dataResponse struct {
 }
 
 type dataPayload struct {
-	Type     string        `json:"type"`
-	Version  int           `json:"version"`
-	Proxies  []dataProxy   `json:"proxies"`
-	Accounts []dataAccount `json:"accounts"`
+	Type           string        `json:"type"`
+	Version        int           `json:"version"`
+	Proxies        []dataProxy   `json:"proxies"`
+	Accounts       []dataAccount `json:"accounts"`
+	SkippedShadows int           `json:"skipped_shadows"`
 }
 
 type dataProxy struct {

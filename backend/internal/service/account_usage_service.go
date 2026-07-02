@@ -315,12 +315,7 @@ func (s *AccountUsageService) getOpenAIUsage(ctx context.Context, account *Accou
 		return usage, nil
 	}
 
-	if progress := buildCodexUsageProgressFromExtra(account.Extra, "5h", now); progress != nil {
-		usage.FiveHour = progress
-	}
-	if progress := buildCodexUsageProgressFromExtra(account.Extra, "7d", now); progress != nil {
-		usage.SevenDay = progress
-	}
+	applyExtraToUsage(usage, account.Extra, now)
 
 	if (force || shouldRefreshOpenAICodexSnapshot(account, usage, now)) && s.shouldProbeOpenAICodexSnapshot(account.ID, now, force) {
 		if updates, err := s.probeOpenAICodexSnapshot(ctx, account); err == nil && len(updates) > 0 {
@@ -328,12 +323,7 @@ func (s *AccountUsageService) getOpenAIUsage(ctx context.Context, account *Accou
 			if usage.UpdatedAt == nil {
 				usage.UpdatedAt = &now
 			}
-			if progress := buildCodexUsageProgressFromExtra(account.Extra, "5h", now); progress != nil {
-				usage.FiveHour = progress
-			}
-			if progress := buildCodexUsageProgressFromExtra(account.Extra, "7d", now); progress != nil {
-				usage.SevenDay = progress
-			}
+			applyExtraToUsage(usage, account.Extra, now)
 		}
 	}
 
@@ -512,6 +502,21 @@ func mergeAccountExtra(account *Account, updates map[string]any) {
 	}
 	for k, v := range updates {
 		account.Extra[k] = v
+	}
+}
+
+// applyExtraToUsage rebuilds the codex 5h/7d windows in usage from the
+// account's Extra map.  Called after mergeAccountExtra to make the in-memory
+// UsageInfo consistent with the just-persisted Extra values.
+func applyExtraToUsage(usage *UsageInfo, extra map[string]any, now time.Time) {
+	if usage == nil {
+		return
+	}
+	if progress := buildCodexUsageProgressFromExtra(extra, "5h", now); progress != nil {
+		usage.FiveHour = progress
+	}
+	if progress := buildCodexUsageProgressFromExtra(extra, "7d", now); progress != nil {
+		usage.SevenDay = progress
 	}
 }
 

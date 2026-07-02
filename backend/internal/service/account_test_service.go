@@ -802,18 +802,20 @@ func (s *AccountTestService) testOpenAIAccountConnection(c *gin.Context, account
 		return s.testOpenAIImageAPIKey(c, ctx, account, testModelID, imagePrompt)
 	}
 
+	credentialAccount := account
+
 	// Determine authentication method and API URL
 	var authToken string
 	var apiURL string
 
 	if account.Type == "apikey" {
 		// API Key - use Platform API
-		authToken = account.GetOpenAIApiKey()
+		authToken = credentialAccount.GetOpenAIApiKey()
 		if authToken == "" {
 			return s.sendErrorAndEnd(c, "No API key available")
 		}
 
-		baseURL := account.GetOpenAIBaseURL()
+		baseURL := credentialAccount.GetOpenAIBaseURL()
 		if baseURL == "" {
 			baseURL = "https://api.openai.com"
 		}

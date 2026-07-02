@@ -34,7 +34,7 @@
             v-if="entry.models.length === 0"
             class="text-xs italic text-gray-400"
           >
-            {{ t('admin.channels.form.noModels', '未添加模型') }}
+            {{ t('admin.channels.form.noModels') }}
           </span>
         </div>
 
@@ -48,7 +48,7 @@
 
       <!-- Expanded: show the label "Pricing Entry" or similar -->
       <div v-else class="flex-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-        {{ t('admin.channels.form.pricingEntry', '定价配置') }}
+        {{ t('admin.channels.form.pricingEntry') }}
       </div>
 
       <!-- Remove button (always visible, stop propagation) -->
@@ -71,19 +71,19 @@
         <div class="mt-3 flex items-start gap-2">
           <div class="flex-1">
             <label class="text-xs font-medium text-gray-500 dark:text-gray-400">
-              {{ t('admin.channels.form.models', '模型列表') }} <span class="text-red-500">*</span>
+              {{ t('admin.channels.form.models') }} <span class="text-red-500">*</span>
             </label>
             <ModelTagInput
               :models="entry.models"
               :platform="props.platform"
               @update:models="onModelsUpdate($event)"
-              :placeholder="t('admin.channels.form.modelsPlaceholder', '输入模型名后按回车添加，支持通配符 *')"
+              :placeholder="t('admin.channels.form.modelsPlaceholder')"
               class="mt-1"
             />
           </div>
           <div class="w-40">
             <label class="text-xs font-medium text-gray-500 dark:text-gray-400">
-              {{ t('admin.channels.form.billingMode', '计费模式') }}
+              {{ t('admin.channels.form.billingMode') }}
             </label>
             <Select
               :modelValue="entry.billing_mode"
@@ -138,11 +138,11 @@
           <div class="mt-3">
             <div class="flex items-center justify-between">
               <label class="text-xs font-medium text-gray-500 dark:text-gray-400">
-                {{ t('admin.channels.form.intervals', '上下文区间定价（可选）') }}
+                {{ t('admin.channels.form.intervals') }}
                 <span class="ml-1 font-normal text-gray-400">(min, max]</span>
               </label>
               <button type="button" @click="addInterval" class="text-xs text-primary-600 hover:text-primary-700">
-                + {{ t('admin.channels.form.addInterval', '添加区间') }}
+                + {{ t('admin.channels.form.addInterval') }}
               </button>
             </div>
             <div v-if="entry.intervals && entry.intervals.length > 0" class="mt-2 space-y-2">
@@ -173,10 +173,10 @@
           <!-- Tiers -->
           <div class="mt-3 flex items-center justify-between">
             <label class="text-xs font-medium text-gray-500 dark:text-gray-400">
-              {{ t('admin.channels.form.requestTiers', '按次计费层级') }}
+              {{ t('admin.channels.form.requestTiers') }}
             </label>
             <button type="button" @click="addInterval" class="text-xs text-primary-600 hover:text-primary-700">
-              + {{ t('admin.channels.form.addTier', '添加层级') }}
+              + {{ t('admin.channels.form.addTier') }}
             </button>
           </div>
           <div v-if="entry.intervals && entry.intervals.length > 0" class="mt-2 space-y-2">
@@ -190,7 +190,7 @@
             />
           </div>
           <div v-else class="mt-2 rounded border border-dashed border-gray-300 p-3 text-center text-xs text-gray-400 dark:border-dark-500">
-            {{ t('admin.channels.form.noTiersYet', '暂无层级，点击添加配置按次计费价格') }}
+            {{ t('admin.channels.form.noTiersYet') }}
           </div>
         </div>
 
@@ -209,10 +209,10 @@
           <!-- Image tiers -->
           <div class="mt-3 flex items-center justify-between">
             <label class="text-xs font-medium text-gray-500 dark:text-gray-400">
-              {{ t('admin.channels.form.imageTiers', '图片计费层级（按次）') }}
+              {{ t('admin.channels.form.imageTiers') }}
             </label>
             <button type="button" @click="addImageTier" class="text-xs text-primary-600 hover:text-primary-700">
-              + {{ t('admin.channels.form.addTier', '添加层级') }}
+              + {{ t('admin.channels.form.addTier') }}
             </button>
           </div>
           <div v-if="entry.intervals && entry.intervals.length > 0" class="mt-2 space-y-2">
@@ -264,9 +264,9 @@ const emit = defineEmits<{
 const collapsed = ref(props.entry.models.length > 0)
 
 const billingModeOptions = computed(() => [
-  { value: 'token', label: 'Token' },
-  { value: 'per_request', label: t('admin.channels.billingMode.perRequest', '按次') },
-  { value: 'image', label: t('admin.channels.billingMode.image', '图片（按次）') }
+  { value: 'token', label: t('admin.channels.billingMode.token') },
+  { value: 'per_request', label: t('admin.channels.billingMode.perRequest') },
+  { value: 'image', label: t('admin.channels.billingMode.image') }
 ])
 
 const billingModeLabel = computed(() => {

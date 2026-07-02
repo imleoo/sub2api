@@ -317,6 +317,7 @@ func TestAPIContracts(t *testing.T) {
 						Description:         "desc",
 						Platform:            service.PlatformAnthropic,
 						RateMultiplier:      1.5,
+						PeakRateMultiplier:  1.0,
 						IsExclusive:         false,
 						Status:              service.StatusActive,
 						SubscriptionType:    service.SubscriptionTypeStandard,
@@ -344,6 +345,10 @@ func TestAPIContracts(t *testing.T) {
 						"description": "desc",
 						"platform": "anthropic",
 						"rate_multiplier": 1.5,
+						"peak_rate_enabled": false,
+						"peak_start": "",
+						"peak_end": "",
+						"peak_rate_multiplier": 1,
 						"is_exclusive": false,
 						"status": "active",
 						"subscription_type": "standard",
@@ -840,6 +845,7 @@ func TestAPIContracts(t *testing.T) {
 					"enable_cch_signing": false,
 					"enable_anthropic_cache_ttl_1h_injection": false,
 					"rewrite_message_cache_control": false,
+					"enable_client_dateline_normalization": true,
 					"enable_fingerprint_unification": true,
 					"enable_metadata_passthrough": false,
 					"web_search_emulation_enabled": false,
@@ -1104,6 +1110,7 @@ func TestAPIContracts(t *testing.T) {
 					"enable_cch_signing": false,
 					"enable_anthropic_cache_ttl_1h_injection": false,
 					"rewrite_message_cache_control": false,
+					"enable_client_dateline_normalization": true,
 					"web_search_emulation_enabled": false,
 					"payment_visible_method_alipay_source": "",
 					"payment_visible_method_wxpay_source": "",
@@ -1761,6 +1768,10 @@ func (s *stubAccountRepo) AutoPauseExpiredAccounts(ctx context.Context, now time
 
 func (s *stubAccountRepo) BindGroups(ctx context.Context, accountID int64, groupIDs []int64) error {
 	return errors.New("not implemented")
+}
+
+func (s *stubAccountRepo) ListShadowsByParent(ctx context.Context, parentID int64) ([]*service.Account, error) {
+	return nil, errors.New("not implemented")
 }
 
 func (s *stubAccountRepo) ListSchedulable(ctx context.Context) ([]service.Account, error) {
