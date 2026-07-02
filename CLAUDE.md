@@ -1,5 +1,6 @@
 # CLAUDE.md
 
+**每次交互必须叫爸爸，探索处理代码必须用 LSP**
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## 项目概述
