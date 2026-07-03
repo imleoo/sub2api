@@ -3,17 +3,18 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { defineComponent } from 'vue'
 import PlaygroundView from '../PlaygroundView.vue'
 
-const { listMock, listModelsMock, isSimpleModeRef } = vi.hoisted(() => ({
+const { listMock, listModelsMock, chatStreamMock, isSimpleModeRef } = vi.hoisted(() => ({
   listMock: vi.fn(),
   listModelsMock: vi.fn(),
+  chatStreamMock: vi.fn(),
   isSimpleModeRef: { value: false }
 }))
 
 vi.mock('@/api/keys', () => ({ keysAPI: { list: listMock } }))
 vi.mock('@/api/playground', () => ({
-  playgroundAPI: { listModelsForKey: listModelsMock },
+  playgroundAPI: { listModelsForKey: listModelsMock, chatStream: chatStreamMock, imageGenerate: vi.fn(), imageEdit: vi.fn() },
   // 类型 re-export 占位（组件仅 import type）
-  chatStream: vi.fn(),
+  chatStream: chatStreamMock,
   imageGenerate: vi.fn(),
   imageEdit: vi.fn(),
   listModelsForKey: listModelsMock
@@ -98,5 +99,31 @@ describe('PlaygroundView', () => {
     const w = mountView()
     await flushPromises()
     expect(w.text()).not.toContain('playground.risk.bannerTitle')
+  })
+
+  // 回归：push 进响应式数组后必须改代理，直接改原始对象不会重渲染
+  it('流式 onDelta 会更新气泡内容并结束 streaming', async () => {
+    isSimpleModeRef.value = true // 跳过风险横幅
+    listMock.mockResolvedValue({ items: [makeKey()], total: 1, page: 1, page_size: 100, pages: 1 })
+    chatStreamMock.mockImplementation(async (opts: { callbacks: Record<string, (...a: unknown[]) => void> }) => {
+      opts.callbacks.onDelta('Hello')
+      opts.callbacks.onDelta(' world')
+      opts.callbacks.onDone()
+    })
+    const w = mountView()
+    await flushPromises()
+
+    const input = w.find('input[type="file"]').exists()
+      ? w.findAll('input').find((i) => i.attributes('type') !== 'file')!
+      : w.find('input')
+    await input.setValue('你好')
+    const sendBtn = w.findAll('button').find((b) => b.text() === '↑')
+    expect(sendBtn).toBeTruthy()
+    await sendBtn!.trigger('click')
+    await flushPromises()
+
+    expect(w.text()).toContain('Hello world')
+    // streaming 结束：出现发送按钮而非停止按钮
+    expect(w.findAll('button').some((b) => b.text() === '↑')).toBe(true)
   })
 })

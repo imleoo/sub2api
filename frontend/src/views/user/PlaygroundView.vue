@@ -268,8 +268,9 @@ async function sendChat() {
   reqMessages.push({ role: 'user', content: text })
 
   messages.value.push({ id: ++msgSeq, role: 'user', kind: 'text', content: text })
-  const assistant: UiMessage = { id: ++msgSeq, role: 'assistant', kind: 'text', content: '', streaming: true }
-  messages.value.push(assistant)
+  messages.value.push({ id: ++msgSeq, role: 'assistant', kind: 'text', content: '', streaming: true })
+  // 取回数组中的响应式代理再改，直接改原始对象不会触发重渲染
+  const assistant = messages.value[messages.value.length - 1]
   inputText.value = ''
   streaming.value = true
   scrollToBottom()
@@ -322,8 +323,9 @@ async function sendImage() {
     content: prompt,
     attachments: isEdit ? previews : undefined
   })
-  const assistant: UiMessage = { id: ++msgSeq, role: 'assistant', kind: 'image', content: '', images: [], streaming: true }
-  messages.value.push(assistant)
+  messages.value.push({ id: ++msgSeq, role: 'assistant', kind: 'image', content: '', images: [], streaming: true })
+  // 取回响应式代理再改（见 sendChat 同注）
+  const assistant = messages.value[messages.value.length - 1]
   inputText.value = ''
   if (isEdit) {
     uploadFiles.value = []
