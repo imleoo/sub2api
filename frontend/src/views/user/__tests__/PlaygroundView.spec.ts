@@ -147,7 +147,7 @@ describe('PlaygroundView', () => {
     await flushPromises()
 
     expect(imageGenerateMock).toHaveBeenCalledTimes(1)
-    expect(imageGenerateMock.mock.calls[0][0].model).toBe('gpt-image-1')
+    expect(imageGenerateMock.mock.calls[0][0].model).toBe('gpt-image-2')
     expect(imageGenerateMock.mock.calls[0][0].model).not.toBe('gpt-5.4')
   })
 })
