@@ -571,9 +571,9 @@ func (s *AccountTestService) testClaudeAccountConnection(c *gin.Context, account
 		req.Header.Set(key, value)
 	}
 
-	// Set authentication header (API-key accounts use x-api-key)
+	// Set authentication header (API-key accounts use x-api-key, or Bearer if configured)
 	req.Header.Set("anthropic-beta", claude.APIKeyBetaHeader)
-	req.Header.Set("x-api-key", authToken)
+	setAnthropicAPIKeyAuthHeader(req.Header, account, authToken)
 
 	// Get proxy URL
 	proxyURL := ""
