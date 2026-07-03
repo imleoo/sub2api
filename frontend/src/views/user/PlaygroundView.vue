@@ -99,6 +99,8 @@ const params = ref({
 })
 const imageSize = ref(IMAGE_SIZES[0])
 const imageCount = ref(1)
+// 生图专用模型（须 gpt-image-* 前缀，与聊天模型选择器解耦）
+const imageModel = ref('gpt-image-1')
 
 // ─── Computed ─────────────────────────────
 const activeKeys = computed(() => keys.value.filter((k) => k.status === 'active'))
@@ -335,10 +337,12 @@ async function sendImage() {
   scrollToBottom()
 
   try {
+    // 生图必须用 gpt-image-* 模型，不能复用聊天模型选择器（否则后端 400）
+    const model = imageModel.value.trim() || 'gpt-image-1'
     const result = isEdit
       ? await playgroundAPI.imageEdit({
           apiKey: key.key,
-          model: selectedModel.value || 'gpt-image-1',
+          model,
           prompt,
           size: imageSize.value,
           n: imageCount.value,
@@ -346,7 +350,7 @@ async function sendImage() {
         })
       : await playgroundAPI.imageGenerate({
           apiKey: key.key,
-          model: selectedModel.value || 'gpt-image-1',
+          model,
           prompt,
           size: imageSize.value,
           n: imageCount.value
@@ -423,8 +427,8 @@ const composer = () => {
           }
         }
       }),
-      // 模型选择器
-      models.value.length
+      // 模型选择器（仅对话模式；生图模型在下方独立设置）
+      mode.value === 'chat' && models.value.length
         ? h(
             'select',
             {
@@ -483,9 +487,10 @@ const composer = () => {
         title: imageCapable.value ? '' : t('playground.imageNotAvailable'),
         onClick: () => setMode(mode.value === 'edit' ? 'chat' : 'edit')
       }, '🎨 ' + t('playground.chips.editImage')),
-      // 生图参数（尺寸/数量）
+      // 生图参数（模型/尺寸/数量）
       mode.value !== 'chat'
         ? h('span', { class: 'flex items-center gap-1 text-xs text-gray-500' }, [
+            h('input', { class: 'w-28 rounded bg-gray-100 px-1.5 py-0.5 dark:bg-dark-600 dark:text-gray-200', value: imageModel.value, placeholder: 'gpt-image-1', title: t('playground.model'), onInput: (e: Event) => (imageModel.value = (e.target as HTMLInputElement).value) }),
             h('select', { class: 'rounded bg-gray-100 px-1 py-0.5 dark:bg-dark-600', value: imageSize.value, onChange: (e: Event) => (imageSize.value = (e.target as HTMLSelectElement).value) }, IMAGE_SIZES.map((s) => h('option', { value: s }, s))),
             h('select', { class: 'rounded bg-gray-100 px-1 py-0.5 dark:bg-dark-600', value: String(imageCount.value), onChange: (e: Event) => (imageCount.value = Number((e.target as HTMLSelectElement).value)) }, [1, 2, 3, 4].map((n) => h('option', { value: n }, `×${n}`)))
           ])

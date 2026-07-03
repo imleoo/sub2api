@@ -3,19 +3,20 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { defineComponent } from 'vue'
 import PlaygroundView from '../PlaygroundView.vue'
 
-const { listMock, listModelsMock, chatStreamMock, isSimpleModeRef } = vi.hoisted(() => ({
+const { listMock, listModelsMock, chatStreamMock, imageGenerateMock, isSimpleModeRef } = vi.hoisted(() => ({
   listMock: vi.fn(),
   listModelsMock: vi.fn(),
   chatStreamMock: vi.fn(),
+  imageGenerateMock: vi.fn(),
   isSimpleModeRef: { value: false }
 }))
 
 vi.mock('@/api/keys', () => ({ keysAPI: { list: listMock } }))
 vi.mock('@/api/playground', () => ({
-  playgroundAPI: { listModelsForKey: listModelsMock, chatStream: chatStreamMock, imageGenerate: vi.fn(), imageEdit: vi.fn() },
+  playgroundAPI: { listModelsForKey: listModelsMock, chatStream: chatStreamMock, imageGenerate: imageGenerateMock, imageEdit: vi.fn() },
   // 类型 re-export 占位（组件仅 import type）
   chatStream: chatStreamMock,
-  imageGenerate: vi.fn(),
+  imageGenerate: imageGenerateMock,
   imageEdit: vi.fn(),
   listModelsForKey: listModelsMock
 }))
@@ -125,5 +126,28 @@ describe('PlaygroundView', () => {
     expect(w.text()).toContain('Hello world')
     // streaming 结束：出现发送按钮而非停止按钮
     expect(w.findAll('button').some((b) => b.text() === '↑')).toBe(true)
+  })
+
+  // 回归：生图必须用 gpt-image-* 模型，不能复用聊天模型选择器
+  it('文生图使用独立的 gpt-image 模型而非聊天 selectedModel', async () => {
+    isSimpleModeRef.value = true
+    listMock.mockResolvedValue({ items: [makeKey()], total: 1, page: 1, page_size: 100, pages: 1 })
+    listModelsMock.mockResolvedValue(['gpt-5.4']) // 聊天模型，绝不能被生图使用
+    imageGenerateMock.mockResolvedValue({ images: [{ b64: 'AAA' }], usage: {} })
+    const w = mountView()
+    await flushPromises()
+
+    // 切到生图意图
+    const genChip = w.findAll('button').find((b) => b.text().includes('generateImage'))!
+    await genChip.trigger('click')
+    const textInput = w.findAll('input').find((i) => i.attributes('type') !== 'file' && i.attributes('placeholder') !== 'gpt-image-1')!
+    await textInput.setValue('画只猫')
+    const sendBtn = w.findAll('button').find((b) => b.text() === '↑')!
+    await sendBtn.trigger('click')
+    await flushPromises()
+
+    expect(imageGenerateMock).toHaveBeenCalledTimes(1)
+    expect(imageGenerateMock.mock.calls[0][0].model).toBe('gpt-image-1')
+    expect(imageGenerateMock.mock.calls[0][0].model).not.toBe('gpt-5.4')
   })
 })
