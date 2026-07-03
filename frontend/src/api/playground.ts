@@ -169,9 +169,28 @@ export async function chatStream(opts: {
     return
   }
 
+  // 兜底：若后端未按 SSE 返回（如某些模型/错误回退成普通 JSON），按整体 JSON 处理，
+  // 避免解析器找不到 data: 行而气泡空转、streaming 卡死。
+  const contentType = res.headers?.get?.('content-type') ?? ''
+  if (contentType && !contentType.includes('text/event-stream')) {
+    try {
+      const text = await new Response(res.body).text()
+      handleNonStreamBody(text, claude, cb)
+    } catch (e) {
+      cb.onError({ status: 0, message: (e as Error)?.message ?? 'parse error' })
+    }
+    cb.onDone()
+    return
+  }
+
   const reader = res.body.getReader()
   const decoder = new TextDecoder()
   let buf = ''
+  const processLine = (line: string): boolean => {
+    const s = line.trim()
+    if (!s.startsWith('data:')) return false
+    return dispatchStreamChunk(s.slice(5).trim(), claude, cb)
+  }
   try {
     for (;;) {
       const { value, done } = await reader.read()
@@ -180,21 +199,52 @@ export async function chatStream(opts: {
       const lines = buf.split('\n')
       buf = lines.pop() ?? ''
       for (const line of lines) {
-        const s = line.trim()
-        if (!s.startsWith('data:')) continue
-        const payload = s.slice(5).trim()
-        if (dispatchStreamChunk(payload, claude, cb)) {
+        if (processLine(line)) {
           cb.onDone()
           return
         }
       }
     }
+    // flush 末尾残留行（流结束时无 trailing newline 的情况）
+    if (buf.trim()) processLine(buf)
   } catch (e) {
     if (opts.signal.aborted) return
     cb.onError({ status: 0, message: (e as Error)?.message ?? 'stream read error' })
     return
   }
   cb.onDone()
+}
+
+/** 非 SSE 响应体：尽力从整体 JSON 提取正文或错误 */
+function handleNonStreamBody(text: string, claude: boolean, cb: ChatStreamCallbacks): void {
+  let j: any
+  try {
+    j = JSON.parse(text)
+  } catch {
+    if (text.trim()) cb.onDelta(text.slice(0, 2000))
+    return
+  }
+  if (j?.error) {
+    cb.onError({ status: 0, message: j.error?.message ?? 'error', code: j.error?.code ?? j.error?.type })
+    return
+  }
+  if (claude) {
+    // Anthropic 非流式：content 是块数组
+    const blocks = j?.content
+    if (Array.isArray(blocks)) {
+      for (const b of blocks) {
+        if (b?.type === 'thinking' && b?.thinking) cb.onReasoning?.(b.thinking)
+        else if (b?.text) cb.onDelta(b.text)
+      }
+    }
+    if (j?.usage) cb.onUsage?.(j.usage)
+    return
+  }
+  // OpenAI 非流式：choices[0].message.content
+  const msg = j?.choices?.[0]?.message
+  if (msg?.reasoning_content) cb.onReasoning?.(msg.reasoning_content)
+  if (msg?.content) cb.onDelta(msg.content)
+  if (j?.usage) cb.onUsage?.(j.usage)
 }
 
 /** 文生图：POST /v1/images/generations（JSON） */
