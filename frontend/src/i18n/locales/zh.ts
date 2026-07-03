@@ -446,6 +446,7 @@ export default {
     buySubscription: '充值/订阅',
     docs: '文档',
     models: '模型广场',
+    playground: '模型体验',
     myOrders: '我的订单',
     orderManagement: '订单管理',
     paymentDashboard: '支付概览',
@@ -7684,6 +7685,72 @@ export default {
         revoked: '已撤销',
       },
     },
+  },
+
+  // Playground (模型体验)
+  playground: {
+    title: '模型体验',
+    description: '使用你自己的 API Key 进行对话和生图',
+    greeting: '今天有什么计划?',
+    inputPlaceholder: '有问题，尽管问',
+    send: '发送',
+    stop: '停止',
+    selectKey: '选择 Key',
+    keyGroup: '分组',
+    model: '模型',
+    noKey: '暂无可用的 API Key',
+    noKeyHint: '请先创建一个 API Key 再开始体验。',
+    goCreateKey: '创建 API Key',
+    noModel: '该 Key 无可用模型',
+    chips: {
+      generateImage: '生成图片',
+      editImage: '图生图'
+    },
+    intent: {
+      chat: '对话',
+      image: '生成图片',
+      edit: '图生图'
+    },
+    imageNotAvailable: '当前 Key 所属分组未开启生图，请切换到 OpenAI 类且已开启生图的分组。',
+    upload: '上传图片',
+    uploadHint: '最多 {max} 张，每张 ≤ {size}MB',
+    imageTooLarge: '图片 {name} 超过 {size}MB 限制',
+    imagePrompt: '描述你想要的图片',
+    editPrompt: '描述如何编辑上传的图片',
+    size: '尺寸',
+    count: '数量',
+    download: '下载',
+    useAsEditInput: '作为图生图输入',
+    generatedImages: '本次生成 {n} 张图，已计费',
+    reasoning: '推理过程',
+    showReasoning: '展开推理',
+    hideReasoning: '收起推理',
+    params: {
+      title: '参数',
+      temperature: '温度',
+      maxTokens: '最大 Token',
+      topP: 'Top P',
+      systemPrompt: '系统提示词',
+      enable: '启用'
+    },
+    usage: {
+      tokens: '输入 {input} / 输出 {output} tokens',
+      images: '{n} 张图',
+      cost: '预估成本 ${cost}'
+    },
+    risk: {
+      bannerTitle: '模型体验会消耗真实额度',
+      bannerBody: '体验将使用你选定的 API Key 发起真实请求，会消耗真实额度（余额 / 配额 / 限速窗口），与正式调用一致，不可退款。',
+      ack: '我已知晓，继续',
+      inlineHint: '消耗真实额度',
+      sendTooltip: '本次将真实计费'
+    },
+    errors: {
+      insufficient: '余额或订阅额度不足，请充值或更换 Key。',
+      rateLimited: '触发限速（5h/1d/7d 窗口）或配额已用尽，请稍后再试。',
+      imageNotAllowed: '当前 Key 分组未开启生图。',
+      generic: '请求失败'
+    }
   },
 
   // Models

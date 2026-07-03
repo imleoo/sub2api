@@ -447,6 +447,7 @@ export default {
     docs: 'Docs',
     sora: 'Sora Studio',
     models: 'Model Plaza',
+    playground: 'Playground',
     myOrders: 'My Orders',
     orderManagement: 'Orders',
     paymentDashboard: 'Payment Dashboard',
@@ -7190,6 +7191,72 @@ export default {
         title: '🎉 Complete Creation',
         description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Click to confirm and create your API key.</p><div style="padding: 8px 12px; background: #fee2e2; border-left: 3px solid #ef4444; border-radius: 4px; font-size: 13px; margin-bottom: 12px;"><b>⚠️ Important:</b><ul style="margin: 8px 0 0 16px;"><li>Copy the key (sk-xxx) immediately after creation</li><li>Key is only shown once, need to regenerate if lost</li></ul></div><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>🚀 How to Use:</b><br/>Configure the key in any OpenAI-compatible client (like ChatBox, OpenCat, etc.) and start using!</p><p style="margin-top: 12px; color: #10b981; font-weight: 600;">👉 Click "Create" button</p></div>'
       }
+    }
+  },
+
+  // Playground (Model Experience)
+  playground: {
+    title: 'Playground',
+    description: 'Chat and generate images using your own API Key',
+    greeting: 'What are you working on today?',
+    inputPlaceholder: 'Ask anything',
+    send: 'Send',
+    stop: 'Stop',
+    selectKey: 'Select Key',
+    keyGroup: 'Group',
+    model: 'Model',
+    noKey: 'No available API Key yet',
+    noKeyHint: 'Create an API Key first to start experiencing.',
+    goCreateKey: 'Create API Key',
+    noModel: 'This Key has no available models',
+    chips: {
+      generateImage: 'Generate Image',
+      editImage: 'Image to Image'
+    },
+    intent: {
+      chat: 'Chat',
+      image: 'Generate Image',
+      edit: 'Image to Image'
+    },
+    imageNotAvailable: 'The group of the current Key does not allow image generation. Switch to an OpenAI-type group with image generation enabled.',
+    upload: 'Upload image',
+    uploadHint: 'Up to {max} images, each ≤ {size}MB',
+    imageTooLarge: 'Image {name} exceeds {size}MB limit',
+    imagePrompt: 'Describe the image you want',
+    editPrompt: 'Describe how to edit the uploaded image',
+    size: 'Size',
+    count: 'Count',
+    download: 'Download',
+    useAsEditInput: 'Use as image-to-image input',
+    generatedImages: 'Generated {n} image(s), billed',
+    reasoning: 'Reasoning',
+    showReasoning: 'Show reasoning',
+    hideReasoning: 'Hide reasoning',
+    params: {
+      title: 'Parameters',
+      temperature: 'Temperature',
+      maxTokens: 'Max Tokens',
+      topP: 'Top P',
+      systemPrompt: 'System Prompt',
+      enable: 'Enable'
+    },
+    usage: {
+      tokens: '{input} in / {output} out tokens',
+      images: '{n} image(s)',
+      cost: 'Est. cost ${cost}'
+    },
+    risk: {
+      bannerTitle: 'Model experience uses real quota',
+      bannerBody: 'Requests use your selected API Key and consume real quota (balance / quota / rate-limit windows), same as production calls, and are non-refundable.',
+      ack: 'I understand, continue',
+      inlineHint: 'Consumes real quota',
+      sendTooltip: 'This request will be billed for real'
+    },
+    errors: {
+      insufficient: 'Insufficient balance or subscription quota. Please recharge or switch Key.',
+      rateLimited: 'Rate limit (5h/1d/7d window) or quota exhausted. Please try again later.',
+      imageNotAllowed: 'The current Key group does not allow image generation.',
+      generic: 'Request failed'
     }
   },
 

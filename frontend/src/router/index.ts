@@ -374,6 +374,18 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/playground',
+    name: 'Playground',
+    component: () => import('@/views/user/PlaygroundView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'Playground',
+      titleKey: 'playground.title',
+      descriptionKey: 'playground.description'
+    }
+  },
+  {
     path: '/custom/:id',
     name: 'CustomPage',
     component: () => import('@/views/user/CustomPageView.vue'),
