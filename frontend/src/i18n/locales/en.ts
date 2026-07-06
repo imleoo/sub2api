@@ -7232,6 +7232,8 @@ export default {
     reasoning: 'Reasoning',
     showReasoning: 'Show reasoning',
     hideReasoning: 'Hide reasoning',
+    thinking: 'Thinking…',
+    generatingImage: 'Generating image, this may take a moment…',
     params: {
       title: 'Parameters',
       temperature: 'Temperature',

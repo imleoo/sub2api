@@ -35,15 +35,28 @@
         >
       </div>
 
-      <!-- 文本内容 -->
+      <!-- 文本内容（流式中在末尾带光标） -->
       <pre
         v-if="message.content"
         class="whitespace-pre-wrap break-words font-sans"
-        >{{ message.content }}</pre
+        >{{ message.content }}<span v-if="message.streaming" class="animate-pulse">▍</span></pre
       >
 
-      <!-- 流式光标 -->
-      <span v-if="message.streaming && !message.images?.length" class="animate-pulse">▍</span>
+      <!-- 处理中指示器：尚无内容/图片时显示转圈 + 文案 -->
+      <div
+        v-if="showLoading"
+        class="flex items-center gap-2 py-0.5 text-gray-500 dark:text-gray-400"
+      >
+        <svg class="h-4 w-4 animate-spin text-current" viewBox="0 0 24 24" fill="none">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+          <path
+            class="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+          />
+        </svg>
+        <span class="text-sm">{{ loadingText }}</span>
+      </div>
 
       <!-- 生图结果网格 -->
       <div v-if="message.images?.length" class="mt-1 grid grid-cols-2 gap-2">
@@ -115,6 +128,19 @@ const { t } = useI18n()
 const reasoningOpen = ref(false)
 
 const isUser = computed(() => props.message.role === 'user')
+
+// 处理中：仍在流式且尚无文本、尚无图片、也无错误
+const showLoading = computed(
+  () =>
+    props.message.streaming === true &&
+    !props.message.content &&
+    !props.message.images?.length &&
+    !props.message.error
+)
+
+const loadingText = computed(() =>
+  props.message.kind === 'image' ? t('playground.generatingImage') : t('playground.thinking')
+)
 
 function imageSrc(img: PlaygroundImage): string {
   if (img.url) return img.url

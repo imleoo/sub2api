@@ -7725,6 +7725,8 @@ export default {
     reasoning: '推理过程',
     showReasoning: '展开推理',
     hideReasoning: '收起推理',
+    thinking: '正在思考…',
+    generatingImage: '正在生成图片，可能需要一会儿…',
     params: {
       title: '参数',
       temperature: '温度',

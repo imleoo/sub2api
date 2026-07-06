@@ -48,6 +48,23 @@ describe('MessageBubble', () => {
     expect(w.text()).toContain('推理内容')
   })
 
+  it('流式且无内容的文本消息显示「思考中」加载指示器', () => {
+    const w = mountMsg({ id: 8, role: 'assistant', kind: 'text', content: '', streaming: true })
+    expect(w.text()).toContain('playground.thinking')
+    expect(w.find('svg.animate-spin').exists()).toBe(true)
+  })
+
+  it('流式生图消息显示「生成图片中」加载指示器', () => {
+    const w = mountMsg({ id: 9, role: 'assistant', kind: 'image', content: '', images: [], streaming: true })
+    expect(w.text()).toContain('playground.generatingImage')
+  })
+
+  it('已有内容时不显示加载指示器', () => {
+    const w = mountMsg({ id: 10, role: 'assistant', kind: 'text', content: '已经有内容', streaming: true })
+    expect(w.text()).not.toContain('playground.thinking')
+    expect(w.find('svg.animate-spin').exists()).toBe(false)
+  })
+
   it('点击「作为图生图输入」触发 emit', async () => {
     const w = mountMsg({ id: 7, role: 'assistant', kind: 'image', content: '', images: [{ b64: 'AAA' }] })
     const btns = w.findAll('button')
