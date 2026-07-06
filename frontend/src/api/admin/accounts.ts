@@ -575,6 +575,54 @@ export async function importData(payload: {
   return data
 }
 
+export async function importCodexSession(payload: CodexSessionImportRequest): Promise<CodexSessionImportResult> {
+  const { data } = await apiClient.post<CodexSessionImportResult>('/admin/accounts/import/codex-session', payload, {
+    timeout: 120000 // 120s timeout for large session imports
+  })
+  return data
+}
+
+export async function createOpenAICodexPAT(payload: OpenAICodexPATCreateRequest): Promise<Account> {
+  const { data } = await apiClient.post<Account>('/admin/openai/create-from-codex-pat', payload)
+  return data
+}
+
+/**
+ * Get Antigravity default model mapping from backend
+ * @returns Default model mapping (from -> to)
+ */
+export async function getAntigravityDefaultModelMapping(): Promise<Record<string, string>> {
+  const { data } = await apiClient.get<Record<string, string>>(
+    '/admin/accounts/antigravity/default-model-mapping'
+  )
+  return data
+}
+
+/**
+ * Refresh OpenAI token using refresh token
+ * @param refreshToken - The refresh token
+ * @param proxyId - Optional proxy ID
+ * @returns Token information including access_token, email, etc.
+ */
+export async function refreshOpenAIToken(
+  refreshToken: string,
+  proxyId?: number | null,
+  endpoint: string = '/admin/openai/refresh-token',
+  clientId?: string
+): Promise<Record<string, unknown>> {
+  const payload: { refresh_token: string; proxy_id?: number; client_id?: string } = {
+    refresh_token: refreshToken
+  }
+  if (proxyId) {
+    payload.proxy_id = proxyId
+  }
+  if (clientId) {
+    payload.client_id = clientId
+  }
+  const { data } = await apiClient.post<Record<string, unknown>>(endpoint, payload)
+  return data
+}
+
 /**
  * Batch operation result type
  */

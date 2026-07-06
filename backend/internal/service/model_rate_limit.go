@@ -9,8 +9,12 @@ import (
 )
 
 const (
-	modelRateLimitsKey                = "model_rate_limits"
-	openAIImageGenerationRateLimitKey = "openai:image_generation"
+	modelRateLimitsKey                 = "model_rate_limits"
+	antigravityGeminiModelRateLimitKey = "antigravity:gemini"
+	openAIImageGenerationRateLimitKey  = "openai:image_generation"
+	// anthropicFableRateLimitKey 是 Anthropic 7d_oi（Fable 专属 7d 窗口）限流的
+	// 家族级 scope：命中后所有 Fable 变体（含 [1m] 等后缀）都不再调度到该账号。
+	anthropicFableRateLimitKey = "claude-fable-5"
 )
 
 // isRateLimitActiveForKey 检查指定 key 的限流是否生效
@@ -62,18 +66,36 @@ func (a *Account) modelRateLimitKeysForRequest(ctx context.Context, requestedMod
 		return nil
 	}
 
-	modelKey := strings.TrimSpace(a.GetMappedModel(requestedModel))
+	modelKey := a.GetMappedModel(requestedModel)
+	if a.Platform == PlatformAntigravity {
+		modelKey = resolveFinalAntigravityModelKey(ctx, a, requestedModel)
+	}
+	modelKey = strings.TrimSpace(modelKey)
 	if modelKey == "" {
 		return nil
 	}
 
 	keys := []string{modelKey}
-	if a.Platform == PlatformOpenAI {
+	switch a.Platform {
+	case PlatformAntigravity:
+		if isAntigravityGeminiModel(modelKey) && modelKey != antigravityGeminiModelRateLimitKey {
+			keys = append(keys, antigravityGeminiModelRateLimitKey)
+		}
+	case PlatformOpenAI:
 		if openAIImageGenerationRateLimitApplies(ctx, requestedModel, modelKey) && modelKey != openAIImageGenerationRateLimitKey {
 			keys = append(keys, openAIImageGenerationRateLimitKey)
 		}
+	case PlatformAnthropic:
+		if isAnthropicFableModel(modelKey) && modelKey != anthropicFableRateLimitKey {
+			keys = append(keys, anthropicFableRateLimitKey)
+		}
 	}
 	return keys
+}
+
+// isAnthropicFableModel 判断是否为 Fable 模型家族（claude-fable-5、claude-fable-5[1m] 等变体）
+func isAnthropicFableModel(model string) bool {
+	return strings.Contains(strings.ToLower(model), "fable")
 }
 
 func openAIImageGenerationRateLimitApplies(ctx context.Context, requestedModel, modelKey string) bool {
@@ -96,6 +118,34 @@ func OpenAIImageGenerationIntentFromContext(ctx context.Context) bool {
 	}
 	enabled, ok := ctx.Value(ctxkey.OpenAIImageGenerationIntent).(bool)
 	return ok && enabled
+}
+
+func resolveFinalAntigravityModelKey(ctx context.Context, account *Account, requestedModel string) string {
+	modelKey := mapAntigravityModel(account, requestedModel)
+	if modelKey == "" {
+		return ""
+	}
+	// thinking 会影响 Antigravity 最终模型名（例如 claude-sonnet-4-5 -> claude-sonnet-4-5-thinking）
+	if enabled, ok := ThinkingEnabledFromContext(ctx); ok {
+		modelKey = applyThinkingModelSuffix(modelKey, enabled)
+	}
+	return modelKey
+}
+
+func isAntigravityGeminiModel(model string) bool {
+	return strings.HasPrefix(normalizeAntigravityModelName(model), "gemini-")
+}
+
+func antigravityModelRateLimitKeys(model string) []string {
+	model = strings.TrimSpace(model)
+	if model == "" {
+		return nil
+	}
+	keys := []string{model}
+	if isAntigravityGeminiModel(model) && model != antigravityGeminiModelRateLimitKey {
+		keys = append(keys, antigravityGeminiModelRateLimitKey)
+	}
+	return keys
 }
 
 func (a *Account) modelRateLimitResetAt(scope string) *time.Time {
