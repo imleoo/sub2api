@@ -575,18 +575,6 @@ export async function importData(payload: {
   return data
 }
 
-export async function importCodexSession(payload: CodexSessionImportRequest): Promise<CodexSessionImportResult> {
-  const { data } = await apiClient.post<CodexSessionImportResult>('/admin/accounts/import/codex-session', payload, {
-    timeout: 120000 // 120s timeout for large session imports
-  })
-  return data
-}
-
-export async function createOpenAICodexPAT(payload: OpenAICodexPATCreateRequest): Promise<Account> {
-  const { data } = await apiClient.post<Account>('/admin/openai/create-from-codex-pat', payload)
-  return data
-}
-
 /**
  * Get Antigravity default model mapping from backend
  * @returns Default model mapping (from -> to)
