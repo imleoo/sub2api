@@ -7210,6 +7210,7 @@ export default {
     goCreateKey: 'Create API Key',
     noModel: 'This Key has no available models',
     imageOnlyKey: 'This Key is for image generation only — use "Generate Image" below.',
+    imageModelPlaceholder: 'Image model',
     chips: {
       generateImage: 'Generate Image',
       editImage: 'Image to Image'

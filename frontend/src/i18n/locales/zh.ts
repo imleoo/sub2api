@@ -7703,6 +7703,7 @@ export default {
     goCreateKey: '创建 API Key',
     noModel: '该 Key 无可用模型',
     imageOnlyKey: '该 Key 仅支持生图，请点下方「生成图片」。',
+    imageModelPlaceholder: '生图模型',
     chips: {
       generateImage: '生成图片',
       editImage: '图生图'

@@ -58,6 +58,7 @@ import { useI18n } from 'vue-i18n'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import MessageBubble, { type UiMessage } from '@/components/playground/MessageBubble.vue'
 import { keysAPI } from '@/api/keys'
+import { getModels } from '@/api/models'
 import { playgroundAPI, type PlaygroundImage, type PlaygroundMessage, type PlaygroundError } from '@/api/playground'
 import { useAuthStore } from '@/stores'
 import type { ApiKey } from '@/types'
@@ -99,8 +100,10 @@ const params = ref({
 })
 const imageSize = ref(IMAGE_SIZES[0])
 const imageCount = ref(1)
-// 生图专用模型（须 gpt-image-* 前缀，与聊天模型选择器解耦；默认与后端一致）
-const imageModel = ref('gpt-image-2')
+// 生图专用模型（从该 key 的图像模型中选，默认取第一个；不写死具体模型名）
+const imageModel = ref('')
+// 模型 id → mode 映射（来自 /api/v1/models，权威区分 chat / image_generation / …）
+const modelModes = ref<Record<string, string>>({})
 
 // ─── Computed ─────────────────────────────
 const activeKeys = computed(() => keys.value.filter((k) => k.status === 'active'))
@@ -108,8 +111,14 @@ const selectedKey = computed(() => keys.value.find((k) => k.id === selectedKeyId
 const isSimpleMode = computed(() => authStore.isSimpleMode)
 const showRiskBanner = computed(() => !riskAcked.value && !isSimpleMode.value && activeKeys.value.length > 0)
 
+// 数据驱动判定：mode 为 image_generation 即图像模型（未知 mode 视为对话，避免误藏对话模型）
+function isImageModel(id: string): boolean {
+  return modelModes.value[id] === 'image_generation'
+}
 // 对话可用模型（剔除图像模型，它们只能走生图端点）
-const chatModels = computed(() => models.value.filter((m) => !isImageModelName(m)))
+const chatModels = computed(() => models.value.filter((m) => !isImageModel(m)))
+// 该 key 可用的图像模型
+const imageModels = computed(() => models.value.filter((m) => isImageModel(m)))
 
 const imageCapable = computed(() => {
   const g = selectedKey.value?.group
@@ -120,8 +129,10 @@ const imageCapable = computed(() => {
 const canSend = computed(() => {
   if (streaming.value || !selectedKey.value) return false
   if (mode.value === 'chat') return inputText.value.trim().length > 0 && !!selectedModel.value
-  if (mode.value === 'edit') return uploadFiles.value.length > 0 && inputText.value.trim().length > 0
-  return inputText.value.trim().length > 0 // image
+  const hasImageModel = imageModel.value.trim().length > 0
+  if (mode.value === 'edit')
+    return uploadFiles.value.length > 0 && inputText.value.trim().length > 0 && hasImageModel
+  return inputText.value.trim().length > 0 && hasImageModel // image
 })
 
 // ─── Load ─────────────────────────────────
@@ -137,10 +148,17 @@ async function loadKeys() {
   }
 }
 
-// 图像模型不能用于对话端点（后端只在 images 端点接受 gpt-image-*）
-function isImageModelName(id: string): boolean {
-  const m = id.toLowerCase()
-  return m.startsWith('gpt-image-') || m.includes('dall-e')
+// 加载模型 id → mode 映射（一次即可，缓存）
+async function ensureModelModes() {
+  if (Object.keys(modelModes.value).length > 0) return
+  try {
+    const res = await getModels()
+    const map: Record<string, string> = {}
+    for (const m of res.models ?? []) map[m.id] = m.mode
+    modelModes.value = map
+  } catch {
+    /* 拿不到 mode 时，全部按对话处理（不误藏对话模型） */
+  }
 }
 
 async function loadModels() {
@@ -148,13 +166,16 @@ async function loadModels() {
   models.value = []
   selectedModel.value = ''
   if (!key) return
+  await ensureModelModes()
   try {
     const list = await playgroundAPI.listModelsForKey(key.key)
     models.value = list
-    // 对话默认选第一个「非图像」模型；纯图像分组则留空（对话不可用）
-    selectedModel.value = list.find((m) => !isImageModelName(m)) ?? ''
+    // 对话默认选第一个非图像模型；图像默认选第一个图像模型（均由数据决定，不写死）
+    selectedModel.value = list.find((m) => !isImageModel(m)) ?? ''
+    const firstImage = list.find((m) => isImageModel(m))
+    if (firstImage) imageModel.value = firstImage
     // 纯图像分组：自动切到生图意图，避免用户在对话模式里困惑
-    if (!selectedModel.value && list.length > 0 && imageCapable.value) {
+    if (!selectedModel.value && firstImage && imageCapable.value) {
       mode.value = 'image'
     }
   } catch {
@@ -168,7 +189,10 @@ watch(selectedKeyId, () => {
   if (!imageCapable.value && mode.value !== 'chat') mode.value = 'chat'
 })
 
-onMounted(loadKeys)
+onMounted(() => {
+  ensureModelModes()
+  loadKeys()
+})
 
 // ─── Actions ──────────────────────────────
 function ackRisk() {
@@ -351,8 +375,8 @@ async function sendImage() {
   scrollToBottom()
 
   try {
-    // 生图必须用 gpt-image-* 模型，不能复用聊天模型选择器（否则后端 400）
-    const model = imageModel.value.trim() || 'gpt-image-2'
+    // 生图模型来自该 key 的图像模型选择（canSend 已保证非空）
+    const model = imageModel.value.trim()
     const result = isEdit
       ? await playgroundAPI.imageEdit({
           apiKey: key.key,
@@ -504,7 +528,14 @@ const composer = () => {
       // 生图参数（模型/尺寸/数量）
       mode.value !== 'chat'
         ? h('span', { class: 'flex items-center gap-1 text-xs text-gray-500' }, [
-            h('input', { class: 'w-28 rounded bg-gray-100 px-1.5 py-0.5 dark:bg-dark-600 dark:text-gray-200', value: imageModel.value, placeholder: 'gpt-image-2', title: t('playground.model'), onInput: (e: Event) => (imageModel.value = (e.target as HTMLInputElement).value) }),
+            // 图像模型：有可选列表用下拉；分组允许生图但未列出图像模型时回退可编辑输入
+            imageModels.value.length
+              ? h(
+                  'select',
+                  { class: 'max-w-[10rem] rounded bg-gray-100 px-1 py-0.5 dark:bg-dark-600 dark:text-gray-200', value: imageModel.value, title: t('playground.model'), onChange: (e: Event) => (imageModel.value = (e.target as HTMLSelectElement).value) },
+                  imageModels.value.map((m) => h('option', { value: m }, m))
+                )
+              : h('input', { class: 'w-32 rounded bg-gray-100 px-1.5 py-0.5 dark:bg-dark-600 dark:text-gray-200', value: imageModel.value, placeholder: t('playground.imageModelPlaceholder'), title: t('playground.model'), onInput: (e: Event) => (imageModel.value = (e.target as HTMLInputElement).value) }),
             h('select', { class: 'rounded bg-gray-100 px-1 py-0.5 dark:bg-dark-600', value: imageSize.value, onChange: (e: Event) => (imageSize.value = (e.target as HTMLSelectElement).value) }, IMAGE_SIZES.map((s) => h('option', { value: s }, s))),
             h('select', { class: 'rounded bg-gray-100 px-1 py-0.5 dark:bg-dark-600', value: String(imageCount.value), onChange: (e: Event) => (imageCount.value = Number((e.target as HTMLSelectElement).value)) }, [1, 2, 3, 4].map((n) => h('option', { value: n }, `×${n}`)))
           ])
