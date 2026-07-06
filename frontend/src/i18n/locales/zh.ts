@@ -7702,6 +7702,7 @@ export default {
     noKeyHint: '请先创建一个 API Key 再开始体验。',
     goCreateKey: '创建 API Key',
     noModel: '该 Key 无可用模型',
+    imageOnlyKey: '该 Key 仅支持生图，请点下方「生成图片」。',
     chips: {
       generateImage: '生成图片',
       editImage: '图生图'

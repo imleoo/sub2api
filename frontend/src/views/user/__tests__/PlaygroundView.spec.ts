@@ -128,6 +128,23 @@ describe('PlaygroundView', () => {
     expect(w.findAll('button').some((b) => b.text() === '↑')).toBe(true)
   })
 
+  // 回归：纯图像分组的 key，对话模型被过滤空 → 自动进入生图模式
+  it('纯图像 Key 自动进入生图模式且不把图像模型当对话模型', async () => {
+    isSimpleModeRef.value = true
+    listMock.mockResolvedValue({ items: [makeKey()], total: 1, page: 1, page_size: 100, pages: 1 })
+    listModelsMock.mockResolvedValue(['gpt-image-1', 'gpt-image-2']) // 仅图像模型
+    const w = mountView()
+    await flushPromises()
+    // 处于生图模式：出现图像模型输入框(placeholder gpt-image-2)
+    const imgModelInput = w.findAll('input').find((i) => i.attributes('placeholder') === 'gpt-image-2')
+    expect(imgModelInput).toBeTruthy()
+    // 对话模型下拉不应把 gpt-image-* 列为可选项
+    const chatSelectHasImage = w
+      .findAll('option')
+      .some((o) => o.text().startsWith('gpt-image-'))
+    expect(chatSelectHasImage).toBe(false)
+  })
+
   // 回归：生图必须用 gpt-image-* 模型，不能复用聊天模型选择器
   it('文生图使用独立的 gpt-image 模型而非聊天 selectedModel', async () => {
     isSimpleModeRef.value = true

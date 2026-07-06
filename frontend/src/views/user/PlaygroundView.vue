@@ -108,6 +108,9 @@ const selectedKey = computed(() => keys.value.find((k) => k.id === selectedKeyId
 const isSimpleMode = computed(() => authStore.isSimpleMode)
 const showRiskBanner = computed(() => !riskAcked.value && !isSimpleMode.value && activeKeys.value.length > 0)
 
+// 对话可用模型（剔除图像模型，它们只能走生图端点）
+const chatModels = computed(() => models.value.filter((m) => !isImageModelName(m)))
+
 const imageCapable = computed(() => {
   const g = selectedKey.value?.group
   if (!g) return false
@@ -134,6 +137,12 @@ async function loadKeys() {
   }
 }
 
+// 图像模型不能用于对话端点（后端只在 images 端点接受 gpt-image-*）
+function isImageModelName(id: string): boolean {
+  const m = id.toLowerCase()
+  return m.startsWith('gpt-image-') || m.includes('dall-e')
+}
+
 async function loadModels() {
   const key = selectedKey.value
   models.value = []
@@ -142,7 +151,12 @@ async function loadModels() {
   try {
     const list = await playgroundAPI.listModelsForKey(key.key)
     models.value = list
-    if (list.length) selectedModel.value = list[0]
+    // 对话默认选第一个「非图像」模型；纯图像分组则留空（对话不可用）
+    selectedModel.value = list.find((m) => !isImageModelName(m)) ?? ''
+    // 纯图像分组：自动切到生图意图，避免用户在对话模式里困惑
+    if (!selectedModel.value && list.length > 0 && imageCapable.value) {
+      mode.value = 'image'
+    }
   } catch {
     models.value = []
   }
@@ -427,8 +441,8 @@ const composer = () => {
           }
         }
       }),
-      // 模型选择器（仅对话模式；生图模型在下方独立设置）
-      mode.value === 'chat' && models.value.length
+      // 模型选择器（仅对话模式，且仅列对话模型；生图模型在下方独立设置）
+      mode.value === 'chat' && chatModels.value.length
         ? h(
             'select',
             {
@@ -436,7 +450,7 @@ const composer = () => {
               value: selectedModel.value,
               onChange: (e: Event) => (selectedModel.value = (e.target as HTMLSelectElement).value)
             },
-            models.value.map((m) => h('option', { value: m }, m))
+            chatModels.value.map((m) => h('option', { value: m }, m))
           )
         : null,
       // 参数面板开关
@@ -503,9 +517,13 @@ const composer = () => {
 
     // 轻量 toast
     toast.value ? h('p', { class: 'text-xs text-red-500' }, toast.value) : null,
-    // 当前 key 无模型提示
-    key && models.value.length === 0 && mode.value === 'chat'
-      ? h('p', { class: 'text-xs text-gray-400' }, t('playground.noModel'))
+    // 对话模式下当前 key 无「对话」模型的提示
+    key && chatModels.value.length === 0 && mode.value === 'chat'
+      ? h(
+          'p',
+          { class: 'text-xs text-amber-600 dark:text-amber-400' },
+          imageCapable.value ? t('playground.imageOnlyKey') : t('playground.noModel')
+        )
       : null
   ])
 }

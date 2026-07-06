@@ -7209,6 +7209,7 @@ export default {
     noKeyHint: 'Create an API Key first to start experiencing.',
     goCreateKey: 'Create API Key',
     noModel: 'This Key has no available models',
+    imageOnlyKey: 'This Key is for image generation only — use "Generate Image" below.',
     chips: {
       generateImage: 'Generate Image',
       editImage: 'Image to Image'
