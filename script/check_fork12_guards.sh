@@ -5,7 +5,7 @@
 #
 # 守护规则（按 docs/sprint-plan.md P2-6 + glossary.md §5 fork 锚点）：
 #   1. routes/gateway.go 必须保留 /lingjing/v1/video 路由组（fork 12 引入）
-#   2. routes/gateway.go 必须保留 ForcePlatform middleware 至少 3 处（lingjing + antigravity v1/v1beta）
+#   2. routes/gateway.go 必须保留 ForcePlatform middleware 至少 1 处（lingjing；antigravity 已于 P2 移除）
 #   3. service 层必须保留 LingjingPollRunner / lingjing_gateway_service / lingjing_task_port
 #   4. service 层必须保留 applyDiscount + loadDiscounts（fork 5 折扣链）
 #   5. service 层必须保留 IsResponseMaskingEnabled + isIdentityQuestion（fork 8 masking）
@@ -77,12 +77,14 @@ check_required \
   "$BACKEND_DIR/internal/server/routes/gateway.go" \
   "video/submit"
 
-# 规则 2: ForcePlatform middleware（lingjing + antigravity v1 + antigravity v1beta = 至少 3 处）
+# 规则 2: ForcePlatform middleware（lingjing）
+# 注：antigravity 整平台已于逆向清理 P2 移除（c30ea59d6），其 v1/v1beta 两处
+# ForcePlatform 随之删除，现仅保留 lingjing 一处，预期 >= 1。
 check_min_count \
-  "ForcePlatform middleware（lingjing + antigravity x2）" \
+  "ForcePlatform middleware（lingjing）" \
   "$BACKEND_DIR/internal/server/routes/gateway.go" \
   "ForcePlatform\(" \
-  3
+  1
 
 # 规则 3: lingjing service 文件
 check_required \
