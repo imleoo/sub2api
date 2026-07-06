@@ -260,64 +260,8 @@ func (s *RateLimitService) HandleUpstreamError(ctx context.Context, account *Acc
 			shouldDisable = true
 			break
 		}
-		// OAuth 账号在 401 错误时临时不可调度（给 token 刷新窗口）；非 OAuth 账号保持原有 SetError 行为。
-		if authAccount.Type == AccountTypeOAuth {
-			// 1. 失效缓存
-			if s.tokenCacheInvalidator != nil {
-				if err := s.tokenCacheInvalidator.InvalidateToken(ctx, authAccount); err != nil {
-					slog.Warn("oauth_401_invalidate_cache_failed", "account_id", authAccount.ID, "error", err)
-				}
-			}
-			// 缺少 refresh_token 的 OAuth 账号无法在冷却期内自愈（后台刷新服务也会跳过），
-			// 直接走 SetError 永久禁用，避免冷却结束后再被选中产生一发无意义的 502。
-			if strings.TrimSpace(authAccount.GetCredential("refresh_token")) == "" {
-				msg := "Authentication failed (401): refresh_token missing, cannot recover"
-				if upstreamMsg != "" {
-					msg = "OAuth 401 (no refresh_token): " + upstreamMsg
-				}
-				s.handleAuthError(ctx, authAccount, msg)
-				shouldDisable = true
-				break
-			}
-			// 2. 临时不可调度，替代 SetError（保持 status=active 让刷新服务能拾取）
-			// 注意：此处不再写回 account.Credentials/expires_at。
-			// 原实现使用请求开始时的 account 快照整列覆盖 credentials JSONB（见
-			// persistAccountCredentials → accountRepository.UpdateCredentials → SetCredentials），
-			// 在另一个 worker 刚刷新完 refresh_token 的窄窗口内会把新 refresh_token 回滚为旧值，
-			// 导致下一周期用旧 refresh_token 调上游拿到 invalid_grant 后，
-			// tryRecoverFromRefreshRace 重读 DB 发现 currentRT == usedRT 也救不回来，账号被错误 disable。
-			// 这里仅依赖 InvalidateToken + SetTempUnschedulable 让账号在冷却期内不被调度，
-			// 冷却结束后由 token_provider 的 NeedsRefresh / token_refresh_service 走带分布式锁的正路刷新。
-			msg := "Authentication failed (401): invalid or expired credentials"
-			if upstreamMsg != "" {
-				msg = "OAuth 401: " + upstreamMsg
-			}
-			if authAccount.Platform == PlatformAntigravity {
-				extraUpdates := antigravityForceTokenRefreshExtra("401_invalid")
-				if err := s.accountRepo.UpdateExtra(ctx, authAccount.ID, extraUpdates); err != nil {
-					slog.Warn("antigravity_401_force_refresh_mark_failed", "account_id", authAccount.ID, "error", err)
-				} else {
-					if authAccount.Extra == nil {
-						authAccount.Extra = make(map[string]any, len(extraUpdates))
-					}
-					for k, v := range extraUpdates {
-						authAccount.Extra[k] = v
-					}
-					slog.Info("antigravity_401_force_refresh_marked", "account_id", authAccount.ID)
-				}
-			}
-			cooldownMinutes := s.cfg.RateLimit.OAuth401CooldownMinutes
-			if cooldownMinutes <= 0 {
-				cooldownMinutes = 10
-			}
-			until := time.Now().Add(time.Duration(cooldownMinutes) * time.Minute)
-			s.notifyAccountSchedulingBlocked(authAccount, until, "oauth_401")
-			if err := s.accountRepo.SetTempUnschedulable(ctx, authAccount.ID, until, msg); err != nil {
-				slog.Warn("oauth_401_set_temp_unschedulable_failed", "account_id", authAccount.ID, "error", err)
-			}
-			shouldDisable = true
-		} else {
-			// 非 OAuth：保持 SetError 行为
+		// 401：失效凭证，直接 SetError。
+		{
 			msg := "Authentication failed (401): invalid or expired credentials"
 			if upstreamMsg != "" {
 				msg = "Authentication failed (401): " + upstreamMsg

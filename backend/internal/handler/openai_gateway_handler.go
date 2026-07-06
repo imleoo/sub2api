@@ -2413,9 +2413,6 @@ func summarizeWSCloseErrorForLog(err error) (string, string) {
 	return closeStatus, closeReason
 }
 
-func openAICompatibleRequestPlatform(apiKey *service.APIKey) string {
-	if apiKey != nil && apiKey.Group != nil && apiKey.Group.Platform == service.PlatformGrok {
-		return service.PlatformGrok
-	}
+func openAICompatibleRequestPlatform(_ *service.APIKey) string {
 	return service.PlatformOpenAI
 }

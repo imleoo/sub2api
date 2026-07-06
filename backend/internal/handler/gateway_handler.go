@@ -1091,24 +1091,6 @@ func defaultModelIDsForPlatform(platform string) []string {
 			ids = append(ids, model.ID)
 		}
 		return ids
-	case service.PlatformAntigravity:
-		models := antigravity.DefaultModels()
-		ids := make([]string, 0, len(models))
-		for _, model := range models {
-			ids = append(ids, model.ID)
-		}
-		return ids
-	case service.PlatformAnthropic:
-		ids := make([]string, 0, len(claude.DefaultModels)+len(antigravity.DefaultModels()))
-		for _, model := range claude.DefaultModels {
-			ids = append(ids, model.ID)
-		}
-		for _, model := range antigravity.DefaultModels() {
-			ids = append(ids, model.ID)
-		}
-		return mergeModelIDs(ids, nil)
-	case service.PlatformGrok:
-		return xai.DefaultModelIDs()
 	default:
 		ids := make([]string, 0, len(claude.DefaultModels))
 		for _, model := range claude.DefaultModels {
@@ -1135,15 +1117,6 @@ func mergeModelIDs(primary, secondary []string) []string {
 		}
 	}
 	return merged
-}
-
-// AntigravityModels 返回 Antigravity 支持的全部模型
-// GET /antigravity/models
-func (h *GatewayHandler) AntigravityModels(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"object": "list",
-		"data":   antigravity.DefaultModels(),
-	})
 }
 
 func cloneAPIKeyWithGroup(apiKey *service.APIKey, group *service.Group) *service.APIKey {

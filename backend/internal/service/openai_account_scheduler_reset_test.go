@@ -22,6 +22,14 @@ func openAIResetTestScheduler(reset float64) *defaultOpenAIAccountScheduler {
 	return &defaultOpenAIAccountScheduler{service: &OpenAIGatewayService{cfg: cfg}}
 }
 
+func openAIQuotaHeadroomTestScheduler(quotaHeadroom float64) *defaultOpenAIAccountScheduler {
+	cfg := &config.Config{}
+	cfg.Gateway.OpenAIWS.SchedulerScoreWeights = config.GatewayOpenAIWSSchedulerScoreWeights{
+		QuotaHeadroom: quotaHeadroom,
+	}
+	return &defaultOpenAIAccountScheduler{service: &OpenAIGatewayService{cfg: cfg}}
+}
+
 func openAIPlanScores(plan openAIAccountLoadPlan) map[int64]float64 {
 	scores := make(map[int64]float64, len(plan.candidates))
 	for _, c := range plan.candidates {

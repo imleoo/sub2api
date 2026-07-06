@@ -2556,15 +2556,6 @@ func (s *adminServiceImpl) GetAccountsByIDs(ctx context.Context, ids []int64) ([
 	return accounts, nil
 }
 
-func normalizeAccountConcurrency(platform, accountType string, concurrency int) int {
-	if platform == PlatformGrok && accountType == AccountTypeOAuth {
-		if concurrency <= 0 {
-			return 1
-		}
-	}
-	return concurrency
-}
-
 func (s *adminServiceImpl) CreateAccount(ctx context.Context, input *CreateAccountInput) (*Account, error) {
 	// 绑定分组
 	groupIDs := input.GroupIDs

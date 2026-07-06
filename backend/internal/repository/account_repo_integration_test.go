@@ -1053,10 +1053,10 @@ func (s *AccountRepoSuite) TestGetByCRSAccountID_EmptyString() {
 func (s *AccountRepoSuite) TestGetByCRSAccountID_ExcludesSparkShadow() {
 	crsID := "crs-shadow-only-99"
 	parent := mustCreateAccount(s.T(), s.client, &service.Account{
-		Name: "crs-mother", Platform: service.PlatformOpenAI, Type: service.AccountTypeOAuth,
+		Name: "crs-mother", Platform: service.PlatformOpenAI, Type: service.AccountTypeAPIKey,
 	})
 	mustCreateAccount(s.T(), s.client, &service.Account{
-		Name: "crs-shadow", Platform: service.PlatformOpenAI, Type: service.AccountTypeOAuth,
+		Name: "crs-shadow", Platform: service.PlatformOpenAI, Type: service.AccountTypeAPIKey,
 		ParentAccountID: &parent.ID,
 		QuotaDimension:  service.QuotaDimensionSpark,
 		Extra:           map[string]any{"crs_account_id": crsID},
@@ -1071,11 +1071,11 @@ func (s *AccountRepoSuite) TestGetByCRSAccountID_ExcludesSparkShadow() {
 // CRS 同步映射(否则后续 CRS 同步会把影子当普通账号更新)。
 func (s *AccountRepoSuite) TestListCRSAccountIDs_ExcludesSparkShadow() {
 	parent := mustCreateAccount(s.T(), s.client, &service.Account{
-		Name: "crs-list-mother", Platform: service.PlatformOpenAI, Type: service.AccountTypeOAuth,
+		Name: "crs-list-mother", Platform: service.PlatformOpenAI, Type: service.AccountTypeAPIKey,
 	})
 	shadowCRSID := "crs-list-shadow-77"
 	mustCreateAccount(s.T(), s.client, &service.Account{
-		Name: "crs-list-shadow", Platform: service.PlatformOpenAI, Type: service.AccountTypeOAuth,
+		Name: "crs-list-shadow", Platform: service.PlatformOpenAI, Type: service.AccountTypeAPIKey,
 		ParentAccountID: &parent.ID,
 		QuotaDimension:  service.QuotaDimensionSpark,
 		Extra:           map[string]any{"crs_account_id": shadowCRSID},

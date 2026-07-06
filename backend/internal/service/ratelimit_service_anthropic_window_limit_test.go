@@ -122,7 +122,7 @@ func TestHandleUpstreamError_Anthropic7dOiOnlyMarksModelRateLimit(t *testing.T) 
 	svc := NewRateLimitService(repo, nil, nil, nil, nil)
 	account := &Account{
 		ID:       42,
-		Type:     AccountTypeOAuth,
+		Type:     AccountTypeAPIKey,
 		Platform: PlatformAnthropic,
 		Credentials: map[string]any{
 			"temp_unschedulable_enabled": true,
@@ -171,7 +171,7 @@ func TestHandleUpstreamError_Anthropic5hWindowStillWinsOver7dOi(t *testing.T) {
 
 	repo := &anthropicWindowLimitRepo{}
 	svc := NewRateLimitService(repo, nil, nil, nil, nil)
-	account := &Account{ID: 42, Type: AccountTypeOAuth, Platform: PlatformAnthropic}
+	account := &Account{ID: 42, Type: AccountTypeAPIKey, Platform: PlatformAnthropic}
 
 	svc.HandleUpstreamError(context.Background(), account, http.StatusTooManyRequests, headers, nil, "claude-fable-5")
 
@@ -192,7 +192,7 @@ func TestHandleUpstreamError_AnthropicAccountWindowStillWinsOver7dOi(t *testing.
 
 	repo := &anthropicWindowLimitRepo{}
 	svc := NewRateLimitService(repo, nil, nil, nil, nil)
-	account := &Account{ID: 42, Type: AccountTypeOAuth, Platform: PlatformAnthropic}
+	account := &Account{ID: 42, Type: AccountTypeAPIKey, Platform: PlatformAnthropic}
 
 	svc.HandleUpstreamError(context.Background(), account, http.StatusTooManyRequests, headers, nil, "claude-fable-5")
 
@@ -218,7 +218,7 @@ func TestHandleUpstreamError_Anthropic429Without7dOiKeepsLegacyBehavior(t *testi
 
 	repo := &anthropicWindowLimitRepo{}
 	svc := NewRateLimitService(repo, nil, nil, nil, nil)
-	account := &Account{ID: 42, Type: AccountTypeOAuth, Platform: PlatformAnthropic}
+	account := &Account{ID: 42, Type: AccountTypeAPIKey, Platform: PlatformAnthropic}
 
 	svc.HandleUpstreamError(context.Background(), account, http.StatusTooManyRequests, headers, nil, "claude-fable-5")
 
