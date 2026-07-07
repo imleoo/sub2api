@@ -1,6 +1,6 @@
 # TokenPanel（SubPanel）项目 Repo Wiki
 
-> **版本**：fork `1.1.129`（上游 `Wei-Shaw/tokenpanel` `0.1.129`），分支 `zhiguofan`  
+> **版本**：fork `1.1.129`（上游 `Wei-Shaw/sub2api` `0.1.129`），分支 `zhiguofan`  
 > **最后更新**：2026-05-21
 
 本文档是项目的完整知识库，按"从整体到细节、从概念到实现"的顺序组织，建议顺序阅读。
@@ -58,7 +58,7 @@
 
 **上游 Fork 关系**：
 ```
-Wei-Shaw/tokenpanel (上游 main)
+Wei-Shaw/sub2api (上游 main)
     └── bayma888/tokenpanel-bmai (fork)
             └── zhiguofan (本开发分支，含自定义功能)
 ```
@@ -172,7 +172,7 @@ SubPanel/
 
 ## 4. zhiguofan 分支差异
 
-本分支相对上游（`Wei-Shaw/tokenpanel`）的全部自定义功能，按风险等级排列。
+本分支相对上游（`Wei-Shaw/sub2api`）的全部自定义功能，按风险等级排列。
 
 ### 4.1 功能清单
 

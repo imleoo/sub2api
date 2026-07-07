@@ -23,7 +23,7 @@ TokenPanel is an AI API gateway platform designed to distribute and manage API q
 
 ## zhiguofan Fork Delta
 
-This repository is maintained as the `zhiguofan` fork branch. When merging from `Wei-Shaw/tokenpanel` `upstream/main`, do not treat this branch as a clean upstream mirror.
+This repository is maintained as the `zhiguofan` fork branch. When merging from `Wei-Shaw/sub2api` `upstream/main`, do not treat this branch as a clean upstream mirror.
 
 - Version policy: upstream `0.x.y` → fork `1.x.y` in `backend/cmd/server/VERSION`
 - Use `./script/sync_upstream_to_zhiguofan.sh` for upstream sync
@@ -82,7 +82,7 @@ One-click installation script that downloads pre-built binaries from GitHub Rele
 #### Installation Steps
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/Wei-Shaw/tokenpanel/main/deploy/install.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/Wei-Shaw/sub2api/main/deploy/install.sh | sudo bash
 ```
 
 The script will:
@@ -127,7 +127,7 @@ sudo journalctl -u tokenpanel -f
 sudo systemctl restart tokenpanel
 
 # Uninstall
-curl -sSL https://raw.githubusercontent.com/Wei-Shaw/tokenpanel/main/deploy/install.sh | sudo bash -s -- uninstall -y
+curl -sSL https://raw.githubusercontent.com/Wei-Shaw/sub2api/main/deploy/install.sh | sudo bash -s -- uninstall -y
 ```
 
 ---
@@ -148,7 +148,7 @@ Deploy with Docker Compose, including PostgreSQL and Redis containers.
 mkdir -p tokenpanel-deploy && cd tokenpanel-deploy
 
 # Download and run deployment preparation script
-curl -sSL https://raw.githubusercontent.com/Wei-Shaw/tokenpanel/main/deploy/docker-deploy.sh | bash
+curl -sSL https://raw.githubusercontent.com/Wei-Shaw/sub2api/main/deploy/docker-deploy.sh | bash
 
 # Start services
 docker compose up -d

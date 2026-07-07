@@ -10,7 +10,7 @@ This file provides guidance to CodeBuddy Code when working with code in this rep
 
 ## Repository Information
 
-- **Upstream**: `Wei-Shaw/tokenpanel`
+- **Upstream**: `Wei-Shaw/sub2api`
 - **Fork**: `bayma888/tokenpanel-bmai`
 - **Current branch**: `zhiguofan`
 
@@ -189,7 +189,7 @@ tokenpanel/
 
 ## Branch Policy
 
-- `main` branch tracks upstream `Wei-Shaw/tokenpanel`
+- `main` branch tracks upstream `Wei-Shaw/sub2api`
 - `zhiguofan` branch is the development branch for this fork
 - Sync upstream: `./script/sync_upstream_to_zhiguofan.sh`
 

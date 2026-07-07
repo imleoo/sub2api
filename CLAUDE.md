@@ -234,7 +234,7 @@ Vitest 配置要求语句/分支/函数/行均达到 80% 覆盖率（`frontend/v
 
 ## Fork 信息
 
-- 上游仓库：`Wei-Shaw/tokenpanel`
+- 上游仓库：`Wei-Shaw/sub2api`
 - Fork 仓库：`bayma888/tokenpanel-bmai`
 - 当前分支：`zhiguofan`
 - 同步上游：`git fetch upstream && git merge upstream/main`
