@@ -1,6 +1,6 @@
 # Changelog (zhiguofan)
 
-本文件记录 `zhiguofan` fork 分支相对上游 `Wei-Shaw/tokenpanel` 的同步与自定义改动。
+本文件记录 `zhiguofan` fork 分支相对上游 `Wei-Shaw/sub2api` 的同步与自定义改动。
 版本号规则：上游 `0.x.y` → fork `1.x.y`（主号固定 1，次/修订跟随上游）。
 逆向清理口径见 [`自定义开发功能列表.md`](自定义开发功能列表.md) 功能 35。
 
