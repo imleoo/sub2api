@@ -42,6 +42,16 @@
         >{{ message.content }}<span v-if="message.streaming" class="animate-pulse">▍</span></pre
       >
 
+      <!-- 复制助手回复（流式结束后） -->
+      <button
+        v-if="!isUser && message.content && !message.streaming"
+        type="button"
+        class="mt-1 text-[11px] opacity-50 transition hover:opacity-100"
+        @click="copyText"
+      >
+        ⧉ {{ copiedFlag ? t('playground.copied') : t('playground.copy') }}
+      </button>
+
       <!-- 处理中指示器：尚无内容/图片时显示转圈 + 文案 -->
       <div
         v-if="showLoading"
@@ -126,8 +136,19 @@ defineEmits<{ (e: 'use-as-edit-input', img: PlaygroundImage): void }>()
 
 const { t } = useI18n()
 const reasoningOpen = ref(false)
+const copiedFlag = ref(false)
 
 const isUser = computed(() => props.message.role === 'user')
+
+async function copyText() {
+  try {
+    await navigator.clipboard.writeText(props.message.content)
+    copiedFlag.value = true
+    setTimeout(() => (copiedFlag.value = false), 1500)
+  } catch {
+    /* clipboard 不可用（非 https / 无权限）时静默忽略 */
+  }
+}
 
 // 处理中：仍在流式且尚无文本、尚无图片、也无错误
 const showLoading = computed(

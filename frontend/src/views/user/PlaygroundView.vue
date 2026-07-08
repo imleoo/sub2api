@@ -35,6 +35,15 @@
 
         <!-- 对话态：消息列表 + 底部输入 -->
         <template v-else>
+          <div class="mb-1 flex items-center justify-end">
+            <button
+              class="rounded-full px-3 py-1 text-xs text-gray-500 hover:bg-gray-100 disabled:opacity-40 dark:text-gray-400 dark:hover:bg-dark-700"
+              :disabled="streaming"
+              @click="clearConversation"
+            >
+              ＋ {{ t('playground.newChat') }}
+            </button>
+          </div>
           <div ref="listEl" class="flex-1 space-y-4 overflow-y-auto px-1 py-2">
             <MessageBubble
               v-for="m in messages"
@@ -180,6 +189,7 @@ async function loadModels() {
     }
   } catch {
     models.value = []
+    pushErrorToast(t('playground.errors.generic'))
   }
 }
 
@@ -219,7 +229,10 @@ async function onFilePick(e: Event) {
   const files = Array.from(input.files ?? [])
   input.value = '' // 立即清空，允许再次选同名文件；已拿到 files 快照
   for (const f of files) {
-    if (uploadFiles.value.length >= MAX_IMAGES) break
+    if (uploadFiles.value.length >= MAX_IMAGES) {
+      pushErrorToast(t('playground.maxImages', { n: MAX_IMAGES }))
+      break
+    }
     if (f.size > MAX_IMAGE_MB * 1024 * 1024) {
       pushErrorToast(t('playground.imageTooLarge', { name: f.name, size: MAX_IMAGE_MB }))
       continue
@@ -244,9 +257,12 @@ function removeUpload(idx: number) {
 
 async function useAsEditInput(img: PlaygroundImage) {
   if (!imageCapable.value) return
+  if (uploadFiles.value.length >= MAX_IMAGES) {
+    pushErrorToast(t('playground.maxImages', { n: MAX_IMAGES }))
+    return
+  }
   const file = await imageToFile(img)
   if (!file) return
-  if (uploadFiles.value.length >= MAX_IMAGES) return
   uploadFiles.value.push(file)
   attachmentPreviews.value.push(img.url ?? `data:image/png;base64,${img.b64}`)
   mode.value = 'edit'
@@ -432,6 +448,12 @@ async function sendImage() {
 function stop() {
   abortController?.abort()
   streaming.value = false
+}
+
+// 新对话：清空消息（若正在流式则先中断）
+function clearConversation() {
+  if (streaming.value) stop()
+  messages.value = []
 }
 
 // ─── Composer（内联渲染函数，避免 props 透传样板） ───

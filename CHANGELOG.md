@@ -13,6 +13,12 @@
 - **「停止」无法中止生图**：`imageGenerate`/`imageEdit` 增加 `AbortSignal` 参数，`sendImage` 接入 `abortController`；停止时真正中断请求（避免继续计费），中断时移除空的助手气泡而非报错。
 - **上传预览/文件顺序竞态**：`onFilePick` 改为顺序异步读取，文件与预览成对追加，保证 `uploadFiles[i]` 与 `attachmentPreviews[i]` 对应（此前多张大图并发读取可能错位）。
 
+补充的可用性改进：
+- **新对话入口**：对话态右上角加「＋ 新对话」按钮（`clearConversation`，流式中先中断再清空），此前只能刷新页面重置。
+- **静默失败反馈**：`useAsEditInput`/`onFilePick` 达 4 张上限、`loadModels` 拉取失败均改为 toast 提示（此前静默）。
+- **助手回复一键复制**：`MessageBubble` 流式结束后显示「复制」按钮（`navigator.clipboard`，不可用时静默）。
+- 说明：回复仍以纯文本 `<pre>` 渲染（安全取舍，避免 Markdown 富文本的 XSS 面），未改。
+
 门禁：前端 typecheck 0 错误、lint 0、playground 相关 vitest 25/25 通过。
 
 ---
