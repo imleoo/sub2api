@@ -104,33 +104,42 @@
                 <input v-model.number="ep.priority" type="number" min="1" max="9999" class="input mt-1" />
               </div>
             </div>
-            <div>
-              <div class="flex items-center justify-between">
-                <label class="input-label mb-0">{{ t('admin.accounts.generic.supportedModels') }}</label>
-                <button
-                  type="button"
-                  :disabled="genericFetchingIdx === idx || !ep.base_url?.trim()"
-                  @click="fetchGenericEndpointModels(idx)"
-                  class="rounded-md bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 hover:bg-purple-100 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-purple-900/20 dark:text-purple-400 dark:hover:bg-purple-900/30"
-                >
-                  {{ genericFetchingIdx === idx ? t('admin.accounts.generic.fetchModelsLoading') : t('admin.accounts.generic.fetchModels') }}
-                </button>
-              </div>
-              <textarea
-                :value="(ep.supported_models || []).join(', ')"
-                @input="ep.supported_models = parseGenericSupportedModels(($event.target as HTMLTextAreaElement).value)"
-                rows="2"
-                class="input mt-1 font-mono"
-                :placeholder="t('admin.accounts.generic.supportedModelsPlaceholder')"
-              />
-              <p class="input-hint">{{ t('admin.accounts.generic.supportedModelsHint') }}</p>
-            </div>
+            <GenericEndpointModelsField
+              :model-value="ep.supported_models || []"
+              :base-url="ep.base_url || ''"
+              :api-key="editGenericApiKey"
+              :account-id="account.id"
+              @update:model-value="ep.supported_models = $event"
+            />
             <div>
               <label class="input-label">{{ t('admin.accounts.generic.stableId') }}</label>
               <input v-model="ep.stable_id" type="text" class="input mt-1 font-mono" :placeholder="t('admin.accounts.generic.stableIdPlaceholder')" :disabled="!!ep.stable_id" />
               <p class="input-hint">{{ t('admin.accounts.generic.stableIdHint') }}</p>
             </div>
           </div>
+        </div>
+
+        <!-- 功能 25：generic 模型别名映射（别名 → 上游模型；与 supported_models 并存共同决定可路由/可服务） -->
+        <div class="rounded-lg border border-gray-200 p-4 dark:border-dark-600">
+          <label class="input-label mb-2 block">{{ t('admin.accounts.modelMapping') }}</label>
+          <div class="space-y-2">
+            <div
+              v-for="(mapping, index) in modelMappings"
+              :key="getModelMappingKey(mapping)"
+              class="flex items-center gap-2"
+            >
+              <input v-model="mapping.from" type="text" class="input flex-1 font-mono" :placeholder="t('admin.accounts.fromModel')" />
+              <span class="text-gray-400">→</span>
+              <input v-model="mapping.to" type="text" class="input flex-1 font-mono" :placeholder="t('admin.accounts.toModel')" />
+              <button type="button" @click="modelMappings.splice(index, 1)" class="text-red-500 hover:text-red-700">
+                <Icon name="trash" size="sm" />
+              </button>
+            </div>
+            <button type="button" @click="modelMappings.push({ from: '', to: '' })" class="btn btn-secondary text-sm">
+              + {{ t('admin.accounts.addMapping') }}
+            </button>
+          </div>
+          <p class="input-hint mt-1">{{ t('admin.accounts.generic.modelMappingHint') }}</p>
         </div>
       </div>
 
@@ -1857,6 +1866,7 @@ import ProxySelector from '@/components/common/ProxySelector.vue'
 import ProxyAdBanner from '@/components/common/ProxyAdBanner.vue'
 import GroupSelector from '@/components/common/GroupSelector.vue'
 import ModelWhitelistSelector from '@/components/account/ModelWhitelistSelector.vue'
+import GenericEndpointModelsField from '@/components/account/GenericEndpointModelsField.vue'
 import QuotaLimitCard from '@/components/account/QuotaLimitCard.vue'
 import { applyInterceptWarmup } from '@/components/account/credentialsBuilder'
 import {
@@ -2037,52 +2047,6 @@ const loadGenericEndpoints = async (accountId: number) => {
     genericEndpoints.value = []
   } finally {
     genericEndpointsLoading.value = false
-  }
-}
-
-// parseGenericSupportedModels 把逗号/换行/空格分隔的字符串拆成去重后的模型 ID 数组。
-const parseGenericSupportedModels = (raw: string): string[] => {
-  const seen = new Set<string>()
-  const out: string[] = []
-  for (const piece of raw.split(/[,\n]/)) {
-    const m = piece.trim()
-    if (!m || seen.has(m)) continue
-    seen.add(m)
-    out.push(m)
-  }
-  return out
-}
-
-const genericFetchingIdx = ref<number | null>(null)
-
-// 编辑场景：editGenericApiKey 留空时，传 account_id 让后端用已存 key。
-const fetchGenericEndpointModels = async (idx: number) => {
-  if (!props.account) return
-  const ep = genericEndpoints.value[idx]
-  if (!ep) return
-  if (!ep.base_url?.trim()) {
-    appStore.showError(t('admin.accounts.generic.fetchModelsNeedBaseUrl'))
-    return
-  }
-  genericFetchingIdx.value = idx
-  try {
-    const overrideKey = editGenericApiKey.value.trim()
-    const res = await adminAPI.accounts.fetchEndpointModels({
-      base_url: ep.base_url.trim(),
-      ...(overrideKey ? { api_key: overrideKey } : { account_id: props.account.id })
-    })
-    const merged = parseGenericSupportedModels(
-      [...(ep.supported_models || []), ...res.models].join(',')
-    )
-    ep.supported_models = merged
-    appStore.showSuccess(t('admin.accounts.generic.fetchModelsSuccess', { count: res.fetched }))
-  } catch (err) {
-    const error = err as { response?: { data?: { message?: string; detail?: string } } }
-    appStore.showError(
-      error.response?.data?.message || error.response?.data?.detail || t('admin.accounts.generic.fetchModelsFailed')
-    )
-  } finally {
-    genericFetchingIdx.value = null
   }
 }
 
@@ -2643,10 +2607,13 @@ const syncFormFromAccount = (newAccount: Account | null) => {
           : 'https://api.anthropic.com'
     editBaseUrl.value = platformDefaultUrl
 
-    // Load model mappings for OpenAI OAuth accounts
+    // Load model mappings for OpenAI OAuth accounts / generic 别名映射
     if (newAccount.platform === 'openai' && newAccount.credentials) {
       const oauthCredentials = newAccount.credentials as Record<string, unknown>
       loadModelRestrictionFromMapping(oauthCredentials.model_mapping as Record<string, unknown> | undefined)
+    } else if (newAccount.platform === 'generic' && newAccount.credentials) {
+      const genericCreds = newAccount.credentials as Record<string, unknown>
+      loadModelRestrictionFromMapping(genericCreds.model_mapping as Record<string, unknown> | undefined)
     } else {
       modelRestrictionMode.value = 'whitelist'
       modelMappings.value = []
@@ -3213,6 +3180,13 @@ const handleSubmit = async () => {
       const newCredentials: Record<string, unknown> = { ...currentCredentials }
       if (editGenericApiKey.value.trim()) {
         newCredentials.api_key = editGenericApiKey.value.trim()
+      }
+      // 功能 25：generic 别名映射（别名 → 上游模型）；无则删除，保持 credentials 干净
+      const genericModelMapping = buildModelRestrictionMapping()
+      if (genericModelMapping) {
+        newCredentials.model_mapping = genericModelMapping
+      } else {
+        delete newCredentials.model_mapping
       }
       updatePayload.credentials = newCredentials
     } else {

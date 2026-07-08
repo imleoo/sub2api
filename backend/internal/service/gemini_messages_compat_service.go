@@ -267,7 +267,7 @@ func (s *GeminiMessagesCompatService) isAccountUsableForRequestWithPrecheck(
 
 	// 检查模型支持
 	// Check model support
-	if requestedModel != "" && !s.isModelSupportedByAccount(account, requestedModel) {
+	if requestedModel != "" && !s.isModelSupportedByAccount(ctx, account, requestedModel) {
 		return false
 	}
 
@@ -403,8 +403,13 @@ func (s *GeminiMessagesCompatService) isBetterGeminiAccount(candidate, current *
 }
 
 // isModelSupportedByAccount 根据账户平台检查模型支持
-func (s *GeminiMessagesCompatService) isModelSupportedByAccount(account *Account, requestedModel string) bool {
-	return account.IsModelSupported(requestedModel)
+// 功能 25 增强：generic 账号配了 model_mapping（别名）后，IsModelSupported 会误挡其余
+// supported_models 的直连请求，此处 OR 上 endpoint supported_models 补回。非 generic 无影响。
+func (s *GeminiMessagesCompatService) isModelSupportedByAccount(ctx context.Context, account *Account, requestedModel string) bool {
+	if account.IsModelSupported(requestedModel) {
+		return true
+	}
+	return genericEndpointSupportsModel(ctx, s.endpointRepo, account, requestedModel)
 }
 
 func (s *GeminiMessagesCompatService) getSchedulableAccount(ctx context.Context, accountID int64) (*Account, error) {

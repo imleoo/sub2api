@@ -3378,7 +3378,12 @@ func summarizeSelectionFailureStats(stats selectionFailureStats) string {
 
 // isModelSupportedByAccountWithContext 根据账户平台检查模型支持（带 context）
 func (s *GatewayService) isModelSupportedByAccountWithContext(ctx context.Context, account *Account, requestedModel string) bool {
-	return s.isModelSupportedByAccount(account, requestedModel)
+	if s.isModelSupportedByAccount(account, requestedModel) {
+		return true
+	}
+	// 功能 25 增强：generic 账号配了 model_mapping（别名）后，IsModelSupported 会误挡其余
+	// supported_models 的直连请求，此处补回。纯增量，非 generic 直接为 false。
+	return genericEndpointSupportsModel(ctx, s.endpointRepo, account, requestedModel)
 }
 
 // isModelSupportedByAccount 根据账户平台检查模型支持

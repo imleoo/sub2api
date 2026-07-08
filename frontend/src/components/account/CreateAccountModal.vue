@@ -521,28 +521,14 @@
                 <p class="input-hint">{{ t('admin.accounts.generic.priorityHint') }}</p>
               </div>
             </div>
-            <!-- Supported Models (该端点支持转发的模型 ID 列表，逗号或换行分隔) -->
-            <div>
-              <div class="flex items-center justify-between">
-                <label class="input-label mb-0">{{ t('admin.accounts.generic.supportedModels') }}</label>
-                <button
-                  type="button"
-                  :disabled="genericFetchingIdx === idx || !ep.base_url?.trim() || !genericApiKey.trim()"
-                  @click="fetchGenericEndpointModels(idx)"
-                  class="rounded-md bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 hover:bg-purple-100 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-purple-900/20 dark:text-purple-400 dark:hover:bg-purple-900/30"
-                >
-                  {{ genericFetchingIdx === idx ? t('admin.accounts.generic.fetchModelsLoading') : t('admin.accounts.generic.fetchModels') }}
-                </button>
-              </div>
-              <textarea
-                :value="(ep.supported_models || []).join(', ')"
-                @input="ep.supported_models = parseGenericSupportedModels(($event.target as HTMLTextAreaElement).value)"
-                rows="2"
-                class="input mt-1 font-mono"
-                :placeholder="t('admin.accounts.generic.supportedModelsPlaceholder')"
-              />
-              <p class="input-hint">{{ t('admin.accounts.generic.supportedModelsHint') }}</p>
-            </div>
+            <!-- Supported Models: 拉取后可勾选子集（共享组件） -->
+            <GenericEndpointModelsField
+              :model-value="ep.supported_models || []"
+              :base-url="ep.base_url || ''"
+              :api-key="genericApiKey"
+              :require-api-key="true"
+              @update:model-value="ep.supported_models = $event"
+            />
             <!-- Stable ID (advanced, collapsed by default) -->
             <div>
               <label class="input-label">{{ t('admin.accounts.generic.stableId') }}</label>
@@ -555,6 +541,29 @@
               <p class="input-hint">{{ t('admin.accounts.generic.stableIdHint') }}</p>
             </div>
           </div>
+        </div>
+
+        <!-- 功能 25：generic 模型别名映射（别名 → 上游模型；与 supported_models 并存） -->
+        <div class="rounded-lg border border-gray-200 p-4 dark:border-dark-600">
+          <label class="input-label mb-2 block">{{ t('admin.accounts.modelMapping') }}</label>
+          <div class="space-y-2">
+            <div
+              v-for="(mapping, index) in modelMappings"
+              :key="index"
+              class="flex items-center gap-2"
+            >
+              <input v-model="mapping.from" type="text" class="input flex-1 font-mono" :placeholder="t('admin.accounts.fromModel')" />
+              <span class="text-gray-400">→</span>
+              <input v-model="mapping.to" type="text" class="input flex-1 font-mono" :placeholder="t('admin.accounts.toModel')" />
+              <button type="button" @click="modelMappings.splice(index, 1)" class="text-red-500 hover:text-red-700">
+                <Icon name="trash" size="sm" />
+              </button>
+            </div>
+            <button type="button" @click="modelMappings.push({ from: '', to: '' })" class="btn btn-secondary text-sm">
+              + {{ t('admin.accounts.addMapping') }}
+            </button>
+          </div>
+          <p class="input-hint mt-1">{{ t('admin.accounts.generic.modelMappingHint') }}</p>
         </div>
       </div>
 
@@ -2247,6 +2256,7 @@ import ProxySelector from '@/components/common/ProxySelector.vue'
 import ProxyAdBanner from '@/components/common/ProxyAdBanner.vue'
 import GroupSelector from '@/components/common/GroupSelector.vue'
 import ModelWhitelistSelector from '@/components/account/ModelWhitelistSelector.vue'
+import GenericEndpointModelsField from '@/components/account/GenericEndpointModelsField.vue'
 import QuotaLimitCard from '@/components/account/QuotaLimitCard.vue'
 import { applyInterceptWarmup } from '@/components/account/credentialsBuilder'
 import {
@@ -2461,55 +2471,6 @@ const addGenericEndpoint = () => {
     priority: (genericEndpoints.value.length + 1) * 100,
     supported_models: []
   })
-}
-
-// parseGenericSupportedModels 把逗号/换行/空格分隔的字符串拆成去重后的模型 ID 数组。
-const parseGenericSupportedModels = (raw: string): string[] => {
-  const seen = new Set<string>()
-  const out: string[] = []
-  for (const piece of raw.split(/[,\n]/)) {
-    const m = piece.trim()
-    if (!m || seen.has(m)) continue
-    seen.add(m)
-    out.push(m)
-  }
-  return out
-}
-
-// 当前正在拉取模型的端点 index，控制按钮 loading 态。
-const genericFetchingIdx = ref<number | null>(null)
-
-// 从上游 {base_url}/v1/models 拉取模型 ID 并合并到 ep.supported_models（去重）。
-const fetchGenericEndpointModels = async (idx: number) => {
-  const ep = genericEndpoints.value[idx]
-  if (!ep) return
-  if (!ep.base_url?.trim()) {
-    appStore.showError(t('admin.accounts.generic.fetchModelsNeedBaseUrl'))
-    return
-  }
-  if (!genericApiKey.value.trim()) {
-    appStore.showError(t('admin.accounts.generic.fetchModelsNeedApiKey'))
-    return
-  }
-  genericFetchingIdx.value = idx
-  try {
-    const res = await adminAPI.accounts.fetchEndpointModels({
-      base_url: ep.base_url.trim(),
-      api_key: genericApiKey.value.trim()
-    })
-    const merged = parseGenericSupportedModels(
-      [...(ep.supported_models || []), ...res.models].join(',')
-    )
-    ep.supported_models = merged
-    appStore.showSuccess(t('admin.accounts.generic.fetchModelsSuccess', { count: res.fetched }))
-  } catch (err) {
-    const error = err as { response?: { data?: { message?: string; detail?: string } } }
-    appStore.showError(
-      error.response?.data?.message || error.response?.data?.detail || t('admin.accounts.generic.fetchModelsFailed')
-    )
-  } finally {
-    genericFetchingIdx.value = null
-  }
 }
 
 const removeGenericEndpoint = (idx: number) => {
@@ -3425,7 +3386,13 @@ const handleSubmit = async () => {
       appStore.showError(t('admin.accounts.generic.noEndpoints'))
       return
     }
-    await createAccountAndFinish('generic', 'apikey' as AccountType, { api_key: genericApiKey.value.trim() })
+    const genericCredentials: Record<string, unknown> = { api_key: genericApiKey.value.trim() }
+    // 功能 25：generic 别名映射（别名 → 上游模型），与 supported_models 并存；空则不写
+    const genericModelMapping = buildModelMappingObject('combined', allowedModels.value, modelMappings.value)
+    if (genericModelMapping) {
+      genericCredentials.model_mapping = genericModelMapping
+    }
+    await createAccountAndFinish('generic', 'apikey' as AccountType, genericCredentials)
     return
   }
 

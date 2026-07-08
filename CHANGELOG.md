@@ -6,6 +6,42 @@
 
 ---
 
+## [未发布] - 2026-07-08 — generic 端点：模型勾选子集 + 别名映射（功能 25 增强）
+
+补齐通用渠道「拉回模型列表后没得选、也没有别名映射」的缺口。
+
+### ① 拉取后可勾选子集（前端）
+- 新增共享组件 `GenericEndpointModelsField.vue`：端点 `supported_models` 由「逗号分隔 textarea」改为**带搜索 + 全选/清空的复选清单**（拉取结果 ∪ 已选），保留折叠的手动输入兜底。`CreateAccountModal`/`EditAccountModal` 均接入，旧的 `fetchGenericEndpointModels`/`parseGenericSupportedModels` 孤儿代码已清。
+- 「拉取模型」不再自动全并入列表，改为填充可勾选清单，由运营 curate 暴露子集。
+
+### ② 模型别名映射（复用账号级 `model_mapping`，不改 schema）
+- **路由**：`model_routing_service.go` 的 generic 分支折入 `model_mapping`，别名（目标命中已启用 catalog）以别名 ID 进入可路由集、上广场，与 `supported_models` 并存。
+- **eligibility 修复**：generic 账号一旦配置 `model_mapping`，`Account.IsModelSupported` 会转为「仅认映射内模型」，从而误挡其余 `supported_models` 的直连请求。新增纯增量 helper `genericEndpointSupportsModel`（仅 generic、OR 在 `IsModelSupported` 之后），在 3 个准入点（`openai_account_scheduler`、`gateway_service.isModelSupportedByAccountWithContext`、`gemini_messages_compat_service`）补回 `supported_models` 直连放行。openai 网关侧 `isOpenAIAccountEligibleForRequest` 因 generic 早返回不受影响，无需改。网关转发时 `account.GetMappedModel` 已把别名改回上游名。
+- **前端**：`CreateAccountModal`/`EditAccountModal` 的 generic 段新增别名映射编辑器（`别名 → 上游模型` 行编辑），保存写入 `credentials.model_mapping`、加载回填。
+- **测试**：新增 `TestRoutableModelInfos_GenericFoldsSupportedModelsAndMapping`、`TestGenericEndpointSupportsModel_EligibilityFallback`（覆盖路由折入 + eligibility 单调放宽 + 非 generic 不受影响）。
+
+门禁：后端 build+vet+`-tags=unit`（service+handler）通过、fork 12 守护 ALL PASSED；前端 typecheck+lint+账号模态/i18n vitest 93 通过。
+
+---
+
+## [未发布] - 2026-07-08 — 模型折扣：Provider 显式筛选时展示全部同步模型（功能 26）
+
+- **问题**：折扣页用「从上游同步」拉进新 provider（如 NVIDIA）的模型后，这些 `unpriced`/未启用记录已落库，但折扣列表默认按「广场可路由」口径过滤，未被账号路由的新模型永远不显示 → 无法补价+启用（与账号白名单选择器同一鸡生蛋）。
+- **修复**：`model_pricing_handler.go` List 在 `provider` 显式设置时跳过广场 `VisibleOnly` 过滤，展示该 provider 下全部同步模型（含未定价）。**默认视图（无 provider 筛选）仍保持广场口径不变**。前端无改动（Provider 下拉本就传 `provider` 参数）。
+- **验证**：`provider=NVIDIA` 返回 121（含 unpriced）；无 provider 默认视图 total 不受影响；handler 单测通过。
+
+---
+
+## [未发布] - 2026-07-08 — 修复 generic 渠道 endpointRepo 未装配（功能 25 回归）
+
+- **根因**：0.1.146 同步时 `go generate ./cmd/server` 重生成 `wire_gen.go`，把 4 处手动 setter 注入 `SetEndpointRepository(endpointRepository)` 全部丢失（wire 只生成构造器注入，setter 是 fork 手改点）。导致 `gatewayService`/`openAIGatewayService`/`geminiMessagesCompatService`/`accountTestService` 的 `endpointRepo` 恒为 nil。
+- **现象**：测试通用渠道账号报 `Endpoint repository is not configured`（`account_test_service.go:212`）；generic 运行时转发同样失效。
+- **修复**：按历史写法（cf1702b08）在 `wire_gen.go` 无条件补回 4 处 `SetEndpointRepository(endpointRepository)`。
+- **验证**：generic 账号测试 SSE 已跑通端点匹配 + 上游探测（返回上游 HTTP 状态而非装配错误）；后端 build+vet 通过、fork 12 守护 ALL PASSED。
+- **合并注意**：每次上游同步跑完 `go generate ./cmd/server` 后，必须 `grep -c '\.SetEndpointRepository(' cmd/server/wire_gen.go` 确认为 **4**。已记入 [`自定义开发功能列表.md`](自定义开发功能列表.md) 功能 25 合并注意。
+
+---
+
 ## [未发布] - 2026-07-08 — Playground（功能 38）bug 修复
 
 代码 review 后修复 3 个 bug：

@@ -3,9 +3,39 @@ package service
 import (
 	"context"
 	"slices"
+	"strings"
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
 )
+
+// genericEndpointSupportsModel 查 generic 账号的 endpoint supported_models 是否覆盖该请求模型
+// （某 endpoint 空白名单 = 支持全部，沿用 routableFromAccounts 语义）。
+//
+// 用途（功能 25 增强）：generic 账号一旦配置了账号级 model_mapping（别名），Account.IsModelSupported
+// 会转为「仅认映射内模型」，从而误挡该账号其余 supported_models 的直连请求。各网关准入点在
+// IsModelSupported 未命中后 OR 上本函数，把 supported_models 直连放行补回。纯增量、单调放宽：
+// 非 generic 账号直接返回 false，不改变任何既有行为。
+func genericEndpointSupportsModel(ctx context.Context, repo EndpointRepository, account *Account, requestedModel string) bool {
+	if account == nil || account.Platform != PlatformGeneric || repo == nil {
+		return false
+	}
+	rm := strings.TrimSpace(requestedModel)
+	if rm == "" {
+		return false
+	}
+	eps, _ := repo.ListByAccountID(ctx, account.ID)
+	for _, ep := range eps {
+		if len(ep.SupportedModels) == 0 {
+			return true
+		}
+		for _, m := range ep.SupportedModels {
+			if strings.TrimSpace(m) == rm {
+				return true
+			}
+		}
+	}
+	return false
+}
 
 // generic 各入站协议可直通的出站协议族（直通 = 入站==出站，无需协议桥）。
 var (

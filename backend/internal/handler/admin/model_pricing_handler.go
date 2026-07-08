@@ -250,7 +250,10 @@ func (h *ModelPricingHandler) List(c *gin.Context) {
 	}
 	// 默认始终按广场可见集过滤（= 用户所见）。路由信息不可用时（理论上不会发生）退回全集，避免后台空白。
 	// for_whitelist=true 时跳过这层过滤，见上方注释。
-	if hasRouting && !forWhitelist {
+	// provider != ""：运营在 Provider 下拉显式选定某来源时，跳过广场过滤，展示该 provider 下同步进来的
+	// 全部模型（含尚未定价/未被账号路由的 unpriced 记录）——否则刚从上游同步的新 provider 模型永远看不到、
+	// 无法补价+启用（与 for_whitelist 同一鸡生蛋问题）。默认（无 provider 筛选）仍保持广场口径。
+	if hasRouting && !forWhitelist && provider == "" {
 		filter.VisibleOnly = true
 		filter.RoutableModelIDs = make([]string, 0, len(visible))
 		for id := range visible {

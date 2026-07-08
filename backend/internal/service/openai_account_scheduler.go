@@ -1348,7 +1348,13 @@ func (s *defaultOpenAIAccountScheduler) isAccountRequestCompatible(ctx context.C
 		return false
 	}
 	if req.RequestedModel != "" && !account.IsModelSupported(req.RequestedModel) {
-		return false
+		var epRepo EndpointRepository
+		if s != nil && s.service != nil {
+			epRepo = s.service.endpointRepo
+		}
+		if !genericEndpointSupportsModel(ctx, epRepo, account, req.RequestedModel) {
+			return false
+		}
 	}
 	if req.GroupID != nil && s != nil && s.service != nil &&
 		s.service.needsUpstreamChannelRestrictionCheck(ctx, req.GroupID) &&

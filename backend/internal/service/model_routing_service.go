@@ -102,6 +102,12 @@ func (s *ModelRoutingService) routableFromAccounts(ctx context.Context, accounts
 					}
 				}
 			}
+			// 功能 25 增强：generic 也支持账号级 model_mapping（别名 → 上游模型），与 supported_models
+			// 并存共同决定可路由集。别名目标命中已启用 catalog 即可路由，广场显示别名（addWhitelistedModel
+			// 的 mappedModelID 分支）。网关转发时 account.GetMappedModel 已把别名改回上游模型名。
+			for modelID, mappedModelID := range configuredModelWhitelist(account) {
+				addWhitelistedModel(allowed, modelsByID, modelID, mappedModelID)
+			}
 			continue
 		}
 		for modelID, mappedModelID := range configuredModelWhitelist(account) {

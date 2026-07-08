@@ -83,6 +83,47 @@ func TestOperatorRoutableModelInfos_VisibleFilterMatchesSquare(t *testing.T) {
 	require.Equal(t, []string{"deepseek-chat"}, routedIDs(FilterVisibleModels(infos, false)))
 }
 
+// 功能 25 增强：generic 账号的可路由集 = endpoint supported_models ∪ 账号级 model_mapping（别名）。
+// 别名目标命中已启用 catalog 时以别名 ID 进入可路由集，与 supported_models 并存。
+func TestRoutableModelInfos_GenericFoldsSupportedModelsAndMapping(t *testing.T) {
+	svc, _ := newCatalogTestService(enabledCatalog(map[string]string{
+		"yi-large": "nvidia", "aliased-target": "nvidia",
+	}))
+	epRepo := &fakeEndpointRepo{byAccount: map[int64][]*DBEndpoint{
+		7: {{ID: 1, OutboundProtocol: "openai_chat", SupportedModels: []string{"yi-large"}}},
+	}}
+	mr := NewModelRoutingService(routingAccountStub{accounts: []*Account{
+		{ID: 7, Status: StatusActive, Platform: PlatformGeneric, Credentials: map[string]any{
+			"model_mapping": map[string]any{"my-alias": "aliased-target"},
+		}},
+	}}, epRepo, svc)
+
+	got := mr.RoutableModelInfos(context.Background(), []int64{7})
+	require.Equal(t, []string{"my-alias", "yi-large"}, routedIDs(got))
+}
+
+// genericEndpointSupportsModel 补回「generic 配了别名映射后，其余 supported_models 直连仍可服务」。
+func TestGenericEndpointSupportsModel_EligibilityFallback(t *testing.T) {
+	epRepo := &fakeEndpointRepo{byAccount: map[int64][]*DBEndpoint{
+		7: {{ID: 1, OutboundProtocol: "openai_chat", SupportedModels: []string{"yi-large"}}},
+	}}
+	generic := &Account{ID: 7, Status: StatusActive, Platform: PlatformGeneric, Credentials: map[string]any{
+		"model_mapping": map[string]any{"my-alias": "aliased-target"},
+	}}
+	ctx := context.Background()
+
+	// mapping 非空 → IsModelSupported 挡掉 supported_models 直连；helper 补回。
+	require.False(t, generic.IsModelSupported("yi-large"))
+	require.True(t, genericEndpointSupportsModel(ctx, epRepo, generic, "yi-large"))
+	// mapping 内别名 IsModelSupported 直接放行。
+	require.True(t, generic.IsModelSupported("my-alias"))
+	// supported_models 外的模型仍拒绝。
+	require.False(t, genericEndpointSupportsModel(ctx, epRepo, generic, "not-served"))
+	// 非 generic 账号：helper 一律 false（不改变既有行为）。
+	nonGeneric := &Account{ID: 8, Status: StatusActive, Platform: PlatformOpenAI}
+	require.False(t, genericEndpointSupportsModel(ctx, epRepo, nonGeneric, "yi-large"))
+}
+
 func TestRoutableModelInfos_ExpandsWildcardAndMappedAlias(t *testing.T) {
 	svc, _ := newCatalogTestService(enabledCatalog(map[string]string{
 		"gpt-5.4-mini": "openai", "gpt-5.4-mini-alt": "openai",
