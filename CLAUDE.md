@@ -49,6 +49,18 @@ cd frontend && pnpm exec vitest run src/views/user/__tests__/ModelsView.spec.ts 
 cd frontend && pnpm run lint:check
 ```
 
+### 推送前门禁（pre-push hook）
+
+每次 `git push` 前由 `.git/hooks/pre-push` → `script/pre_push_check.sh` 自动检查**本次推送范围**（钩子模式用远端 sha 精确界定，非全量）：
+
+1. **CHANGELOG 必更**：范围内有实质源码改动（`.go/.ts/.vue`，排除测试）时，根目录 `CHANGELOG.md` 必须也在范围内更新，否则阻塞。
+2. **功能列表一致性**：范围内新增的 **fork 独有**源码文件（排除测试/生成码/`upstream/main` 已有的文件）必须已在 `自定义开发功能列表.md` 出现，否则阻塞（防漏记 fork 功能）。
+
+- 安装（克隆后一次）：`./script/install_git_hooks.sh`（`.git/hooks/` 不进版本库）
+- 绕过：`git push --no-verify` 或 `PREPUSH_SKIP=1 git push`
+- 被挡时按提示补 `CHANGELOG.md`（顶部加本次改动段）/ 功能列表（新功能加编号段 + 风险表行）；改检查逻辑改 `script/pre_push_check.sh`，勿手改 `.git/hooks/pre-push`
+- 因此**新增 fork 功能/文件时，同一批提交内就要更新 `CHANGELOG.md` 与 `自定义开发功能列表.md`**，否则推送被拦。
+
 ## 常用命令
 
 ### 根目录
