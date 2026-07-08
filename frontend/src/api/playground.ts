@@ -254,6 +254,7 @@ export async function imageGenerate(opts: {
   prompt: string
   size: string
   n: number
+  signal?: AbortSignal
 }): Promise<PlaygroundImageResult> {
   const res = await fetch(buildGatewayUrl('/v1/images/generations'), {
     method: 'POST',
@@ -266,7 +267,8 @@ export async function imageGenerate(opts: {
       prompt: opts.prompt,
       size: opts.size,
       n: opts.n
-    })
+    }),
+    signal: opts.signal
   })
   if (!res.ok) throw await toPlaygroundError(res)
   const j = await res.json()
@@ -289,6 +291,7 @@ export async function imageEdit(opts: {
   n: number
   images: File[]
   mask?: File
+  signal?: AbortSignal
 }): Promise<PlaygroundImageResult> {
   const form = new FormData()
   form.append('model', opts.model)
@@ -302,7 +305,8 @@ export async function imageEdit(opts: {
   const res = await fetch(buildGatewayUrl('/v1/images/edits'), {
     method: 'POST',
     headers: { Authorization: `Bearer ${opts.apiKey}` },
-    body: form
+    body: form,
+    signal: opts.signal
   })
   if (!res.ok) throw await toPlaygroundError(res)
   const j = await res.json()

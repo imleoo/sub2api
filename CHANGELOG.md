@@ -6,6 +6,17 @@
 
 ---
 
+## [未发布] - 2026-07-08 — Playground（功能 38）bug 修复
+
+代码 review 后修复 3 个 bug：
+- **中文输入法回车误发送**：`PlaygroundView.vue` 输入框 `onKeydown` 增加 `!e.isComposing` 判断，输入法确认候选词的 Enter 不再触发发送。
+- **「停止」无法中止生图**：`imageGenerate`/`imageEdit` 增加 `AbortSignal` 参数，`sendImage` 接入 `abortController`；停止时真正中断请求（避免继续计费），中断时移除空的助手气泡而非报错。
+- **上传预览/文件顺序竞态**：`onFilePick` 改为顺序异步读取，文件与预览成对追加，保证 `uploadFiles[i]` 与 `attachmentPreviews[i]` 对应（此前多张大图并发读取可能错位）。
+
+门禁：前端 typecheck 0 错误、lint 0、playground 相关 vitest 25/25 通过。
+
+---
+
 ## [1.1.146] - 2026-07-07 — 同步上游 0.1.146
 
 同步上游 `0.1.145 → 0.1.146`（47 提交），冲突与逆向残留已按 fork 口径回炉。门禁：后端 build+vet+`-tags=unit`、前端 typecheck+lint+894 测试、fork 守护 ALL PASSED、E2E 21/21。

@@ -205,21 +205,34 @@ function setMode(next: Mode) {
   mode.value = next
 }
 
-function onFilePick(e: Event) {
+function readDataURL(f: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(f)
+  })
+}
+
+async function onFilePick(e: Event) {
   const input = e.target as HTMLInputElement
   const files = Array.from(input.files ?? [])
+  input.value = '' // 立即清空，允许再次选同名文件；已拿到 files 快照
   for (const f of files) {
     if (uploadFiles.value.length >= MAX_IMAGES) break
     if (f.size > MAX_IMAGE_MB * 1024 * 1024) {
       pushErrorToast(t('playground.imageTooLarge', { name: f.name, size: MAX_IMAGE_MB }))
       continue
     }
-    uploadFiles.value.push(f)
-    const reader = new FileReader()
-    reader.onload = () => attachmentPreviews.value.push(String(reader.result))
-    reader.readAsDataURL(f)
+    try {
+      // 顺序读取，文件与预览成对追加，保证 uploadFiles[i] 与 attachmentPreviews[i] 对应
+      const dataUrl = await readDataURL(f)
+      uploadFiles.value.push(f)
+      attachmentPreviews.value.push(dataUrl)
+    } catch {
+      pushErrorToast(t('playground.errors.generic'))
+    }
   }
-  input.value = ''
   if (uploadFiles.value.length > 0) mode.value = 'edit'
 }
 
@@ -374,6 +387,9 @@ async function sendImage() {
   streaming.value = true
   scrollToBottom()
 
+  // 生图也走 abortController，让「停止」能真正中断请求（否则照样计费）
+  const controller = new AbortController()
+  abortController = controller
   try {
     // 生图模型来自该 key 的图像模型选择（canSend 已保证非空）
     const model = imageModel.value.trim()
@@ -384,19 +400,27 @@ async function sendImage() {
           prompt,
           size: imageSize.value,
           n: imageCount.value,
-          images: files
+          images: files,
+          signal: controller.signal
         })
       : await playgroundAPI.imageGenerate({
           apiKey: key.key,
           model,
           prompt,
           size: imageSize.value,
-          n: imageCount.value
+          n: imageCount.value,
+          signal: controller.signal
         })
     assistant.images = result.images
     assistant.usage = result.usage
   } catch (e) {
-    assistant.error = mapError(e as PlaygroundError)
+    if (controller.signal.aborted) {
+      // 用户主动停止：移除空的助手气泡（生图无部分结果可留）
+      const idx = messages.value.indexOf(assistant)
+      if (idx !== -1) messages.value.splice(idx, 1)
+    } else {
+      assistant.error = mapError(e as PlaygroundError)
+    }
   } finally {
     assistant.streaming = false
     streaming.value = false
@@ -459,7 +483,8 @@ const composer = () => {
         disabled: streaming.value,
         onInput: (e: Event) => (inputText.value = (e.target as HTMLInputElement).value),
         onKeydown: (e: KeyboardEvent) => {
-          if (e.key === 'Enter' && !e.shiftKey) {
+          // !e.isComposing：中文/日文等输入法回车确认候选词时不触发发送
+          if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
             e.preventDefault()
             send()
           }
