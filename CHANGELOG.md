@@ -57,6 +57,10 @@
 
 ---
 
+## 开发流程
+
+- **推送前门禁（pre-push hook）**：`script/pre_push_check.sh` 在每次 `git push` 前检查本次推送范围——①有实质源码改动时 `CHANGELOG.md` 必须已更新；②新增的 fork 独有源码文件（`.go/.ts/.vue`，排除测试/生成/上游已有）必须已在 `自定义开发功能列表.md` 记录。不满足则阻塞推送。安装：`./script/install_git_hooks.sh`（克隆后运行一次）；绕过：`git push --no-verify` 或 `PREPUSH_SKIP=1 git push`。
+
 ## 架构说明
 
 - fork 移除了 OAuth 账号类型（`AccountTypeOAuth`/`AccountTypeSetupToken`），`IsOpenAIOAuth`/`IsAnthropicOAuthOrSetupToken` 恒为 `false`。上游每次同步都会重新引入 codex/grok/antigravity/oauth，合并后须按逆向清理口径剥离。
