@@ -299,6 +299,45 @@ func TestGetAvailableModels_UsesShortCacheAndSupportsInvalidation(t *testing.T) 
 	require.Equal(t, int64(2), store)
 }
 
+// 功能 25：含 generic 账号的分组 /v1/models 必须包含 endpoint supported_models（此前只读
+// model_mapping 而 generic 模型在 endpoint 上，导致 Playground 选模型漏算 → 回退默认列表）。
+func TestGetAvailableModels_GenericIncludesEndpointSupportedModels(t *testing.T) {
+	resetGatewayHotpathStatsForTest()
+
+	groupID := int64(20)
+	repo := &modelsListAccountRepoStub{
+		byGroup: map[int64][]Account{
+			groupID: {
+				{
+					ID:       7,
+					Platform: PlatformGeneric,
+					// generic 账号无 model_mapping：模型全在 endpoint supported_models 上。
+					Credentials: map[string]any{},
+				},
+			},
+		},
+	}
+	svc := &GatewayService{
+		accountRepo: repo,
+		endpointRepo: &fakeEndpointRepo{byAccount: map[int64][]*DBEndpoint{
+			7: {{ID: 1, OutboundProtocol: "openai_chat", SupportedModels: []string{"yi-large", "nemotron-4"}}},
+		}},
+		modelsListCache:    gocache.New(time.Minute, time.Minute),
+		modelsListCacheTTL: time.Minute,
+	}
+
+	models := svc.GetAvailableModels(context.Background(), &groupID, PlatformGeneric)
+	require.Equal(t, []string{"nemotron-4", "yi-large"}, models)
+
+	// 叠加账号级别名映射：supported_models ∪ 别名。
+	svc.InvalidateAvailableModelsCache(&groupID, PlatformGeneric)
+	repo.byGroup[groupID][0].Credentials = map[string]any{
+		"model_mapping": map[string]any{"my-alias": "yi-large"},
+	}
+	withAlias := svc.GetAvailableModels(context.Background(), &groupID, PlatformGeneric)
+	require.Equal(t, []string{"my-alias", "nemotron-4", "yi-large"}, withAlias)
+}
+
 func TestGetAvailableModels_ErrorAndGlobalListBranches(t *testing.T) {
 	resetGatewayHotpathStatsForTest()
 

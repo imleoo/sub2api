@@ -8,8 +8,39 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/config"
 )
 
-// genericEndpointSupportsModel 查 generic 账号的 endpoint supported_models 是否覆盖该请求模型
-// （某 endpoint 空白名单 = 支持全部，沿用 routableFromAccounts 语义）。
+// genericEndpointModelIDs 是「generic 账号暴露哪些上游模型」的**唯一口径**：返回所有 endpoint 的
+// supported_models 并集（去空去重），并回报是否存在「空白名单 endpoint」（openEndpoint，语义=支持
+// 全部，由调用方决定是否兜底全 catalog）。
+//
+// routableFromAccounts（广场/后台可路由集）、GetAvailableModels（网关 /v1/models）、
+// genericEndpointSupportsModel（准入放行）三处共用此函数，避免 generic 模型来源再次漂移
+// （历史 bug：/v1/models 只读 model_mapping 漏了 supported_models）。各路径的 catalog 交集 / 兜底
+// 语义按用途在各自 wrapper 里处理，本函数只负责「原始暴露集」这一层。
+func genericEndpointModelIDs(ctx context.Context, repo EndpointRepository, account *Account) (models []string, openEndpoint bool) {
+	if account == nil || repo == nil {
+		return nil, false
+	}
+	eps, _ := repo.ListByAccountID(ctx, account.ID)
+	seen := make(map[string]struct{})
+	for _, ep := range eps {
+		if len(ep.SupportedModels) == 0 {
+			openEndpoint = true
+			continue
+		}
+		for _, m := range ep.SupportedModels {
+			if m = strings.TrimSpace(m); m != "" {
+				if _, ok := seen[m]; !ok {
+					seen[m] = struct{}{}
+					models = append(models, m)
+				}
+			}
+		}
+	}
+	return models, openEndpoint
+}
+
+// genericEndpointSupportsModel 查 generic 账号是否能服务该请求模型（命中 supported_models，或存在
+// 空白名单 endpoint = 支持全部）。走唯一口径 genericEndpointModelIDs。
 //
 // 用途（功能 25 增强）：generic 账号一旦配置了账号级 model_mapping（别名），Account.IsModelSupported
 // 会转为「仅认映射内模型」，从而误挡该账号其余 supported_models 的直连请求。各网关准入点在
@@ -23,18 +54,8 @@ func genericEndpointSupportsModel(ctx context.Context, repo EndpointRepository, 
 	if rm == "" {
 		return false
 	}
-	eps, _ := repo.ListByAccountID(ctx, account.ID)
-	for _, ep := range eps {
-		if len(ep.SupportedModels) == 0 {
-			return true
-		}
-		for _, m := range ep.SupportedModels {
-			if strings.TrimSpace(m) == rm {
-				return true
-			}
-		}
-	}
-	return false
+	ids, openEndpoint := genericEndpointModelIDs(ctx, repo, account)
+	return openEndpoint || slices.Contains(ids, rm)
 }
 
 // generic 各入站协议可直通的出站协议族（直通 = 入站==出站，无需协议桥）。

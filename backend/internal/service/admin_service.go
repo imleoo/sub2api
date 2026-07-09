@@ -558,6 +558,7 @@ type adminServiceImpl struct {
 	defaultSubAssigner   DefaultSubscriptionAssigner
 	userSubRepo          UserSubscriptionRepository
 	runtimeBlocker       AccountRuntimeBlocker
+	endpointRepo         EndpointRepository // 功能 25：generic 分组自定义模型列表候选需 supported_models
 }
 
 type userGroupRateBatchReader interface {
@@ -584,6 +585,7 @@ func NewAdminService(
 	defaultSubAssigner DefaultSubscriptionAssigner,
 	userSubRepo UserSubscriptionRepository,
 	runtimeBlocker AccountRuntimeBlocker,
+	endpointRepo EndpointRepository,
 ) AdminService {
 	return &adminServiceImpl{
 		userRepo:             userRepo,
@@ -604,6 +606,7 @@ func NewAdminService(
 		defaultSubAssigner:   defaultSubAssigner,
 		userSubRepo:          userSubRepo,
 		runtimeBlocker:       runtimeBlocker,
+		endpointRepo:         endpointRepo,
 	}
 }
 
@@ -1747,20 +1750,31 @@ func (s *adminServiceImpl) GetGroupModelsListCandidates(ctx context.Context, id 
 	for _, model := range candidates {
 		seen[model] = struct{}{}
 	}
+	addCandidate := func(model string) {
+		model = strings.TrimSpace(model)
+		if model == "" {
+			return
+		}
+		if _, ok := seen[model]; ok {
+			return
+		}
+		seen[model] = struct{}{}
+		candidates = append(candidates, model)
+	}
 	for _, acc := range accounts {
 		if acc.Platform != platform {
 			continue
 		}
+		// 功能 25：generic 账号的模型在 endpoint supported_models 上（不在 model_mapping），
+		// 否则自定义 /v1/models 列表候选会漏掉 generic 模型。走唯一口径 genericEndpointModelIDs。
+		if acc.Platform == PlatformGeneric && s.endpointRepo != nil {
+			ids, _ := genericEndpointModelIDs(ctx, s.endpointRepo, &acc)
+			for _, m := range ids {
+				addCandidate(m)
+			}
+		}
 		for model := range acc.GetModelMapping() {
-			model = strings.TrimSpace(model)
-			if model == "" {
-				continue
-			}
-			if _, ok := seen[model]; ok {
-				continue
-			}
-			seen[model] = struct{}{}
-			candidates = append(candidates, model)
+			addCandidate(model)
 		}
 	}
 	return candidates, nil
@@ -1768,6 +1782,9 @@ func (s *adminServiceImpl) GetGroupModelsListCandidates(ctx context.Context, id 
 
 func defaultModelsListCandidateIDs(platform string) []string {
 	switch platform {
+	case PlatformGeneric:
+		// generic 无内置默认模型，候选全部来自账号 endpoint supported_models（+ model_mapping）。
+		return nil
 	case PlatformOpenAI:
 		return openai.DefaultModelIDs()
 	case PlatformGemini:

@@ -6,8 +6,12 @@ import (
 	"context"
 	"sort"
 	"testing"
+	"time"
 
+	gocache "github.com/patrickmn/go-cache"
 	"github.com/stretchr/testify/require"
+
+	"github.com/Wei-Shaw/sub2api/internal/config"
 )
 
 // routingAccountStub 仅实现 ModelRoutingService 用到的 GetByIDs / ListActive。
@@ -100,6 +104,68 @@ func TestRoutableModelInfos_GenericFoldsSupportedModelsAndMapping(t *testing.T) 
 
 	got := mr.RoutableModelInfos(context.Background(), []int64{7})
 	require.Equal(t, []string{"my-alias", "yi-large"}, routedIDs(got))
+}
+
+// GetAvailableModels（网关 /v1/models）按运行模式分口径：
+//   - 标准模式：委托 routableFromAccounts → 与广场收敛（catalog 交集，未定价模型被滤）。
+//   - simple 模式：raw（计费关闭，未定价也可调）。
+func TestGetAvailableModels_ModeAwareCatalogIntersection(t *testing.T) {
+	groupID := int64(21)
+	// catalog 只启用 yi-large；nemotron-4 不在 catalog（未定价）。
+	pricingSvc, _ := newCatalogTestService(enabledCatalog(map[string]string{"yi-large": "nvidia"}))
+	epRepo := &fakeEndpointRepo{byAccount: map[int64][]*DBEndpoint{
+		7: {{ID: 1, OutboundProtocol: "openai_chat", SupportedModels: []string{"yi-large", "nemotron-4"}}},
+	}}
+	// GetAvailableModels 通过 accountRepo.ListSchedulableByGroupID 取账号，再传给 routableFromAccounts；
+	// modelRouting 的 accountRepo 不被 routableFromAccounts 使用（它直接收 accounts），置 nil 即可。
+	accountRepo := &modelsListAccountRepoStub{byGroup: map[int64][]Account{
+		groupID: {{ID: 7, Status: StatusActive, Platform: PlatformGeneric, Credentials: map[string]any{}}},
+	}}
+	mr := NewModelRoutingService(nil, epRepo, pricingSvc)
+
+	newGw := func(runMode string) *GatewayService {
+		return &GatewayService{
+			accountRepo:        accountRepo,
+			endpointRepo:       epRepo,
+			modelRouting:       mr,
+			cfg:                &config.Config{RunMode: runMode},
+			modelsListCache:    gocache.New(time.Minute, time.Minute),
+			modelsListCacheTTL: time.Minute,
+		}
+	}
+
+	// 标准模式：catalog 交集 → 只剩已启用的 yi-large（nemotron-4 未定价被滤）。
+	std := newGw(config.RunModeStandard).GetAvailableModels(context.Background(), &groupID, PlatformGeneric)
+	require.Equal(t, []string{"yi-large"}, std)
+
+	// simple 模式：raw → supported_models 全出（含未定价 nemotron-4）。
+	simple := newGw(config.RunModeSimple).GetAvailableModels(context.Background(), &groupID, PlatformGeneric)
+	require.Equal(t, []string{"nemotron-4", "yi-large"}, simple)
+}
+
+// raw 口径（simple 模式）下「空白名单 endpoint = 支持全部」无法枚举全部，用已启用 catalog 兜底
+// （此前丢弃 openEndpoint 标志 → 一个模型都列不出来 → handler 回退误导性默认列表）。
+func TestGetAvailableModels_SimpleModeOpenEndpointFallsBackToEnabledCatalog(t *testing.T) {
+	groupID := int64(22)
+	pricingSvc, _ := newCatalogTestService(enabledCatalog(map[string]string{"yi-large": "nvidia"}))
+	epRepo := &fakeEndpointRepo{byAccount: map[int64][]*DBEndpoint{
+		// SupportedModels 为空 = 空白名单 endpoint。
+		8: {{ID: 2, OutboundProtocol: "openai_chat"}},
+	}}
+	accountRepo := &modelsListAccountRepoStub{byGroup: map[int64][]Account{
+		groupID: {{ID: 8, Status: StatusActive, Platform: PlatformGeneric, Credentials: map[string]any{}}},
+	}}
+	gw := &GatewayService{
+		accountRepo:        accountRepo,
+		endpointRepo:       epRepo,
+		modelRouting:       NewModelRoutingService(nil, epRepo, pricingSvc),
+		cfg:                &config.Config{RunMode: config.RunModeSimple},
+		modelsListCache:    gocache.New(time.Minute, time.Minute),
+		modelsListCacheTTL: time.Minute,
+	}
+
+	got := gw.GetAvailableModels(context.Background(), &groupID, PlatformGeneric)
+	require.Equal(t, []string{"yi-large"}, got)
 }
 
 // genericEndpointSupportsModel 补回「generic 配了别名映射后，其余 supported_models 直连仍可服务」。

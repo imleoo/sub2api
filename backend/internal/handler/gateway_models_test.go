@@ -399,3 +399,36 @@ func modelIDsForTest(models []gatewayModelItemForTest) []string {
 	}
 	return ids
 }
+
+// generic 分组无可路由模型时 /v1/models 返回空列表，而不是误导性的 claude 默认列表
+// （generic 模型全部来自账号 endpoint supported_models，无内置默认）。
+func TestGatewayModels_GenericGroupFallsBackToEmptyList(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	groupID := int64(30)
+	h := newGatewayModelsHandlerForTest(
+		&gatewayModelsAccountRepoStub{
+			byGroup: map[int64][]service.Account{
+				groupID: {
+					{ID: 1, Platform: service.PlatformGeneric},
+				},
+			},
+		},
+	)
+
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	c.Request = httptest.NewRequest(http.MethodGet, "/v1/models", nil)
+	c.Set(string(middleware2.ContextKeyAPIKey), &service.APIKey{
+		Group: &service.Group{ID: groupID, Platform: service.PlatformGeneric},
+	})
+
+	h.Models(c)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	var got gatewayModelsResponseForTest
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &got))
+	require.Equal(t, "list", got.Object)
+	require.Empty(t, got.Data)
+}

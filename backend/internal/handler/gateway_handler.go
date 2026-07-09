@@ -950,6 +950,13 @@ func (h *GatewayHandler) Models(c *gin.Context) {
 	}
 
 	// Fallback to default models
+	// generic 平台无内置默认模型（模型全部来自账号 endpoint supported_models），
+	// 兜底 claude 默认列表只会展示一堆调不通的模型 → 返回空列表。
+	if platform == service.PlatformGeneric {
+		writeModelsList(c, nil)
+		return
+	}
+
 	if platform == service.PlatformOpenAI {
 		c.JSON(http.StatusOK, gin.H{
 			"object": "list",
@@ -1083,6 +1090,9 @@ func customModelsListAllowsModel(availablePatterns []string, model string) bool 
 
 func defaultModelIDsForPlatform(platform string) []string {
 	switch platform {
+	case service.PlatformGeneric:
+		// 与 admin 侧 defaultModelsListCandidateIDs 同口径：generic 无内置默认模型。
+		return nil
 	case service.PlatformOpenAI:
 		return openai.DefaultModelIDs()
 	case service.PlatformGemini:

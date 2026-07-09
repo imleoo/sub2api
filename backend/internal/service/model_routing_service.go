@@ -88,19 +88,16 @@ func (s *ModelRoutingService) routableFromAccounts(ctx context.Context, accounts
 			continue
 		}
 		if account.Platform == PlatformGeneric && s.endpointRepo != nil {
-			eps, _ := s.endpointRepo.ListByAccountID(ctx, account.ID)
-			for _, ep := range eps {
-				if len(ep.SupportedModels) == 0 {
-					for _, m := range s.pricing.ListEnabledCatalogModels() {
-						allowed[m.ID] = m
-					}
-				} else {
-					for _, m := range ep.SupportedModels {
-						if m = strings.TrimSpace(m); m != "" {
-							addWhitelistedModel(allowed, modelsByID, m, m)
-						}
-					}
+			// 走唯一口径 genericEndpointModelIDs（与 GetAvailableModels / 准入放行同源，防漂移）。
+			ids, openEndpoint := genericEndpointModelIDs(ctx, s.endpointRepo, account)
+			if openEndpoint {
+				// 空白名单 endpoint = 支持全部 → 兜底全部已启用 catalog。
+				for _, m := range s.pricing.ListEnabledCatalogModels() {
+					allowed[m.ID] = m
 				}
+			}
+			for _, m := range ids {
+				addWhitelistedModel(allowed, modelsByID, m, m)
 			}
 			// 功能 25 增强：generic 也支持账号级 model_mapping（别名 → 上游模型），与 supported_models
 			// 并存共同决定可路由集。别名目标命中已启用 catalog 即可路由，广场显示别名（addWhitelistedModel

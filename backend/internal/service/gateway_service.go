@@ -563,11 +563,19 @@ type GatewayService struct {
 	userPlatformQuotaRepo UserPlatformQuotaRepository
 
 	endpointRepo EndpointRepository // 功能 25：generic 渠道按 endpoint 解析转发目标
+
+	modelRouting *ModelRoutingService // 功能 25：标准模式 /v1/models 走广场同口径（catalog 交集），防漂移
 }
 
 // SetEndpointRepository 注入 endpoint 仓库（Wire 完成后调用，用于 generic 渠道转发）。
 func (s *GatewayService) SetEndpointRepository(repo EndpointRepository) {
 	s.endpointRepo = repo
+}
+
+// SetModelRoutingService 注入模型路由 service（Wire 完成后调用）。标准模式下 GetAvailableModels
+// 委托它计算可路由模型（与模型广场同口径，含 catalog 交集），避免 /v1/models 与广场再次漂移。
+func (s *GatewayService) SetModelRoutingService(mr *ModelRoutingService) {
+	s.modelRouting = mr
 }
 
 // NewGatewayService creates a new GatewayService
@@ -9528,33 +9536,55 @@ func (s *GatewayService) GetAvailableModels(ctx context.Context, groupID *int64,
 		accounts = filtered
 	}
 
-	// Collect unique models from all accounts
-	modelSet := make(map[string]struct{})
-	hasAnyMapping := false
-
-	for _, acc := range accounts {
-		mapping := acc.GetModelMapping()
-		if len(mapping) > 0 {
-			hasAnyMapping = true
-			for model := range mapping {
+	// 模型来源按运行模式分口径：
+	//   - 标准模式：委托 routableFromAccounts（模型广场同口径，含 catalog 交集，只保留已启用=真能调
+	//     的模型），使 /v1/models 与广场收敛、防漂移；未定价 generic 模型不列出（标准模式计费本就
+	//     对未定价 fail-closed，列出来也调不动，反误导）。
+	//   - simple 模式：计费关闭，未定价模型也可调 → 用 raw 口径（generic supported_models ∪ mapping keys）。
+	//   - modelRouting 未注入（异常/旧测试）：退回 raw 口径兜底。
+	simpleMode := s.cfg != nil && s.cfg.RunMode == config.RunModeSimple
+	var models []string
+	if !simpleMode && s.modelRouting != nil {
+		ptrs := make([]*Account, len(accounts))
+		for i := range accounts {
+			ptrs[i] = &accounts[i]
+		}
+		for _, info := range s.modelRouting.routableFromAccounts(ctx, ptrs) {
+			models = append(models, info.ID)
+		}
+	} else {
+		modelSet := make(map[string]struct{})
+		for _, acc := range accounts {
+			// 功能 25：generic 模型在 endpoint supported_models 上（不在 model_mapping）。唯一口径。
+			if acc.Platform == PlatformGeneric && s.endpointRepo != nil {
+				ids, openEndpoint := genericEndpointModelIDs(ctx, s.endpointRepo, &acc)
+				if openEndpoint && s.modelRouting != nil && s.modelRouting.pricing != nil {
+					// 空白名单 endpoint = 支持全部：raw 口径无法枚举「全部」，与
+					// routableFromAccounts 同语义用已启用 catalog 兜底（catalog 不可用时维持原状）。
+					for _, m := range s.modelRouting.pricing.ListEnabledCatalogModels() {
+						modelSet[m.ID] = struct{}{}
+					}
+				}
+				for _, m := range ids {
+					modelSet[m] = struct{}{}
+				}
+			}
+			for model := range acc.GetModelMapping() {
 				modelSet[model] = struct{}{}
 			}
 		}
+		for model := range modelSet {
+			models = append(models, model)
+		}
 	}
 
-	// If no account has model_mapping, return nil (use default)
-	if !hasAnyMapping {
+	// 无可用模型 → 返回 nil（handler 回退默认列表），缓存空结果。
+	if len(models) == 0 {
 		if s.modelsListCache != nil {
 			s.modelsListCache.Set(cacheKey, []string(nil), s.modelsListCacheTTL)
 			modelsListCacheStoreTotal.Add(1)
 		}
 		return nil
-	}
-
-	// Convert to slice
-	models := make([]string, 0, len(modelSet))
-	for model := range modelSet {
-		models = append(models, model)
 	}
 	sort.Strings(models)
 

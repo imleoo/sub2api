@@ -6,6 +6,45 @@
 
 ---
 
+## [未发布] - 2026-07-09 — 二轮排查：handler 层 generic 回退残留（功能 25）
+
+第一轮把 generic 模型口径在 service 层收敛后，handler 层还剩三处 generic 回退残留，本次补齐：
+
+- **`/v1/models` 默认回退对 generic 返回 claude 列表**（`gateway_handler.go` `Models()`）：generic 分组无可路由模型时（如标准模式下 supported_models 全未定价），回退分支落进最后的 else 返回 `claude.DefaultModels`——整页模型全调不通，纯误导。修复：`PlatformGeneric` 返回空列表。
+- **raw 口径丢弃 `openEndpoint` 标志**（`gateway_service.go` `GetAvailableModels` simple 路径）：`ids, _ :=` 忽略「空白名单 endpoint = 支持全部」语义，这类账号在 `/v1/models` 一个模型都列不出来（再叠加上一条回退 claude 列表）。修复：openEndpoint 时用已启用 catalog 兜底（与 `routableFromAccounts` 同语义；catalog 不可用时维持原状）。
+- **`defaultModelIDsForPlatform` 对 generic 落 claude 默认**（`gateway_handler.go`，自定义模型列表分支的 fallback 源）：与 admin 侧 `defaultModelsListCandidateIDs` 刚改的「generic 无内置默认」口径相反。修复：`PlatformGeneric` 返回 nil（实际输出行为不变——generic 勾选模型与 claude 默认交集本就为空）。
+
+新增测试：`TestGetAvailableModels_SimpleModeOpenEndpointFallsBackToEnabledCatalog`（service）、`TestGatewayModels_GenericGroupFallsBackToEmptyList`（handler）。
+
+门禁：后端 build + `-tags=unit`（service/handler/server）全通过。
+
+---
+
+## [未发布] - 2026-07-09 — 遗漏排查补漏（功能 25 · generic 模型来源一致性）
+
+对 generic 模型链做全面排查，补两处遗漏：
+
+- **分组自定义模型列表候选漏 generic**（`admin_service.go` `GetGroupModelsListCandidates`，`GET /groups/:id/models-list-candidates`）：此前只读 `acc.GetModelMapping()`、且对 generic 分组错误 seed claude 默认模型。修复：走唯一口径 `genericEndpointModelIDs` 补上 endpoint `supported_models`；`defaultModelsListCandidateIDs` 对 `PlatformGeneric` 返回 nil（无内置默认）。为此 `NewAdminService` 新增 `endpointRepo` 构造参数（wire + api_contract_test 同步）。
+- **新组件 `GenericEndpointModelsField.vue` 无测试**：补 `GenericEndpointModelsField.spec.ts`（拉取填充清单 / 勾选 emit / 全选清空 / 手动输入拆分去重 / base_url 空校验，5 用例），满足前端 80% 覆盖率门槛。
+
+排查确认**无遗漏**的路径：user `/api/v1/models`（`usage_handler.ListModels` 走 `ModelRoutingService.RoutableModelInfos`，已统一口径）、gemini `/v1beta/models`（直接代理上游）、`toUserSupportedModels`（渠道定价，非本链）。
+
+门禁：后端 build+vet+`-tags=unit`（service/server/handler）、前端 typecheck+lint+组件 vitest、fork 守护全通过。
+
+---
+
+## [未发布] - 2026-07-09 — 修复含 generic 账号分组的 /v1/models 漏算（功能 25）
+
+- **现象**：模型体验广场选含通用渠道账号的分组 key 时，可选模型不是该分组能路由的列表（回退到默认/自定义列表）。
+- **根因**：网关 `/v1/models` 走 `GatewayService.GetAvailableModels`，它只从 `acc.GetModelMapping()`（credentials.model_mapping）收集模型；generic 账号的模型在 endpoint `supported_models` 上、不在 model_mapping，被完全漏算 → 无账号有 mapping 时返回 nil → handler 回退默认列表。这是独立于 `ModelRoutingService`（广场/后台已统一）的旧实现残留漂移。
+- **修复**：`GetAvailableModels` 收集环节对 generic 账号补上 endpoint `supported_models`（复用 `s.endpointRepo`），与 `routableFromAccounts` 同口径；账号级别名映射（model_mapping）继续并入。
+- **防漂移收敛（两层）**：
+  1. **派生层**：generic 账号「暴露哪些模型」的逻辑此前在 `routableFromAccounts`、`GetAvailableModels`、`genericEndpointSupportsModel` 三处各写一份（本 bug 正是其中一处漏写）。抽出**唯一口径** `genericEndpointModelIDs(ctx, repo, account) → (ids, openEndpoint)`，三处共用。
+  2. **口径层（模式感知）**：`GetAvailableModels` 按运行模式分口径——**标准模式**委托 `ModelRoutingService.routableFromAccounts`，与模型广场**收敛**（含 catalog 交集，只列已启用=真能调的模型）；**simple 模式**用 raw 口径（计费关闭，未定价 supported_models 也可调，便于定价前在 Playground 试模型）。依据：标准模式下计费对未定价模型 fail-closed（`billing_service.go` `ErrModelUnpriced`），列出未定价模型反而误导。为此给 `GatewayService` 注入 `ModelRoutingService`（`SetModelRoutingService` setter + wire）。
+- **验证**：新增 `TestGetAvailableModels_GenericIncludesEndpointSupportedModels`（raw 口径）、`TestGetAvailableModels_ModeAwareCatalogIntersection`（标准→catalog 交集只留已启用 / simple→raw 全出）；端到端标准模式分组（账号全启用）`/v1/models` 行为不变（79→79），未定价模型在标准模式被滤（单测覆盖）。
+
+---
+
 ## [未发布] - 2026-07-08 — generic 端点：模型勾选子集 + 别名映射（功能 25 增强）
 
 补齐通用渠道「拉回模型列表后没得选、也没有别名映射」的缺口。
