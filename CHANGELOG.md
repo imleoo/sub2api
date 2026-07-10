@@ -6,6 +6,84 @@
 
 ---
 
+## [1.1.147] - 2026-07-10 — 同步上游 0.1.147（147 提交）+ Grok 官方 API 保留 + 逆向链再清理
+
+**规模**：上游 147 提交、410 文件；上游把 fork 重度改造的三个巨型文件做了「纯移动拆分」
+（`usage_log_repo.go` 4701→212 行拆 6 文件、`setting_handler.go` 3957→468 拆 5 文件、
+`admin_service.go` 4409→642 拆 5 文件，另拆 `gateway_service.go`/`openai_gateway_service.go`），
+fork 语义须逐函数重新落位。
+
+### 合并方法（可复用）
+以 `merge-base` 单体为 base、fork 单体为 ours、上游拆分文件为 theirs，逐个顶层函数做三方归并：
+上游纯移动 → 直接采 fork 版；双方都改 → `git merge-file` 三方合并。共自动归并 64 个函数、
+人工仲裁 3 处（`RecordUsage` 双段并存、两处 SSE `response.failed` 净化取上游）。
+
+### 决策：保留 Grok 官方 API、删除 Grok 订阅逆向
+- **保留**：`api.x.ai` 官方链路 —— `openai_gateway_grok.go`（守卫由 `AccountTypeOAuth` 改为
+  `AccountTypeAPIKey`）、`grok_media.go` 生图/生视频、`pkg/xai` 的 URL/模型/配额头解析、
+  被动配额快照（`grok_quota_snapshot` Extra 键，apikey 账号同样写入）、WS→HTTP 桥、
+  `isOpenAIAccount()` 纳入 grok（复用 openai 运行时封锁/冷却）、迁移 157/158/170/171/172。
+- **删除**：`grok_oauth_service/handler/client`、`grok_token_provider/refresher`、
+  `grok_quota_service`（主动探测）、`pkg/xai/oauth.go`、前端 `useGrokOAuth.ts`/`api/admin/grok.ts`/
+  `GrokQuotaProbeCell.vue`。
+- **计费口径**：grok 价格不内置（遵循功能 26 SSOT + 功能 34「绝对不内置厂商价」），
+  须由运营写入 `model_pricings`（`sync-maas` 或手工）；未定价时 fail-closed 而非按 0 计费。
+  上游的 `TestGetModelPricing_Grok45OfficialFallback` 因此移除。
+
+### 逆向链再清理（功能 35）
+上游重新引入的整套订阅逆向已再次删除：antigravity 平台（`setting_*` 的 UA/fallback 设置、
+`DefaultAntigravityModelMapping`、调度/网关分支）、Claude Code 拟态（`gateway_claude_oauth_body.go`
+按符号拆分——非逆向工具迁入新建的 `gateway_claude_body.go`，OAuth 拟态整段丢弃）、
+codex CLI 限制策略（`CodexRestrictionPolicy`/白名单/指纹信号/`/v1/models` 的 codex manifest 分支）、
+spark 影子账号（`ListShadowsByParent`/`parentHealthyForShadow` 守卫、迁移 154/154a 未引入）、
+`ListOAuthRefreshCandidates`（含 `type='oauth'` 死查询）。
+
+**运行时地雷修复**：上游新代码 `ListCRSAccountIDs` 的 SQL 带 `parent_account_id IS NULL` 谓词，
+而 fork 库无此列（spark 迁移未引入）→ 会直接 SQL 报错。已移除该谓词。
+
+### 采纳的上游修复
+- `/v1/messages` 与 OpenAI 流式的 `response.failed` 错误透传规则（不再硬编码 502）
+- **上下文超限不再触发 failover**（换账号无用，直接回写客户端错误）
+- 流式 usage 漏计费修复（客户端断开后继续合并 usage）
+- 鉴权绕过修复、`site_name`/`site_logo`/`doc_url` 的 XSS sanitize、Go 工具链 1.26.5（stdlib 漏洞）
+- 批量生图（batch image）整功能、用户 Token 排行、管理员用户角色、版本徽章在线回退
+- SSE 扫描器封装 `newUpstreamSSEScanner`（openai 侧不再复用 fork 的 64K buffer 池，属可接受收敛；
+  gateway_* 路径仍复用池）
+
+### fork 语义修复（合并期间发现并补回）
+- `PublicSettingsInjectionPayload` 缺 6 个 fork 公开字段（`ui_theme`/`currency_mode`/`cny_rate`/
+  `show_overseas_models`/`phone_register_enabled`/`password_login_enabled`）
+- `setting_parse.go` 丢失全部 fork 设置解析（UI 主题、货币/汇率、手机号注册、密码登录开关、
+  短信三家凭证）与品牌默认值（`site_name`/`site_subtitle` 被上游 `Sub2API` 覆盖）
+- `imagesHandler` 漏了 lingjing 生图分流（功能 12）
+- `rawChatCompletionsURL` 补 generic 端点分支（功能 25）
+- `openai_gateway_messages.go` / `openai_ws_http_bridge.go` 的 grok 请求构建分支
+- `GroupsView.vue` 的 `formatUsd` 改为委托 `formatUSD`（保住人民币模式，功能 5）
+- `AppHeader.vue` 的 `formatHeaderMoney` 补人民币口径
+
+### 迁移
+上游 `159-172` 与 fork `159/160/161/162` 数字前缀重复但**文件名不同**；迁移运行器以 filename 为主键
+且按文件名排序，上游自身也存在同号文件，故**无需重编号**。恢复了被误删的 `157_user_platform_quotas_add_grok.sql`
+（不恢复会导致自助注册写 grok 默认配额时违反 CHECK → 事务 abort）与 `158_enable_grok_media_generation_groups.sql`。
+
+### i18n 结构迁移
+上游把单体 `locales/{zh,en}.ts` 拆成模块目录。fork 的 276/278 个自定义键提取到
+`locales/{zh,en}/fork.ts`，由新增的 `locales/forkMerge.ts` 深合并覆盖上游模块，
+后续上游同步不再与语言包冲突。
+
+### 验证
+- `go build ./...` / `go vet -tags=unit ./internal/...` 零错误
+- 后端单测：service / repository / server / handler(+admin,dto,quotaview) 全部 `ok`
+- 前端：`typecheck` / `lint:check` 通过，`vitest` 148 文件 945 用例全绿
+- fork 守护：`SetEndpointRepository`=4、`SetModelRoutingService`=1、lingjing 视频路由、
+  协议分流、`ProtocolBucketEnabled`、`GenericRuntimeEnabled`、`bill_request_id` 全链路、
+  `sync-maas`、双桶看板、Playground 路由均在；workflows 全部仅 `workflow_dispatch:`
+- 逆向门禁：`PlatformAntigravity` / `AccountTypeOAuth` / `AccountTypeSetupToken` / `IsOAuth()` /
+  `CodexModels` 在非测试代码中均为 0
+
+> **待办**：E2E（`./script/e2e-test.sh`）需真实上游凭证，尚未在本次合并中执行；
+> grok 模型定价需运营写入 `model_pricings` 后方可计费。
+
 ## [未发布] - 2026-07-09 — 二轮排查：handler 层 generic 回退残留（功能 25）
 
 第一轮把 generic 模型口径在 service 层收敛后，handler 层还剩三处 generic 回退残留，本次补齐：

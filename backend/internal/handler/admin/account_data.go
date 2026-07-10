@@ -47,7 +47,7 @@ type DataProxy struct {
 // DataAccount 是管理员显式备份导出使用的账号结构，故意不走 dto.Account 的脱敏路径，
 // Credentials 原文返回。这是"管理员备份"这一显式行为的一部分；如未来需要导出脱敏版本，
 // 应新增独立结构而非修改这里。
-// 注意:本结构不含 parent_account_id/quota_dimension——spark 影子账号在 ExportData 处被显式
+// 注意:本结构不含 spark 影子账号相关字段——该整链已随逆向清理删除（功能 35）。旧注释：
 // 排除(影子不持凭据、通用凭据型导入强制 credentials 非空无法重建父子链接),不在此表达。
 // 影子的独立调度配置(priority/并发/分组/status 管理员可单独调)亦不在本备份范围,属已知局限
 // (外审第6轮裁决:保持排除 + 前端警告,而非升级格式做完整往返)。

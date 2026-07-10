@@ -109,6 +109,9 @@ describe('AccountUsageCell', () => {
 		expect(badges.some(node => node.attributes('title') === 'usage.userBilled')).toBe(true)
   })
 
+  // fork：上游的 "Grok OAuth 用量/配额探测" 用例已移除。
+  // grok 订阅逆向 OAuth 链与主动配额探测（GrokQuotaProbeCell / useGrokOAuth）已随功能 35 删除，
+  // 官方 xAI API 账号为 apikey 类型，用量走通用 usage 展示，无 grok_request_quota 进度条。
   it('Key 账号在 today stats loading 时显示骨架屏', async () => {
 		const wrapper = mount(AccountUsageCell, {
 		  props: {

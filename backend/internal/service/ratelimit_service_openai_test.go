@@ -219,7 +219,6 @@ func TestHandle429_OpenAISyncsObservedPlanType(t *testing.T) {
 	require.Equal(t, account.ID, repo.rateLimitedID)
 }
 
-
 func TestNormalizedCodexLimits(t *testing.T) {
 	// Test the Normalize() method directly
 	pUsed := 100.0

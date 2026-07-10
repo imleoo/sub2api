@@ -199,8 +199,12 @@ type UsageLog struct {
 	ImageSizeBreakdown map[string]int
 	MediaType          *string
 
-	// 视频生成字段：实际计费时长（秒）。配合 model_pricings.output_cost_per_image（USD/秒）计算 cost。
+	// 视频生成字段：实际计费时长（秒）。配合 model_pricings.output_cost_per_image（USD/秒）计算 cost（灵境）。
 	VideoSeconds float64
+	// 视频生成字段（Grok 视频按秒计费；video_count>0 的行不要求 image_size）
+	VideoCount           int
+	VideoResolution      *string
+	VideoDurationSeconds *int
 
 	CreatedAt time.Time
 

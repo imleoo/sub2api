@@ -2,8 +2,11 @@ package service
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,6 +38,58 @@ func TestParsePricingData_ParsesPriorityAndServiceTierFields(t *testing.T) {
 	require.True(t, pricing.SupportsServiceTier)
 }
 
+func TestParsePricingData_KeepsImageOnlyPricing(t *testing.T) {
+	svc := &PricingService{}
+	body := []byte(`{
+		"image-only-model": {
+			"output_cost_per_image": 0.034,
+			"litellm_provider": "vertex_ai-language-models",
+			"mode": "image_generation"
+		}
+	}`)
+
+	data, err := svc.parsePricingData(body)
+	require.NoError(t, err)
+	pricing := data["image-only-model"]
+	require.NotNil(t, pricing)
+	require.InDelta(t, 0.034, pricing.OutputCostPerImage, 1e-12)
+	require.Equal(t, "image_generation", pricing.Mode)
+	// 仅有图片价的条目必须标记 token 价缺失，供 token 计费路径 fail-closed。
+	require.True(t, pricing.TokenPricingAbsent)
+}
+
+func TestPricingService_MergesFallbackOnlyModels(t *testing.T) {
+	dir := t.TempDir()
+	fallbackFile := filepath.Join(dir, "fallback.json")
+	require.NoError(t, os.WriteFile(fallbackFile, []byte(`{
+		"remote-model": {
+			"input_cost_per_token": 0.000001,
+			"litellm_provider": "test",
+			"mode": "chat"
+		},
+		"gemini-3.1-flash-lite-image": {
+			"output_cost_per_image": 0.034,
+			"litellm_provider": "vertex_ai-language-models",
+			"mode": "image_generation"
+		}
+	}`), 0644))
+
+	svc := &PricingService{cfg: &config.Config{}}
+	svc.cfg.Pricing.FallbackFile = fallbackFile
+	remoteData, err := svc.parsePricingData([]byte(`{
+		"remote-model": {
+			"input_cost_per_token": 0.000002,
+			"litellm_provider": "test",
+			"mode": "chat"
+		}
+	}`))
+	require.NoError(t, err)
+
+	merged := svc.mergeFallbackPricingData(remoteData)
+	require.InDelta(t, 0.000002, merged["remote-model"].InputCostPerToken, 1e-12)
+	require.NotNil(t, merged["gemini-3.1-flash-lite-image"])
+	require.InDelta(t, 0.034, merged["gemini-3.1-flash-lite-image"].OutputCostPerImage, 1e-12)
+}
 func TestParsePricingData_PreservesPriorityAndServiceTierFields(t *testing.T) {
 	raw := map[string]any{
 		"gpt-5.4": map[string]any{

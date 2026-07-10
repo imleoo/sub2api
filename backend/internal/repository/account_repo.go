@@ -288,13 +288,12 @@ func (r *accountRepository) GetByCRSAccountID(ctx context.Context, crsAccountID 
 }
 
 func (r *accountRepository) ListCRSAccountIDs(ctx context.Context) (map[string]int64, error) {
-	// parent_account_id IS NULL 排除 spark 影子账号:影子不是 CRS 账号,绝不能进 CRS 同步映射
-	// (否则会被当普通账号更新而覆盖 type/credentials/proxy)(外审第7轮 P1)。
+	// fork：spark 影子账号整链已删除（功能 35），accounts 表无 parent_account_id 列，
+	// 故不再需要上游的 "parent_account_id IS NULL" 排除谓词（保留会直接 SQL 报错）。
 	rows, err := r.sql.QueryContext(ctx, `
 		SELECT id, extra->>'crs_account_id'
 		FROM accounts
 		WHERE deleted_at IS NULL
-			AND parent_account_id IS NULL
 			AND extra->>'crs_account_id' IS NOT NULL
 			AND extra->>'crs_account_id' != ''
 	`)
@@ -702,62 +701,6 @@ func (r *accountRepository) ListActive(ctx context.Context) ([]service.Account, 
 		return nil, err
 	}
 	return r.accountsToService(ctx, accounts)
-}
-
-func (r *accountRepository) ListOAuthRefreshCandidates(ctx context.Context) ([]service.Account, error) {
-	if r.sql == nil {
-		return nil, errors.New("account repository SQL executor not configured")
-	}
-	// (cond) IS NOT TRUE 把 NULL 和 FALSE 都视为"可被刷新"。直接写
-	// NOT (a AND b) 在 PG 三值逻辑下会把 a 或 b 为 NULL 的行（即绝大多数
-	// 健康账号：temp_unschedulable_until=NULL）也排除，导致后台 token
-	// 刷新工作器漏掉所有正常账号 → access_token 到期后请求开始 401。
-	rows, err := r.sql.QueryContext(ctx, `
-		SELECT id
-		FROM accounts
-		WHERE deleted_at IS NULL
-			AND status = 'active'
-			AND type = 'oauth'
-			AND platform IN ('anthropic', 'openai', 'gemini', 'antigravity')
-			AND credentials ? 'refresh_token'
-			AND btrim(credentials->>'refresh_token') <> ''
-			AND (
-				temp_unschedulable_until > NOW()
-				AND temp_unschedulable_reason LIKE 'token refresh retry exhausted:%'
-			) IS NOT TRUE
-		ORDER BY priority ASC, id ASC
-	`)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = rows.Close() }()
-
-	var ids []int64
-	for rows.Next() {
-		var id int64
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		ids = append(ids, id)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	if len(ids) == 0 {
-		return []service.Account{}, nil
-	}
-
-	accounts, err := r.GetByIDs(ctx, ids)
-	if err != nil {
-		return nil, err
-	}
-	out := make([]service.Account, 0, len(accounts))
-	for _, account := range accounts {
-		if account != nil {
-			out = append(out, *account)
-		}
-	}
-	return out, nil
 }
 
 func (r *accountRepository) ListByPlatform(ctx context.Context, platform string) ([]service.Account, error) {

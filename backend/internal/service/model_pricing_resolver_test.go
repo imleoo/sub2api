@@ -732,3 +732,8 @@ func TestApplyTokenOverrides_IntervalSetsImageOutputPriceExplicit(t *testing.T) 
 	require.True(t, pricing.ImageOutputPriceExplicit)
 	require.Equal(t, 0.0, pricing.ImageOutputPricePerToken)
 }
+
+// ===========================================================================
+// 10. Regression: channel overrides must not pollute fallbackPrices
+// ===========================================================================
+

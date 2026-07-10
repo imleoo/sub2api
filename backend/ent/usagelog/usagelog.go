@@ -112,6 +112,12 @@ const (
 	FieldImageSizeBreakdown = "image_size_breakdown"
 	// FieldVideoSeconds holds the string denoting the video_seconds field in the database.
 	FieldVideoSeconds = "video_seconds"
+	// FieldVideoCount holds the string denoting the video_count field in the database.
+	FieldVideoCount = "video_count"
+	// FieldVideoResolution holds the string denoting the video_resolution field in the database.
+	FieldVideoResolution = "video_resolution"
+	// FieldVideoDurationSeconds holds the string denoting the video_duration_seconds field in the database.
+	FieldVideoDurationSeconds = "video_duration_seconds"
 	// FieldCacheTTLOverridden holds the string denoting the cache_ttl_overridden field in the database.
 	FieldCacheTTLOverridden = "cache_ttl_overridden"
 	// FieldEndpointID holds the string denoting the endpoint_id field in the database.
@@ -223,6 +229,9 @@ var Columns = []string{
 	FieldImageSizeSource,
 	FieldImageSizeBreakdown,
 	FieldVideoSeconds,
+	FieldVideoCount,
+	FieldVideoResolution,
+	FieldVideoDurationSeconds,
 	FieldCacheTTLOverridden,
 	FieldEndpointID,
 	FieldEndpointProtocol,
@@ -307,6 +316,10 @@ var (
 	ImageSizeSourceValidator func(string) error
 	// DefaultVideoSeconds holds the default value on creation for the "video_seconds" field.
 	DefaultVideoSeconds float64
+	// DefaultVideoCount holds the default value on creation for the "video_count" field.
+	DefaultVideoCount int
+	// VideoResolutionValidator is a validator for the "video_resolution" field. It is called by the builders before save.
+	VideoResolutionValidator func(string) error
 	// DefaultCacheTTLOverridden holds the default value on creation for the "cache_ttl_overridden" field.
 	DefaultCacheTTLOverridden bool
 	// EndpointIDValidator is a validator for the "endpoint_id" field. It is called by the builders before save.
@@ -565,6 +578,21 @@ func ByImageSizeSource(opts ...sql.OrderTermOption) OrderOption {
 // ByVideoSeconds orders the results by the video_seconds field.
 func ByVideoSeconds(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldVideoSeconds, opts...).ToFunc()
+}
+
+// ByVideoCount orders the results by the video_count field.
+func ByVideoCount(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldVideoCount, opts...).ToFunc()
+}
+
+// ByVideoResolution orders the results by the video_resolution field.
+func ByVideoResolution(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldVideoResolution, opts...).ToFunc()
+}
+
+// ByVideoDurationSeconds orders the results by the video_duration_seconds field.
+func ByVideoDurationSeconds(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldVideoDurationSeconds, opts...).ToFunc()
 }
 
 // ByCacheTTLOverridden orders the results by the cache_ttl_overridden field.

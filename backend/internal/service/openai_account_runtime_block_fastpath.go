@@ -20,7 +20,8 @@ func openAIAccountStateContext(ctx context.Context) (context.Context, context.Ca
 }
 
 func isOpenAIAccount(account *Account) bool {
-	return account != nil && account.Platform == PlatformOpenAI
+	// 官方 xAI(Grok) 账号复用 openai 网关的运行时封锁/冷却快路径。
+	return account != nil && (account.Platform == PlatformOpenAI || account.Platform == PlatformGrok)
 }
 
 func (s *OpenAIGatewayService) handleOpenAIAccountUpstreamError(ctx context.Context, account *Account, statusCode int, headers http.Header, responseBody []byte, requestedModel ...string) bool {
