@@ -94,8 +94,15 @@ func RegisterGatewayRoutes(
 			}
 			h.Gateway.Messages(c)
 		})
-		// /v1/messages/count_tokens: OpenAI inbound 不支持 token 计数（与旧行为一致）
+		// /v1/messages/count_tokens:
+		//   - anthropic 入站 → 直接转发给上游 /v1/messages/count_tokens
+		//   - openai 平台分组 → 走 Anthropic-compat 桥（上游官方 /v1/responses/input_tokens）
+		//   - 其它 openai 协议入站（grok / generic 等）→ 保持 404（上游无对应端点）
 		gateway.POST("/messages/count_tokens", func(c *gin.Context) {
+			if getGroupPlatform(c) == service.PlatformOpenAI {
+				h.OpenAIGateway.CountTokens(c)
+				return
+			}
 			if isOpenAIInbound(c) {
 				service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
 				c.JSON(http.StatusNotFound, gin.H{

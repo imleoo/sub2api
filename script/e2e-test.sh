@@ -106,10 +106,12 @@ echo "▶ 运行 E2E -run='${RUN_FILTER}' timeout=${TIMEOUT} ..."
 cd "$BACKEND_DIR"
 E2E_OUT="$(mktemp)"
 set +e
+# -count=1 禁用测试缓存：e2e 打的是外部 HTTP 服务，服务端代码变更不会使 go test 缓存失效，
+# 不加会拿到上一轮的旧结果（假绿）。
 if [[ -n "$RUN_FILTER" ]]; then
-  go test -tags=e2e -v -timeout="$TIMEOUT" -run "$RUN_FILTER" ./internal/integration/... 2>&1 | tee "$E2E_OUT"
+  go test -tags=e2e -count=1 -v -timeout="$TIMEOUT" -run "$RUN_FILTER" ./internal/integration/... 2>&1 | tee "$E2E_OUT"
 else
-  go test -tags=e2e -v -timeout="$TIMEOUT" ./internal/integration/... 2>&1 | tee "$E2E_OUT"
+  go test -tags=e2e -count=1 -v -timeout="$TIMEOUT" ./internal/integration/... 2>&1 | tee "$E2E_OUT"
 fi
 rc=${PIPESTATUS[0]}
 set -e

@@ -41,6 +41,15 @@ spark 影子账号（`ListShadowsByParent`/`parentHealthyForShadow` 守卫、迁
 **运行时地雷修复**：上游新代码 `ListCRSAccountIDs` 的 SQL 带 `parent_account_id IS NULL` 谓词，
 而 fork 库无此列（spark 迁移未引入）→ 会直接 SQL 报错。已移除该谓词。
 
+### 合并后修复（回答「本系统是否支持 count_tokens」时发现）
+- **`/v1/messages/count_tokens` 对 OpenAI 分组的桥接被漏接**：上游 0.1.147 新增了
+  `handler/openai_gateway_count_tokens.go` + `service/openai_gateway_count_tokens.go`
+  （桥到官方 `POST /v1/responses/input_tokens`），但合并时 `routes/gateway.go` 保留了 fork 旧的
+  「openai 入站一律 404」门 → 两个新文件成为零引用死代码（编译器不报错）。已接回：
+  `platform == openai` 走桥接，其它 openai 协议入站（grok/generic）仍 404，anthropic 入站直转上游。
+- **`script/e2e-test.sh` 缺 `-count=1`**：e2e 打的是外部 HTTP 服务，改服务端代码不会让 `go test`
+  缓存失效，重跑会拿上一轮旧结果（假绿）。已补 `-count=1`。
+
 ### 采纳的上游修复
 - `/v1/messages` 与 OpenAI 流式的 `response.failed` 错误透传规则（不再硬编码 502）
 - **上下文超限不再触发 failover**（换账号无用，直接回写客户端错误）
