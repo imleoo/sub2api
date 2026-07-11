@@ -271,6 +271,12 @@ func TestNormalizeOpenAIModelForUpstream(t *testing.T) {
 			want:    "codex-auto-review",
 		},
 		{
+			name:    "apikey preserves official bare GPT-5.6 alias",
+			account: &Account{Type: AccountTypeAPIKey},
+			model:   "gpt-5.6",
+			want:    "gpt-5.6",
+		},
+		{
 			name:    "apikey preserves custom compatible model",
 			account: &Account{Type: AccountTypeAPIKey},
 			model:   "gemini-3-flash-preview",

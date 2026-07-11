@@ -6,6 +6,39 @@
 
 ---
 
+## [1.1.151] - 2026-07-11 — 同步上游 0.1.151（61 提交，无破坏性重构）
+
+**规模**：上游 61 提交、123 文件（+6819/-606）。上游内容集中在 OpenAI/Codex/apicompat
+bugfix（tool_search、namespace 摊平撞名拒绝、Codex MCP 工具桥、GPT-5.6 计费/缓存计价、
+setup-token 后台刷新）、compact/SSE 加固、usage/i18n 修正。无结构性重构。
+
+### 冲突解决（21 个文本冲突 + 若干 auto-merge 语义冲突）
+- **计费 SSOT 保留**：`pricing_service.go`/`billing_service.go` 删除上游重新引入的
+  `fallbackPrices`/`initFallbackPricing`/`matchOpenAIModel`/`openAIGPT5*FallbackPricing`
+  静态兜底（功能 26/34 计费走 catalog，不得内置厂商价）；仅采上游 `LongContext` 字段处理
+  与 GPT-5.6 长上下文 legacy 判定（`usesOpenAILegacyLongContextPricing`，归一同用
+  `normalizeKnownOpenAICodexModel`，无语义回退）。
+- **OAuth 逆向链保持删除**（功能 35）：`token_refresher.go`/`_test.go`（modify/delete 保删）、
+  `account_repo.go` 的 `ListOAuthRefreshCandidates`、`openai_gateway_{forward,passthrough,
+  messages}.go`/`openai_ws_forwarder_payload.go`/`account_{test,usage}_service.go` 中所有
+  `AccountTypeOAuth` 分支（`enforceCodexIdentityHeaders`/`overrideBrowserUserAgent`/
+  `applyCodexOAuthTransform` 等 fork 无符号）全部剥离。生产代码 `AccountTypeOAuth` 残留 0。
+- **保留上游新功能**：用户级 Fast/Flex 策略（`user_ids`，前端 `settings.ts` scope 去 `oauth`
+  留 `user_ids`）、`stripOpenAIImageGenerationToolsFromRawPayload`（补 `encoding/json` import）、
+  grok 被动配额快照、GPT-5.6 别名/max 变体展示。
+- **spark 影子账号功能不引入**（fork 从未有）：删除 `TestMigration154*`（`154_account_spark_shadow.sql`
+  上游有、fork 无）；migration 编号重复为 fork 历史常态（runner 按文件名字典序），非本次问题。
+- **测试收敛**：删除 OAuth 专属测试（compact 降级 / responses effort / oauth 模型路由等）；
+  账号仅作 setup 的通用测试改 `AccountTypeAPIKey`；`pricing_service_test.go` 恢复 fork 版本
+  （上游新增全是 `pricingData` 字段/fallback 用例）；`UseKeyModal` 删 antigravity fable 用例。
+
+### 验证
+全量后端 `go test -tags=unit ./...` 全过；前端 typecheck + lint + 关键 vitest 全过；
+fork 守护点（lingjing 路由、协议分流、`ProtocolBucketEnabled`、上游成本快照、provider-pricings、
+`/models`）完好；`.github/workflows/*.yml` 触发器均为 `workflow_dispatch`；`go generate ./ent` 无 diff。
+
+---
+
 ## [1.1.147] - 2026-07-10 — 同步上游 0.1.147（147 提交）+ Grok 官方 API 保留 + 逆向链再清理
 
 **规模**：上游 147 提交、410 文件；上游把 fork 重度改造的三个巨型文件做了「纯移动拆分」

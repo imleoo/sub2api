@@ -112,7 +112,7 @@ const (
 	windowStatsCacheTTL     = 1 * time.Minute
 	geminiUsageCacheTTL     = 30 * time.Second // Gemini 用量短缓存 TTL（配合窗口边界校验）
 	openAIProbeCacheTTL     = 10 * time.Minute
-	openAICodexProbeVersion = "0.125.0"
+	openAICodexProbeVersion = "0.144.1"
 )
 
 // UsageCache 封装账户使用量相关的缓存
