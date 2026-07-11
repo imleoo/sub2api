@@ -223,6 +223,13 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeyAffiliateEnabled,
 		SettingKeyRiskControlEnabled,
 		SettingKeyAllowUserViewErrorRequests,
+		// fork 公开字段（0.1.147 合并覆盖丢失，补回；缺失会导致 /settings/public 恒返回零值）
+		SettingKeyUITheme,
+		SettingKeyCurrencyMode,
+		SettingKeyCNYRate,
+		SettingKeyShowOverseasModels,
+		SettingKeyPhoneRegisterEnabled,
+		SettingKeyPasswordLoginEnabled,
 	}
 
 	settings, err := s.settingRepo.GetMultiple(ctx, keys)
@@ -278,6 +285,12 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 	var balanceLowNotifyThreshold float64
 	if v, err := strconv.ParseFloat(settings[SettingKeyBalanceLowNotifyThreshold], 64); err == nil && v >= 0 {
 		balanceLowNotifyThreshold = v
+	}
+
+	// fork 人民币汇率解析（默认 6.8，与 setting_parse.go 口径一致）
+	cnyRate := 6.8
+	if v, err := strconv.ParseFloat(settings[SettingKeyCNYRate], 64); err == nil && v > 0 {
+		cnyRate = v
 	}
 
 	return &PublicSettings{
@@ -337,6 +350,14 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		RiskControlEnabled: settings[SettingKeyRiskControlEnabled] == "true",
 
 		AllowUserViewErrorRequests: settings[SettingKeyAllowUserViewErrorRequests] == "true",
+
+		// fork 公开字段（0.1.147 合并覆盖丢失，补回；缺失会导致 /settings/public 恒返回零值 → 货币向导每次弹出）
+		UITheme:              s.getStringOrDefault(settings, SettingKeyUITheme, "teal"),
+		CurrencyMode:         strings.TrimSpace(settings[SettingKeyCurrencyMode]),
+		CNYRate:              cnyRate,
+		ShowOverseasModels:   settings[SettingKeyShowOverseasModels] != "false",
+		PhoneRegisterEnabled: settings[SettingKeyPhoneRegisterEnabled] == "true",
+		PasswordLoginEnabled: settings[SettingKeyPasswordLoginEnabled] != "false",
 	}, nil
 }
 

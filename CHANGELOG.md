@@ -8,6 +8,21 @@
 
 ## [1.1.151] - 2026-07-11 — 同步上游 0.1.151（61 提交，无破坏性重构）
 
+### 附带修复：fork 自定义设置持久化回归（历史 0.1.147 合并遗留）
+
+同步过程中发现「货币显示模式向导每次进后台都弹、保存不生效」。根因经 git 定位为**上一次**
+0.1.147 同步的合并提交 `7c9e09d29` 静默删除了 `buildSystemSettingsUpdates`（写入）与
+`GetPublicSettings`（公开读取）尾部的整段 fork 自定义字段块（merge commit 内删除，`git log -S`
+不可见）。受影响字段：`currency_mode`/`cny_rate`/`ui_theme`/`show_overseas_models`/
+`phone_register_enabled`/`password_login_enabled` 及三家短信（火山/腾讯/阿里）配置——这些设置
+此前只写进内存缓存、重启即丢。`currency_mode` 因无 seed 默认值 + 有强制向导弹窗，成为首个暴露点。
+
+- `backend/internal/service/setting_update.go`：`buildSystemSettingsUpdates` return 前逐字补回
+  22 个 fork 字段的 `updates[SettingKey*]` 写入 + phone/email 互斥逻辑（从 `7c9e09d29^` 恢复）。
+- `backend/internal/service/setting_public.go`：`GetPublicSettings` keys 白名单 + 返回字面量补回
+  6 个 fork 公开字段（含 `cny_rate` 默认 6.8 解析）。
+- 新增回归守护测试 `setting_fork_fields_persist_test.go`：断言 `UpdateSettings` 落库含全部 fork 字段，防下次上游合并再次覆盖。
+
 **规模**：上游 61 提交、123 文件（+6819/-606）。上游内容集中在 OpenAI/Codex/apicompat
 bugfix（tool_search、namespace 摊平撞名拒绝、Codex MCP 工具桥、GPT-5.6 计费/缓存计价、
 setup-token 后台刷新）、compact/SSE 加固、usage/i18n 修正。无结构性重构。

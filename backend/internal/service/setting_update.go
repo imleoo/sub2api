@@ -400,6 +400,50 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 
 	updates[SettingKeyAllowUserViewErrorRequests] = strconv.FormatBool(settings.AllowUserViewErrorRequests)
 
+	// ===== fork 自定义设置持久化（0.1.147 合并覆盖丢失，此处逐字补回；上游同步勿删）=====
+	// 详见 自定义开发功能列表.md 功能 5/6/29/30/31。缺失会导致这些设置只进内存缓存、重启即丢。
+	updates[SettingKeyUITheme] = settings.UITheme
+	updates[SettingKeyShowOverseasModels] = strconv.FormatBool(settings.ShowOverseasModels)
+	updates[SettingKeyOpenAIAllowClaudeCodeCodexPlugin] = strconv.FormatBool(settings.OpenAIAllowClaudeCodeCodexPlugin)
+	// 货币显示模式与人民币汇率
+	updates[SettingKeyCurrencyMode] = strings.TrimSpace(settings.CurrencyMode)
+	updates[SettingKeyCNYRate] = strconv.FormatFloat(settings.CNYRate, 'f', 8, 64)
+	// 手机号注册 / 密码登录 / 短信服务商
+	updates[SettingKeyPhoneRegisterEnabled] = strconv.FormatBool(settings.PhoneRegisterEnabled)
+	updates[SettingKeyPasswordLoginEnabled] = strconv.FormatBool(settings.PasswordLoginEnabled)
+	updates[SettingKeySmsFrontend] = settings.SmsProvider
+	// 火山引擎 SMS（secret 类字段沿用「非空才覆盖」write-only 语义）
+	updates[SettingKeyVolcengineAccessKeyID] = settings.VolcengineSmsAccessKeyID
+	updates[SettingKeyVolcengineSmsAccountID] = settings.VolcengineSmsAccountID
+	updates[SettingKeyVolcengineSmsSign] = settings.VolcengineSmsSign
+	updates[SettingKeyVolcengineSmsTemplateID] = settings.VolcengineSmsTemplateID
+	if settings.VolcengineSmsAccessKeySecret != "" {
+		updates[SettingKeyVolcengineAccessKeySecret] = settings.VolcengineSmsAccessKeySecret
+	}
+	// 腾讯云 SMS
+	updates[SettingKeyTencentSmsSdkAppID] = settings.TencentSmsSdkAppID
+	updates[SettingKeyTencentSmsSign] = settings.TencentSmsSign
+	updates[SettingKeyTencentSmsTemplateID] = settings.TencentSmsTemplateID
+	updates[SettingKeyTencentSecretID] = settings.TencentSmsSecretID
+	if settings.TencentSmsSecretKey != "" {
+		updates[SettingKeyTencentSecretKey] = settings.TencentSmsSecretKey
+	}
+	// 阿里云 SMS
+	updates[SettingKeyAliyunSmsSign] = settings.AliyunSmsSign
+	updates[SettingKeyAliyunSmsTemplateCode] = settings.AliyunSmsTemplateCode
+	updates[SettingKeyAliyunAccessKeyID] = settings.AliyunSmsAccessKeyID
+	if settings.AliyunSmsAccessKeySecret != "" {
+		updates[SettingKeyAliyunAccessKeySecret] = settings.AliyunSmsAccessKeySecret
+	}
+	// 互斥：phone_register 与 email_verify 不能同时启用（放在标准字段写入之后以覆盖生效）
+	if settings.PhoneRegisterEnabled {
+		updates[SettingKeyEmailVerifyEnabled] = "false"
+		updates[SettingKeyPasswordResetEnabled] = "false"
+	}
+	if settings.EmailVerifyEnabled {
+		updates[SettingKeyPhoneRegisterEnabled] = "false"
+	}
+
 	return updates, nil
 }
 
