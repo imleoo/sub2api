@@ -23,6 +23,9 @@
   6 个 fork 公开字段（含 `cny_rate` 默认 6.8 解析）。
 - 新增回归守护测试 `setting_fork_fields_persist_test.go`：断言 `UpdateSettings` 落库含全部 fork 字段，防下次上游合并再次覆盖。
 - `frontend/src/components/admin/CurrencySetupModal.vue`：改为**全量提交**（先 `getSettings()` 拉完整当前设置，仅覆盖 `currency_mode`/`cny_rate` 后整体 PUT）。此前它只发 `{currency_mode, cny_rate}` 到全量 `PUT /admin/settings`，而后端 `site_name`/`site_logo`/`api_base_url`/`contact_info` 等**值类型字段无 nil-check 回落**，部分更新会把它们写空——货币向导每次弹时用户点确认即连带破坏站点设置。此为持久化回归暴露的次生 bug。
+- **系统筛查(避免头痛医头)**：对「部分更新写空字段」做了三维度完整排查——①触发侧:全前端仅 `CurrencySetupModal` 与 `SetupWizardView` 两处部分 `updateSettings` 调用(`SettingsView` 是全量,安全),两处均已改全量提交;②受害侧:`UpdateSettingsRequest` 有 **110 个值类型字段**(站点/SMTP/Turnstile/LinuxDo/钉钉/微信 OAuth 全套)无 nil-check 回落,任何部分更新都会写空;③读取侧:`GetPublicSettings`(已修)覆盖了复用它的 `GetPublicSettingsForInjection`(SSR 首屏注入),`GetAllSettings` 走 `parseSettings` 全量读,均完整。
+- `frontend/src/views/setup/SetupWizardView.vue`：安装向导的货币设置改全量提交(`install` 后 `getSettings()` + 覆盖 currency),此前部分提交会写空 install 刚初始化的站点/SMTP 等设置。
+- `frontend/src/api/admin/settings.ts`：`updateSettings` JSDoc 补强警告(必须全量、部分提交会写空 110+ 值类型字段),防未来再引入部分更新。
 
 **规模**：上游 61 提交、123 文件（+6819/-606）。上游内容集中在 OpenAI/Codex/apicompat
 bugfix（tool_search、namespace 摊平撞名拒绝、Codex MCP 工具桥、GPT-5.6 计费/缓存计价、

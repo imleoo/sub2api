@@ -969,8 +969,13 @@ export async function getSettings(): Promise<SystemSettings> {
 }
 
 /**
- * Update system settings
- * @param settings - Partial settings to update
+ * Update system settings —— ⚠️ 必须全量提交（全量 PUT 语义）。
+ *
+ * 后端 /admin/settings 有 110+ 个值类型字段（string/bool/number，如 site_name/SMTP/Turnstile/
+ * LinuxDo/钉钉/微信 OAuth 配置）**无 nil-check 回落**：任何未在 payload 中携带的值类型字段会被
+ * 写成零值、破坏原设置。因此**禁止只发部分字段**。仅想改少数字段时，先 `getSettings()` 拉完整
+ * 当前设置，再 `{ ...current, 要改的字段 }` 展开覆盖后提交（见 CurrencySetupModal / SetupWizardView）。
+ * @param settings - 完整 settings（务必全量，勿部分提交）
  * @returns Updated settings
  */
 export async function updateSettings(

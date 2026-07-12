@@ -525,7 +525,7 @@
 import { ref, reactive, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { testDatabase, testRedis, install, type InstallRequest } from '@/api/setup'
-import { updateSettings } from '@/api/admin/settings'
+import { updateSettings, getSettings } from '@/api/admin/settings'
 import Select from '@/components/common/Select.vue'
 import Toggle from '@/components/common/Toggle.vue'
 import Icon from '@/components/icons/Icon.vue'
@@ -658,7 +658,10 @@ async function performInstall() {
   try {
     await install(formData)
     if (selectedCurrencyMode.value) {
-      await updateSettings({ currency_mode: selectedCurrencyMode.value, cny_rate: 7.2 })
+      // 全量提交：/admin/settings 是全量 PUT，后端值类型字段无 nil-check 回落，
+      // 部分提交会把 install 刚初始化的站点/SMTP 等设置写空。先拉完整设置，仅覆盖 currency 后整体提交。
+      const current = await getSettings()
+      await updateSettings({ ...current, currency_mode: selectedCurrencyMode.value, cny_rate: 7.2 })
     }
     installSuccess.value = true
     // Start polling for service restart
