@@ -52,7 +52,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores'
-import { updateSettings } from '@/api/admin/settings'
+import { updateSettings, getSettings } from '@/api/admin/settings'
 
 defineProps<{ show: boolean }>()
 const emit = defineEmits<{ done: [] }>()
@@ -73,7 +73,10 @@ async function confirm() {
   if (!selected.value) return
   saving.value = true
   try {
-    await updateSettings({ currency_mode: selected.value, cny_rate: cnyRate.value })
+    // 全量提交：/admin/settings 是全量 PUT，后端 site_name 等值类型字段无 nil-check 回落，
+    // 若只发 currency 两个字段会把这些字段写空、破坏站点设置。故先拉完整当前设置，仅覆盖 currency 后整体提交。
+    const current = await getSettings()
+    await updateSettings({ ...current, currency_mode: selected.value, cny_rate: cnyRate.value })
     await appStore.fetchPublicSettings(true)
     emit('done')
   } catch (err) {

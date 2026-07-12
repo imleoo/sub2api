@@ -22,6 +22,7 @@
 - `backend/internal/service/setting_public.go`：`GetPublicSettings` keys 白名单 + 返回字面量补回
   6 个 fork 公开字段（含 `cny_rate` 默认 6.8 解析）。
 - 新增回归守护测试 `setting_fork_fields_persist_test.go`：断言 `UpdateSettings` 落库含全部 fork 字段，防下次上游合并再次覆盖。
+- `frontend/src/components/admin/CurrencySetupModal.vue`：改为**全量提交**（先 `getSettings()` 拉完整当前设置，仅覆盖 `currency_mode`/`cny_rate` 后整体 PUT）。此前它只发 `{currency_mode, cny_rate}` 到全量 `PUT /admin/settings`，而后端 `site_name`/`site_logo`/`api_base_url`/`contact_info` 等**值类型字段无 nil-check 回落**，部分更新会把它们写空——货币向导每次弹时用户点确认即连带破坏站点设置。此为持久化回归暴露的次生 bug。
 
 **规模**：上游 61 提交、123 文件（+6819/-606）。上游内容集中在 OpenAI/Codex/apicompat
 bugfix（tool_search、namespace 摊平撞名拒绝、Codex MCP 工具桥、GPT-5.6 计费/缓存计价、
