@@ -69,6 +69,11 @@ fork 生成码为基线重跑 `go generate ./ent`（entc load 需 ent 包先可�
 （LingjingTask/Endpoint/ModelPricing/ProviderPricing）与上游新列共存。
 
 ### 验证
+E2E（`./script/e2e-test.sh`，真实上游）19 过 / 2 失败——两个失败（`ClaudeToolUse` 工具名被
+渠道改写为 `Compat*` 哈希名、`ClaudeThinking` 渠道 400 拒绝空 tools+thinking 形状）经
+merge 前代码对照复跑**逐字复现**，确认为 openclaw 渠道近期行为变化，非本次合并回归；
+grok 分流回归修复以入口级守护测试闭环验证（`TestForwardEntryRoutesGrokPlatformToXAIResponses`，
+反证：临时删分流→请求错落 api.openai.com→测试红）。
 后端 `go build ./...` + `go vet -tags=unit ./internal/...` + 门禁单测
 （service/repository/server/handler）全过；前端 typecheck + lint:check + 关键 vitest
 （含改造后的 grok spec）全过；fork 守护点（provider-pricings/sync-maas 路由、wire 注入链、
