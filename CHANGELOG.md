@@ -6,6 +6,45 @@
 
 ---
 
+## [1.1.153] - 2026-07-13 — 同步上游 0.1.153（45 提交：Grok 官方 API 增强 + apicompat/性能修复）
+
+**规模**：上游 45 提交、101 文件（+4480/-221）。无 ent schema 变更；新迁移仅
+`174_add_usage_logs_api_key_latest_ip_index_notx.sql`（IP 查询索引，与 0.1.152 的 174 重号，
+runner 按文件名字典序为 fork 既知常态）。
+
+### 采纳（fork 口径裁剪后）
+- **Grok 官方 API 增强**：第三方 base URL 支持（`bc5d6ecb4`）、apikey 上游模型同步
+  （`b0441ca5a`，`buildGrokUpstreamModelsRequest`，仅取 grok case、antigravity case 不引入）、
+  video edits/extensions 路由与 handler（`909b96edd`，`/videos/edits`、`/videos/extensions`）、
+  `GetGrokMediaBaseURL` 裁剪版（fork 无 OAuth 订阅代理分流，media 与文本同源）+ 路由注册测试。
+- **openai-ws ingress 生命周期修复**（`c8cfc9363`）：v2 池上限改为 `min(并发, 硬上限8)`，
+  fork 断言随实现对齐（20→8）。
+- **apicompat 三修复**：流式 max_tokens→incomplete、content_filter→finish_reason、Read 工具
+  参数实时流式；alpha search 前端 bypass（`b0fa2b352`）；静态资源 Cache-Control；
+  keys 最新 IP 查询索引化；DataTable 滚动抖动修复；池模式重试次数对 Anthropic/Gemini/generic 生效。
+- **调度缓存异常时间修复**（`fe184f8c3`）、i18n zh 缺失键补齐、用量窗口本地日期分页。
+- `.gitignore` 采纳 deploy/tests 白名单；**拒绝**上游忽略 `CLAUDE.md`/`.claude`（fork 入库规则文件）。
+
+### 不引入（功能 35 口径）
+- OpenAI OAuth plan_type 手动覆盖（`c56a64fab`，仅 OAuth 有调度语义）：EditAccountModal 的
+  planType Select/回填/持久化整链剥离；Codex plan-gated 模型冷却的 OAuth 分支
+  （`5aeb03018`，`isOpenAIOAuthAccount` fork 无此符号）及其 3 个测试；
+  `isOpenAICodexPlanGatedModelError` 纯函数保留（含测试，无 OAuth 依赖）。
+- Grok OAuth media 官方 API 分流（`bb7341673`）与 `GetGrokBaseURL` OAuth 信任校验、
+  `isOfficialGrok*BaseURL`/`GetGrokAccessToken`/`GetGrokRefreshToken`；相关 OAuth 测试
+  （base_url_test 4 个、grok media OAuth 1 个、account_test_service_openai_test 上游新增
+  10 个 OAuth 路径测试）不引入；grok 模型同步拒绝测试改 `AccountTypeUpstream` 保留。
+- failover Antigravity 延迟测试 6 个、upstream_models antigravity 分支/测试、README 上游
+  Grok OAuth 文档段与部署段（fork README 精简策略）；deploy/README 保留 TokenPanel 品牌
+  （采纳 Apple-silicon Mac 描述）。
+
+### 验证
+后端 `go build ./...` + `go vet -tags=unit ./internal/...` + 全量 `go test -tags=unit ./...`
+全过；前端 typecheck + lint + 关键 vitest 全过；workflows 保持 dispatch-only；功能 35 门禁
+rg 清零；VERSION `1.1.153`。
+
+---
+
 ## [1.1.152] - 2026-07-13 — 同步上游 0.1.152（40 提交：Grok xAI API key + alpha/search 按次计费）
 
 **规模**：上游 40 提交、120 文件（+6381/-393）。主题集中：Grok 平台大改（xAI API key 账号、

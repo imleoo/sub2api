@@ -78,6 +78,23 @@ func RegisterGatewayRoutes(
 			},
 		})
 	}
+	videoEditHandler := func(c *gin.Context) {
+		if getGroupPlatform(c) == service.PlatformGrok {
+			h.OpenAIGateway.GrokVideoEdit(c)
+			return
+		}
+		service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
+		c.JSON(http.StatusNotFound, gin.H{"error": gin.H{"type": "not_found_error", "message": "Videos API is not supported for this platform"}})
+	}
+	videoExtensionHandler := func(c *gin.Context) {
+		if getGroupPlatform(c) == service.PlatformGrok {
+			h.OpenAIGateway.GrokVideoExtension(c)
+			return
+		}
+		service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
+		c.JSON(http.StatusNotFound, gin.H{"error": gin.H{"type": "not_found_error", "message": "Videos API is not supported for this platform"}})
+	}
+	// API网关（Claude API兼容）
 	gateway := r.Group("/v1")
 	gateway.Use(bodyLimit)
 	gateway.Use(clientRequestID)
@@ -97,13 +114,14 @@ func RegisterGatewayRoutes(
 		// /v1/messages/count_tokens:
 		//   - anthropic 入站 → 直接转发给上游 /v1/messages/count_tokens
 		//   - openai 平台分组 → 走 Anthropic-compat 桥（上游官方 /v1/responses/input_tokens）
-		//   - 其它 openai 协议入站（grok / generic 等）→ 保持 404（上游无对应端点）
+		//   - 其它 openai 协议入站与 grok 平台分组 → 保持 404（上游无对应端点）
 		gateway.POST("/messages/count_tokens", func(c *gin.Context) {
-			if getGroupPlatform(c) == service.PlatformOpenAI {
+			platform := getGroupPlatform(c)
+			if platform == service.PlatformOpenAI {
 				h.OpenAIGateway.CountTokens(c)
 				return
 			}
-			if isOpenAIInbound(c) {
+			if isOpenAIInbound(c) || platform == service.PlatformGrok {
 				service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
 				c.JSON(http.StatusNotFound, gin.H{
 					"type": "error",
@@ -171,6 +189,8 @@ func RegisterGatewayRoutes(
 		gateway.DELETE("/images/batches/:id", h.BatchImage.DeleteRecord)
 		gateway.DELETE("/images/batches/:id/outputs", h.BatchImage.DeleteOutputs)
 		gateway.POST("/videos/generations", videoGenerationHandler)
+		gateway.POST("/videos/edits", videoEditHandler)
+		gateway.POST("/videos/extensions", videoExtensionHandler)
 		gateway.GET("/videos/:request_id", videoStatusHandler)
 	}
 
@@ -230,35 +250,12 @@ func RegisterGatewayRoutes(
 		}
 		h.OpenAIGateway.Embeddings(c)
 	})
-	r.POST("/images/generations", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, func(c *gin.Context) {
-		// fork 12 lingjing 警戒：lingjing 平台的 Seedream 同步生图复用此路由
-		// 协议感知判断：OpenAI 入站走 OpenAI handler；非 OpenAI 但 platform=lingjing 也允许
-		platform := getGroupPlatform(c)
-		if !isOpenAIInbound(c) && platform != service.PlatformLingjing {
-			service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
-			c.JSON(http.StatusNotFound, gin.H{
-				"error": gin.H{
-					"type":    "not_found_error",
-					"message": "Images API is not supported for this platform",
-				},
-			})
-			return
-		}
-		h.OpenAIGateway.Images(c)
-	})
-	r.POST("/images/edits", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, func(c *gin.Context) {
-		if !isOpenAIInbound(c) {
-			service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
-			c.JSON(http.StatusNotFound, gin.H{
-				"error": gin.H{
-					"type":    "not_found_error",
-					"message": "Images API is not supported for this platform",
-				},
-			})
-			return
-		}
-		h.OpenAIGateway.Images(c)
-	})
+	r.POST("/images/generations", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, imagesHandler)
+	r.POST("/images/edits", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, imagesHandler)
+	r.POST("/videos/generations", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, videoGenerationHandler)
+	r.POST("/videos/edits", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, videoEditHandler)
+	r.POST("/videos/extensions", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, videoExtensionHandler)
+	r.GET("/videos/:request_id", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, videoStatusHandler)
 
 	// 灵境（京东云）视频异步任务路由
 	lingjingV1 := r.Group("/lingjing/v1")

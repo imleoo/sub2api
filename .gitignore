@@ -113,6 +113,9 @@ backend/.installed
 # 其他
 # ===================
 tests
+!deploy/tests/
+!deploy/tests/**
+# fork：CLAUDE.md/.claude 为入库规则文件，不采纳上游的忽略
 scripts
 # E2E 本地上游凭证（勿提交；模板见 script/e2e.env.example）
 script/e2e.env

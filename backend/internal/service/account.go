@@ -1106,6 +1106,14 @@ func (a *Account) GetOpenAIRefreshToken() string {
 	return a.GetCredential("refresh_token")
 }
 
+// GetGrokMediaBaseURL selects the upstream used by Grok Imagine APIs.
+// fork：仅官方 xAI API（apikey），与文本流量同源（OAuth 订阅代理分流已随功能 35 删除）。
+func (a *Account) GetGrokMediaBaseURL() string {
+	if !a.IsGrok() {
+		return ""
+	}
+	return a.GetGrokBaseURL()
+}
 func (a *Account) GetOpenAIIDToken() string {
 	if !a.IsOpenAIOAuth() {
 		return ""
