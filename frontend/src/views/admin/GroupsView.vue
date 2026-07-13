@@ -3316,6 +3316,7 @@ const platformOptions = computed(() => [
   { value: "openai", label: "OpenAI" },
   { value: "gemini", label: "Gemini" },
   { value: "lingjing", label: "灵境" },
+  { value: "grok", label: "Grok" },
   { value: "generic", label: t("admin.groups.platforms.generic") },
 ]);
 
@@ -3325,6 +3326,7 @@ const platformFilterOptions = computed(() => [
   { value: "openai", label: "OpenAI" },
   { value: "gemini", label: "Gemini" },
   { value: "lingjing", label: "灵境" },
+  { value: "grok", label: "Grok" },
   { value: "generic", label: t("admin.groups.platforms.generic") },
 ]);
 

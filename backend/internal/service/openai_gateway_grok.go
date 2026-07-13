@@ -946,13 +946,6 @@ func (s *OpenAIGatewayService) tempUnscheduleGrok(ctx context.Context, account *
 	}
 }
 
-func ptrStringOrNil(value string) *string {
-	if strings.TrimSpace(value) == "" {
-		return nil
-	}
-	return &value
-}
-
 // grokQuotaSnapshotExtraKey 账号 Extra 中存放上游 x-ratelimit-* 被动配额快照的键。
 // 被动快照由每次 grok 响应写入（apikey 账号同样生效），供调度器自动暂停判定使用。
 const grokQuotaSnapshotExtraKey = "grok_usage_snapshot"

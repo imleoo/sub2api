@@ -815,9 +815,9 @@ func TestForwardGrokResponsesStreamingUsesXAIResponsesAndSnapshots(t *testing.T)
 	require.Equal(t, "grok-4.5", gjson.GetBytes(upstream.lastBody, "model").String())
 	require.NotEmpty(t, gjson.GetBytes(upstream.lastBody, "prompt_cache_key").String())
 	require.Equal(t, gjson.GetBytes(upstream.lastBody, "prompt_cache_key").String(), upstream.lastReq.Header.Get(grokConversationIDHeader))
-	require.Equal(t, "web_search", gjson.GetBytes(upstream.lastBody, "tools.0.type").String())
-	require.Equal(t, "x_search", gjson.GetBytes(upstream.lastBody, "tools.1.type").String())
-	require.Equal(t, "none", gjson.GetBytes(upstream.lastBody, "tool_choice").String())
+	// fork：Free-tier 工具注入恒关（仅 OAuth 免费档需要，功能 35 已删 OAuth），不得注入 tools/tool_choice。
+	require.False(t, gjson.GetBytes(upstream.lastBody, "tools").Exists())
+	require.False(t, gjson.GetBytes(upstream.lastBody, "tool_choice").Exists())
 	require.Equal(t, "high", gjson.GetBytes(upstream.lastBody, "reasoning_effort").String())
 	require.True(t, gjson.GetBytes(upstream.lastBody, "stream").Bool())
 	require.True(t, result.Stream)
@@ -875,7 +875,6 @@ func TestForwardGrokResponsesAPIKeyUsesXAIResponses(t *testing.T) {
 	require.Equal(t, 2, result.Usage.InputTokens)
 	require.Equal(t, 1, result.Usage.OutputTokens)
 }
-
 
 func TestForwardAsChatCompletionsForGrokStreamingUsesRawXAIChatCompletions(t *testing.T) {
 	gin.SetMode(gin.TestMode)
@@ -941,9 +940,6 @@ func TestForwardAsChatCompletionsForGrokStreamingUsesRawXAIChatCompletions(t *te
 	require.Contains(t, recorder.Body.String(), "data: [DONE]")
 	require.NotNil(t, repo.updates[53][grokQuotaSnapshotExtraKey])
 }
-
-
-
 
 func TestForwardAsChatCompletionsForGrokComposerBridgesImageInput(t *testing.T) {
 	gin.SetMode(gin.TestMode)
@@ -1061,9 +1057,9 @@ func TestForwardAsAnthropicForGrokUsesXAIResponses(t *testing.T) {
 	require.Equal(t, "grok-4.5", gjson.GetBytes(upstream.lastBody, "model").String())
 	require.NotEmpty(t, gjson.GetBytes(upstream.lastBody, "prompt_cache_key").String())
 	require.Equal(t, gjson.GetBytes(upstream.lastBody, "prompt_cache_key").String(), upstream.lastReq.Header.Get(grokConversationIDHeader))
-	require.Equal(t, "web_search", gjson.GetBytes(upstream.lastBody, "tools.0.type").String())
-	require.Equal(t, "x_search", gjson.GetBytes(upstream.lastBody, "tools.1.type").String())
-	require.Equal(t, "none", gjson.GetBytes(upstream.lastBody, "tool_choice").String())
+	// fork：Free-tier 工具注入恒关（仅 OAuth 免费档需要，功能 35 已删 OAuth），不得注入 tools/tool_choice。
+	require.False(t, gjson.GetBytes(upstream.lastBody, "tools").Exists())
+	require.False(t, gjson.GetBytes(upstream.lastBody, "tool_choice").Exists())
 	require.Empty(t, upstream.lastReq.Header.Get("session_id"))
 	require.True(t, gjson.GetBytes(upstream.lastBody, "stream").Bool())
 	require.NotContains(t, string(upstream.lastBody), "chatgpt.com")
@@ -1076,7 +1072,6 @@ func TestForwardAsAnthropicForGrokUsesXAIResponses(t *testing.T) {
 	require.Equal(t, int64(3), gjson.Get(recorder.Body.String(), "usage.cache_read_input_tokens").Int())
 	require.Contains(t, recorder.Body.String(), "ok")
 }
-
 
 func grokMessagesSSECompletedResponse(responseID string, cachedTokens int) *http.Response {
 	body := strings.Join([]string{

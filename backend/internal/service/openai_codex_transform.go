@@ -336,13 +336,6 @@ func stripOpenAIImageGenerationToolsFromRawPayload(payload []byte) ([]byte, bool
 	return rebuilt, true, nil
 }
 
-// stripCodexSparkImageGenerationTools removes image tool declarations and choices.
-// gpt-5.3-codex-spark rejects those capabilities upstream, while Codex clients may
-// advertise them by default.
-func stripCodexSparkImageGenerationTools(reqBody map[string]any) bool {
-	return stripOpenAIImageGenerationTools(reqBody)
-}
-
 func hasOpenAIInputImage(reqBody map[string]any) bool {
 	if reqBody == nil {
 		return false
@@ -629,15 +622,6 @@ func isCodexToolCallItemType(typ string) bool {
 	default:
 		return false
 	}
-}
-
-// openAIChatGPTInternalUnsupportedFields 上游 Responses 端点不接受的请求字段（透传前剔除）。
-var openAIChatGPTInternalUnsupportedFields = []string{
-	"user",
-	"metadata",
-	"prompt_cache_retention",
-	"safety_identifier",
-	"stream_options",
 }
 
 // ensureOpenAIResponsesImageGenerationToolChoiceAuto 携带 image_generation 工具且未显式指定

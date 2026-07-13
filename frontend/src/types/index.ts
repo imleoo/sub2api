@@ -500,7 +500,7 @@ export interface PaginationConfig {
 
 // ==================== API Key & Group Types ====================
 
-export type GroupPlatform = 'anthropic' | 'openai' | 'gemini' | 'lingjing' | 'generic'
+export type GroupPlatform = 'anthropic' | 'openai' | 'gemini' | 'lingjing' | 'generic' | 'grok'
 
 export type SubscriptionType = 'standard' | 'subscription'
 
@@ -735,7 +735,7 @@ export interface UpdateGroupRequest {
 
 // ==================== Account & Proxy Types ====================
 
-export type AccountPlatform = 'anthropic' | 'openai' | 'gemini' | 'lingjing' | 'generic'
+export type AccountPlatform = 'anthropic' | 'openai' | 'gemini' | 'lingjing' | 'generic' | 'grok'
 export type AccountType = 'apikey' | 'upstream' | 'bedrock' | 'service_account'
 export type ProxyProtocol = 'http' | 'https' | 'socks5' | 'socks5h'
 

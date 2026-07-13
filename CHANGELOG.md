@@ -6,6 +6,78 @@
 
 ---
 
+## [1.1.152] - 2026-07-13 — 同步上游 0.1.152（40 提交：Grok xAI API key + alpha/search 按次计费）
+
+**规模**：上游 40 提交、120 文件（+6381/-393）。主题集中：Grok 平台大改（xAI API key 账号、
+OAuth 路由加固、被动配额展示）、Codex alpha/search 网页搜索按次计费、compact keepalive
+writer 修复、no-account 错误按平台分类。
+
+### 采纳的上游功能（fork 口径裁剪后）
+- **Grok 官方 xAI API key 账号**（`d9e466ad3`）：创建/编辑弹窗 grok 平台入口（fork 无
+  OAuth/APIKey 选择区，切到 grok 直接 `accountCategory='apikey'` + 默认
+  `https://api.x.ai/v1`）；`DeriveUpstreamEndpoint` 的 `PlatformGrok` 并入 OpenAI case；
+  `UseKeyModal` Grok CLI/OpenCode 配置 tab（剔除 antigravity tab，补回 `grokModels` 表）。
+- **grok 前端平台链补全**（fork 此前前端无 grok 平台入口，本次采纳 apikey UI 时一并补齐）：
+  `GroupPlatform`/`AccountPlatform` 类型加 `'grok'`；`platformColors.ts` 全部 12 张映射表 +
+  `isPlatform`/`platformLabel` 加 grok（zinc 系，同上游）；`PlatformIcon` 加 grok svg；
+  `CreateAccountModal` 平台选择器加 Grok 按钮；`GroupsView` 平台/筛选选项加 Grok；
+  后端 group dto `oneof` 白名单补 `grok`（否则创建 grok 组 400）；`UseKeyModal` 补回
+  `grokModels` 模型表（OpenCode 配置生成）。
+- **Codex alpha/search 按次计费**（`7cbb36f27`）：`/v1/alpha/search` 路由三处 +
+  `AlphaSearch` handler + `CalculateWebSearchCost`（分组单价 `group.web_search_price_per_call`
+  × 倍率，默认 $0.01/次）+ 迁移 174 + GroupsView 单价配置。service 侧裁剪 OAuth 分支
+  （仅官方 APIKey 上游 `api.openai.com` 或账号 base_url），删除 chatgpt codex 上游常量。
+- **Grok 429→rate-limit 持久化**（`1dedb2097`）：`handleGrokAccountUpstreamError` 按
+  Retry-After/配额窗口 reset 持久化限流（`SetRateLimited[IfLater]`），官方 API 被动配额头
+  照常记录（去掉上游的 OAuth-only 守卫）；上游新增 429 系列测试改 `AccountTypeAPIKey` 保留。
+- **Grok prompt cache identity**（`42f3c2283` 裁剪）：租户隔离 `prompt_cache_key`
+  （apiKeyID+model+seed 哈希，替换客户端原值防跨租户串缓存）+ Chat 的 `X-Grok-Conv-Id`
+  头路由；Free-tier 工具注入参数恒 `false`（仅 OAuth 免费档需要）。
+- **no-account 错误分类**（`8a22dc734`）：`classifyOpenAICompatibleNoAccountErrorFromGin`
+  按平台区分 model_not_found（404）与容量受限（503），responses/chat/messages 六处采纳。
+- **QuotaPlatform 记账**：`OpenAIRecordUsageInput.QuotaPlatform` 字段 + 四处 handler 构造补传。
+- **compact keepalive/remote_compaction_v2 修复**、gpt-5.6 测试对齐、`http_upstream` 重试等
+  非冲突改动整体采纳。
+
+### 继续删除的逆向链（功能 35 口径）
+- grok OAuth 整链再删：`grok_oauth_service{,_test}.go`、`grok_quota_service{,_test}.go`、
+  `grok_oauth_handler_test.go`、`account_test_service_grok_test.go`、前端 `useGrokOAuth.ts{,spec}`；
+  `openai_gateway_grok_chat_bridge{,_test}.go`（OAuth cacheable-chat 桥，fork chat 直转 raw；
+  共享常量 `grokChatRawEndpoint` 移入 `openai_gateway_chat_completions_raw.go`）。
+- Codex 逆向不回流：`openai_codex_transform.go` 的 `filterCodexInput`/`ensureCodexReasoningInclude`
+  等保持删除 + 上游新测试 `openai_codex_message_item_id_test.go` 不引入；`CodexModels`
+  路由不引入；messages.go 三处 `AccountTypeOAuth` 身份恢复/快照块保持删除。
+- README 不引入上游 "Grok / xAI Support"（OAuth 配置为主）文档段。
+- 上游 OAuth 专属测试删除或改 `AccountTypeAPIKey`/`AccountTypeUpstream`
+  （endpoint_test、alpha_search_test、base_url_test、gpt56/compat/ws/oauth_passthrough 等）。
+- 上游 `TestGetModelPricing_GrokCatalogFallbacks` 删除（断言 grok 内置兜底价——fork 无
+  `fallbackPrices`，未定价 fail-closed 是档案化政策）；三个 grok 转发测试的
+  web_search/x_search 注入断言改为「不注入」（Free-tier 工具注入恒关）。
+- `openAICompatibleRequestPlatform` 采纳上游 grok 分支（grok 组的 no-account 错误
+  按 grok 平台分类，此前 fork stub 恒 openai）。
+
+### 回归修复（0.1.151 合并遗留）
+- **接回 grok Responses 分流**：`openai_gateway_forward.go` 的
+  `if account.Platform == PlatformGrok → forwardGrokResponses` 在 0.1.151 合并提交
+  `b181ba0c3` 中被误删（实现留存成死代码），本次取上游侧恢复，与 fork 的 apikey-only
+  守卫配合（grok apikey Responses 直连 xAI `/v1/responses`）。
+
+### ent 重新生成
+上游 group schema 新列 `web_search_price_per_call` + account `quota_dimension` 与 fork
+schema（已删 `mcp_xml_inject`/`require_oauth_only`/`require_privacy_set`）合并后，恢复
+fork 生成码为基线重跑 `go generate ./ent`（entc load 需 ent 包先可编译），fork 实体
+（LingjingTask/Endpoint/ModelPricing/ProviderPricing）与上游新列共存。
+
+### 验证
+后端 `go build ./...` + `go vet -tags=unit ./internal/...` + 门禁单测
+（service/repository/server/handler）全过；前端 typecheck + lint:check + 关键 vitest
+（含改造后的 grok spec）全过；fork 守护点（provider-pricings/sync-maas 路由、wire 注入链、
+计费 catalog 无 fallbackPrices、`ProtocolBucketEnabled`/`GenericRuntimeEnabled`、
+protocol.go、usage_log 9 列、user.phone、tier_pricing、workflows dispatch-only、
+功能 35 门禁 rg 清零）全部完好；VERSION `1.1.152`。
+
+---
+
 ## [1.1.151] - 2026-07-11 — 同步上游 0.1.151（61 提交，无破坏性重构）
 
 ### 附带修复：fork 自定义设置持久化回归（历史 0.1.147 合并遗留）
