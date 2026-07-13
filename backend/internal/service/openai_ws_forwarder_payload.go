@@ -72,6 +72,11 @@ func (s *OpenAIGatewayService) buildOpenAIWSHeaders(
 		if v := strings.TrimSpace(c.Request.Header.Get("accept-language")); v != "" {
 			headers.Set("accept-language", v)
 		}
+		for _, value := range c.Request.Header.Values("x-codex-beta-features") {
+			if value = strings.TrimSpace(value); value != "" {
+				headers.Add("x-codex-beta-features", value)
+			}
+		}
 	}
 	if sessionResolution.SessionID != "" {
 		headers.Set("session_id", sessionResolution.SessionID)

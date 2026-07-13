@@ -781,6 +781,15 @@ func openAICompatSSECompletedResponse(responseID, model string) *http.Response {
 	}
 }
 
+func requireOpenAIMessagesCodexIdentity(t *testing.T, req *http.Request, wantUserAgent, wantOriginator string) {
+	t.Helper()
+	require.NotNil(t, req)
+	require.Equal(t, wantUserAgent, req.Header.Get("User-Agent"))
+	require.Equal(t, wantOriginator, req.Header.Get("originator"))
+	require.Equal(t, codexCLIVersion, req.Header.Get("version"))
+	require.Equal(t, "responses=experimental", req.Header.Get("OpenAI-Beta"))
+}
+
 func openAICompatSSEResponseWithoutUsage(responseID, model string) *http.Response {
 	body := strings.Join([]string{
 		`data: {"type":"response.completed","response":{"id":"` + responseID + `","object":"response","model":"` + model + `","status":"completed","output":[{"type":"message","id":"msg_1","role":"assistant","status":"completed","content":[{"type":"output_text","text":"ok"}]}]}}`,

@@ -684,10 +684,12 @@
                   ? 'https://generativelanguage.googleapis.com'
                   : form.platform === 'lingjing'
                     ? 'https://model.jdcloud.com（后端自动填充）'
+                  : form.platform === 'grok'
+                    ? 'https://api.x.ai/v1'
                     : 'https://api.anthropic.com'
             "
           />
-          <p class="input-hint">{{ baseUrlHint }}</p>
+          <p v-if="baseUrlHint" class="input-hint">{{ baseUrlHint }}</p>
         </div>
         <div>
           <label class="input-label">{{ t('admin.accounts.apiKeyRequired') }}</label>
@@ -703,10 +705,12 @@
                   ? 'AIza...'
                   : form.platform === 'lingjing'
                     ? 'jdcloud-ak-...'
+                  : form.platform === 'grok'
+                    ? 'xai-...'
                     : 'sk-ant-...'
             "
           />
-          <p class="input-hint">{{ apiKeyHint }}</p>
+          <p v-if="apiKeyHint" class="input-hint">{{ apiKeyHint }}</p>
         </div>
 
         <!-- Gemini API Key tier selection -->
@@ -2283,6 +2287,7 @@ const baseUrlHint = computed(() => {
   if (form.platform === 'openai') return t('admin.accounts.openai.baseUrlHint')
   if (form.platform === 'gemini') return t('admin.accounts.gemini.baseUrlHint')
   if (form.platform === 'lingjing') return '留空即可，后端已内置京东云灵境 API 地址'
+  if (form.platform === 'grok') return ''
   return t('admin.accounts.baseUrlHint')
 })
 
@@ -2290,6 +2295,7 @@ const apiKeyHint = computed(() => {
   if (form.platform === 'openai') return t('admin.accounts.openai.apiKeyHint')
   if (form.platform === 'gemini') return t('admin.accounts.gemini.apiKeyHint')
   if (form.platform === 'lingjing') return '京东云灵境 API Key，可在京东云控制台生成'
+  if (form.platform === 'grok') return ''
   return t('admin.accounts.apiKeyHint')
 })
 
@@ -2715,12 +2721,21 @@ watch(
           ? 'https://generativelanguage.googleapis.com'
           : newPlatform === 'lingjing'
             ? ''
-            : 'https://api.anthropic.com'
+            : newPlatform === 'grok'
+              ? 'https://api.x.ai/v1'
+              : 'https://api.anthropic.com'
     // Clear model-related settings
     allowedModels.value = []
     modelMappings.value = []
     if (newPlatform === 'lingjing') {
       accountCategory.value = 'apikey'
+    }
+    // fork：grok 仅支持官方 xAI API Key（OAuth 订阅逆向已删除，功能 35）
+    if (newPlatform === 'grok') {
+      accountCategory.value = 'apikey'
+      modelRestrictionMode.value = 'mapping'
+      form.concurrency = 1
+      form.load_factor = null
     }
     if (newPlatform !== 'gemini' && newPlatform !== 'anthropic' && accountCategory.value === 'service_account') {
       accountCategory.value = 'apikey'
@@ -3410,6 +3425,8 @@ const handleSubmit = async () => {
         ? 'https://generativelanguage.googleapis.com'
         : form.platform === 'lingjing'
           ? ''
+        : form.platform === 'grok'
+          ? 'https://api.x.ai/v1'
           : 'https://api.anthropic.com'
 
   // Build credentials with optional model mapping

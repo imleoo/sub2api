@@ -60,6 +60,8 @@ func (s *OpenAIGatewayService) ForwardAsChatCompletions(
 	defaultMappedModel string,
 ) (*OpenAIForwardResult, error) {
 	// 官方 xAI(Grok) API 一律走 chat/completions 原生直转（不做 Responses 协议转换）。
+	// fork：上游的 OAuth cacheable-chat Responses 桥仅服务订阅逆向（功能 35 已删）；
+	// 官方 API 的会话缓存由 X-Grok-Conv-Id 头路由（applyGrokCacheHeaders），无需桥接。
 	if account.Platform == PlatformGrok {
 		return s.forwardAsRawChatCompletions(ctx, c, account, body, defaultMappedModel)
 	}
