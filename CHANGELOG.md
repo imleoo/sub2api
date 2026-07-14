@@ -6,6 +6,43 @@
 
 ---
 
+## 清理 - 2026-07-14 — 删除 credentialsBuilder.ts 的 plan_type 孤儿函数
+
+2026-07-13 文档审计曾决定保留 `frontend/src/components/account/credentialsBuilder.ts` 里
+0.1.153 合并后已无生产调用的 `buildPlanTypeOptions`/`applyPlanType`/`readPlanType`/
+`planTypeDisplayLabel`（+`PlanTypeOption` 接口），理由是"以后可能恢复 UI 入口"。复核后
+决定：确认无调用即应删除，而非保留死代码等待假设性的未来需求。已删除这 4 个函数、接口，
+以及 `credentialsBuilder.spec.ts` 里对应的 20 条单测；`自定义开发功能列表.md` 风险表移除
+相应行。typecheck/lint/vitest（33 条剩余用例）均通过。
+
+---
+
+## 文档审计 - 2026-07-13 — 0.1.130~0.1.153 全区间代码-文档一致性深度审计
+
+对 141 个 fork 独有提交（0.1.130 至 0.1.153）做函数级审计，核对每处改动是否已被
+`自定义开发功能列表.md`/CLAUDE.md 准确记录。发现并修复 5 处缺口：
+
+- **新增功能 42**：`admin_compliance.go::GetAdminComplianceStatus` 硬编码 `Required: false`
+  （`6170de3f7` 永久禁用管理员部署合规承诺门控），此前全文档零记录。
+- **新增功能 43**：渠道级图片输入定价 `image_input_price`（`1a1e4c241`，migration
+  `162_add_channel_image_input_price.sql` + `channel_handler.go`/`channel_repo_pricing.go`），
+  此前全文档零记录。
+- 风险表补 `setting_update.go`/`setting_public.go` 高危行：0.1.147 合并（`7c9e09d29`）曾
+  静默删除 fork 设置字段写入（后于 `07af185e3` 修复），这是"合并静默丢弃 fork 代码块"模式
+  第 3 次出现，CLAUDE.md 已知陷阱同步补一条通用提醒。
+- `model_pricing_handler.go` 风险表行补充 `for_whitelist` 参数说明（`42332c0fc` 新增，此前遗漏）。
+- CLAUDE.md"批量修改账号导致模型映射丢失"陷阱更新为"已于 2026-06-18（`bd0bf3c44`）自动防护"，
+  避免继续按过时的手工规避方法操作。
+- `frontend/src/components/account/credentialsBuilder.ts` 的 `buildPlanTypeOptions`/
+  `applyPlanType`/`readPlanType` 三个函数（0.1.153 合并剥离 `EditAccountModal.vue` 调用点后
+  已无生产调用）**决定保留**：补充文件内说明注释 + 功能列表风险表行，记录保留原因（后端
+  plan_type 调度语义未变，只是暂无 UI 入口，恢复只需重新接入这三个函数）。
+
+**审计范围说明**：本次审计聚焦"新功能/字段是否被记录""已声明的删除/裁剪是否属实"两类问题，
+未对所有 upstream 合并进来的第三方 PR 逐行走查（那部分本就不属于 fork 差异记录范围）。
+
+---
+
 ## [1.1.153] - 2026-07-13 — 同步上游 0.1.153（45 提交：Grok 官方 API 增强 + apicompat/性能修复）
 
 **规模**：上游 45 提交、101 文件（+4480/-221）。无 ent schema 变更；新迁移仅

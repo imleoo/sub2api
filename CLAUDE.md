@@ -216,10 +216,15 @@ Vitest 配置要求语句/分支/函数/行均达到 80% 覆盖率（`frontend/v
 
 ## 已知陷阱
 
-### 批量修改账号导致模型映射丢失
-**现象**：前端测试看起来正常，但通过 API 调用时返回 `Service temporarily unavailable`。
+### 批量修改账号导致模型映射丢失（已于 2026-06-18 自动防护）
+**历史现象**：前端测试看起来正常，但通过 API 调用时返回 `Service temporarily unavailable`。
 **根因**：同时选中不同平台账号（如 OpenAI + Antigravity/Gemini）批量修改时，模型白名单/映射可能被跨平台策略覆盖，导致 OpenAI 账号的关键模型映射丢失。
-**修复**：在批量修改中补回正确的透传映射（如 `gpt-5.3-codex -> gpt-5.3-codex-spark`）。批量操作前按平台分组，不要混选不同平台账号。
+**现状**：`bd0bf3c44` 起 `BulkEditAccountModal.vue` 混选多平台（`isMixedPlatform`）时已自动禁用模型限制勾选框并阻止 `model_mapping` 写入，配有回归测试 `TestE2EFull_BatchEditModelMappingRepro`，无需再手动按平台分组操作。若未来重构该组件导致 `isMixedPlatform` 判断失效，才会重新触发此坑。
+
+### 上游合并静默丢弃 fork 专属代码块（已出现 3 次，需养成核对习惯）
+**现象**：合并后编译/测试都过，但某个 fork 独有的字段/分支/配置在运行时悄悄失效，`git log -S`/`git diff` 也很难第一时间看出来（常见于上游"纯移动/拆分重构"类 PR）。
+**已知案例**：① `.github/workflows/*.yml` 的 `on:` 触发器被上游覆盖为非 `workflow_dispatch:`；② 批量改账号丢失模型映射（见上一条）；③ 0.1.147 合并（`7c9e09d29`）静默删除 `setting_update.go::buildSystemSettingsUpdates` 尾部一整段 fork 设置字段写入，导致 `currency_mode`/`ui_theme`/`phone_register` 等只进内存缓存、重启即丢（后于 `07af185e3` 修复并补回归测试 `setting_fork_fields_persist_test.go`）。
+**应对**：每次同步上游后，除了跑测试，还要对 `自定义开发功能列表.md` 风险评估表里标 🔴 高 的文件逐个人工 diff 一遍，不要只信编译通过和测试全绿。
 
 ### pnpm-lock.yaml 未同步
 `package.json` 新增依赖后，CI 使用 `pnpm install --frozen-lockfile`，lock 文件不同步会导致 CI 失败。解决：`cd frontend && pnpm install && git add pnpm-lock.yaml`
