@@ -26,6 +26,7 @@ func TestAccountRepository_SetTempUnschedulable_NoRowsAffectedDoesNotWriteOutbox
 type captureQuerySQL struct {
 	db       *sql.DB
 	captured *string
+	args     *[]any
 }
 
 func (c captureQuerySQL) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
@@ -35,6 +36,9 @@ func (c captureQuerySQL) ExecContext(ctx context.Context, query string, args ...
 func (c captureQuerySQL) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
 	if c.captured != nil {
 		*c.captured = query
+	}
+	if c.args != nil {
+		*c.args = append([]any(nil), args...)
 	}
 	return c.db.QueryContext(ctx, query, args...)
 }
@@ -51,13 +55,19 @@ func (r rowsAffectedResult) RowsAffected() (int64, error) { return int64(r), nil
 type recordingSQLExecutor struct {
 	result      sql.Result
 	err         error
+	afterExec   func()
 	execQueries []string
+	execArgs    [][]any
 }
 
 func (e *recordingSQLExecutor) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
 	e.execQueries = append(e.execQueries, query)
+	e.execArgs = append(e.execArgs, append([]any(nil), args...))
 	if e.err != nil {
 		return nil, e.err
+	}
+	if e.afterExec != nil {
+		e.afterExec()
 	}
 	return e.result, nil
 }

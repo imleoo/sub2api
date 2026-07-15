@@ -14,7 +14,14 @@
 
 </div>
 
----
+## ⚠️ 重要なお知らせ
+
+本プロジェクトをご利用になる前に、以下の内容を必ずよくお読みください：
+
+- **🚨 利用規約のリスク**：本プロジェクトの使用は、Anthropic をはじめとする上流プロバイダーの利用規約に違反する可能性があります。ご利用前に各プロバイダーのユーザー規約を必ずご確認ください。使用により生じるすべてのリスクはユーザーご自身が負うものとします。
+- **⚖️ 法令遵守**：お住まいの国または地域の法令を遵守した上で本プロジェクトをご利用ください。いかなる違法な目的での使用も固く禁じます。
+- **📖 免責事項**：本プロジェクトは技術的な学習および研究の目的でのみ提供されます。本プロジェクトの使用により生じたアカウントの停止、サービスの中断、データの損失、その他一切の直接的または間接的な損害について、作者は一切の責任を負いません。
+- **🚫 商用利用の非許諾**：本プロジェクトの開発者は、いかなる個人または組織に対しても、本プロジェクトを利用したいかなる形態の商業運営も一切許諾していません。本プロジェクトの名義で、または本プロジェクトに基づいて行われる商業行為はすべて本プロジェクトおよびその開発者とは無関係であり、それにより生じる一切の紛争、損失、法的責任は行為者自身が負うものとします。
 
 ## 概要
 
@@ -103,6 +110,11 @@ sudo systemctl enable tokenpanel
 
 **管理ダッシュボード**の左上にある**アップデートを確認**ボタンをクリックすることで、ダッシュボードから直接アップグレードできます。
 
+Web インターフェースでは以下が可能です:
+- 新しいバージョンの自動確認
+- ワンクリックでのアップデートのダウンロードと適用
+- 必要に応じたロールバック
+
 #### よく使うコマンド
 
 ```bash
@@ -132,6 +144,8 @@ PostgreSQL と Redis のコンテナを含む Docker Compose でデプロイし�
 
 #### クイックスタート（ワンクリックデプロイ）
 
+自動デプロイスクリプトを使用して簡単にセットアップできます:
+
 ```bash
 # デプロイ用ディレクトリを作成
 mkdir -p tokenpanel-deploy && cd tokenpanel-deploy
@@ -147,12 +161,15 @@ docker compose logs -f tokenpanel
 ```
 
 **スクリプトの動作内容:**
-- `docker-compose.local.yml` と `.env.example` をダウンロード
+- `docker-compose.local.yml`（`docker-compose.yml` として保存）と `.env.example` をダウンロード
 - セキュアな認証情報（JWT_SECRET、TOTP_ENCRYPTION_KEY、POSTGRES_PASSWORD）を自動生成
 - 自動生成されたシークレットで `.env` ファイルを作成
 - データディレクトリを作成（バックアップ・移行が容易なローカルディレクトリを使用）
+- 生成された認証情報を参照用に表示
 
 #### 手動デプロイ
+
+手動でセットアップする場合:
 
 ```bash
 # 1. リポジトリをクローン
@@ -163,7 +180,7 @@ cd tokenpanel/deploy
 cp .env.example .env
 chmod 600 .env
 
-# 3. 設定を編集
+# 3. 設定を編集（セキュアなパスワードを生成）
 nano .env
 ```
 
@@ -189,24 +206,76 @@ SERVER_PORT=8080
 
 **セキュアなシークレットの生成方法:**
 ```bash
+# JWT_SECRET を生成
+openssl rand -hex 32
+
+# TOTP_ENCRYPTION_KEY を生成
+openssl rand -hex 32
+
+# POSTGRES_PASSWORD を生成
 openssl rand -hex 32
 ```
 
 ```bash
-# 4. データディレクトリを作成
+# 4. データディレクトリを作成（ローカルバージョンの場合）
 mkdir -p data postgres_data redis_data
 
-# 5. サービスを起動
+# 5. すべてのサービスを起動
+# オプション A: ローカルディレクトリバージョン（推奨 - 移行が容易）
 docker compose -f docker-compose.local.yml up -d
 
-# 6. ログを表示
+# オプション B: 名前付きボリュームバージョン（シンプルなセットアップ）
+docker compose up -d
+
+# 6. ステータスを確認
+docker compose -f docker-compose.local.yml ps
+
+# 7. ログを表示
 docker compose -f docker-compose.local.yml logs -f tokenpanel
+```
+
+#### デプロイバージョン
+
+| バージョン | データストレージ | 移行 | 推奨用途 |
+|---------|-------------|-----------|----------|
+| **docker-compose.local.yml** | ローカルディレクトリ | ✅ 容易（ディレクトリ全体を tar） | 本番環境、頻繁なバックアップ |
+| **docker-compose.yml** | 名前付きボリューム | ⚠️ docker コマンドが必要 | シンプルなセットアップ |
+
+**推奨:** データ管理が容易な `docker-compose.local.yml`（スクリプトによるデプロイ）を使用してください。
+
+#### アクセス
+
+ブラウザで `http://YOUR_SERVER_IP:8080` を開いてください。
+
+管理者パスワードが自動生成された場合は、ログで確認できます:
+```bash
+docker compose -f docker-compose.local.yml logs tokenpanel | grep "admin password"
 ```
 
 #### アップグレード
 
 ```bash
+# 最新イメージをプルしてコンテナを再作成
 docker compose -f docker-compose.local.yml pull
+docker compose -f docker-compose.local.yml up -d
+```
+
+#### 簡単な移行（ローカルディレクトリバージョン）
+
+`docker-compose.local.yml` を使用している場合、新しいサーバーへの移行が簡単です:
+
+```bash
+# 移行元サーバーにて
+docker compose -f docker-compose.local.yml down
+cd ..
+tar czf tokenpanel-complete.tar.gz tokenpanel-deploy/
+
+# 新しいサーバーに転送
+scp tokenpanel-complete.tar.gz user@new-server:/path/
+
+# 移行先サーバーにて
+tar xzf tokenpanel-complete.tar.gz
+cd tokenpanel-deploy/
 docker compose -f docker-compose.local.yml up -d
 ```
 
@@ -219,6 +288,9 @@ docker compose -f docker-compose.local.yml down
 # 再起動
 docker compose -f docker-compose.local.yml restart
 
+# すべてのログを表示
+docker compose -f docker-compose.local.yml logs -f
+
 # すべてのデータを削除（注意！）
 docker compose -f docker-compose.local.yml down
 rm -rf data/ postgres_data/ redis_data/
@@ -228,11 +300,11 @@ rm -rf data/ postgres_data/ redis_data/
 
 ### 方法3: Apple container（macOS）
 
-Apple シリコン搭載 Mac と macOS 26 では、Apple `container` 1.1.0 以降を使用して Sub2API、PostgreSQL、Redis の完全なスタックを実行できます:
+Apple シリコン搭載 Mac と macOS 26 では、Apple `container` 1.1.0 以降を使用して TokenPanel、PostgreSQL、Redis の完全なスタックを実行できます:
 
 ```bash
 git clone https://github.com/Wei-Shaw/sub2api.git
-cd sub2api/deploy
+cd tokenpanel/deploy
 ./apple-container.sh init
 ./apple-container.sh up
 ./apple-container.sh status
@@ -306,7 +378,19 @@ redis:
 jwt:
   secret: "change-this-to-a-secure-random-string"
   expire_hour: 24
+
+default:
+  user_concurrency: 5
+  user_balance: 0
+  api_key_prefix: "sk-"
+  rate_multiplier: 1.0
 ```
+
+### Sora ステータス（一時的に利用不可）
+
+> ⚠️ Sora 関連の機能は、上流統合およびメディア配信の技術的問題により一時的に利用できません。
+> 現時点では本番環境で Sora に依存しないでください。
+> 既存の `gateway.sora_*` 設定キーは予約されていますが、これらの問題が解決されるまで有効にならない場合があります。
 
 `config.yaml` では追加のセキュリティ関連オプションも利用できます:
 
@@ -315,7 +399,7 @@ jwt:
 - `security.url_allowlist.enabled` - URL バリデーションの無効化（注意して使用）
 - `security.url_allowlist.allow_insecure_http` - バリデーション無効時に HTTP URL を許可
 - `security.url_allowlist.allow_private_hosts` - プライベート/ローカル IP アドレスを許可
-- `security.response_headers.enabled` - 設定可能なレスポンスヘッダーフィルタリングを有効化
+- `security.response_headers.enabled` - 設定可能なレスポンスヘッダーフィルタリングを有効化（無効時はデフォルトの許可リストを使用）
 - `security.csp` - Content-Security-Policy ヘッダーの制御
 - `billing.circuit_breaker` - 課金エラー時にフェイルクローズ
 - `server.trusted_proxies` - X-Forwarded-For パースの有効化
@@ -323,14 +407,62 @@ jwt:
 
 **⚠️ セキュリティ警告: HTTP URL 設定**
 
-`security.url_allowlist.enabled=false` の場合、システムはデフォルトで HTTP URL を拒否して HTTPS のみを許可します。HTTP URL を許可するには（開発環境や内部テスト用など）、以下を明示的に設定してください:
+`security.url_allowlist.enabled=false` の場合、システムは最小限の URL バリデーションのみを行い、**デフォルトで HTTP URL を許可**します（開発フレンドリーモード。Docker Compose デプロイのデフォルトも同じです）。本番環境では、以下のように明示的に HTTPS のみに制限することを推奨します:
 
 ```yaml
 security:
   url_allowlist:
-    enabled: false
-    allow_insecure_http: true     # ⚠️ セキュリティリスクあり
+    enabled: false                # 許可リストチェックを無効化
+    allow_insecure_http: false    # HTTPS のみ許可（本番環境推奨）
 ```
+
+**または環境変数で設定:**
+
+```bash
+SECURITY_URL_ALLOWLIST_ENABLED=false
+SECURITY_URL_ALLOWLIST_ALLOW_INSECURE_HTTP=false
+```
+
+**HTTP を許可するリスク:**
+- API キーとデータが**平文**で送信される（傍受の危険性）
+- **中間者攻撃（MITM）**を受けやすい
+- **本番環境には不適切**
+
+**HTTP を使用すべき場面:**
+- ✅ ローカルサーバーでの開発・テスト（http://localhost）
+- ✅ 信頼できるエンドポイントを持つ内部ネットワーク
+- ✅ HTTPS 取得前のアカウント接続テスト
+- ❌ 本番環境（HTTPS のみを使用）
+
+**`allow_insecure_http: false` 設定時に HTTP URL で表示されるエラー例:**
+```
+Invalid base URL: invalid url scheme: http
+```
+
+URL バリデーションまたはレスポンスヘッダーフィルタリングを無効にする場合は、ネットワーク層を強化してください:
+- 上流ドメイン/IP のエグレス許可リストを適用
+- プライベート/ループバック/リンクローカル範囲をブロック
+- TLS のみのアウトバウンドトラフィックを強制
+- プロキシで機密性の高い上流レスポンスヘッダーを除去
+
+#### ⚠️ 重要：管理者アカウントの作成
+
+初期管理者アカウントは**セットアップウィザード経由でのみ作成**されます（初回起動時に `http://<host>:8080` にアクセス）。`config.yaml` の `default.admin_email` / `default.admin_password` フィールドは**管理者作成には使われません**。テンプレートに残っているのは歴史的経緯によるものです。
+
+上記ステップ 5 で事前に `config.yaml` を作成しているため、**初回起動時にセットアップウィザードはスキップされます**。サーバーは既存の config を検出して通常モードで直接起動し、この時点では `users` テーブルが空のため、初回ログインは `invalid email or password` を返します。
+
+**管理者アカウントを作成する 2 つの方法:**
+
+1. **推奨 — ウィザードに `config.yaml` を自動生成させる:** 上記ステップ 5 をスキップします（`cp` を実行しない）。`./tokenpanel` を直接起動し、`http://localhost:8080` にアクセスすると、セットアップウィザードがデータベース・Redis・管理者アカウントの設定を案内し、`config.yaml` を自動生成します。
+
+2. **すでに `config.yaml` を作成してしまった場合:** 初回起動前に一時的に退避してウィザードを発生させ、完了後に戻します:
+   ```bash
+   mv config.yaml config.yaml.bak
+   ./tokenpanel        # ウィザードが http://localhost:8080 で起動し、新しい config.yaml を生成します
+   # ウィザード完了後、Ctrl+C でサーバーを停止し、設定を復元します:
+   mv config.yaml.bak config.yaml
+   ./tokenpanel        # 通常モードで再起動し、作成した管理者でログインします
+   ```
 
 ```bash
 # 6. アプリケーションを実行
@@ -395,12 +527,6 @@ Antigravity アカウントはオプションの**ハイブリッドスケジュ
 
 > **⚠️ 警告**: Anthropic Claude と Antigravity Claude は**同じ会話コンテキスト内で混在させることはできません**。グループを使用して適切に分離してください。
 
-### 既知の問題
-
-Claude Code では、Plan Mode を自動的に終了できません。（通常、ネイティブの Claude API を使用する場合、計画が完了すると Claude Code はユーザーに計画を承認または拒否するオプションをポップアップ表示します。）
-
-**回避策**: `Shift + Tab` を押して手動で Plan Mode を終了し、計画を承認または拒否するためのレスポンスを入力してください。
-
 ---
 
 ## プロジェクト構成
@@ -415,7 +541,7 @@ tokenpanel/
 │   │   ├── service/          # ビジネスロジック
 │   │   ├── handler/          # HTTP ハンドラー
 │   │   └── gateway/          # API ゲートウェイコア
-│   └── resources/            # 静態リソース
+│   └── resources/            # 静的リソース
 │
 ├── frontend/                 # Vue 3 フロントエンド
 │   └── src/
@@ -430,14 +556,6 @@ tokenpanel/
     ├── config.example.yaml   # バイナリデプロイ用フル設定ファイル
     └── install.sh            # ワンクリックインストールスクリプト
 ```
-
-## 免責事項
-
-> **本プロジェクトをご利用の前に、以下をよくお読みください:**
->
-> :rotating_light: **利用規約違反のリスク**: 本プロジェクトの使用は Anthropic の利用規約に違反する可能性があります。使用前に Anthropic のユーザー契約をよくお読みください。本プロジェクトの使用に起因するすべてのリスクは、ユーザー自身が負うものとします。
->
-> :book: **免責事項**: 本プロジェクトは技術的な学習および研究目的のみで提供されています。作者は、本プロジェクトの使用によるアカウント停止、サービス中断、その他の損失について一切の責任を負いません。
 
 ---
 

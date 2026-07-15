@@ -14,22 +14,18 @@ English | [中文](README_CN.md) | [日本語](README_JA.md)
 
 </div>
 
----
+## ⚠️ Important Notice
 
+Please read the following carefully before using this project:
+
+- **🚨 Terms of Service Risk**: Using this project may violate the terms of service of Anthropic and other upstream providers. Please review the relevant providers' user agreements before use; all risks arising from such use are borne solely by the user.
+- **⚖️ Compliant Use**: Use this project only in compliance with the laws and regulations of your country or region. Any unlawful use is strictly prohibited.
+- **📖 Disclaimer**: This project is provided for technical learning and research purposes only. The authors assume no liability for account bans, service interruptions, data loss, or any other direct or indirect damages resulting from the use of this project.
+- **🚫 No Commercial Authorization**: The developers of this project have never authorized any individual or organization to conduct any form of commercial operation based on this project. Any commercial activity conducted in the name of or based on this project is unrelated to this project and its developers, and all resulting disputes, losses, and legal liabilities shall be borne solely by the party conducting such activity.
 
 ## Overview
 
 TokenPanel is an AI API gateway platform designed to distribute and manage API quotas from AI product subscriptions. Users can access upstream AI services through platform-generated API Keys, while the platform handles authentication, billing, load balancing, and request forwarding.
-
-## zhiguofan Fork Delta
-
-This repository is maintained as the `zhiguofan` fork branch. When merging from `Wei-Shaw/sub2api` `upstream/main`, do not treat this branch as a clean upstream mirror.
-
-- Version policy: upstream `0.x.y` → fork `1.x.y` in `backend/cmd/server/VERSION`
-- Use `./script/sync_upstream_to_zhiguofan.sh` for upstream sync
-- `AGENTS.md` is a symlink to `CLAUDE.md`; keep `CLAUDE.md` as the single maintained agent instruction source
-
-For the full list of fork features, high-risk files, and the post-merge verification checklist, see **[`自定义开发功能列表.md`](自定义开发功能列表.md)**.
 
 ## Features
 
@@ -114,6 +110,11 @@ The Setup Wizard will guide you through:
 
 You can upgrade directly from the **Admin Dashboard** by clicking the **Check for Updates** button in the top-left corner.
 
+The web interface will:
+- Check for new versions automatically
+- Download and apply updates with one click
+- Support rollback if needed
+
 #### Useful Commands
 
 ```bash
@@ -143,6 +144,8 @@ Deploy with Docker Compose, including PostgreSQL and Redis containers.
 
 #### Quick Start (One-Click Deployment)
 
+Use the automated deployment script for easy setup:
+
 ```bash
 # Create deployment directory
 mkdir -p tokenpanel-deploy && cd tokenpanel-deploy
@@ -165,6 +168,8 @@ docker compose logs -f tokenpanel
 - Displays generated credentials for your reference
 
 #### Manual Deployment
+
+If you prefer manual setup:
 
 ```bash
 # 1. Clone the repository
@@ -201,6 +206,13 @@ SERVER_PORT=8080
 
 **Generate secure secrets:**
 ```bash
+# Generate JWT_SECRET
+openssl rand -hex 32
+
+# Generate TOTP_ENCRYPTION_KEY
+openssl rand -hex 32
+
+# Generate POSTGRES_PASSWORD
 openssl rand -hex 32
 ```
 
@@ -209,16 +221,61 @@ openssl rand -hex 32
 mkdir -p data postgres_data redis_data
 
 # 5. Start all services
+# Option A: Local directory version (recommended - easy migration)
 docker compose -f docker-compose.local.yml up -d
 
-# 6. View logs
+# Option B: Named volumes version (simple setup)
+docker compose up -d
+
+# 6. Check status
+docker compose -f docker-compose.local.yml ps
+
+# 7. View logs
 docker compose -f docker-compose.local.yml logs -f tokenpanel
+```
+
+#### Deployment Versions
+
+| Version | Data Storage | Migration | Best For |
+|---------|-------------|-----------|----------|
+| **docker-compose.local.yml** | Local directories | ✅ Easy (tar entire directory) | Production, frequent backups |
+| **docker-compose.yml** | Named volumes | ⚠️ Requires docker commands | Simple setup |
+
+**Recommendation:** Use `docker-compose.local.yml` (deployed by script) for easier data management.
+
+#### Access
+
+Open `http://YOUR_SERVER_IP:8080` in your browser.
+
+If admin password was auto-generated, find it in logs:
+```bash
+docker compose -f docker-compose.local.yml logs tokenpanel | grep "admin password"
 ```
 
 #### Upgrade
 
 ```bash
+# Pull latest image and recreate container
 docker compose -f docker-compose.local.yml pull
+docker compose -f docker-compose.local.yml up -d
+```
+
+#### Easy Migration (Local Directory Version)
+
+When using `docker-compose.local.yml`, migrate to a new server easily:
+
+```bash
+# On source server
+docker compose -f docker-compose.local.yml down
+cd ..
+tar czf tokenpanel-complete.tar.gz tokenpanel-deploy/
+
+# Transfer to new server
+scp tokenpanel-complete.tar.gz user@new-server:/path/
+
+# On new server
+tar xzf tokenpanel-complete.tar.gz
+cd tokenpanel-deploy/
 docker compose -f docker-compose.local.yml up -d
 ```
 
@@ -231,6 +288,9 @@ docker compose -f docker-compose.local.yml down
 # Restart
 docker compose -f docker-compose.local.yml restart
 
+# View all logs
+docker compose -f docker-compose.local.yml logs -f
+
 # Remove all data (caution!)
 docker compose -f docker-compose.local.yml down
 rm -rf data/ postgres_data/ redis_data/
@@ -240,11 +300,11 @@ rm -rf data/ postgres_data/ redis_data/
 
 ### Method 3: Apple container (macOS)
 
-Apple-silicon Macs running macOS 26 can run the full Sub2API, PostgreSQL, and Redis stack with Apple `container` 1.1.0 or newer:
+Apple-silicon Macs running macOS 26 can run the full TokenPanel, PostgreSQL, and Redis stack with Apple `container` 1.1.0 or newer:
 
 ```bash
 git clone https://github.com/Wei-Shaw/sub2api.git
-cd sub2api/deploy
+cd tokenpanel/deploy
 ./apple-container.sh init
 ./apple-container.sh up
 ./apple-container.sh status
@@ -318,16 +378,28 @@ redis:
 jwt:
   secret: "change-this-to-a-secure-random-string"
   expire_hour: 24
+
+default:
+  user_concurrency: 5
+  user_balance: 0
+  api_key_prefix: "sk-"
+  rate_multiplier: 1.0
 ```
 
-Additional security-related options in `config.yaml`:
+### Sora Status (Temporarily Unavailable)
+
+> ⚠️ Sora-related features are temporarily unavailable due to technical issues in upstream integration and media delivery.
+> Please do not rely on Sora in production at this time.
+> Existing `gateway.sora_*` configuration keys are reserved and may not take effect until these issues are resolved.
+
+Additional security-related options are available in `config.yaml`:
 
 - `cors.allowed_origins` for CORS allowlist
 - `security.url_allowlist` for upstream/pricing/CRS host allowlists
 - `security.url_allowlist.enabled` to disable URL validation (use with caution)
 - `security.url_allowlist.allow_insecure_http` to allow HTTP URLs when validation is disabled
 - `security.url_allowlist.allow_private_hosts` to allow private/local IP addresses
-- `security.response_headers.enabled` to enable configurable response header filtering
+- `security.response_headers.enabled` to enable configurable response header filtering (disabled uses default allowlist)
 - `security.csp` to control Content-Security-Policy headers
 - `billing.circuit_breaker` to fail closed on billing errors
 - `server.trusted_proxies` to enable X-Forwarded-For parsing
@@ -335,14 +407,90 @@ Additional security-related options in `config.yaml`:
 
 **⚠️ Security Warning: HTTP URL Configuration**
 
-When `security.url_allowlist.enabled=false`, the system rejects HTTP URLs by default and only allows HTTPS. To allow HTTP URLs (e.g., for development or internal testing):
+When `security.url_allowlist.enabled=false`, the system performs minimal URL validation and **allows HTTP URLs by default** (dev-friendly mode; Docker Compose deployments use the same default). For production, explicitly tighten this to HTTPS-only:
 
 ```yaml
 security:
   url_allowlist:
-    enabled: false
-    allow_insecure_http: true     # ⚠️ INSECURE
+    enabled: false                # Disable allowlist checks
+    allow_insecure_http: false    # HTTPS only (recommended for production)
 ```
+
+**Or via environment variable:**
+
+```bash
+SECURITY_URL_ALLOWLIST_ENABLED=false
+SECURITY_URL_ALLOWLIST_ALLOW_INSECURE_HTTP=false
+```
+
+**Risks of allowing HTTP:**
+- API keys and data transmitted in **plaintext** (vulnerable to interception)
+- Susceptible to **man-in-the-middle (MITM) attacks**
+- **NOT suitable for production** environments
+
+**When to use HTTP:**
+- ✅ Development/testing with local servers (http://localhost)
+- ✅ Internal networks with trusted endpoints
+- ✅ Testing account connectivity before obtaining HTTPS
+- ❌ Production environments (use HTTPS only)
+
+**Example error for HTTP URLs when `allow_insecure_http: false` is set:**
+```
+Invalid base URL: invalid url scheme: http
+```
+
+If you disable URL validation or response header filtering, harden your network layer:
+- Enforce an egress allowlist for upstream domains/IPs
+- Block private/loopback/link-local ranges
+- Enforce TLS-only outbound traffic
+- Strip sensitive upstream response headers at the proxy
+
+#### OpenAI Responses WebSocket ingress limits
+
+`gateway.openai_ws` bounds the lifetime and aggregate count of client-facing
+Responses WebSocket sessions. These safeguards apply independently from
+per-turn user and account concurrency slots, which are released between turns.
+
+```yaml
+gateway:
+  openai_ws:
+    # Total time to receive and decompress the first client message.
+    client_first_message_timeout_seconds: 30
+    # Close a client socket idle between completed turns; 0 disables this safeguard.
+    ingress_inter_turn_idle_timeout_seconds: 300
+    # Distributed API-key limit for live client ingress sessions; 0 disables it.
+    max_ingress_connections_per_api_key: 64
+```
+
+The first-message timeout is a total read deadline. Deployments that accept
+large contexts or image-heavy requests over slower links can raise it to
+120-300 seconds. It expires before HTTP bridge routing, so bridge mode does not
+override this limit.
+
+The connection cap is coordinated through Redis using a 60-second lease that
+is refreshed every 20 seconds. A process that cannot confirm a lease for a
+full lease lifetime closes its local WebSocket rather than continuing outside
+the global cap. Use `http_bridge` for client-WebSocket/upstream-HTTP operation
+when rolling out or mitigating upstream WebSocket issues.
+
+#### ⚠️ Important: Creating the Admin Account
+
+The initial admin account is **only created via the setup wizard** (served at `http://<host>:8080` on first run). The `default.admin_email` / `default.admin_password` fields in `config.yaml` are **not used** to create it — they exist in the template for historical reasons.
+
+Because step 5 above pre-creates `config.yaml`, the setup wizard will be **skipped on first run**: the server detects an existing config and boots straight into normal mode with an empty `users` table, so the first login attempt fails with `invalid email or password`.
+
+**Two ways to create the admin account:**
+
+1. **Recommended — let the wizard generate `config.yaml`:** Skip step 5 (do not run the `cp`). Start `./tokenpanel` directly; the setup wizard at `http://localhost:8080` walks you through database, Redis, and admin account setup, then writes `config.yaml` for you.
+
+2. **If you already created `config.yaml`:** Temporarily move it aside so the wizard can trigger on first run, then restore it afterwards:
+   ```bash
+   mv config.yaml config.yaml.bak
+   ./tokenpanel        # wizard runs at http://localhost:8080 and writes a fresh config.yaml
+   # stop the server (Ctrl+C) once the wizard completes, then restore your config:
+   mv config.yaml.bak config.yaml
+   ./tokenpanel        # restart in normal mode and log in with the admin you just created
+   ```
 
 ```bash
 # 6. Run the application
@@ -383,6 +531,89 @@ Simple Mode is designed for individual developers or internal teams who want qui
 
 ---
 
+## Grok / xAI Support
+
+TokenPanel supports both Grok subscription accounts through xAI OAuth and standard xAI API-key accounts. Both account types forward OpenAI-compatible Responses traffic to xAI.
+
+### Supported Scope
+
+- Platform name: `grok`
+- Account types: OAuth subscription accounts and xAI API-key accounts
+- Public Responses targets: `/v1/responses`, `/responses`, and `/backend-api/codex/responses`, forwarded to the Grok subscription proxy for OAuth accounts or `https://api.x.ai/v1/responses` for API-key accounts
+- Public Claude-compatible target: `/v1/messages`, converted to xAI Responses and returned as Anthropic Messages output for Claude CLI style clients
+- Public Chat Completions targets: `/v1/chat/completions` and `/chat/completions`, forwarded to the account-type-specific xAI upstream
+- Codex CLI style Responses WebSocket ingress is accepted on the Responses targets and bridged to xAI HTTP/SSE Responses upstream
+- Text models: `grok-4.5`, `grok-4.3`, `grok-build-0.1`, `grok-composer-2.5-fast`, `grok-4.20-0309-reasoning`, `grok-4.20-0309-non-reasoning`, and `grok-4.20-multi-agent-0309`
+- Media targets for Grok groups: `/v1/images/generations`, `/images/generations`, `/v1/images/edits`, `/images/edits`, `/v1/videos/generations`, `/videos/generations`, `/v1/videos/edits`, `/videos/edits`, `/v1/videos/extensions`, `/videos/extensions`, `/v1/videos/{request_id}`, and `/videos/{request_id}`. Generation, editing, and extension requests require the group image-generation permission.
+- Media models: `grok-imagine`, `grok-imagine-image-quality`, `grok-imagine-image`, `grok-imagine-edit`, `grok-imagine-video`, and `grok-imagine-video-1.5`
+- Out of scope for this provider: TTS, transcription, browser automation, cookies, and Grok web scraping
+
+### OAuth Configuration
+
+The Grok OAuth flow uses PKCE and does not require committing private secrets. The default client details follow the public xAI OAuth flow used by compatible clients, and every value can be overridden by environment variable:
+
+| Variable | Default |
+|----------|---------|
+| `XAI_OAUTH_CLIENT_ID` | Public xAI OAuth client ID |
+| `XAI_OAUTH_SCOPE` | `openid profile email offline_access grok-cli:access api:access` |
+| `XAI_OAUTH_REDIRECT_URI` | `http://127.0.0.1:56121/callback` |
+| `XAI_OAUTH_AUTHORIZE_URL` | `https://auth.x.ai/oauth2/authorize` |
+| `XAI_OAUTH_TOKEN_URL` | `https://auth.x.ai/oauth2/token` |
+| `XAI_BASE_URL` | `https://api.x.ai/v1`; runtime-diagnostics override (account `base_url` controls request forwarding) |
+| `XAI_GROK_CLI_VERSION` | `0.2.93`; optional override for the client identity sent to `cli-chat-proxy.grok.com` |
+
+Administrators can create Grok OAuth or API-key accounts from the dashboard. OAuth authorization and reauthorization are also available through the admin API:
+
+| Endpoint | Purpose |
+|----------|---------|
+| `POST /api/v1/admin/grok/oauth/auth-url` | Generate an xAI OAuth authorization URL |
+| `POST /api/v1/admin/grok/oauth/exchange-code` | Exchange a callback URL, query string, or code for OAuth credentials |
+| `POST /api/v1/admin/grok/oauth/refresh-token` | Validate or refresh a Grok refresh token |
+| `POST /api/v1/admin/grok/accounts/:id/refresh` | Refresh an existing Grok account |
+
+OAuth credential storage reuses the existing account JSON fields: `access_token`, `refresh_token`, `token_type`, `expires_at`, `base_url`, optional `email`, optional `subscription_tier`, and `entitlement_status`. OAuth inference defaults to `https://cli-chat-proxy.grok.com/v1`; existing OAuth accounts that stored the old `https://api.x.ai/v1` default are redirected to the subscription proxy at runtime. Explicit custom upstreams remain unchanged.
+
+For API-key accounts, select **Grok → API Key** in the create-account dialog. The official base URL defaults to `https://api.x.ai/v1`; credentials use the existing `base_url` and `api_key` account fields. OAuth accounts continue to use the subscription flow above.
+
+### Grok Build CLI Configuration
+
+1. In the TokenPanel admin dashboard, add either a `grok` OAuth account and complete xAI authorization, or add a Grok API-key account.
+2. Create a Grok group, attach the account to it, then create a TokenPanel API key assigned to that group.
+3. In the user API-key page, click **Use Key** and select **Grok CLI**. The modal generates the correct file and base URL for macOS/Linux or Windows. It also provides an OpenCode configuration on the **OpenCode** tab.
+4. If configuring manually, save the following as `~/.grok/config.toml` (Windows: `%USERPROFILE%\.grok\config.toml`):
+
+```toml
+[models]
+default = "grok"
+web_search = "grok"
+
+[model."grok"]
+model = "grok-4.5"
+base_url = "https://your-tokenpanel.example.com/v1"
+name = "Grok 4.5"
+api_key = "sk-your-tokenpanel-key"
+api_backend = "responses"
+context_window = 1000000
+supports_backend_search = true
+```
+
+Back up an existing `config.toml` before merging the entry. The file contains a TokenPanel API key, so keep it private and restrict its permissions where supported. Verify the effective configuration and make a smoke request:
+
+```bash
+grok inspect
+grok -p "Reply with tokenpanel-ok" -m grok
+```
+
+The `base_url` above is the public TokenPanel URL ending in `/v1`, not `api.x.ai` or the internal xAI OAuth proxy URL.
+
+### Usage And Quota Display
+
+xAI quota is passive. TokenPanel does not invent subscription quota values; it records whitelisted xAI rate-limit headers from successful or rate-limited upstream responses when xAI sends them. Before the first usable upstream response, the dashboard shows quota as unknown and still displays local TokenPanel usage stats.
+
+`401` responses temporarily remove accounts with invalid credentials from scheduling. `403` responses are treated as access or entitlement failures instead of token-refresh loops. `429` responses use `Retry-After` or a short cooldown to temporarily remove the account from scheduling.
+
+---
+
 ## Antigravity Support
 
 TokenPanel supports [Antigravity](https://antigravity.so/) accounts. After authorization, dedicated endpoints are available for Claude and Gemini models.
@@ -406,12 +637,6 @@ export ANTHROPIC_AUTH_TOKEN="sk-xxx"
 Antigravity accounts support optional **hybrid scheduling**. When enabled, the general endpoints `/v1/messages` and `/v1beta/` will also route requests to Antigravity accounts.
 
 > **⚠️ Warning**: Anthropic Claude and Antigravity Claude **cannot be mixed within the same conversation context**. Use groups to isolate them properly.
-
-### Known Issues
-
-In Claude Code, Plan Mode cannot exit automatically. (Normally when using the native Claude API, after planning is complete, Claude Code will pop up options for users to approve or reject the plan.)
-
-**Workaround**: Press `Shift + Tab` to manually exit Plan Mode, then type your response to approve or reject the plan.
 
 ---
 
@@ -442,14 +667,6 @@ tokenpanel/
     ├── config.example.yaml   # Full config file for binary deployment
     └── install.sh            # One-click installation script
 ```
-
-## Disclaimer
-
-> **Please read carefully before using this project:**
->
-> :rotating_light: **Terms of Service Risk**: Using this project may violate Anthropic's Terms of Service. Please read Anthropic's user agreement carefully before use. All risks arising from the use of this project are borne solely by the user.
->
-> :book: **Disclaimer**: This project is for technical learning and research purposes only. The author assumes no responsibility for account suspension, service interruption, or any other losses caused by the use of this project.
 
 ---
 

@@ -1,10 +1,16 @@
 package repository
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/Wei-Shaw/sub2api/internal/pkg/servertiming"
+	"github.com/imroc/req/v3"
 	"github.com/stretchr/testify/require"
 )
 
@@ -91,4 +97,21 @@ func TestGetSharedReqClient_ProxyURLMissingHost(t *testing.T) {
 	_, err := getSharedReqClient(opts)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "proxy URL missing host")
+}
+
+func TestInstrumentReqClientRecordsDependency(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	collector := servertiming.New(time.Now())
+	ctx := servertiming.WithCollector(context.Background(), collector)
+	client := instrumentReqClient(req.C())
+	response, err := client.R().SetContext(ctx).Get(server.URL)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusNoContent, response.StatusCode)
+
+	header := collector.HeaderValue(time.Now(), "bypass")
+	require.True(t, strings.Contains(header, "dep_http;dur="), header)
 }

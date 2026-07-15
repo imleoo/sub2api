@@ -28,6 +28,7 @@ func TestIsHeaderOverrideEligible(t *testing.T) {
 		{"anthropic apikey", PlatformAnthropic, AccountTypeAPIKey, true},
 		{"openai apikey", PlatformOpenAI, AccountTypeAPIKey, true},
 		{"gemini apikey", PlatformGemini, AccountTypeAPIKey, false},
+		{"grok apikey", PlatformGrok, AccountTypeAPIKey, true},
 		{"anthropic bedrock", PlatformAnthropic, AccountTypeBedrock, false},
 	}
 	for _, tt := range tests {

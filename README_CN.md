@@ -14,7 +14,14 @@
 
 </div>
 
----
+## ⚠️ 重要提醒
+
+使用本项目前，请务必仔细阅读以下内容：
+
+- **🚨 服务条款风险**：使用本项目可能违反 Anthropic 等上游服务商的服务条款。请在使用前仔细阅读相关服务商的用户协议，由此产生的一切风险由用户自行承担。
+- **⚖️ 合规使用**：请在符合您所在国家或地区法律法规的前提下使用本项目，严禁将其用于任何违法违规用途。
+- **📖 免责声明**：本项目仅供技术学习与研究使用，作者不对因使用本项目导致的账户封禁、服务中断、数据丢失或其他任何直接或间接损失承担责任。
+- **🚫 无商业授权**：本项目从未授权任何个人或组织基于本项目开展任何形式的商业化运营。任何以本项目名义或基于本项目从事的商业行为均与本项目及其开发者无关，由此产生的一切纠纷、损失和法律责任由行为主体自行承担。
 
 ## 项目概述
 
@@ -103,6 +110,11 @@ sudo systemctl enable tokenpanel
 
 可以直接在 **管理后台** 左上角点击 **检测更新** 按钮进行在线升级。
 
+网页升级功能支持：
+- 自动检测新版本
+- 一键下载并应用更新
+- 支持回滚
+
 #### 常用命令
 
 ```bash
@@ -132,6 +144,8 @@ curl -sSL https://raw.githubusercontent.com/Wei-Shaw/sub2api/main/deploy/install
 
 #### 快速开始（一键部署）
 
+使用自动化部署脚本快速搭建：
+
 ```bash
 # 创建部署目录
 mkdir -p tokenpanel-deploy && cd tokenpanel-deploy
@@ -147,12 +161,15 @@ docker compose logs -f tokenpanel
 ```
 
 **脚本功能：**
-- 下载 `docker-compose.local.yml` 和 `.env.example`
+- 下载 `docker-compose.local.yml`（本地保存为 `docker-compose.yml`）和 `.env.example`
 - 自动生成安全凭证（JWT_SECRET、TOTP_ENCRYPTION_KEY、POSTGRES_PASSWORD）
 - 创建 `.env` 文件并填充自动生成的密钥
 - 创建数据目录（使用本地目录，便于备份和迁移）
+- 显示生成的凭证供你记录
 
 #### 手动部署
+
+如果你希望手动配置：
 
 ```bash
 # 1. 克隆仓库
@@ -163,7 +180,7 @@ cd tokenpanel/deploy
 cp .env.example .env
 chmod 600 .env
 
-# 3. 编辑配置
+# 3. 编辑配置（生成安全密码）
 nano .env
 ```
 
@@ -189,24 +206,88 @@ SERVER_PORT=8080
 
 **生成安全密钥：**
 ```bash
+# 生成 JWT_SECRET
+openssl rand -hex 32
+
+# 生成 TOTP_ENCRYPTION_KEY
+openssl rand -hex 32
+
+# 生成 POSTGRES_PASSWORD
 openssl rand -hex 32
 ```
 
 ```bash
-# 4. 创建数据目录
+# 4. 创建数据目录（本地版）
 mkdir -p data postgres_data redis_data
 
-# 5. 启动服务
+# 5. 启动所有服务
+# 选项 A：本地目录版（推荐 - 易于迁移）
 docker compose -f docker-compose.local.yml up -d
 
-# 6. 查看日志
+# 选项 B：命名卷版（简单设置）
+docker compose up -d
+
+# 6. 查看状态
+docker compose -f docker-compose.local.yml ps
+
+# 7. 查看日志
 docker compose -f docker-compose.local.yml logs -f tokenpanel
+```
+
+#### 部署版本对比
+
+| 版本 | 数据存储 | 迁移便利性 | 适用场景 |
+|------|---------|-----------|---------|
+| **docker-compose.local.yml** | 本地目录 | ✅ 简单（打包整个目录） | 生产环境、频繁备份 |
+| **docker-compose.yml** | 命名卷 | ⚠️ 需要 docker 命令 | 简单设置 |
+
+**推荐：** 使用 `docker-compose.local.yml`（脚本部署）以便更轻松地管理数据。
+
+#### 启用“数据管理”功能（datamanagementd）
+
+如需启用管理后台“数据管理”，需要额外部署宿主机数据管理进程 `datamanagementd`。
+
+关键点：
+
+- 主进程固定探测：`/tmp/tokenpanel-datamanagement.sock`
+- 只有该 Socket 可连通时，数据管理功能才会开启
+- Docker 场景需将宿主机 Socket 挂载到容器同路径
+
+详细部署步骤见：`deploy/DATAMANAGEMENTD_CN.md`
+
+#### 访问
+
+在浏览器中打开 `http://你的服务器IP:8080`
+
+如果管理员密码是自动生成的，在日志中查找：
+```bash
+docker compose -f docker-compose.local.yml logs tokenpanel | grep "admin password"
 ```
 
 #### 升级
 
 ```bash
+# 拉取最新镜像并重建容器
 docker compose -f docker-compose.local.yml pull
+docker compose -f docker-compose.local.yml up -d
+```
+
+#### 轻松迁移（本地目录版）
+
+使用 `docker-compose.local.yml` 时，可以轻松迁移到新服务器：
+
+```bash
+# 源服务器
+docker compose -f docker-compose.local.yml down
+cd ..
+tar czf tokenpanel-complete.tar.gz tokenpanel-deploy/
+
+# 传输到新服务器
+scp tokenpanel-complete.tar.gz user@new-server:/path/
+
+# 新服务器
+tar xzf tokenpanel-complete.tar.gz
+cd tokenpanel-deploy/
 docker compose -f docker-compose.local.yml up -d
 ```
 
@@ -219,6 +300,9 @@ docker compose -f docker-compose.local.yml down
 # 重启
 docker compose -f docker-compose.local.yml restart
 
+# 查看所有日志
+docker compose -f docker-compose.local.yml logs -f
+
 # 删除所有数据（谨慎！）
 docker compose -f docker-compose.local.yml down
 rm -rf data/ postgres_data/ redis_data/
@@ -228,11 +312,11 @@ rm -rf data/ postgres_data/ redis_data/
 
 ### 方式三：Apple container（macOS）
 
-Apple 芯片 Mac 在 macOS 26 上可使用 Apple `container` 1.1.0 或更高版本运行完整的 Sub2API、PostgreSQL 和 Redis：
+Apple 芯片 Mac 在 macOS 26 上可使用 Apple `container` 1.1.0 或更高版本运行完整的 TokenPanel、PostgreSQL 和 Redis：
 
 ```bash
 git clone https://github.com/Wei-Shaw/sub2api.git
-cd sub2api/deploy
+cd tokenpanel/deploy
 ./apple-container.sh init
 ./apple-container.sh up
 ./apple-container.sh status
@@ -306,7 +390,40 @@ redis:
 jwt:
   secret: "change-this-to-a-secure-random-string"
   expire_hour: 24
+
+default:
+  user_concurrency: 5
+  user_balance: 0
+  api_key_prefix: "sk-"
+  rate_multiplier: 1.0
 ```
+
+### Sora 功能状态（暂不可用）
+
+> ⚠️ 当前 Sora 相关功能因上游接入与媒体链路存在技术问题，暂时不可用。
+> 现阶段请勿在生产环境依赖 Sora 能力。
+> 文档中的 `gateway.sora_*` 配置仅作预留，待技术问题修复后再恢复可用。
+
+### Sora 媒体签名 URL（功能恢复后可选）
+
+当配置 `gateway.sora_media_signing_key` 且 `gateway.sora_media_signed_url_ttl_seconds > 0` 时，网关会将 Sora 输出的媒体地址改写为临时签名 URL（`/sora/media-signed/...`）。这样无需 API Key 即可在浏览器中直接访问，且具备过期控制与防篡改能力（签名包含 path + query）。
+
+```yaml
+gateway:
+  # /sora/media 是否强制要求 API Key（默认 false）
+  sora_media_require_api_key: false
+  # 媒体临时签名密钥（为空则禁用签名）
+  sora_media_signing_key: "your-signing-key"
+  # 临时签名 URL 有效期（秒）
+  sora_media_signed_url_ttl_seconds: 900
+```
+
+> 若未配置签名密钥，`/sora/media-signed` 将返回 503。  
+> 如需更严格的访问控制，可将 `sora_media_require_api_key` 设为 true，仅允许携带 API Key 的 `/sora/media` 访问。
+
+访问策略说明：
+- `/sora/media`：内部调用或客户端携带 API Key 才能下载
+- `/sora/media-signed`：外部可访问，但有签名 + 过期控制
 
 `config.yaml` 还支持以下安全相关配置：
 
@@ -315,26 +432,105 @@ jwt:
 - `security.url_allowlist.enabled` 可关闭 URL 校验（慎用）
 - `security.url_allowlist.allow_insecure_http` 关闭校验时允许 HTTP URL
 - `security.url_allowlist.allow_private_hosts` 允许私有/本地 IP 地址
-- `security.response_headers.enabled` 可启用可配置响应头过滤
+- `security.response_headers.enabled` 可启用可配置响应头过滤（关闭时使用默认白名单）
 - `security.csp` 配置 Content-Security-Policy
 - `billing.circuit_breaker` 计费异常时 fail-closed
 - `server.trusted_proxies` 启用可信代理解析 X-Forwarded-For
 - `turnstile.required` 在 release 模式强制启用 Turnstile
 
+**网关防御纵深建议（重点）**
+
+- `gateway.upstream_response_read_max_bytes`：限制非流式上游响应读取大小（默认 `8MB`），用于防止异常响应导致内存放大。
+- `gateway.proxy_probe_response_read_max_bytes`：限制代理探测响应读取大小（默认 `1MB`）。
+- `gateway.gemini_debug_response_headers`：默认 `false`，仅在排障时短时开启，避免高频请求日志开销。
+- `/auth/register`、`/auth/login`、`/auth/login/2fa`、`/auth/send-verify-code` 已提供服务端兜底限流（Redis 故障时 fail-close）。
+- 推荐将 WAF/CDN 作为第一层防护，服务端限流与响应读取上限作为第二层兜底；两层同时保留，避免旁路流量与误配置风险。
+
 **⚠️ 安全警告：HTTP URL 配置**
 
-当 `security.url_allowlist.enabled=false` 时，系统默认拒绝 HTTP URL，仅允许 HTTPS。要允许 HTTP URL（例如用于开发或内网测试），必须显式设置：
+当 `security.url_allowlist.enabled=false` 时，系统仅执行最小 URL 校验，且**默认允许 HTTP URL**（开发友好模式，Docker Compose 部署的默认值一致）。生产环境建议显式收紧为仅允许 HTTPS：
 
 ```yaml
 security:
   url_allowlist:
-    enabled: false
-    allow_insecure_http: true     # ⚠️ 不安全
+    enabled: false                # 禁用白名单检查
+    allow_insecure_http: false    # 仅允许 HTTPS（生产环境推荐）
 ```
+
+**或通过环境变量：**
+
+```bash
+SECURITY_URL_ALLOWLIST_ENABLED=false
+SECURITY_URL_ALLOWLIST_ALLOW_INSECURE_HTTP=false
+```
+
+**允许 HTTP 的风险：**
+- API 密钥和数据以**明文传输**（可被截获）
+- 易受**中间人攻击 (MITM)**
+- **不适合生产环境**
+
+**适用场景：**
+- ✅ 开发/测试环境的本地服务器（http://localhost）
+- ✅ 内网可信端点
+- ✅ 获取 HTTPS 前测试账号连通性
+- ❌ 生产环境（仅使用 HTTPS）
+
+**设置 `allow_insecure_http: false` 后，HTTP URL 会返回如下错误：**
+```
+Invalid base URL: invalid url scheme: http
+```
+
+如关闭 URL 校验或响应头过滤，请加强网络层防护：
+- 出站访问白名单限制上游域名/IP
+- 阻断私网/回环/链路本地地址
+- 强制仅允许 TLS 出站
+- 在反向代理层移除敏感响应头
+
+#### ⚠️ 重要：创建管理员账号
+
+初始管理员账号**只能通过 setup 向导创建**（首次启动时访问 `http://<host>:8080`）。`config.yaml` 中的 `default.admin_email` / `default.admin_password` 字段**不会被用来创建管理员**——它们只是出于历史原因保留在模板里。
+
+由于上面第 5 步预先创建了 `config.yaml`，**setup 向导在首次启动时会被跳过**：服务检测到 config 已存在，会直接进入正常模式，此时 `users` 表为空，首次登录会返回 `invalid email or password`。
+
+**创建管理员的两种方式：**
+
+1. **推荐——让向导自动生成 `config.yaml`：** 跳过上面的第 5 步（不要执行 `cp`）。直接运行 `./tokenpanel`，访问 `http://localhost:8080`，向导会引导你完成数据库、Redis 和管理员账号配置，并自动写出 `config.yaml`。
+
+2. **如果你已经创建了 `config.yaml`：** 首次启动前先把它临时移走以触发向导，完成后再恢复：
+   ```bash
+   mv config.yaml config.yaml.bak
+   ./tokenpanel        # 向导在 http://localhost:8080 启动，并生成新的 config.yaml
+   # 向导完成后 Ctrl+C 停服，再恢复你的配置：
+   mv config.yaml.bak config.yaml
+   ./tokenpanel        # 重启进入正常模式，用刚创建的管理员登录
+   ```
 
 ```bash
 # 6. 运行应用
 ./tokenpanel
+```
+
+#### HTTP/2 (h2c) 与 HTTP/1.1 回退
+
+后端明文端口默认支持 h2c，并保留 HTTP/1.1 回退用于 WebSocket 与旧客户端。浏览器通常不支持 h2c，性能收益主要在反向代理或内网链路。
+
+**反向代理示例（Caddy）：**
+
+```caddyfile
+transport http {
+	versions h2c h1
+}
+```
+
+**验证：**
+
+```bash
+# h2c prior knowledge
+curl --http2-prior-knowledge -I http://localhost:8080/health
+# HTTP/1.1 回退
+curl --http1.1 -I http://localhost:8080/health
+# WebSocket 回退验证（需管理员 token）
+websocat -H="Sec-WebSocket-Protocol: tokenpanel-admin, jwt.<ADMIN_TOKEN>" ws://localhost:8080/api/v1/admin/ops/ws/qps
 ```
 
 #### 开发模式
@@ -395,12 +591,6 @@ Antigravity 账户支持可选的**混合调度**功能。开启后，通用端�
 
 > **⚠️ 注意**：Anthropic Claude 和 Antigravity Claude **不能在同一上下文中混合使用**，请通过分组功能做好隔离。
 
-### 已知问题
-
-在 Claude Code 中，无法自动退出 Plan Mode。（正常使用原生 Claude API 时，Plan 完成后，Claude Code 会弹出选项让用户同意或拒绝 Plan。）
-
-**解决办法**：`Shift + Tab` 手动退出 Plan Mode，然后输入内容告诉 Claude Code 同意或拒绝 Plan。
-
 ---
 
 ## 项目结构
@@ -430,14 +620,6 @@ tokenpanel/
     ├── config.example.yaml   # 二进制部署完整配置文件
     └── install.sh            # 一键安装脚本
 ```
-
-## 免责声明
-
-> **使用本项目前请仔细阅读：**
->
-> :rotating_light: **服务条款风险**: 使用本项目可能违反 Anthropic 的服务条款。请在使用前仔细阅读 Anthropic 的用户协议，使用本项目的一切风险由用户自行承担。
->
-> :book: **免责声明**: 本项目仅供技术学习和研究使用，作者不对因使用本项目导致的账户封禁、服务中断或其他损失承担任何责任。
 
 ---
 

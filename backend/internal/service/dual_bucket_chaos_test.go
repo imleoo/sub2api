@@ -144,7 +144,20 @@ type noopSchedulerCache struct{}
 func (noopSchedulerCache) GetSnapshot(_ context.Context, _ SchedulerBucket) ([]*Account, bool, error) {
 	return nil, false, nil
 }
-func (noopSchedulerCache) SetSnapshot(_ context.Context, _ SchedulerBucket, _ []Account) error {
+func (noopSchedulerCache) CaptureBucketWriteToken(_ context.Context, bucket SchedulerBucket) (SchedulerBucketWriteToken, error) {
+	return SchedulerBucketWriteToken{Bucket: bucket, Epoch: 1}, nil
+}
+func (noopSchedulerCache) SetSnapshot(_ context.Context, _ SchedulerBucket, _ SchedulerBucketWriteToken, _ []Account) error {
+	return nil
+}
+func (noopSchedulerCache) RetireBucket(_ context.Context, _ SchedulerBucket) error { return nil }
+func (noopSchedulerCache) ReopenBucket(_ context.Context, bucket SchedulerBucket) (SchedulerBucketWriteToken, error) {
+	return SchedulerBucketWriteToken{Bucket: bucket, Epoch: 1}, nil
+}
+func (noopSchedulerCache) TryAcquireGroupLifecycleLease(_ context.Context, groupID int64, _ time.Duration) (SchedulerGroupLifecycleLease, bool, error) {
+	return SchedulerGroupLifecycleLease{GroupID: groupID, OwnerToken: "noop"}, true, nil
+}
+func (noopSchedulerCache) ReleaseGroupLifecycleLease(_ context.Context, _ SchedulerGroupLifecycleLease) error {
 	return nil
 }
 func (noopSchedulerCache) GetAccount(_ context.Context, _ int64) (*Account, error)       { return nil, nil }

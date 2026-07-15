@@ -18,6 +18,35 @@ var (
 const AccountListGroupUngrouped int64 = -1
 const AccountPrivacyModeUnsetFilter = "__unset__"
 
+// OAuthRefreshPageOptions describes one bounded, cursor-stable scan of OAuth
+// accounts. Candidate platforms are supplied by TokenRefreshService's refresher
+// registry so repository eligibility cannot drift from registered providers.
+type OAuthRefreshPageOptions struct {
+	Platforms            []string
+	AfterID              int64
+	Limit                int
+	ActiveOnly           bool
+	IncludeSetupToken    bool
+	RequireRefreshToken  bool
+	ExcludeRetryCooldown bool
+}
+
+// OAuthRefreshCandidatePage keeps cursor metadata from the raw SQL ID page.
+// Hydration may legitimately lose a concurrently deleted row, but callers can
+// still advance past the raw page without truncating or duplicating the scan.
+type OAuthRefreshCandidatePage struct {
+	Accounts    []Account
+	NextAfterID int64
+	HasMore     bool
+}
+
+// OAuthRefreshCandidatePager is intentionally narrower than AccountRepository.
+// Production refresh cycles fail closed when the repository does not implement
+// this bounded contract instead of silently falling back to an unpaged scan.
+type OAuthRefreshCandidatePager interface {
+	ListOAuthRefreshCandidatePage(ctx context.Context, options OAuthRefreshPageOptions) (*OAuthRefreshCandidatePage, error)
+}
+
 type AccountRepository interface {
 	Create(ctx context.Context, account *Account) error
 	GetByID(ctx context.Context, id int64) (*Account, error)
@@ -89,6 +118,19 @@ type AccountRepository interface {
 	// RevertProxyFallback 将账号的 proxy_id 切回 proxy_fallback_origin_id，并清空 origin 字段。
 	// 仅当 proxy_fallback_origin_id IS NOT NULL 时更新，否则视为账号不存在（返回 ErrAccountNotFound）。
 	RevertProxyFallback(ctx context.Context, accountID int64) error
+}
+
+type AccountDuplicateRepository interface {
+	// CreateWithAccountGroups atomically persists an account, its exact group priorities,
+	// and the scheduler outbox event for the new routing snapshot.
+	CreateWithAccountGroups(ctx context.Context, account *Account, groups []AccountGroup) error
+}
+
+// AdminAccountRepository makes the account-duplication write capability an explicit
+// construction dependency without forcing read-only gateway test doubles to implement it.
+type AdminAccountRepository interface {
+	AccountRepository
+	AccountDuplicateRepository
 }
 
 // AccountBulkUpdate describes the fields that can be updated in a bulk operation.

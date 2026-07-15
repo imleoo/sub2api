@@ -132,6 +132,7 @@ type crsOpenAIResponsesAccount struct {
 	Status      string         `json:"status"`
 	Proxy       *crsProxy      `json:"proxy"`
 	Credentials map[string]any `json:"credentials"`
+	Extra       map[string]any `json:"extra"`
 }
 
 type crsOpenAIOAuthAccount struct {
@@ -396,16 +397,30 @@ func (s *CRSSyncService) SyncFromCRS(ctx context.Context, input SyncFromCRSInput
 		concurrency := 3
 		status := mapCRSStatus(src.IsActive, src.Status)
 
-		extra := map[string]any{
-			"crs_account_id": src.ID,
-			"crs_kind":       src.Kind,
-			"crs_synced_at":  now,
+		extra := make(map[string]any, len(src.Extra)+3)
+		for key, value := range src.Extra {
+			extra[key] = value
 		}
+		extra["crs_account_id"] = src.ID
+		extra["crs_kind"] = src.Kind
+		extra["crs_synced_at"] = now
 
 		existing, err := s.accountRepo.GetByCRSAccountID(ctx, src.ID)
 		if err != nil {
 			item.Action = "failed"
 			item.Error = "db lookup failed: " + err.Error()
+			result.Failed++
+			result.Items = append(result.Items, item)
+			continue
+		}
+		var existingExtra map[string]any
+		if existing != nil {
+			existingExtra = existing.Extra
+		}
+		extra, err = mergeCRSOpenAILongContextBillingExtra(existingExtra, extra)
+		if err != nil {
+			item.Action = "failed"
+			item.Error = err.Error()
 			result.Failed++
 			result.Items = append(result.Items, item)
 			continue
@@ -591,6 +606,10 @@ func mergeMap(existing map[string]any, updates map[string]any) map[string]any {
 		out[k] = v
 	}
 	return out
+}
+
+func mergeCRSOpenAILongContextBillingExtra(existing, updates map[string]any) (map[string]any, error) {
+	return normalizeOpenAILongContextBillingExtra(PlatformOpenAI, mergeMap(existing, updates))
 }
 
 func (s *CRSSyncService) mapOrCreateProxy(ctx context.Context, enabled bool, cached *[]Proxy, src *crsProxy, defaultName string) (*int64, error) {

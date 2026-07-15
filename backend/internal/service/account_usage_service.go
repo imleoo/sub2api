@@ -1,19 +1,15 @@
 package service
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"log/slog"
-	"net/http"
 	"strings"
 	"sync"
 	"time"
 
-	httppool "github.com/Wei-Shaw/sub2api/internal/pkg/httpclient"
-	openaipkg "github.com/Wei-Shaw/sub2api/internal/pkg/openai"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/timezone"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/usagestats"
@@ -112,6 +108,8 @@ const (
 	windowStatsCacheTTL     = 1 * time.Minute
 	geminiUsageCacheTTL     = 30 * time.Second // Gemini 用量短缓存 TTL（配合窗口边界校验）
 	openAIProbeCacheTTL     = 10 * time.Minute
+	grokProbeRetryTTL       = 1 * time.Minute
+	grokFreeQuotaWindow     = 24 * time.Hour
 	openAICodexProbeVersion = "0.144.1"
 )
 
@@ -334,16 +332,6 @@ func (s *AccountUsageService) getOpenAIUsage(ctx context.Context, account *Accou
 
 	applyExtraToUsage(usage, account.Extra, now)
 
-	if (force || shouldRefreshOpenAICodexSnapshot(account, usage, now)) && s.shouldProbeOpenAICodexSnapshot(account.ID, now, force) {
-		if updates, err := s.probeOpenAICodexSnapshot(ctx, account); err == nil && len(updates) > 0 {
-			mergeAccountExtra(account, updates)
-			if usage.UpdatedAt == nil {
-				usage.UpdatedAt = &now
-			}
-			applyExtraToUsage(usage, account.Extra, now)
-		}
-	}
-
 	if s.usageLogRepo == nil {
 		return usage, nil
 	}
@@ -363,151 +351,6 @@ func (s *AccountUsageService) getOpenAIUsage(ctx context.Context, account *Accou
 	}
 
 	return usage, nil
-}
-
-func shouldRefreshOpenAICodexSnapshot(account *Account, usage *UsageInfo, now time.Time) bool {
-	if account == nil {
-		return false
-	}
-	if usage == nil {
-		return true
-	}
-	if usage.FiveHour == nil || usage.SevenDay == nil {
-		return true
-	}
-	if account.IsRateLimited() {
-		return true
-	}
-	return isOpenAICodexSnapshotStale(account, now)
-}
-
-func isOpenAICodexSnapshotStale(account *Account, now time.Time) bool {
-	if account == nil || !account.IsOpenAIOAuth() || !account.IsOpenAIResponsesWebSocketV2Enabled() {
-		return false
-	}
-	if account.Extra == nil {
-		return true
-	}
-	raw, ok := account.Extra["codex_usage_updated_at"]
-	if !ok {
-		return true
-	}
-	ts, err := parseTime(fmt.Sprint(raw))
-	if err != nil {
-		return true
-	}
-	return now.Sub(ts) >= openAIProbeCacheTTL
-}
-
-func (s *AccountUsageService) shouldProbeOpenAICodexSnapshot(accountID int64, now time.Time, force ...bool) bool {
-	if s == nil || s.cache == nil || accountID <= 0 {
-		return true
-	}
-	forceProbe := len(force) > 0 && force[0]
-	if !forceProbe {
-		if cached, ok := s.cache.openAIProbeCache.Load(accountID); ok {
-			if ts, ok := cached.(time.Time); ok && now.Sub(ts) < openAIProbeCacheTTL {
-				return false
-			}
-		}
-	}
-	s.cache.openAIProbeCache.Store(accountID, now)
-	return true
-}
-
-func (s *AccountUsageService) probeOpenAICodexSnapshot(ctx context.Context, account *Account) (map[string]any, error) {
-	if account == nil {
-		return nil, nil
-	}
-	accessToken := account.GetOpenAIAccessToken()
-	if accessToken == "" {
-		return nil, fmt.Errorf("no access token available")
-	}
-	modelID := openaipkg.DefaultTestModel
-	payload := createOpenAITestPayload(modelID, true)
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		return nil, fmt.Errorf("marshal openai probe payload: %w", err)
-	}
-
-	reqCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
-	defer cancel()
-	req, err := http.NewRequestWithContext(reqCtx, http.MethodPost, chatgptCodexURL, bytes.NewReader(payloadBytes))
-	if err != nil {
-		return nil, fmt.Errorf("create openai probe request: %w", err)
-	}
-	req.Host = "chatgpt.com"
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-	req.Header.Set("Accept", "text/event-stream")
-	req.Header.Set("OpenAI-Beta", "responses=experimental")
-	req.Header.Set("Originator", "codex_cli_rs")
-	req.Header.Set("Version", openAICodexProbeVersion)
-	req.Header.Set("User-Agent", codexCLIUserAgent)
-	if s.identityCache != nil {
-		if fp, fpErr := s.identityCache.GetFingerprint(reqCtx, account.ID); fpErr == nil && fp != nil && strings.TrimSpace(fp.UserAgent) != "" {
-			req.Header.Set("User-Agent", strings.TrimSpace(fp.UserAgent))
-		}
-	}
-	if chatgptAccountID := account.GetChatGPTAccountID(); chatgptAccountID != "" {
-		req.Header.Set("chatgpt-account-id", chatgptAccountID)
-	}
-
-	proxyURL := ""
-	if account.ProxyID != nil && account.Proxy != nil {
-		proxyURL = account.Proxy.URL()
-	}
-	client, err := httppool.GetClient(httppool.Options{
-		ProxyURL:              proxyURL,
-		Timeout:               15 * time.Second,
-		ResponseHeaderTimeout: 10 * time.Second,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("build openai probe client: %w", err)
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("openai codex probe request failed: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	updates, err := extractOpenAICodexProbeUpdates(resp)
-	if err != nil {
-		return nil, err
-	}
-	if len(updates) > 0 {
-		s.persistOpenAICodexProbeSnapshot(account.ID, updates)
-		return updates, nil
-	}
-	return nil, nil
-}
-
-func (s *AccountUsageService) persistOpenAICodexProbeSnapshot(accountID int64, updates map[string]any) {
-	if s == nil || s.accountRepo == nil || accountID <= 0 {
-		return
-	}
-	if len(updates) == 0 {
-		return
-	}
-
-	go func() {
-		updateCtx, updateCancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer updateCancel()
-		_ = s.accountRepo.UpdateExtra(updateCtx, accountID, updates)
-	}()
-}
-
-func extractOpenAICodexProbeUpdates(resp *http.Response) (map[string]any, error) {
-	if resp == nil {
-		return nil, nil
-	}
-	if snapshot := ParseCodexRateLimitHeaders(resp.Header); snapshot != nil {
-		return buildCodexUsageExtraUpdates(snapshot, time.Now()), nil
-	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("openai codex probe returned status %d", resp.StatusCode)
-	}
-	return nil, nil
 }
 
 func mergeAccountExtra(account *Account, updates map[string]any) {
@@ -1024,4 +867,58 @@ func buildGeminiUsageProgress(used, limit int64, resetAt time.Time, tokens int64
 // 用于账号列表页面显示当前窗口费用
 func (s *AccountUsageService) GetAccountWindowStats(ctx context.Context, accountID int64, startTime time.Time) (*usagestats.AccountStats, error) {
 	return s.usageLogRepo.GetAccountWindowStats(ctx, accountID, startTime)
+}
+
+// shouldRefreshOpenAICodexSnapshot 判断是否需要重新拉取 codex 5h/7d 限流快照。
+// fork：Codex agent identity 冒充（功能 35）已移除，account.IsOpenAIOAuth() 恒为
+// false，isOpenAICodexSnapshotStale 因此恒不成立，仅保留 rate-limit/缺失快照两条
+// 判断路径，apikey/compact 探测路径共用。
+func shouldRefreshOpenAICodexSnapshot(account *Account, usage *UsageInfo, now time.Time) bool {
+	if account == nil {
+		return false
+	}
+	if usage == nil {
+		return true
+	}
+	if usage.FiveHour == nil || usage.SevenDay == nil {
+		return true
+	}
+	if account.IsRateLimited() {
+		return true
+	}
+	return isOpenAICodexSnapshotStale(account, now)
+}
+
+func isOpenAICodexSnapshotStale(account *Account, now time.Time) bool {
+	if account == nil || !account.IsOpenAIOAuth() || !account.IsOpenAIResponsesWebSocketV2Enabled() {
+		return false
+	}
+	if account.Extra == nil {
+		return true
+	}
+	raw, ok := account.Extra["codex_usage_updated_at"]
+	if !ok {
+		return true
+	}
+	ts, err := parseTime(fmt.Sprint(raw))
+	if err != nil {
+		return true
+	}
+	return now.Sub(ts) >= openAIProbeCacheTTL
+}
+
+// persistOpenAICodexProbeSnapshot 异步回写 codex 探测得到的限流快照到账号 Extra。
+func (s *AccountUsageService) persistOpenAICodexProbeSnapshot(accountID int64, updates map[string]any) {
+	if s == nil || s.accountRepo == nil || accountID <= 0 {
+		return
+	}
+	if len(updates) == 0 {
+		return
+	}
+
+	go func() {
+		updateCtx, updateCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer updateCancel()
+		_ = s.accountRepo.UpdateExtra(updateCtx, accountID, updates)
+	}()
 }

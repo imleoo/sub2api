@@ -22,6 +22,10 @@
               <Icon name="clock" size="sm" class="text-orange-500" />
               {{ t('admin.scheduledTests.schedule') }}
             </button>
+            <button v-if="canDuplicate" @click="$emit('duplicate', account); $emit('close')" class="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-dark-700">
+              <Icon name="copy" size="sm" class="text-sky-500" />
+              {{ t('admin.accounts.duplicateAccount') }}
+            </button>
             <div v-if="hasRecoverableState" class="my-1 border-t border-gray-100 dark:border-dark-700"></div>
             <button v-if="hasRecoverableState" @click="$emit('recover-state', account); $emit('close')" class="flex w-full items-center gap-2 px-4 py-2 text-sm text-emerald-600 hover:bg-gray-100 dark:hover:bg-dark-700">
               <Icon name="sync" size="sm" />
@@ -45,8 +49,12 @@ import { Icon } from '@/components/icons'
 import type { Account } from '@/types'
 
 const props = defineProps<{ show: boolean; account: Account | null; position: { top: number; left: number } | null }>()
-const emit = defineEmits(['close', 'test', 'stats', 'schedule', 'recover-state', 'reset-quota'])
+const emit = defineEmits(['close', 'test', 'stats', 'schedule', 'duplicate', 'recover-state', 'reset-quota'])
 const { t } = useI18n()
+const canDuplicate = computed(() => {
+  if (!props.account || props.account.parent_account_id != null) return false
+  return ['apikey', 'upstream', 'bedrock', 'service_account'].includes(props.account.type)
+})
 const isRateLimited = computed(() => {
   if (props.account?.rate_limit_reset_at && new Date(props.account.rate_limit_reset_at) > new Date()) {
     return true

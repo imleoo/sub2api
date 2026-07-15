@@ -975,6 +975,7 @@ func (s *GatewayService) buildRecordUsageLog(
 		usageLog.CacheReadCost = cost.CacheReadCost
 		usageLog.TotalCost = cost.TotalCost
 		usageLog.ActualCost = cost.ActualCost
+		usageLog.LongContextBillingApplied = cost.LongContextBillingApplied
 	}
 
 	// Phase 0 P0-5：上游成本快照双轨写入（与售价链正交；cfg=nil 时按 flag=false 处理）

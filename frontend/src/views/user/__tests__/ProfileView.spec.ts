@@ -21,7 +21,10 @@ vi.mock('@/stores/auth', () => ({
 
 vi.mock('@/stores/app', () => ({
   useAppStore: () => ({
-    fetchPublicSettings: fetchPublicSettingsMock
+    fetchPublicSettings: fetchPublicSettingsMock,
+    showError: vi.fn(),
+    showSuccess: vi.fn(),
+    showWarning: vi.fn()
   })
 }))
 
@@ -83,6 +86,7 @@ describe('ProfileView', () => {
           ProfileBalanceNotifyCard: { template: '<div data-testid="profile-balance-notify-card" />' },
           ProfilePasswordForm: { template: '<div data-testid="profile-password-form" />' },
           ProfileTotpCard: { template: '<div data-testid="profile-totp-card" />' },
+          EnterpriseUpgradeCard: { template: '<div data-testid="enterprise-upgrade-card" />' },
           Icon: true
         }
       }

@@ -81,6 +81,8 @@ type Account struct {
 
 type OpenAIEndpointCapability string
 
+const openAILongContextBillingEnabledKey = "openai_long_context_billing_enabled"
+
 const (
 	OpenAIEndpointCapabilityChatCompletions OpenAIEndpointCapability = "chat_completions"
 	OpenAIEndpointCapabilityEmbeddings      OpenAIEndpointCapability = "embeddings"
@@ -1031,6 +1033,14 @@ func (a *Account) IsOpenAI() bool {
 	return a.Platform == PlatformOpenAI
 }
 
+func (a *Account) IsOpenAILongContextBillingEnabled() bool {
+	if a == nil || !a.IsOpenAI() || a.Extra == nil {
+		return false
+	}
+	enabled, ok := a.Extra[openAILongContextBillingEnabledKey].(bool)
+	return ok && enabled
+}
+
 func (a *Account) IsAnthropic() bool {
 	return a.Platform == PlatformAnthropic
 }
@@ -1047,6 +1057,11 @@ func (a *Account) IsShadow() bool {
 
 // IsCredentialShadow 已随 spark 影子账号功能移除，恒为 false。
 func (a *Account) IsCredentialShadow() bool {
+	return false
+}
+
+// IsOpenAIAgentIdentity 已随 Codex agent identity 冒充（订阅逆向）功能移除，恒为 false。
+func (a *Account) IsOpenAIAgentIdentity() bool {
 	return false
 }
 
@@ -1114,6 +1129,7 @@ func (a *Account) GetGrokMediaBaseURL() string {
 	}
 	return a.GetGrokBaseURL()
 }
+
 func (a *Account) GetOpenAIIDToken() string {
 	if !a.IsOpenAIOAuth() {
 		return ""

@@ -33,6 +33,9 @@ func RegisterGatewayRoutes(
 	requireGroupGoogle := middleware.RequireGroupAssignment(settingService, middleware.GoogleErrorWriter)
 
 	// API网关（Claude API兼容）
+	modelsHandler := func(c *gin.Context) {
+		h.Gateway.Models(c)
+	}
 	imagesHandler := func(c *gin.Context) {
 		platform := getGroupPlatform(c)
 		// fork 12：lingjing 平台的 Seedream 同步生图复用本路由（协议感知，非 OpenAI 入站也放行）。
@@ -136,7 +139,7 @@ func RegisterGatewayRoutes(
 		})
 		// fork：Codex manifest 分支（伪装 Codex 客户端的 /models 变体）随 codex 逆向链移除，
 		// 统一返回标准模型列表（功能 35）。
-		gateway.GET("/models", h.Gateway.Models)
+		gateway.GET("/models", modelsHandler)
 		gateway.GET("/usage", h.Gateway.Usage)
 		// OpenAI Responses API: route by inbound protocol (P2-3)
 		gateway.POST("/responses", func(c *gin.Context) {
@@ -221,6 +224,7 @@ func RegisterGatewayRoutes(
 	r.POST("/responses/*subpath", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, responsesHandler)
 	r.POST("/alpha/search", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, h.OpenAIGateway.AlphaSearch)
 	r.GET("/responses", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, h.OpenAIGateway.ResponsesWebSocket)
+	r.GET("/models", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, modelsHandler)
 	codexDirect := r.Group("/backend-api/codex")
 	codexDirect.Use(bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic)
 	{

@@ -5,20 +5,33 @@ import TeamMembersView from '@/views/user/TeamMembersView.vue'
 const { teamState, authState, teamAPIMock } = vi.hoisted(() => ({
   teamState: {
     loaded: true,
-    isTeamContext: false,
-    currentTeam: null as { owner_user_id: number; owner_email: string; is_personal: boolean; role: string } | null,
+    joinedTeams: [] as { owner_user_id: number; owner_email: string; is_personal: boolean; role: string }[],
+    manageableJoinedTeams: [] as { owner_user_id: number; owner_email: string; is_personal: boolean; role: string }[],
     loadTeams: vi.fn()
   },
   authState: {
     user: { id: 1 }
   },
   teamAPIMock: {
-    listMembers: vi.fn(),
-    listInvitations: vi.fn(),
+    listMyTeams: vi.fn(),
     inviteMember: vi.fn(),
+    listInvitations: vi.fn(),
     revokeInvitation: vi.fn(),
     resendInvitation: vi.fn(),
-    removeMember: vi.fn()
+    listMembers: vi.fn(),
+    removeMember: vi.fn(),
+    setMemberDepartment: vi.fn(),
+    setMemberQuotaSettings: vi.fn(),
+    setMemberRole: vi.fn(),
+    grantToMember: vi.fn(),
+    reclaimFromMember: vi.fn(),
+    listTransfers: vi.fn(),
+    getReport: vi.fn(),
+    getMemberUsageStats: vi.fn(),
+    listDepartments: vi.fn(),
+    createDepartment: vi.fn(),
+    updateDepartment: vi.fn(),
+    deleteDepartment: vi.fn()
   }
 }))
 
@@ -49,53 +62,63 @@ function mountView() {
     global: {
       stubs: {
         AppLayout: { template: '<div><slot /></div>' },
+        BaseDialog: true,
+        UserStatsModal: true,
+        PlatformUsageBreakdown: true,
         Icon: true
       }
     }
   })
 }
 
+function findTab(wrapper: ReturnType<typeof mountView>, label: string) {
+  const tab = wrapper.findAll('button').find((button) => button.text() === label)
+  expect(tab).toBeDefined()
+  return tab!
+}
+
 describe('TeamMembersView', () => {
   beforeEach(() => {
     teamState.loaded = true
-    teamState.isTeamContext = false
-    teamState.currentTeam = null
+    teamState.joinedTeams = []
+    teamState.manageableJoinedTeams = []
     Object.values(teamAPIMock).forEach((fn) => fn.mockReset())
     teamAPIMock.listMembers.mockResolvedValue([
-      { user_id: 1, email: 'me@example.com', role: 'owner' },
-      { user_id: 2, email: 'admin@example.com', role: 'admin', joined_at: '2026-01-01T00:00:00Z' }
+      { user_id: 1, email: 'me@example.com', role: 'owner', granted_net_usd: 0 },
+      {
+        user_id: 2,
+        email: 'admin@example.com',
+        role: 'admin',
+        granted_net_usd: 0,
+        joined_at: '2026-01-01T00:00:00Z'
+      }
     ])
     teamAPIMock.listInvitations.mockResolvedValue([])
+    teamAPIMock.listDepartments.mockResolvedValue([])
+    teamAPIMock.listTransfers.mockResolvedValue({ items: [], total: 0 })
+    teamAPIMock.getReport.mockResolvedValue([])
   })
 
-  it('shows the invite form and member list in personal (owner) context', async () => {
+  it('loads members, invitations, departments, transfers and report on mount', async () => {
     const wrapper = mountView()
     await flushPromises()
 
-    expect(teamAPIMock.listMembers).toHaveBeenCalled()
-    expect(teamAPIMock.listInvitations).toHaveBeenCalled()
-    expect(wrapper.find('input[type="email"]').exists()).toBe(true)
+    expect(teamAPIMock.listMembers).toHaveBeenCalledWith(undefined)
+    expect(teamAPIMock.listInvitations).toHaveBeenCalledWith(undefined)
+    expect(teamAPIMock.listDepartments).toHaveBeenCalledWith(undefined)
+    expect(teamAPIMock.listTransfers).toHaveBeenCalled()
+    expect(teamAPIMock.getReport).toHaveBeenCalledWith(undefined)
     expect(wrapper.text()).toContain('me@example.com')
     expect(wrapper.text()).toContain('admin@example.com')
   })
 
-  it('hides the invite form and only shows the owner-only hint when viewing a team as an admin', async () => {
-    teamState.isTeamContext = true
-    teamState.currentTeam = { owner_user_id: 10, owner_email: 'owner@example.com', is_personal: false, role: 'admin' }
-
-    const wrapper = mountView()
-    await flushPromises()
-
-    expect(teamAPIMock.listInvitations).not.toHaveBeenCalled()
-    expect(wrapper.find('input[type="email"]').exists()).toBe(false)
-    expect(wrapper.text()).toContain('team.members.ownerOnlyHint')
-  })
-
-  it('submits a new invitation and refreshes the pending invitation list', async () => {
+  it('submits a new invitation from the invitations tab and refreshes the pending list', async () => {
     teamAPIMock.inviteMember.mockResolvedValue({
       id: 5,
       invited_email: 'new@example.com',
       status: 'pending',
+      role: 'member',
+      quota_mode: 'allocated',
       expires_at: '2026-02-01T00:00:00Z',
       created_at: '2026-01-25T00:00:00Z'
     })
@@ -103,37 +126,59 @@ describe('TeamMembersView', () => {
     const wrapper = mountView()
     await flushPromises()
 
+    await findTab(wrapper, 'team.members.tabInvitations').trigger('click')
     await wrapper.find('input[type="email"]').setValue('new@example.com')
     await wrapper.find('form').trigger('submit.prevent')
     await flushPromises()
 
-    expect(teamAPIMock.inviteMember).toHaveBeenCalledWith('new@example.com')
+    expect(teamAPIMock.inviteMember).toHaveBeenCalledWith(
+      {
+        email: 'new@example.com',
+        department_id: null,
+        role: 'member',
+        quota_mode: 'allocated',
+        initial_grant_usd: null
+      },
+      undefined
+    )
     expect(teamAPIMock.listInvitations).toHaveBeenCalledTimes(2)
     expect(wrapper.text()).toContain('team.members.inviteSuccess')
   })
 
-  it('keeps a failed invitation recoverable and can resend it', async () => {
-    const pendingInvitation = {
-      id: 7,
-      invited_email: 'retry@example.com',
-      status: 'pending',
-      expires_at: '2026-02-01T00:00:00Z',
-      created_at: '2026-01-25T00:00:00Z'
-    }
-    teamAPIMock.listInvitations
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([pendingInvitation])
-    teamAPIMock.inviteMember.mockRejectedValue(new Error('mail unavailable'))
-    teamAPIMock.resendInvitation.mockResolvedValue(undefined)
+  it('creates a new department from the departments tab', async () => {
+    teamAPIMock.createDepartment.mockResolvedValue({ id: 1, name: 'Engineering', display_order: 0 })
 
     const wrapper = mountView()
     await flushPromises()
 
-    await wrapper.find('input[type="email"]').setValue('retry@example.com')
+    await findTab(wrapper, 'team.members.tabDepartments').trigger('click')
+    await wrapper.find('input').setValue('Engineering')
     await wrapper.find('form').trigger('submit.prevent')
     await flushPromises()
 
-    expect(teamAPIMock.listInvitations).toHaveBeenCalledTimes(2)
+    expect(teamAPIMock.createDepartment).toHaveBeenCalledWith('Engineering', 0, undefined)
+    expect(teamAPIMock.listDepartments).toHaveBeenCalledTimes(2)
+    expect(wrapper.text()).toContain('team.departments.createSuccess')
+  })
+
+  it('resends a pending invitation', async () => {
+    teamAPIMock.listInvitations.mockResolvedValue([
+      {
+        id: 7,
+        invited_email: 'retry@example.com',
+        status: 'pending',
+        role: 'member',
+        quota_mode: 'allocated',
+        expires_at: '2026-02-01T00:00:00Z',
+        created_at: '2026-01-25T00:00:00Z'
+      }
+    ])
+    teamAPIMock.resendInvitation.mockResolvedValue({ resent: true })
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    await findTab(wrapper, 'team.members.tabInvitations').trigger('click')
     expect(wrapper.text()).toContain('retry@example.com')
 
     const resendButton = wrapper.findAll('button').find((button) => button.text() === 'team.members.resend')
@@ -141,7 +186,7 @@ describe('TeamMembersView', () => {
     await resendButton!.trigger('click')
     await flushPromises()
 
-    expect(teamAPIMock.resendInvitation).toHaveBeenCalledWith(7)
+    expect(teamAPIMock.resendInvitation).toHaveBeenCalledWith(7, undefined)
     expect(wrapper.text()).toContain('team.members.resendSuccess')
   })
 })
