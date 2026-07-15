@@ -6,6 +6,34 @@
 
 ---
 
+## 同步上游 - 2026-07-15 — 合并 214 个上游 commit（版本 → 1.1.156）
+
+`git merge upstream/main` 合并 214 个上游提交，71 处内容冲突 + 44 处 delete/modify 冲突，覆盖
+后端 `internal/service`、`internal/repository`、`internal/handler`、`ent/`（含 schema 与生成代码）
+及前端账号管理组件。按功能 35 口径重新剥离上游重新引入的订阅逆向代码：删除 `grok_credential_failure.go`
+（Grok OAuth 凭证失败切换/风暴限流）、`grok_quota_fetcher.go`（CLI 计费探测）、
+`openai_images_oauth_*`（ChatGPT-web OAuth 图片转发）、`openai_codex_transform.go` 内的
+`applyCodexOAuthTransform`、`grok_import_probe.go`（`ProvideAccountHandler` 及 Grok 主动探测）等
+整块 OAuth 专属代码，并将残留调用点（`IsGrokOAuth`/`getRequestCredential`/
+`ShouldStopOpenAIOAuth429Failover` 等）钝化为恒定安全默认值而非逐个改调用点。`pkg/xai/oauth.go`
+裁剪为仅保留 apikey URL 构建工具，删除 PKCE OAuth 授权流程与 CLI 计费探测。
+
+合并保留的合法上游新功能：账号复制（`DuplicateAccount`）、`SchedulerCache` P5-5 双桶比较统计
+（`GetDualBucketStats` 等 3 方法）、`long_context_billing_applied` 计费字段、`UpstreamFailoverError`
+扩展字段。
+
+顺带修复一处与本次合并无关的既存缺陷：`account_stats_pricing_test.go` 的
+`newTestBillingServiceWithPrices` 测试夹具未将 `LongContextInputThreshold`/`*Multiplier` 映射进
+`DBModelPricing.catalog`，导致长上下文倍率断言恒定退化为不生效（`TestTryModelFilePricing_AppliesLongContextPricing`）。
+
+已知未解决问题（详见 `自定义开发功能列表.md` 功能 44 后续跟进）：`TestSchedulerRebuildBatchKeepsMixedAndDifferentKeysIndependent`
+与 `TestSchedulerRebuildBatchDoesNotCacheMixedOrHistoricalQueries` 两个调度器批量查询去重测试失败，
+`internal/service/scheduler_snapshot_service.go` 的 `rebuildPreparedBucketTasks`/
+`schedulerAccountQueryCache` 在 mixed/historical 模式下的账号查询计数与预期不符（single/forced 未去重、
+mixed 模式查询次数为 0），初步判断为生产逻辑问题而非测试夹具问题，尚未定位根因，未做修复。
+
+---
+
 ## 新功能 - 2026-07-15 — 企业组织与额度分配（Team 协作 v2）
 
 新增功能 44（详见 `自定义开发功能列表.md` 功能 44、方案文档
