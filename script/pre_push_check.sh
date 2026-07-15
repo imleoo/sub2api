@@ -94,6 +94,17 @@ NEW_SRC=$(git diff --diff-filter=A --name-only "${RANGE}" \
 HAS_UPSTREAM=0
 git rev-parse --verify --quiet upstream/main >/dev/null && HAS_UPSTREAM=1
 
+# 文档习惯用 shell brace-expansion 记法压缩同类文件（如 {a,b,c}.go、{zh,en}/fork.ts），
+# 直接对原始文本做子串匹配会漏判（如 {team_handler,enterprise_handler}.go 里
+# "enterprise_handler.go" 因为中间隔着 "}" 而不是连续子串）。这里先抽取文档里所有
+# 形如 path/to/{a,b,c}suffix.ext 的 token，用 bash 原生 brace expansion 展开成完整
+# 路径，再取 basename 建立「已记录文件名」集合，比对时用这份展开集合。
+# 注意：抽取用的字符类只含 [A-Za-z0-9_./{},-]，不含 $ ` ; 等 shell 特殊字符，
+# 后面对其 eval 不会执行任意命令。
+DOC_BASENAMES=$(grep -oE '[A-Za-z0-9_./{},-]+\.(go|ts|vue)' "$DOC" 2>/dev/null | sort -u | while read -r tok; do
+  eval "printf '%s\n' $tok" 2>/dev/null
+done | xargs -n1 basename 2>/dev/null | sort -u)
+
 UNDOC=""
 if [ -n "$NEW_SRC" ]; then
   while read -r f; do
@@ -103,7 +114,7 @@ if [ -n "$NEW_SRC" ]; then
       continue
     fi
     base=$(basename "$f")
-    if ! grep -qF "$base" "$DOC" 2>/dev/null; then
+    if ! echo "$DOC_BASENAMES" | grep -qxF "$base" 2>/dev/null; then
       UNDOC="$UNDOC$f\n"
     fi
   done <<< "$NEW_SRC"
