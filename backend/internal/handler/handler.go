@@ -58,6 +58,8 @@ type Handlers struct {
 	AvailableChannel *AvailableChannelHandler
 	Lingjing         *LingjingHandler
 	BatchImage       *BatchImageHandler
+	Team             *TeamHandler
+	Enterprise       *EnterpriseHandler
 }
 
 // BuildInfo contains build-time information

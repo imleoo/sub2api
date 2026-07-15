@@ -24,6 +24,19 @@ const (
 	RoleUser  = domain.RoleUser
 )
 
+// Team collaboration constants (zhiguofan fork-only)
+const (
+	TeamMemberRoleAdmin = domain.TeamMemberRoleAdmin
+
+	TeamMemberStatusActive  = domain.TeamMemberStatusActive
+	TeamMemberStatusRemoved = domain.TeamMemberStatusRemoved
+
+	TeamInvitationStatusPending  = domain.TeamInvitationStatusPending
+	TeamInvitationStatusAccepted = domain.TeamInvitationStatusAccepted
+	TeamInvitationStatusRevoked  = domain.TeamInvitationStatusRevoked
+	TeamInvitationStatusExpired  = domain.TeamInvitationStatusExpired
+)
+
 // Affiliate rebate settings
 const (
 	AffiliateRebateRateDefault          = 20.0

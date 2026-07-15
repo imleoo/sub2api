@@ -51,6 +51,9 @@ type ChannelMonitorRequestTemplate func(*sql.Selector)
 // Endpoint is the predicate function for endpoint builders.
 type Endpoint func(*sql.Selector)
 
+// EnterpriseProfile is the predicate function for enterpriseprofile builders.
+type EnterpriseProfile func(*sql.Selector)
+
 // ErrorPassthroughRule is the predicate function for errorpassthroughrule builders.
 type ErrorPassthroughRule func(*sql.Selector)
 
@@ -110,6 +113,21 @@ type SubscriptionPlan func(*sql.Selector)
 
 // TLSFingerprintProfile is the predicate function for tlsfingerprintprofile builders.
 type TLSFingerprintProfile func(*sql.Selector)
+
+// TeamActivityLog is the predicate function for teamactivitylog builders.
+type TeamActivityLog func(*sql.Selector)
+
+// TeamDepartment is the predicate function for teamdepartment builders.
+type TeamDepartment func(*sql.Selector)
+
+// TeamFundTransfer is the predicate function for teamfundtransfer builders.
+type TeamFundTransfer func(*sql.Selector)
+
+// TeamInvitation is the predicate function for teaminvitation builders.
+type TeamInvitation func(*sql.Selector)
+
+// TeamMember is the predicate function for teammember builders.
+type TeamMember func(*sql.Selector)
 
 // UsageCleanupTask is the predicate function for usagecleanuptask builders.
 type UsageCleanupTask func(*sql.Selector)

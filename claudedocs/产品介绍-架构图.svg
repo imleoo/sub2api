@@ -72,11 +72,12 @@
     <line x1="390" y1="170" x2="570" y2="170" stroke="#ffffff" stroke-opacity="0.25" stroke-width="1"/>
 
     <g font-size="13" fill="#ffffff">
-      <text x="380" y="200">✓</text><text x="400" y="200">统一三大协议接入</text>
-      <text x="380" y="228">✓</text><text x="400" y="228">一套密钥多家上游</text>
-      <text x="380" y="256">✓</text><text x="400" y="256">人民币原生结算</text>
-      <text x="380" y="284">✓</text><text x="400" y="284">毛利逐请求可拆</text>
-      <text x="380" y="312">✓</text><text x="400" y="312">运营 / 财务后台</text>
+      <text x="380" y="195">✓</text><text x="400" y="195">统一三大协议接入</text>
+      <text x="380" y="221">✓</text><text x="400" y="221">一套密钥多家上游</text>
+      <text x="380" y="247">✓</text><text x="400" y="247">人民币原生结算</text>
+      <text x="380" y="273">✓</text><text x="400" y="273">成本计费同步可查</text>
+      <text x="380" y="299">✓</text><text x="400" y="299">企业组织按需分配额度</text>
+      <text x="380" y="325">✓</text><text x="400" y="325">运营 / 财务后台</text>
     </g>
   </g>
 

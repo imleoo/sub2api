@@ -366,7 +366,7 @@
       <p class="text-gray-500 dark:text-dark-400">
         {{ t('auth.alreadyHaveAccount') }}
         <router-link
-          to="/login"
+          :to="loginTarget"
           class="font-medium text-primary-600 transition-colors hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
         >
           {{ t('auth.signIn') }}
@@ -418,6 +418,15 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const appStore = useAppStore()
+
+const postRegistrationTarget = computed(() => {
+  const redirect = route.query.redirect
+  return typeof redirect === 'string' && redirect.startsWith('/') ? redirect : '/dashboard'
+})
+const loginTarget = computed(() => ({
+  path: '/login',
+  query: postRegistrationTarget.value === '/dashboard' ? {} : { redirect: postRegistrationTarget.value }
+}))
 
 // ==================== State ====================
 
@@ -973,6 +982,7 @@ async function handleRegister(): Promise<void> {
           turnstile_token: turnstileToken.value,
           promo_code: formData.promo_code || undefined,
           invitation_code: formData.invitation_code || undefined,
+          pending_redirect: postRegistrationTarget.value,
           ...(affCode ? { aff_code: affCode } : {})
         })
       )
@@ -997,8 +1007,7 @@ async function handleRegister(): Promise<void> {
     // Show success toast
     appStore.showSuccess(t('auth.accountCreatedSuccess', { siteName: siteName.value }))
 
-    // Redirect to dashboard
-    await router.push('/dashboard')
+    await router.push(postRegistrationTarget.value)
   } catch (error: unknown) {
     // Reset Turnstile on error
     if (turnstileRef.value) {
@@ -1073,7 +1082,7 @@ async function handlePhoneRegister(): Promise<void> {
     })
     clearAffiliateReferralCode()
     appStore.showSuccess(t('auth.accountCreatedSuccess', { siteName: siteName.value }))
-    await router.push('/dashboard')
+    await router.push(postRegistrationTarget.value)
   } catch (error: unknown) {
     if (turnstileRef.value) {
       turnstileRef.value.reset()

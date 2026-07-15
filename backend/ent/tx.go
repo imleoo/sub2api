@@ -44,6 +44,8 @@ type Tx struct {
 	ChannelMonitorRequestTemplate *ChannelMonitorRequestTemplateClient
 	// Endpoint is the client for interacting with the Endpoint builders.
 	Endpoint *EndpointClient
+	// EnterpriseProfile is the client for interacting with the EnterpriseProfile builders.
+	EnterpriseProfile *EnterpriseProfileClient
 	// ErrorPassthroughRule is the client for interacting with the ErrorPassthroughRule builders.
 	ErrorPassthroughRule *ErrorPassthroughRuleClient
 	// Group is the client for interacting with the Group builders.
@@ -84,6 +86,16 @@ type Tx struct {
 	SubscriptionPlan *SubscriptionPlanClient
 	// TLSFingerprintProfile is the client for interacting with the TLSFingerprintProfile builders.
 	TLSFingerprintProfile *TLSFingerprintProfileClient
+	// TeamActivityLog is the client for interacting with the TeamActivityLog builders.
+	TeamActivityLog *TeamActivityLogClient
+	// TeamDepartment is the client for interacting with the TeamDepartment builders.
+	TeamDepartment *TeamDepartmentClient
+	// TeamFundTransfer is the client for interacting with the TeamFundTransfer builders.
+	TeamFundTransfer *TeamFundTransferClient
+	// TeamInvitation is the client for interacting with the TeamInvitation builders.
+	TeamInvitation *TeamInvitationClient
+	// TeamMember is the client for interacting with the TeamMember builders.
+	TeamMember *TeamMemberClient
 	// UsageCleanupTask is the client for interacting with the UsageCleanupTask builders.
 	UsageCleanupTask *UsageCleanupTaskClient
 	// UsageLog is the client for interacting with the UsageLog builders.
@@ -246,6 +258,7 @@ func (tx *Tx) init() {
 	tx.ChannelMonitorHistory = NewChannelMonitorHistoryClient(tx.config)
 	tx.ChannelMonitorRequestTemplate = NewChannelMonitorRequestTemplateClient(tx.config)
 	tx.Endpoint = NewEndpointClient(tx.config)
+	tx.EnterpriseProfile = NewEnterpriseProfileClient(tx.config)
 	tx.ErrorPassthroughRule = NewErrorPassthroughRuleClient(tx.config)
 	tx.Group = NewGroupClient(tx.config)
 	tx.IdempotencyRecord = NewIdempotencyRecordClient(tx.config)
@@ -266,6 +279,11 @@ func (tx *Tx) init() {
 	tx.Setting = NewSettingClient(tx.config)
 	tx.SubscriptionPlan = NewSubscriptionPlanClient(tx.config)
 	tx.TLSFingerprintProfile = NewTLSFingerprintProfileClient(tx.config)
+	tx.TeamActivityLog = NewTeamActivityLogClient(tx.config)
+	tx.TeamDepartment = NewTeamDepartmentClient(tx.config)
+	tx.TeamFundTransfer = NewTeamFundTransferClient(tx.config)
+	tx.TeamInvitation = NewTeamInvitationClient(tx.config)
+	tx.TeamMember = NewTeamMemberClient(tx.config)
 	tx.UsageCleanupTask = NewUsageCleanupTaskClient(tx.config)
 	tx.UsageLog = NewUsageLogClient(tx.config)
 	tx.User = NewUserClient(tx.config)

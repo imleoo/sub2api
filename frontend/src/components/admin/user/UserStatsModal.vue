@@ -438,7 +438,7 @@ import ModelDistributionChart from '@/components/charts/ModelDistributionChart.v
 import EndpointDistributionChart from '@/components/charts/EndpointDistributionChart.vue'
 import Icon from '@/components/icons/Icon.vue'
 import { adminAPI } from '@/api/admin'
-import type { AdminUser, AccountUsageStatsResponse } from '@/types'
+import type { AccountUsageStatsResponse } from '@/types'
 import { currencyLabel, formatUSDCompact } from '@/utils/format'
 
 ChartJS.register(
@@ -454,10 +454,20 @@ ChartJS.register(
 
 const { t } = useI18n()
 
-const props = defineProps<{
-  show: boolean
-  user: AdminUser | null
-}>()
+// user 只声明弹窗实际用到的字段（id/email/status），用结构化类型而非 AdminUser，
+// 让非 admin 场景（如企业成员管理页）也能传入自己的轻量用户对象复用这个弹窗。
+// fetchStats 默认调用 admin 专属接口；企业成员场景传入 team 专属的
+// GetMemberUsageStats 接口（同一份底层数据，但走团队权限而非平台管理员权限）。
+const props = withDefaults(
+  defineProps<{
+    show: boolean
+    user: { id: number; email: string; status?: string } | null
+    fetchStats?: (userId: number, days: number) => Promise<AccountUsageStatsResponse>
+  }>(),
+  {
+    fetchStats: (userId: number, days: number) => adminAPI.users.getUserUsageStats(userId, days)
+  }
+)
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -601,7 +611,7 @@ const loadStats = async () => {
 
   loading.value = true
   try {
-    stats.value = await adminAPI.users.getUserUsageStats(props.user.id, 30)
+    stats.value = await props.fetchStats(props.user.id, 30)
   } catch (error) {
     console.error('Failed to load user stats:', error)
     stats.value = null

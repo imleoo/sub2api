@@ -129,7 +129,7 @@ func (h *APIKeyHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	// 验证所有权
+	// 验证所有权（团队上下文下，所有权归属团队资金主体，而非当前登录的协作管理员）
 	if key.UserID != subject.UserID {
 		response.NotFound(c, "API key not found")
 		return
@@ -174,8 +174,9 @@ func (h *APIKeyHandler) Create(c *gin.Context) {
 		svcReq.RateLimit7d = *req.RateLimit7d
 	}
 
+	ownerID := subject.UserID
 	executeUserIdempotentJSON(c, "user.api_keys.create", req, service.DefaultWriteIdempotencyTTL(), func(ctx context.Context) (any, error) {
-		key, err := h.apiKeyService.Create(ctx, subject.UserID, svcReq)
+		key, err := h.apiKeyService.Create(ctx, ownerID, svcReq)
 		if err != nil {
 			return nil, err
 		}

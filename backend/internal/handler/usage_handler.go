@@ -85,6 +85,8 @@ func (h *UsageHandler) parseUserUsageFilters(c *gin.Context, requireRange bool) 
 		response.Unauthorized(c, "User not authenticated")
 		return nil, false
 	}
+	// 团队上下文下（挂了 teamContext 的路由），资源持有者是团队资金主体而非当前登录的协作管理员；
+	resourceOwnerID := subject.UserID
 
 	var apiKeyID int64
 	if apiKeyIDStr := strings.TrimSpace(c.Query("api_key_id")); apiKeyIDStr != "" {
@@ -102,7 +104,7 @@ func (h *UsageHandler) parseUserUsageFilters(c *gin.Context, requireRange bool) 
 			response.ErrorFrom(c, err)
 			return nil, false
 		}
-		if apiKey.UserID != subject.UserID {
+		if apiKey.UserID != resourceOwnerID {
 			response.Forbidden(c, "Not authorized to access this API key's usage records")
 			return nil, false
 		}
@@ -207,7 +209,7 @@ func (h *UsageHandler) parseUserUsageFilters(c *gin.Context, requireRange bool) 
 
 	return &userUsageFilters{
 		Filters: usagestats.UsageLogFilters{
-			UserID:            subject.UserID,
+			UserID:            resourceOwnerID,
 			APIKeyID:          apiKeyID,
 			GroupID:           groupID,
 			Model:             strings.TrimSpace(c.Query("model")),
@@ -706,14 +708,15 @@ func (h *UsageHandler) GetMyAPIKeyDailyUsage(c *gin.Context) {
 		response.ErrorFrom(c, err)
 		return
 	}
-	if apiKey.UserID != subject.UserID {
+	resourceOwnerID := subject.UserID
+	if apiKey.UserID != resourceOwnerID {
 		response.Forbidden(c, "Not authorized to access this API key's usage")
 		return
 	}
 
 	userTZ := c.Query("timezone")
 	startTime, endTime := apiKeyDailyUsageRange(days, userTZ)
-	items, err := h.usageService.GetAPIKeyDailyUsage(c.Request.Context(), subject.UserID, apiKeyID, startTime, endTime)
+	items, err := h.usageService.GetAPIKeyDailyUsage(c.Request.Context(), resourceOwnerID, apiKeyID, startTime, endTime)
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return

@@ -42,7 +42,8 @@ export default {
     sora: "Sora Studio",
     models: "Model Plaza",
     playground: "Playground",
-    modelDiscounts: "Model Discounts"
+    modelDiscounts: "Model Discounts",
+    team: "Team"
   },
   auth: {
     errors: {
@@ -441,6 +442,133 @@ export default {
   payment: {
     orders: {
       orderIdLabel: "Order ID"
+    }
+  },
+  team: {
+    orgSwitcher: {
+      label: "Managing",
+      own: "My enterprise"
+    },
+    members: {
+      title: "Enterprise members",
+      description: "Employees use their own account and API keys; the enterprise allocates quota to them",
+      tabMembers: "Members",
+      tabDepartments: "Departments",
+      tabInvitations: "Invitations",
+      tabTransfers: "Ledger",
+      tabReport: "Report",
+      inviteTitle: "Invite an employee",
+      inviteEmailPlaceholder: "Enter the employee's email",
+      inviteDepartment: "Department",
+      inviteDepartmentNone: "No department",
+      inviteRole: "Role",
+      inviteRoleMember: "Member",
+      inviteRoleAdmin: "Admin",
+      inviteQuotaMode: "Quota mode",
+      inviteQuotaModeAllocated: "Allocated (manual transfer)",
+      inviteQuotaModeShared: "Shared (auto top-up)",
+      inviteInitialGrant: "Initial grant amount (optional)",
+      inviteSubmit: "Send invitation",
+      inviteSuccess: "Invitation sent",
+      inviteHint: "You can invite an email that hasn't registered yet — they can accept once they sign up or log in",
+      pendingInvitations: "Pending invitations",
+      noPendingInvitations: "No pending invitations",
+      revoke: "Revoke",
+      resend: "Resend",
+      resendSuccess: "Invitation email resent",
+      revokeConfirm: "Revoke this invitation?",
+      expiresAt: "Expires at",
+      memberList: "Members",
+      owner: "Owner",
+      admin: "Admin",
+      member: "Member",
+      department: "Department",
+      noDepartment: "Unassigned",
+      quotaMode: "Quota mode",
+      quotaModeAllocated: "Allocated",
+      quotaModeShared: "Shared",
+      grantedNet: "Enterprise net granted",
+      joinedAt: "Joined at",
+      remove: "Remove",
+      removeConfirm: "Remove this member?",
+      grant: "Grant",
+      reclaim: "Reclaim",
+      grantTitle: "Grant to {email}",
+      reclaimTitle: "Reclaim from {email}",
+      amountLabel: "Amount",
+      noteLabel: "Note (optional)",
+      confirm: "Confirm",
+      cancel: "Cancel",
+      grantSuccess: "Transfer succeeded",
+      reclaimSuccess: "Reclaim succeeded",
+      setDepartment: "Set department",
+      setQuota: "Set quota mode",
+      setRole: "Set role",
+      viewUsage: "View",
+      quotaThreshold: "Top-up threshold",
+      quotaTarget: "Top-up target level",
+      quotaSharedHint: "When balance falls below the threshold, it's auto-topped-up from the enterprise balance (minute-level delay)",
+      updateSuccess: "Updated"
+    },
+    departments: {
+      title: "Departments",
+      nameLabel: "Department name",
+      createSubmit: "Create department",
+      empty: "No departments yet",
+      edit: "Edit",
+      delete: "Delete",
+      deleteConfirm: "Delete this department? Members will be unassigned automatically",
+      createSuccess: "Department created",
+      updateSuccess: "Department updated",
+      deleteSuccess: "Department deleted"
+    },
+    transfers: {
+      title: "Fund transfer ledger",
+      empty: "No transfers yet",
+      direction: "Type",
+      directionGrant: "Grant",
+      directionReclaim: "Reclaim",
+      directionAutoTopup: "Auto top-up",
+      amount: "Amount",
+      operator: "Operator",
+      time: "Time",
+      note: "Note"
+    },
+    report: {
+      title: "Member report",
+      balance: "Current balance",
+      grantedNet: "Enterprise net granted",
+      usage: "Usage"
+    },
+    invite: {
+      title: "Accept enterprise invitation",
+      accepting: "Processing invitation...",
+      success: "You've joined the enterprise",
+      goToTeam: "View enterprise",
+      loginRequired: "Please log in or sign up, then click the invitation link in your email again",
+      goToLogin: "Go to login"
+    }
+  },
+  enterprise: {
+    upgrade: {
+      title: "Upgrade to an enterprise account",
+      description: "Fill in your company info to upgrade instantly, then invite employees and allocate quota",
+      companyNameLabel: "Company name",
+      companyNamePlaceholder: "Enter your company name",
+      contactNameLabel: "Contact name",
+      contactPhoneLabel: "Contact phone",
+      industryLabel: "Industry",
+      submit: "Upgrade now",
+      success: "Upgraded — you can now invite employees to join your enterprise",
+      manageLink: "Manage enterprise members"
+    },
+    profile: {
+      title: "Enterprise info",
+      companyName: "Company name",
+      contactName: "Contact name",
+      contactPhone: "Contact phone",
+      industry: "Industry",
+      upgradedAt: "Upgraded at"
     }
   }
 }

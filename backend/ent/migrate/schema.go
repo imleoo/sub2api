@@ -829,6 +829,23 @@ var (
 			},
 		},
 	}
+	// EnterpriseProfilesColumns holds the columns for the "enterprise_profiles" table.
+	EnterpriseProfilesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "user_id", Type: field.TypeInt64, Unique: true},
+		{Name: "company_name", Type: field.TypeString, SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "contact_name", Type: field.TypeString, Default: "", SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "contact_phone", Type: field.TypeString, Size: 50, Default: ""},
+		{Name: "industry", Type: field.TypeString, Size: 100, Default: ""},
+	}
+	// EnterpriseProfilesTable holds the schema information for the "enterprise_profiles" table.
+	EnterpriseProfilesTable = &schema.Table{
+		Name:       "enterprise_profiles",
+		Columns:    EnterpriseProfilesColumns,
+		PrimaryKey: []*schema.Column{EnterpriseProfilesColumns[0]},
+	}
 	// ErrorPassthroughRulesColumns holds the columns for the "error_passthrough_rules" table.
 	ErrorPassthroughRulesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -1730,6 +1747,158 @@ var (
 		Columns:    TLSFingerprintProfilesColumns,
 		PrimaryKey: []*schema.Column{TLSFingerprintProfilesColumns[0]},
 	}
+	// TeamActivityLogsColumns holds the columns for the "team_activity_logs" table.
+	TeamActivityLogsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "owner_user_id", Type: field.TypeInt64},
+		{Name: "actor_user_id", Type: field.TypeInt64},
+		{Name: "action", Type: field.TypeString, Size: 50},
+		{Name: "detail", Type: field.TypeString, Default: "", SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+	}
+	// TeamActivityLogsTable holds the schema information for the "team_activity_logs" table.
+	TeamActivityLogsTable = &schema.Table{
+		Name:       "team_activity_logs",
+		Columns:    TeamActivityLogsColumns,
+		PrimaryKey: []*schema.Column{TeamActivityLogsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "teamactivitylog_owner_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{TeamActivityLogsColumns[1]},
+			},
+		},
+	}
+	// TeamDepartmentsColumns holds the columns for the "team_departments" table.
+	TeamDepartmentsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "owner_user_id", Type: field.TypeInt64},
+		{Name: "name", Type: field.TypeString, SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "display_order", Type: field.TypeInt, Default: 0},
+	}
+	// TeamDepartmentsTable holds the schema information for the "team_departments" table.
+	TeamDepartmentsTable = &schema.Table{
+		Name:       "team_departments",
+		Columns:    TeamDepartmentsColumns,
+		PrimaryKey: []*schema.Column{TeamDepartmentsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "teamdepartment_owner_user_id_name",
+				Unique:  true,
+				Columns: []*schema.Column{TeamDepartmentsColumns[3], TeamDepartmentsColumns[4]},
+			},
+			{
+				Name:    "teamdepartment_owner_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{TeamDepartmentsColumns[3]},
+			},
+		},
+	}
+	// TeamFundTransfersColumns holds the columns for the "team_fund_transfers" table.
+	TeamFundTransfersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "owner_user_id", Type: field.TypeInt64},
+		{Name: "member_user_id", Type: field.TypeInt64},
+		{Name: "direction", Type: field.TypeString, Size: 20},
+		{Name: "amount", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "numeric(20,8)"}},
+		{Name: "operator_user_id", Type: field.TypeInt64},
+		{Name: "note", Type: field.TypeString, Default: "", SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+	}
+	// TeamFundTransfersTable holds the schema information for the "team_fund_transfers" table.
+	TeamFundTransfersTable = &schema.Table{
+		Name:       "team_fund_transfers",
+		Columns:    TeamFundTransfersColumns,
+		PrimaryKey: []*schema.Column{TeamFundTransfersColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "teamfundtransfer_owner_user_id_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{TeamFundTransfersColumns[1], TeamFundTransfersColumns[7]},
+			},
+			{
+				Name:    "teamfundtransfer_member_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{TeamFundTransfersColumns[2]},
+			},
+		},
+	}
+	// TeamInvitationsColumns holds the columns for the "team_invitations" table.
+	TeamInvitationsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "owner_user_id", Type: field.TypeInt64},
+		{Name: "invited_email", Type: field.TypeString, SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "token", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "status", Type: field.TypeString, Size: 20, Default: "pending"},
+		{Name: "expires_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "last_sent_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "department_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "role", Type: field.TypeString, Size: 20, Default: "member"},
+		{Name: "quota_mode", Type: field.TypeString, Size: 20, Default: "allocated"},
+		{Name: "initial_grant_usd", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "numeric(20,8)"}},
+		{Name: "accepted_by_user_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "accepted_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+	}
+	// TeamInvitationsTable holds the schema information for the "team_invitations" table.
+	TeamInvitationsTable = &schema.Table{
+		Name:       "team_invitations",
+		Columns:    TeamInvitationsColumns,
+		PrimaryKey: []*schema.Column{TeamInvitationsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "teaminvitation_owner_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{TeamInvitationsColumns[3]},
+			},
+			{
+				Name:    "teaminvitation_invited_email",
+				Unique:  false,
+				Columns: []*schema.Column{TeamInvitationsColumns[4]},
+			},
+		},
+	}
+	// TeamMembersColumns holds the columns for the "team_members" table.
+	TeamMembersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "owner_user_id", Type: field.TypeInt64},
+		{Name: "member_user_id", Type: field.TypeInt64},
+		{Name: "role", Type: field.TypeString, Size: 20, Default: "member"},
+		{Name: "status", Type: field.TypeString, Size: 20, Default: "active"},
+		{Name: "department_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "quota_mode", Type: field.TypeString, Size: 20, Default: "allocated"},
+		{Name: "auto_topup_threshold_usd", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "numeric(20,8)"}},
+		{Name: "auto_topup_target_usd", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "numeric(20,8)"}},
+		{Name: "granted_net_usd", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "numeric(20,8)"}},
+	}
+	// TeamMembersTable holds the schema information for the "team_members" table.
+	TeamMembersTable = &schema.Table{
+		Name:       "team_members",
+		Columns:    TeamMembersColumns,
+		PrimaryKey: []*schema.Column{TeamMembersColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "teammember_owner_user_id_member_user_id",
+				Unique:  true,
+				Columns: []*schema.Column{TeamMembersColumns[3], TeamMembersColumns[4]},
+			},
+			{
+				Name:    "teammember_owner_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{TeamMembersColumns[3]},
+			},
+			{
+				Name:    "teammember_member_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{TeamMembersColumns[4]},
+			},
+		},
+	}
 	// UsageCleanupTasksColumns holds the columns for the "usage_cleanup_tasks" table.
 	UsageCleanupTasksColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -2248,6 +2417,7 @@ var (
 		ChannelMonitorHistoriesTable,
 		ChannelMonitorRequestTemplatesTable,
 		EndpointsTable,
+		EnterpriseProfilesTable,
 		ErrorPassthroughRulesTable,
 		GroupsTable,
 		IdempotencyRecordsTable,
@@ -2268,6 +2438,11 @@ var (
 		SettingsTable,
 		SubscriptionPlansTable,
 		TLSFingerprintProfilesTable,
+		TeamActivityLogsTable,
+		TeamDepartmentsTable,
+		TeamFundTransfersTable,
+		TeamInvitationsTable,
+		TeamMembersTable,
 		UsageCleanupTasksTable,
 		UsageLogsTable,
 		UsersTable,
@@ -2338,6 +2513,9 @@ func init() {
 	EndpointsTable.Annotation = &entsql.Annotation{
 		Table: "endpoints",
 	}
+	EnterpriseProfilesTable.Annotation = &entsql.Annotation{
+		Table: "enterprise_profiles",
+	}
 	ErrorPassthroughRulesTable.Annotation = &entsql.Annotation{
 		Table: "error_passthrough_rules",
 	}
@@ -2406,6 +2584,21 @@ func init() {
 	}
 	TLSFingerprintProfilesTable.Annotation = &entsql.Annotation{
 		Table: "tls_fingerprint_profiles",
+	}
+	TeamActivityLogsTable.Annotation = &entsql.Annotation{
+		Table: "team_activity_logs",
+	}
+	TeamDepartmentsTable.Annotation = &entsql.Annotation{
+		Table: "team_departments",
+	}
+	TeamFundTransfersTable.Annotation = &entsql.Annotation{
+		Table: "team_fund_transfers",
+	}
+	TeamInvitationsTable.Annotation = &entsql.Annotation{
+		Table: "team_invitations",
+	}
+	TeamMembersTable.Annotation = &entsql.Annotation{
+		Table: "team_members",
 	}
 	UsageCleanupTasksTable.Annotation = &entsql.Annotation{
 		Table: "usage_cleanup_tasks",

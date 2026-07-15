@@ -574,7 +574,10 @@ function handleBack(): void {
   sessionStorage.removeItem('register_data')
 
   // Go back to registration
-  router.push('/register')
+  router.push({
+    path: '/register',
+    query: pendingRedirect.value ? { redirect: pendingRedirect.value } : {}
+  })
 }
 
 function buildEmailSuffixNotAllowedMessage(): string {

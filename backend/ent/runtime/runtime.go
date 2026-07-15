@@ -20,6 +20,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/channelmonitorhistory"
 	"github.com/Wei-Shaw/sub2api/ent/channelmonitorrequesttemplate"
 	"github.com/Wei-Shaw/sub2api/ent/endpoint"
+	"github.com/Wei-Shaw/sub2api/ent/enterpriseprofile"
 	"github.com/Wei-Shaw/sub2api/ent/errorpassthroughrule"
 	"github.com/Wei-Shaw/sub2api/ent/group"
 	"github.com/Wei-Shaw/sub2api/ent/idempotencyrecord"
@@ -40,6 +41,11 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/securitysecret"
 	"github.com/Wei-Shaw/sub2api/ent/setting"
 	"github.com/Wei-Shaw/sub2api/ent/subscriptionplan"
+	"github.com/Wei-Shaw/sub2api/ent/teamactivitylog"
+	"github.com/Wei-Shaw/sub2api/ent/teamdepartment"
+	"github.com/Wei-Shaw/sub2api/ent/teamfundtransfer"
+	"github.com/Wei-Shaw/sub2api/ent/teaminvitation"
+	"github.com/Wei-Shaw/sub2api/ent/teammember"
 	"github.com/Wei-Shaw/sub2api/ent/tlsfingerprintprofile"
 	"github.com/Wei-Shaw/sub2api/ent/usagecleanuptask"
 	"github.com/Wei-Shaw/sub2api/ent/usagelog"
@@ -918,6 +924,41 @@ func init() {
 	endpoint.DefaultHealth = endpointDescHealth.Default.(string)
 	// endpoint.HealthValidator is a validator for the "health" field. It is called by the builders before save.
 	endpoint.HealthValidator = endpointDescHealth.Validators[0].(func(string) error)
+	enterpriseprofileMixin := schema.EnterpriseProfile{}.Mixin()
+	enterpriseprofileMixinFields0 := enterpriseprofileMixin[0].Fields()
+	_ = enterpriseprofileMixinFields0
+	enterpriseprofileFields := schema.EnterpriseProfile{}.Fields()
+	_ = enterpriseprofileFields
+	// enterpriseprofileDescCreatedAt is the schema descriptor for created_at field.
+	enterpriseprofileDescCreatedAt := enterpriseprofileMixinFields0[0].Descriptor()
+	// enterpriseprofile.DefaultCreatedAt holds the default value on creation for the created_at field.
+	enterpriseprofile.DefaultCreatedAt = enterpriseprofileDescCreatedAt.Default.(func() time.Time)
+	// enterpriseprofileDescUpdatedAt is the schema descriptor for updated_at field.
+	enterpriseprofileDescUpdatedAt := enterpriseprofileMixinFields0[1].Descriptor()
+	// enterpriseprofile.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	enterpriseprofile.DefaultUpdatedAt = enterpriseprofileDescUpdatedAt.Default.(func() time.Time)
+	// enterpriseprofile.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	enterpriseprofile.UpdateDefaultUpdatedAt = enterpriseprofileDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// enterpriseprofileDescCompanyName is the schema descriptor for company_name field.
+	enterpriseprofileDescCompanyName := enterpriseprofileFields[1].Descriptor()
+	// enterpriseprofile.CompanyNameValidator is a validator for the "company_name" field. It is called by the builders before save.
+	enterpriseprofile.CompanyNameValidator = enterpriseprofileDescCompanyName.Validators[0].(func(string) error)
+	// enterpriseprofileDescContactName is the schema descriptor for contact_name field.
+	enterpriseprofileDescContactName := enterpriseprofileFields[2].Descriptor()
+	// enterpriseprofile.DefaultContactName holds the default value on creation for the contact_name field.
+	enterpriseprofile.DefaultContactName = enterpriseprofileDescContactName.Default.(string)
+	// enterpriseprofileDescContactPhone is the schema descriptor for contact_phone field.
+	enterpriseprofileDescContactPhone := enterpriseprofileFields[3].Descriptor()
+	// enterpriseprofile.DefaultContactPhone holds the default value on creation for the contact_phone field.
+	enterpriseprofile.DefaultContactPhone = enterpriseprofileDescContactPhone.Default.(string)
+	// enterpriseprofile.ContactPhoneValidator is a validator for the "contact_phone" field. It is called by the builders before save.
+	enterpriseprofile.ContactPhoneValidator = enterpriseprofileDescContactPhone.Validators[0].(func(string) error)
+	// enterpriseprofileDescIndustry is the schema descriptor for industry field.
+	enterpriseprofileDescIndustry := enterpriseprofileFields[4].Descriptor()
+	// enterpriseprofile.DefaultIndustry holds the default value on creation for the industry field.
+	enterpriseprofile.DefaultIndustry = enterpriseprofileDescIndustry.Default.(string)
+	// enterpriseprofile.IndustryValidator is a validator for the "industry" field. It is called by the builders before save.
+	enterpriseprofile.IndustryValidator = enterpriseprofileDescIndustry.Validators[0].(func(string) error)
 	errorpassthroughruleMixin := schema.ErrorPassthroughRule{}.Mixin()
 	errorpassthroughruleMixinFields0 := errorpassthroughruleMixin[0].Fields()
 	_ = errorpassthroughruleMixinFields0
@@ -2119,6 +2160,139 @@ func init() {
 	tlsfingerprintprofileDescEnableGrease := tlsfingerprintprofileFields[2].Descriptor()
 	// tlsfingerprintprofile.DefaultEnableGrease holds the default value on creation for the enable_grease field.
 	tlsfingerprintprofile.DefaultEnableGrease = tlsfingerprintprofileDescEnableGrease.Default.(bool)
+	teamactivitylogFields := schema.TeamActivityLog{}.Fields()
+	_ = teamactivitylogFields
+	// teamactivitylogDescAction is the schema descriptor for action field.
+	teamactivitylogDescAction := teamactivitylogFields[2].Descriptor()
+	// teamactivitylog.ActionValidator is a validator for the "action" field. It is called by the builders before save.
+	teamactivitylog.ActionValidator = teamactivitylogDescAction.Validators[0].(func(string) error)
+	// teamactivitylogDescDetail is the schema descriptor for detail field.
+	teamactivitylogDescDetail := teamactivitylogFields[3].Descriptor()
+	// teamactivitylog.DefaultDetail holds the default value on creation for the detail field.
+	teamactivitylog.DefaultDetail = teamactivitylogDescDetail.Default.(string)
+	// teamactivitylogDescCreatedAt is the schema descriptor for created_at field.
+	teamactivitylogDescCreatedAt := teamactivitylogFields[4].Descriptor()
+	// teamactivitylog.DefaultCreatedAt holds the default value on creation for the created_at field.
+	teamactivitylog.DefaultCreatedAt = teamactivitylogDescCreatedAt.Default.(func() time.Time)
+	teamdepartmentMixin := schema.TeamDepartment{}.Mixin()
+	teamdepartmentMixinFields0 := teamdepartmentMixin[0].Fields()
+	_ = teamdepartmentMixinFields0
+	teamdepartmentFields := schema.TeamDepartment{}.Fields()
+	_ = teamdepartmentFields
+	// teamdepartmentDescCreatedAt is the schema descriptor for created_at field.
+	teamdepartmentDescCreatedAt := teamdepartmentMixinFields0[0].Descriptor()
+	// teamdepartment.DefaultCreatedAt holds the default value on creation for the created_at field.
+	teamdepartment.DefaultCreatedAt = teamdepartmentDescCreatedAt.Default.(func() time.Time)
+	// teamdepartmentDescUpdatedAt is the schema descriptor for updated_at field.
+	teamdepartmentDescUpdatedAt := teamdepartmentMixinFields0[1].Descriptor()
+	// teamdepartment.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	teamdepartment.DefaultUpdatedAt = teamdepartmentDescUpdatedAt.Default.(func() time.Time)
+	// teamdepartment.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	teamdepartment.UpdateDefaultUpdatedAt = teamdepartmentDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// teamdepartmentDescName is the schema descriptor for name field.
+	teamdepartmentDescName := teamdepartmentFields[1].Descriptor()
+	// teamdepartment.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	teamdepartment.NameValidator = teamdepartmentDescName.Validators[0].(func(string) error)
+	// teamdepartmentDescDisplayOrder is the schema descriptor for display_order field.
+	teamdepartmentDescDisplayOrder := teamdepartmentFields[2].Descriptor()
+	// teamdepartment.DefaultDisplayOrder holds the default value on creation for the display_order field.
+	teamdepartment.DefaultDisplayOrder = teamdepartmentDescDisplayOrder.Default.(int)
+	teamfundtransferFields := schema.TeamFundTransfer{}.Fields()
+	_ = teamfundtransferFields
+	// teamfundtransferDescDirection is the schema descriptor for direction field.
+	teamfundtransferDescDirection := teamfundtransferFields[2].Descriptor()
+	// teamfundtransfer.DirectionValidator is a validator for the "direction" field. It is called by the builders before save.
+	teamfundtransfer.DirectionValidator = teamfundtransferDescDirection.Validators[0].(func(string) error)
+	// teamfundtransferDescNote is the schema descriptor for note field.
+	teamfundtransferDescNote := teamfundtransferFields[5].Descriptor()
+	// teamfundtransfer.DefaultNote holds the default value on creation for the note field.
+	teamfundtransfer.DefaultNote = teamfundtransferDescNote.Default.(string)
+	// teamfundtransferDescCreatedAt is the schema descriptor for created_at field.
+	teamfundtransferDescCreatedAt := teamfundtransferFields[6].Descriptor()
+	// teamfundtransfer.DefaultCreatedAt holds the default value on creation for the created_at field.
+	teamfundtransfer.DefaultCreatedAt = teamfundtransferDescCreatedAt.Default.(func() time.Time)
+	teaminvitationMixin := schema.TeamInvitation{}.Mixin()
+	teaminvitationMixinFields0 := teaminvitationMixin[0].Fields()
+	_ = teaminvitationMixinFields0
+	teaminvitationFields := schema.TeamInvitation{}.Fields()
+	_ = teaminvitationFields
+	// teaminvitationDescCreatedAt is the schema descriptor for created_at field.
+	teaminvitationDescCreatedAt := teaminvitationMixinFields0[0].Descriptor()
+	// teaminvitation.DefaultCreatedAt holds the default value on creation for the created_at field.
+	teaminvitation.DefaultCreatedAt = teaminvitationDescCreatedAt.Default.(func() time.Time)
+	// teaminvitationDescUpdatedAt is the schema descriptor for updated_at field.
+	teaminvitationDescUpdatedAt := teaminvitationMixinFields0[1].Descriptor()
+	// teaminvitation.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	teaminvitation.DefaultUpdatedAt = teaminvitationDescUpdatedAt.Default.(func() time.Time)
+	// teaminvitation.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	teaminvitation.UpdateDefaultUpdatedAt = teaminvitationDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// teaminvitationDescInvitedEmail is the schema descriptor for invited_email field.
+	teaminvitationDescInvitedEmail := teaminvitationFields[1].Descriptor()
+	// teaminvitation.InvitedEmailValidator is a validator for the "invited_email" field. It is called by the builders before save.
+	teaminvitation.InvitedEmailValidator = teaminvitationDescInvitedEmail.Validators[0].(func(string) error)
+	// teaminvitationDescToken is the schema descriptor for token field.
+	teaminvitationDescToken := teaminvitationFields[2].Descriptor()
+	// teaminvitation.TokenValidator is a validator for the "token" field. It is called by the builders before save.
+	teaminvitation.TokenValidator = teaminvitationDescToken.Validators[0].(func(string) error)
+	// teaminvitationDescStatus is the schema descriptor for status field.
+	teaminvitationDescStatus := teaminvitationFields[3].Descriptor()
+	// teaminvitation.DefaultStatus holds the default value on creation for the status field.
+	teaminvitation.DefaultStatus = teaminvitationDescStatus.Default.(string)
+	// teaminvitation.StatusValidator is a validator for the "status" field. It is called by the builders before save.
+	teaminvitation.StatusValidator = teaminvitationDescStatus.Validators[0].(func(string) error)
+	// teaminvitationDescLastSentAt is the schema descriptor for last_sent_at field.
+	teaminvitationDescLastSentAt := teaminvitationFields[5].Descriptor()
+	// teaminvitation.DefaultLastSentAt holds the default value on creation for the last_sent_at field.
+	teaminvitation.DefaultLastSentAt = teaminvitationDescLastSentAt.Default.(func() time.Time)
+	// teaminvitationDescRole is the schema descriptor for role field.
+	teaminvitationDescRole := teaminvitationFields[7].Descriptor()
+	// teaminvitation.DefaultRole holds the default value on creation for the role field.
+	teaminvitation.DefaultRole = teaminvitationDescRole.Default.(string)
+	// teaminvitation.RoleValidator is a validator for the "role" field. It is called by the builders before save.
+	teaminvitation.RoleValidator = teaminvitationDescRole.Validators[0].(func(string) error)
+	// teaminvitationDescQuotaMode is the schema descriptor for quota_mode field.
+	teaminvitationDescQuotaMode := teaminvitationFields[8].Descriptor()
+	// teaminvitation.DefaultQuotaMode holds the default value on creation for the quota_mode field.
+	teaminvitation.DefaultQuotaMode = teaminvitationDescQuotaMode.Default.(string)
+	// teaminvitation.QuotaModeValidator is a validator for the "quota_mode" field. It is called by the builders before save.
+	teaminvitation.QuotaModeValidator = teaminvitationDescQuotaMode.Validators[0].(func(string) error)
+	teammemberMixin := schema.TeamMember{}.Mixin()
+	teammemberMixinFields0 := teammemberMixin[0].Fields()
+	_ = teammemberMixinFields0
+	teammemberFields := schema.TeamMember{}.Fields()
+	_ = teammemberFields
+	// teammemberDescCreatedAt is the schema descriptor for created_at field.
+	teammemberDescCreatedAt := teammemberMixinFields0[0].Descriptor()
+	// teammember.DefaultCreatedAt holds the default value on creation for the created_at field.
+	teammember.DefaultCreatedAt = teammemberDescCreatedAt.Default.(func() time.Time)
+	// teammemberDescUpdatedAt is the schema descriptor for updated_at field.
+	teammemberDescUpdatedAt := teammemberMixinFields0[1].Descriptor()
+	// teammember.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	teammember.DefaultUpdatedAt = teammemberDescUpdatedAt.Default.(func() time.Time)
+	// teammember.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	teammember.UpdateDefaultUpdatedAt = teammemberDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// teammemberDescRole is the schema descriptor for role field.
+	teammemberDescRole := teammemberFields[2].Descriptor()
+	// teammember.DefaultRole holds the default value on creation for the role field.
+	teammember.DefaultRole = teammemberDescRole.Default.(string)
+	// teammember.RoleValidator is a validator for the "role" field. It is called by the builders before save.
+	teammember.RoleValidator = teammemberDescRole.Validators[0].(func(string) error)
+	// teammemberDescStatus is the schema descriptor for status field.
+	teammemberDescStatus := teammemberFields[3].Descriptor()
+	// teammember.DefaultStatus holds the default value on creation for the status field.
+	teammember.DefaultStatus = teammemberDescStatus.Default.(string)
+	// teammember.StatusValidator is a validator for the "status" field. It is called by the builders before save.
+	teammember.StatusValidator = teammemberDescStatus.Validators[0].(func(string) error)
+	// teammemberDescQuotaMode is the schema descriptor for quota_mode field.
+	teammemberDescQuotaMode := teammemberFields[5].Descriptor()
+	// teammember.DefaultQuotaMode holds the default value on creation for the quota_mode field.
+	teammember.DefaultQuotaMode = teammemberDescQuotaMode.Default.(string)
+	// teammember.QuotaModeValidator is a validator for the "quota_mode" field. It is called by the builders before save.
+	teammember.QuotaModeValidator = teammemberDescQuotaMode.Validators[0].(func(string) error)
+	// teammemberDescGrantedNetUsd is the schema descriptor for granted_net_usd field.
+	teammemberDescGrantedNetUsd := teammemberFields[8].Descriptor()
+	// teammember.DefaultGrantedNetUsd holds the default value on creation for the granted_net_usd field.
+	teammember.DefaultGrantedNetUsd = teammemberDescGrantedNetUsd.Default.(float64)
 	usagecleanuptaskMixin := schema.UsageCleanupTask{}.Mixin()
 	usagecleanuptaskMixinFields0 := usagecleanuptaskMixin[0].Fields()
 	_ = usagecleanuptaskMixinFields0

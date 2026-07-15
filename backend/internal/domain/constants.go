@@ -30,6 +30,29 @@ const (
 	PlatformGeneric = "generic"
 )
 
+// Team collaboration constants (zhiguofan fork-only: 企业组织与额度分配 v2)
+const (
+	TeamMemberRoleAdmin  = "admin"
+	TeamMemberRoleMember = "member"
+
+	TeamMemberStatusActive  = "active"
+	TeamMemberStatusRemoved = "removed"
+
+	TeamInvitationStatusPending  = "pending"
+	TeamInvitationStatusAccepted = "accepted"
+	TeamInvitationStatusRevoked  = "revoked"
+	TeamInvitationStatusExpired  = "expired"
+
+	// 额度模式：allocated = 管理员手动划转固定额度；shared = 后台自动补给到目标水位
+	TeamQuotaModeAllocated = "allocated"
+	TeamQuotaModeShared    = "shared"
+
+	// 划转台账方向
+	TeamFundDirectionGrant     = "grant"
+	TeamFundDirectionReclaim   = "reclaim"
+	TeamFundDirectionAutoTopup = "auto_topup"
+)
+
 // Account type constants
 const (
 	AccountTypeAPIKey         = "apikey"          // API Key类型账号

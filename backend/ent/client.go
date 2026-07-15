@@ -30,6 +30,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/channelmonitorhistory"
 	"github.com/Wei-Shaw/sub2api/ent/channelmonitorrequesttemplate"
 	"github.com/Wei-Shaw/sub2api/ent/endpoint"
+	"github.com/Wei-Shaw/sub2api/ent/enterpriseprofile"
 	"github.com/Wei-Shaw/sub2api/ent/errorpassthroughrule"
 	"github.com/Wei-Shaw/sub2api/ent/group"
 	"github.com/Wei-Shaw/sub2api/ent/idempotencyrecord"
@@ -49,6 +50,11 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/securitysecret"
 	"github.com/Wei-Shaw/sub2api/ent/setting"
 	"github.com/Wei-Shaw/sub2api/ent/subscriptionplan"
+	"github.com/Wei-Shaw/sub2api/ent/teamactivitylog"
+	"github.com/Wei-Shaw/sub2api/ent/teamdepartment"
+	"github.com/Wei-Shaw/sub2api/ent/teamfundtransfer"
+	"github.com/Wei-Shaw/sub2api/ent/teaminvitation"
+	"github.com/Wei-Shaw/sub2api/ent/teammember"
 	"github.com/Wei-Shaw/sub2api/ent/tlsfingerprintprofile"
 	"github.com/Wei-Shaw/sub2api/ent/usagecleanuptask"
 	"github.com/Wei-Shaw/sub2api/ent/usagelog"
@@ -97,6 +103,8 @@ type Client struct {
 	ChannelMonitorRequestTemplate *ChannelMonitorRequestTemplateClient
 	// Endpoint is the client for interacting with the Endpoint builders.
 	Endpoint *EndpointClient
+	// EnterpriseProfile is the client for interacting with the EnterpriseProfile builders.
+	EnterpriseProfile *EnterpriseProfileClient
 	// ErrorPassthroughRule is the client for interacting with the ErrorPassthroughRule builders.
 	ErrorPassthroughRule *ErrorPassthroughRuleClient
 	// Group is the client for interacting with the Group builders.
@@ -137,6 +145,16 @@ type Client struct {
 	SubscriptionPlan *SubscriptionPlanClient
 	// TLSFingerprintProfile is the client for interacting with the TLSFingerprintProfile builders.
 	TLSFingerprintProfile *TLSFingerprintProfileClient
+	// TeamActivityLog is the client for interacting with the TeamActivityLog builders.
+	TeamActivityLog *TeamActivityLogClient
+	// TeamDepartment is the client for interacting with the TeamDepartment builders.
+	TeamDepartment *TeamDepartmentClient
+	// TeamFundTransfer is the client for interacting with the TeamFundTransfer builders.
+	TeamFundTransfer *TeamFundTransferClient
+	// TeamInvitation is the client for interacting with the TeamInvitation builders.
+	TeamInvitation *TeamInvitationClient
+	// TeamMember is the client for interacting with the TeamMember builders.
+	TeamMember *TeamMemberClient
 	// UsageCleanupTask is the client for interacting with the UsageCleanupTask builders.
 	UsageCleanupTask *UsageCleanupTaskClient
 	// UsageLog is the client for interacting with the UsageLog builders.
@@ -179,6 +197,7 @@ func (c *Client) init() {
 	c.ChannelMonitorHistory = NewChannelMonitorHistoryClient(c.config)
 	c.ChannelMonitorRequestTemplate = NewChannelMonitorRequestTemplateClient(c.config)
 	c.Endpoint = NewEndpointClient(c.config)
+	c.EnterpriseProfile = NewEnterpriseProfileClient(c.config)
 	c.ErrorPassthroughRule = NewErrorPassthroughRuleClient(c.config)
 	c.Group = NewGroupClient(c.config)
 	c.IdempotencyRecord = NewIdempotencyRecordClient(c.config)
@@ -199,6 +218,11 @@ func (c *Client) init() {
 	c.Setting = NewSettingClient(c.config)
 	c.SubscriptionPlan = NewSubscriptionPlanClient(c.config)
 	c.TLSFingerprintProfile = NewTLSFingerprintProfileClient(c.config)
+	c.TeamActivityLog = NewTeamActivityLogClient(c.config)
+	c.TeamDepartment = NewTeamDepartmentClient(c.config)
+	c.TeamFundTransfer = NewTeamFundTransferClient(c.config)
+	c.TeamInvitation = NewTeamInvitationClient(c.config)
+	c.TeamMember = NewTeamMemberClient(c.config)
 	c.UsageCleanupTask = NewUsageCleanupTaskClient(c.config)
 	c.UsageLog = NewUsageLogClient(c.config)
 	c.User = NewUserClient(c.config)
@@ -314,6 +338,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ChannelMonitorHistory:         NewChannelMonitorHistoryClient(cfg),
 		ChannelMonitorRequestTemplate: NewChannelMonitorRequestTemplateClient(cfg),
 		Endpoint:                      NewEndpointClient(cfg),
+		EnterpriseProfile:             NewEnterpriseProfileClient(cfg),
 		ErrorPassthroughRule:          NewErrorPassthroughRuleClient(cfg),
 		Group:                         NewGroupClient(cfg),
 		IdempotencyRecord:             NewIdempotencyRecordClient(cfg),
@@ -334,6 +359,11 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Setting:                       NewSettingClient(cfg),
 		SubscriptionPlan:              NewSubscriptionPlanClient(cfg),
 		TLSFingerprintProfile:         NewTLSFingerprintProfileClient(cfg),
+		TeamActivityLog:               NewTeamActivityLogClient(cfg),
+		TeamDepartment:                NewTeamDepartmentClient(cfg),
+		TeamFundTransfer:              NewTeamFundTransferClient(cfg),
+		TeamInvitation:                NewTeamInvitationClient(cfg),
+		TeamMember:                    NewTeamMemberClient(cfg),
 		UsageCleanupTask:              NewUsageCleanupTaskClient(cfg),
 		UsageLog:                      NewUsageLogClient(cfg),
 		User:                          NewUserClient(cfg),
@@ -376,6 +406,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ChannelMonitorHistory:         NewChannelMonitorHistoryClient(cfg),
 		ChannelMonitorRequestTemplate: NewChannelMonitorRequestTemplateClient(cfg),
 		Endpoint:                      NewEndpointClient(cfg),
+		EnterpriseProfile:             NewEnterpriseProfileClient(cfg),
 		ErrorPassthroughRule:          NewErrorPassthroughRuleClient(cfg),
 		Group:                         NewGroupClient(cfg),
 		IdempotencyRecord:             NewIdempotencyRecordClient(cfg),
@@ -396,6 +427,11 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Setting:                       NewSettingClient(cfg),
 		SubscriptionPlan:              NewSubscriptionPlanClient(cfg),
 		TLSFingerprintProfile:         NewTLSFingerprintProfileClient(cfg),
+		TeamActivityLog:               NewTeamActivityLogClient(cfg),
+		TeamDepartment:                NewTeamDepartmentClient(cfg),
+		TeamFundTransfer:              NewTeamFundTransferClient(cfg),
+		TeamInvitation:                NewTeamInvitationClient(cfg),
+		TeamMember:                    NewTeamMemberClient(cfg),
 		UsageCleanupTask:              NewUsageCleanupTaskClient(cfg),
 		UsageLog:                      NewUsageLogClient(cfg),
 		User:                          NewUserClient(cfg),
@@ -437,14 +473,15 @@ func (c *Client) Use(hooks ...Hook) {
 		c.AuthIdentity, c.AuthIdentityChannel, c.BatchImageEvent, c.BatchImageItem,
 		c.BatchImageJob, c.ChannelMonitor, c.ChannelMonitorDailyRollup,
 		c.ChannelMonitorHistory, c.ChannelMonitorRequestTemplate, c.Endpoint,
-		c.ErrorPassthroughRule, c.Group, c.IdempotencyRecord,
+		c.EnterpriseProfile, c.ErrorPassthroughRule, c.Group, c.IdempotencyRecord,
 		c.IdentityAdoptionDecision, c.LingjingTask, c.ModelPricing, c.PaymentAuditLog,
 		c.PaymentOrder, c.PaymentProviderInstance, c.PendingAuthSession,
 		c.PricingDriftLog, c.PromoCode, c.PromoCodeUsage, c.ProviderPricing, c.Proxy,
 		c.RedeemCode, c.SecuritySecret, c.Setting, c.SubscriptionPlan,
-		c.TLSFingerprintProfile, c.UsageCleanupTask, c.UsageLog, c.User,
-		c.UserAllowedGroup, c.UserAttributeDefinition, c.UserAttributeValue,
-		c.UserPlatformQuota, c.UserSubscription,
+		c.TLSFingerprintProfile, c.TeamActivityLog, c.TeamDepartment,
+		c.TeamFundTransfer, c.TeamInvitation, c.TeamMember, c.UsageCleanupTask,
+		c.UsageLog, c.User, c.UserAllowedGroup, c.UserAttributeDefinition,
+		c.UserAttributeValue, c.UserPlatformQuota, c.UserSubscription,
 	} {
 		n.Use(hooks...)
 	}
@@ -458,14 +495,15 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.AuthIdentity, c.AuthIdentityChannel, c.BatchImageEvent, c.BatchImageItem,
 		c.BatchImageJob, c.ChannelMonitor, c.ChannelMonitorDailyRollup,
 		c.ChannelMonitorHistory, c.ChannelMonitorRequestTemplate, c.Endpoint,
-		c.ErrorPassthroughRule, c.Group, c.IdempotencyRecord,
+		c.EnterpriseProfile, c.ErrorPassthroughRule, c.Group, c.IdempotencyRecord,
 		c.IdentityAdoptionDecision, c.LingjingTask, c.ModelPricing, c.PaymentAuditLog,
 		c.PaymentOrder, c.PaymentProviderInstance, c.PendingAuthSession,
 		c.PricingDriftLog, c.PromoCode, c.PromoCodeUsage, c.ProviderPricing, c.Proxy,
 		c.RedeemCode, c.SecuritySecret, c.Setting, c.SubscriptionPlan,
-		c.TLSFingerprintProfile, c.UsageCleanupTask, c.UsageLog, c.User,
-		c.UserAllowedGroup, c.UserAttributeDefinition, c.UserAttributeValue,
-		c.UserPlatformQuota, c.UserSubscription,
+		c.TLSFingerprintProfile, c.TeamActivityLog, c.TeamDepartment,
+		c.TeamFundTransfer, c.TeamInvitation, c.TeamMember, c.UsageCleanupTask,
+		c.UsageLog, c.User, c.UserAllowedGroup, c.UserAttributeDefinition,
+		c.UserAttributeValue, c.UserPlatformQuota, c.UserSubscription,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -504,6 +542,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ChannelMonitorRequestTemplate.mutate(ctx, m)
 	case *EndpointMutation:
 		return c.Endpoint.mutate(ctx, m)
+	case *EnterpriseProfileMutation:
+		return c.EnterpriseProfile.mutate(ctx, m)
 	case *ErrorPassthroughRuleMutation:
 		return c.ErrorPassthroughRule.mutate(ctx, m)
 	case *GroupMutation:
@@ -544,6 +584,16 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.SubscriptionPlan.mutate(ctx, m)
 	case *TLSFingerprintProfileMutation:
 		return c.TLSFingerprintProfile.mutate(ctx, m)
+	case *TeamActivityLogMutation:
+		return c.TeamActivityLog.mutate(ctx, m)
+	case *TeamDepartmentMutation:
+		return c.TeamDepartment.mutate(ctx, m)
+	case *TeamFundTransferMutation:
+		return c.TeamFundTransfer.mutate(ctx, m)
+	case *TeamInvitationMutation:
+		return c.TeamInvitation.mutate(ctx, m)
+	case *TeamMemberMutation:
+		return c.TeamMember.mutate(ctx, m)
 	case *UsageCleanupTaskMutation:
 		return c.UsageCleanupTask.mutate(ctx, m)
 	case *UsageLogMutation:
@@ -2896,6 +2946,139 @@ func (c *EndpointClient) mutate(ctx context.Context, m *EndpointMutation) (Value
 		return (&EndpointDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Endpoint mutation op: %q", m.Op())
+	}
+}
+
+// EnterpriseProfileClient is a client for the EnterpriseProfile schema.
+type EnterpriseProfileClient struct {
+	config
+}
+
+// NewEnterpriseProfileClient returns a client for the EnterpriseProfile from the given config.
+func NewEnterpriseProfileClient(c config) *EnterpriseProfileClient {
+	return &EnterpriseProfileClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `enterpriseprofile.Hooks(f(g(h())))`.
+func (c *EnterpriseProfileClient) Use(hooks ...Hook) {
+	c.hooks.EnterpriseProfile = append(c.hooks.EnterpriseProfile, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `enterpriseprofile.Intercept(f(g(h())))`.
+func (c *EnterpriseProfileClient) Intercept(interceptors ...Interceptor) {
+	c.inters.EnterpriseProfile = append(c.inters.EnterpriseProfile, interceptors...)
+}
+
+// Create returns a builder for creating a EnterpriseProfile entity.
+func (c *EnterpriseProfileClient) Create() *EnterpriseProfileCreate {
+	mutation := newEnterpriseProfileMutation(c.config, OpCreate)
+	return &EnterpriseProfileCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of EnterpriseProfile entities.
+func (c *EnterpriseProfileClient) CreateBulk(builders ...*EnterpriseProfileCreate) *EnterpriseProfileCreateBulk {
+	return &EnterpriseProfileCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *EnterpriseProfileClient) MapCreateBulk(slice any, setFunc func(*EnterpriseProfileCreate, int)) *EnterpriseProfileCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &EnterpriseProfileCreateBulk{err: fmt.Errorf("calling to EnterpriseProfileClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*EnterpriseProfileCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &EnterpriseProfileCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for EnterpriseProfile.
+func (c *EnterpriseProfileClient) Update() *EnterpriseProfileUpdate {
+	mutation := newEnterpriseProfileMutation(c.config, OpUpdate)
+	return &EnterpriseProfileUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *EnterpriseProfileClient) UpdateOne(_m *EnterpriseProfile) *EnterpriseProfileUpdateOne {
+	mutation := newEnterpriseProfileMutation(c.config, OpUpdateOne, withEnterpriseProfile(_m))
+	return &EnterpriseProfileUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *EnterpriseProfileClient) UpdateOneID(id int64) *EnterpriseProfileUpdateOne {
+	mutation := newEnterpriseProfileMutation(c.config, OpUpdateOne, withEnterpriseProfileID(id))
+	return &EnterpriseProfileUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for EnterpriseProfile.
+func (c *EnterpriseProfileClient) Delete() *EnterpriseProfileDelete {
+	mutation := newEnterpriseProfileMutation(c.config, OpDelete)
+	return &EnterpriseProfileDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *EnterpriseProfileClient) DeleteOne(_m *EnterpriseProfile) *EnterpriseProfileDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *EnterpriseProfileClient) DeleteOneID(id int64) *EnterpriseProfileDeleteOne {
+	builder := c.Delete().Where(enterpriseprofile.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &EnterpriseProfileDeleteOne{builder}
+}
+
+// Query returns a query builder for EnterpriseProfile.
+func (c *EnterpriseProfileClient) Query() *EnterpriseProfileQuery {
+	return &EnterpriseProfileQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeEnterpriseProfile},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a EnterpriseProfile entity by its id.
+func (c *EnterpriseProfileClient) Get(ctx context.Context, id int64) (*EnterpriseProfile, error) {
+	return c.Query().Where(enterpriseprofile.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *EnterpriseProfileClient) GetX(ctx context.Context, id int64) *EnterpriseProfile {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *EnterpriseProfileClient) Hooks() []Hook {
+	return c.hooks.EnterpriseProfile
+}
+
+// Interceptors returns the client interceptors.
+func (c *EnterpriseProfileClient) Interceptors() []Interceptor {
+	return c.inters.EnterpriseProfile
+}
+
+func (c *EnterpriseProfileClient) mutate(ctx context.Context, m *EnterpriseProfileMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&EnterpriseProfileCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&EnterpriseProfileUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&EnterpriseProfileUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&EnterpriseProfileDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown EnterpriseProfile mutation op: %q", m.Op())
 	}
 }
 
@@ -5883,6 +6066,671 @@ func (c *TLSFingerprintProfileClient) mutate(ctx context.Context, m *TLSFingerpr
 	}
 }
 
+// TeamActivityLogClient is a client for the TeamActivityLog schema.
+type TeamActivityLogClient struct {
+	config
+}
+
+// NewTeamActivityLogClient returns a client for the TeamActivityLog from the given config.
+func NewTeamActivityLogClient(c config) *TeamActivityLogClient {
+	return &TeamActivityLogClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `teamactivitylog.Hooks(f(g(h())))`.
+func (c *TeamActivityLogClient) Use(hooks ...Hook) {
+	c.hooks.TeamActivityLog = append(c.hooks.TeamActivityLog, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `teamactivitylog.Intercept(f(g(h())))`.
+func (c *TeamActivityLogClient) Intercept(interceptors ...Interceptor) {
+	c.inters.TeamActivityLog = append(c.inters.TeamActivityLog, interceptors...)
+}
+
+// Create returns a builder for creating a TeamActivityLog entity.
+func (c *TeamActivityLogClient) Create() *TeamActivityLogCreate {
+	mutation := newTeamActivityLogMutation(c.config, OpCreate)
+	return &TeamActivityLogCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of TeamActivityLog entities.
+func (c *TeamActivityLogClient) CreateBulk(builders ...*TeamActivityLogCreate) *TeamActivityLogCreateBulk {
+	return &TeamActivityLogCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *TeamActivityLogClient) MapCreateBulk(slice any, setFunc func(*TeamActivityLogCreate, int)) *TeamActivityLogCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &TeamActivityLogCreateBulk{err: fmt.Errorf("calling to TeamActivityLogClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*TeamActivityLogCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &TeamActivityLogCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for TeamActivityLog.
+func (c *TeamActivityLogClient) Update() *TeamActivityLogUpdate {
+	mutation := newTeamActivityLogMutation(c.config, OpUpdate)
+	return &TeamActivityLogUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *TeamActivityLogClient) UpdateOne(_m *TeamActivityLog) *TeamActivityLogUpdateOne {
+	mutation := newTeamActivityLogMutation(c.config, OpUpdateOne, withTeamActivityLog(_m))
+	return &TeamActivityLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *TeamActivityLogClient) UpdateOneID(id int64) *TeamActivityLogUpdateOne {
+	mutation := newTeamActivityLogMutation(c.config, OpUpdateOne, withTeamActivityLogID(id))
+	return &TeamActivityLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for TeamActivityLog.
+func (c *TeamActivityLogClient) Delete() *TeamActivityLogDelete {
+	mutation := newTeamActivityLogMutation(c.config, OpDelete)
+	return &TeamActivityLogDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *TeamActivityLogClient) DeleteOne(_m *TeamActivityLog) *TeamActivityLogDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *TeamActivityLogClient) DeleteOneID(id int64) *TeamActivityLogDeleteOne {
+	builder := c.Delete().Where(teamactivitylog.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &TeamActivityLogDeleteOne{builder}
+}
+
+// Query returns a query builder for TeamActivityLog.
+func (c *TeamActivityLogClient) Query() *TeamActivityLogQuery {
+	return &TeamActivityLogQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeTeamActivityLog},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a TeamActivityLog entity by its id.
+func (c *TeamActivityLogClient) Get(ctx context.Context, id int64) (*TeamActivityLog, error) {
+	return c.Query().Where(teamactivitylog.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *TeamActivityLogClient) GetX(ctx context.Context, id int64) *TeamActivityLog {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *TeamActivityLogClient) Hooks() []Hook {
+	return c.hooks.TeamActivityLog
+}
+
+// Interceptors returns the client interceptors.
+func (c *TeamActivityLogClient) Interceptors() []Interceptor {
+	return c.inters.TeamActivityLog
+}
+
+func (c *TeamActivityLogClient) mutate(ctx context.Context, m *TeamActivityLogMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&TeamActivityLogCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&TeamActivityLogUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&TeamActivityLogUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&TeamActivityLogDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown TeamActivityLog mutation op: %q", m.Op())
+	}
+}
+
+// TeamDepartmentClient is a client for the TeamDepartment schema.
+type TeamDepartmentClient struct {
+	config
+}
+
+// NewTeamDepartmentClient returns a client for the TeamDepartment from the given config.
+func NewTeamDepartmentClient(c config) *TeamDepartmentClient {
+	return &TeamDepartmentClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `teamdepartment.Hooks(f(g(h())))`.
+func (c *TeamDepartmentClient) Use(hooks ...Hook) {
+	c.hooks.TeamDepartment = append(c.hooks.TeamDepartment, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `teamdepartment.Intercept(f(g(h())))`.
+func (c *TeamDepartmentClient) Intercept(interceptors ...Interceptor) {
+	c.inters.TeamDepartment = append(c.inters.TeamDepartment, interceptors...)
+}
+
+// Create returns a builder for creating a TeamDepartment entity.
+func (c *TeamDepartmentClient) Create() *TeamDepartmentCreate {
+	mutation := newTeamDepartmentMutation(c.config, OpCreate)
+	return &TeamDepartmentCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of TeamDepartment entities.
+func (c *TeamDepartmentClient) CreateBulk(builders ...*TeamDepartmentCreate) *TeamDepartmentCreateBulk {
+	return &TeamDepartmentCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *TeamDepartmentClient) MapCreateBulk(slice any, setFunc func(*TeamDepartmentCreate, int)) *TeamDepartmentCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &TeamDepartmentCreateBulk{err: fmt.Errorf("calling to TeamDepartmentClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*TeamDepartmentCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &TeamDepartmentCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for TeamDepartment.
+func (c *TeamDepartmentClient) Update() *TeamDepartmentUpdate {
+	mutation := newTeamDepartmentMutation(c.config, OpUpdate)
+	return &TeamDepartmentUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *TeamDepartmentClient) UpdateOne(_m *TeamDepartment) *TeamDepartmentUpdateOne {
+	mutation := newTeamDepartmentMutation(c.config, OpUpdateOne, withTeamDepartment(_m))
+	return &TeamDepartmentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *TeamDepartmentClient) UpdateOneID(id int64) *TeamDepartmentUpdateOne {
+	mutation := newTeamDepartmentMutation(c.config, OpUpdateOne, withTeamDepartmentID(id))
+	return &TeamDepartmentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for TeamDepartment.
+func (c *TeamDepartmentClient) Delete() *TeamDepartmentDelete {
+	mutation := newTeamDepartmentMutation(c.config, OpDelete)
+	return &TeamDepartmentDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *TeamDepartmentClient) DeleteOne(_m *TeamDepartment) *TeamDepartmentDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *TeamDepartmentClient) DeleteOneID(id int64) *TeamDepartmentDeleteOne {
+	builder := c.Delete().Where(teamdepartment.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &TeamDepartmentDeleteOne{builder}
+}
+
+// Query returns a query builder for TeamDepartment.
+func (c *TeamDepartmentClient) Query() *TeamDepartmentQuery {
+	return &TeamDepartmentQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeTeamDepartment},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a TeamDepartment entity by its id.
+func (c *TeamDepartmentClient) Get(ctx context.Context, id int64) (*TeamDepartment, error) {
+	return c.Query().Where(teamdepartment.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *TeamDepartmentClient) GetX(ctx context.Context, id int64) *TeamDepartment {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *TeamDepartmentClient) Hooks() []Hook {
+	return c.hooks.TeamDepartment
+}
+
+// Interceptors returns the client interceptors.
+func (c *TeamDepartmentClient) Interceptors() []Interceptor {
+	return c.inters.TeamDepartment
+}
+
+func (c *TeamDepartmentClient) mutate(ctx context.Context, m *TeamDepartmentMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&TeamDepartmentCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&TeamDepartmentUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&TeamDepartmentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&TeamDepartmentDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown TeamDepartment mutation op: %q", m.Op())
+	}
+}
+
+// TeamFundTransferClient is a client for the TeamFundTransfer schema.
+type TeamFundTransferClient struct {
+	config
+}
+
+// NewTeamFundTransferClient returns a client for the TeamFundTransfer from the given config.
+func NewTeamFundTransferClient(c config) *TeamFundTransferClient {
+	return &TeamFundTransferClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `teamfundtransfer.Hooks(f(g(h())))`.
+func (c *TeamFundTransferClient) Use(hooks ...Hook) {
+	c.hooks.TeamFundTransfer = append(c.hooks.TeamFundTransfer, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `teamfundtransfer.Intercept(f(g(h())))`.
+func (c *TeamFundTransferClient) Intercept(interceptors ...Interceptor) {
+	c.inters.TeamFundTransfer = append(c.inters.TeamFundTransfer, interceptors...)
+}
+
+// Create returns a builder for creating a TeamFundTransfer entity.
+func (c *TeamFundTransferClient) Create() *TeamFundTransferCreate {
+	mutation := newTeamFundTransferMutation(c.config, OpCreate)
+	return &TeamFundTransferCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of TeamFundTransfer entities.
+func (c *TeamFundTransferClient) CreateBulk(builders ...*TeamFundTransferCreate) *TeamFundTransferCreateBulk {
+	return &TeamFundTransferCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *TeamFundTransferClient) MapCreateBulk(slice any, setFunc func(*TeamFundTransferCreate, int)) *TeamFundTransferCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &TeamFundTransferCreateBulk{err: fmt.Errorf("calling to TeamFundTransferClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*TeamFundTransferCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &TeamFundTransferCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for TeamFundTransfer.
+func (c *TeamFundTransferClient) Update() *TeamFundTransferUpdate {
+	mutation := newTeamFundTransferMutation(c.config, OpUpdate)
+	return &TeamFundTransferUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *TeamFundTransferClient) UpdateOne(_m *TeamFundTransfer) *TeamFundTransferUpdateOne {
+	mutation := newTeamFundTransferMutation(c.config, OpUpdateOne, withTeamFundTransfer(_m))
+	return &TeamFundTransferUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *TeamFundTransferClient) UpdateOneID(id int64) *TeamFundTransferUpdateOne {
+	mutation := newTeamFundTransferMutation(c.config, OpUpdateOne, withTeamFundTransferID(id))
+	return &TeamFundTransferUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for TeamFundTransfer.
+func (c *TeamFundTransferClient) Delete() *TeamFundTransferDelete {
+	mutation := newTeamFundTransferMutation(c.config, OpDelete)
+	return &TeamFundTransferDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *TeamFundTransferClient) DeleteOne(_m *TeamFundTransfer) *TeamFundTransferDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *TeamFundTransferClient) DeleteOneID(id int64) *TeamFundTransferDeleteOne {
+	builder := c.Delete().Where(teamfundtransfer.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &TeamFundTransferDeleteOne{builder}
+}
+
+// Query returns a query builder for TeamFundTransfer.
+func (c *TeamFundTransferClient) Query() *TeamFundTransferQuery {
+	return &TeamFundTransferQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeTeamFundTransfer},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a TeamFundTransfer entity by its id.
+func (c *TeamFundTransferClient) Get(ctx context.Context, id int64) (*TeamFundTransfer, error) {
+	return c.Query().Where(teamfundtransfer.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *TeamFundTransferClient) GetX(ctx context.Context, id int64) *TeamFundTransfer {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *TeamFundTransferClient) Hooks() []Hook {
+	return c.hooks.TeamFundTransfer
+}
+
+// Interceptors returns the client interceptors.
+func (c *TeamFundTransferClient) Interceptors() []Interceptor {
+	return c.inters.TeamFundTransfer
+}
+
+func (c *TeamFundTransferClient) mutate(ctx context.Context, m *TeamFundTransferMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&TeamFundTransferCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&TeamFundTransferUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&TeamFundTransferUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&TeamFundTransferDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown TeamFundTransfer mutation op: %q", m.Op())
+	}
+}
+
+// TeamInvitationClient is a client for the TeamInvitation schema.
+type TeamInvitationClient struct {
+	config
+}
+
+// NewTeamInvitationClient returns a client for the TeamInvitation from the given config.
+func NewTeamInvitationClient(c config) *TeamInvitationClient {
+	return &TeamInvitationClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `teaminvitation.Hooks(f(g(h())))`.
+func (c *TeamInvitationClient) Use(hooks ...Hook) {
+	c.hooks.TeamInvitation = append(c.hooks.TeamInvitation, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `teaminvitation.Intercept(f(g(h())))`.
+func (c *TeamInvitationClient) Intercept(interceptors ...Interceptor) {
+	c.inters.TeamInvitation = append(c.inters.TeamInvitation, interceptors...)
+}
+
+// Create returns a builder for creating a TeamInvitation entity.
+func (c *TeamInvitationClient) Create() *TeamInvitationCreate {
+	mutation := newTeamInvitationMutation(c.config, OpCreate)
+	return &TeamInvitationCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of TeamInvitation entities.
+func (c *TeamInvitationClient) CreateBulk(builders ...*TeamInvitationCreate) *TeamInvitationCreateBulk {
+	return &TeamInvitationCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *TeamInvitationClient) MapCreateBulk(slice any, setFunc func(*TeamInvitationCreate, int)) *TeamInvitationCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &TeamInvitationCreateBulk{err: fmt.Errorf("calling to TeamInvitationClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*TeamInvitationCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &TeamInvitationCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for TeamInvitation.
+func (c *TeamInvitationClient) Update() *TeamInvitationUpdate {
+	mutation := newTeamInvitationMutation(c.config, OpUpdate)
+	return &TeamInvitationUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *TeamInvitationClient) UpdateOne(_m *TeamInvitation) *TeamInvitationUpdateOne {
+	mutation := newTeamInvitationMutation(c.config, OpUpdateOne, withTeamInvitation(_m))
+	return &TeamInvitationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *TeamInvitationClient) UpdateOneID(id int64) *TeamInvitationUpdateOne {
+	mutation := newTeamInvitationMutation(c.config, OpUpdateOne, withTeamInvitationID(id))
+	return &TeamInvitationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for TeamInvitation.
+func (c *TeamInvitationClient) Delete() *TeamInvitationDelete {
+	mutation := newTeamInvitationMutation(c.config, OpDelete)
+	return &TeamInvitationDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *TeamInvitationClient) DeleteOne(_m *TeamInvitation) *TeamInvitationDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *TeamInvitationClient) DeleteOneID(id int64) *TeamInvitationDeleteOne {
+	builder := c.Delete().Where(teaminvitation.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &TeamInvitationDeleteOne{builder}
+}
+
+// Query returns a query builder for TeamInvitation.
+func (c *TeamInvitationClient) Query() *TeamInvitationQuery {
+	return &TeamInvitationQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeTeamInvitation},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a TeamInvitation entity by its id.
+func (c *TeamInvitationClient) Get(ctx context.Context, id int64) (*TeamInvitation, error) {
+	return c.Query().Where(teaminvitation.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *TeamInvitationClient) GetX(ctx context.Context, id int64) *TeamInvitation {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *TeamInvitationClient) Hooks() []Hook {
+	return c.hooks.TeamInvitation
+}
+
+// Interceptors returns the client interceptors.
+func (c *TeamInvitationClient) Interceptors() []Interceptor {
+	return c.inters.TeamInvitation
+}
+
+func (c *TeamInvitationClient) mutate(ctx context.Context, m *TeamInvitationMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&TeamInvitationCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&TeamInvitationUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&TeamInvitationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&TeamInvitationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown TeamInvitation mutation op: %q", m.Op())
+	}
+}
+
+// TeamMemberClient is a client for the TeamMember schema.
+type TeamMemberClient struct {
+	config
+}
+
+// NewTeamMemberClient returns a client for the TeamMember from the given config.
+func NewTeamMemberClient(c config) *TeamMemberClient {
+	return &TeamMemberClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `teammember.Hooks(f(g(h())))`.
+func (c *TeamMemberClient) Use(hooks ...Hook) {
+	c.hooks.TeamMember = append(c.hooks.TeamMember, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `teammember.Intercept(f(g(h())))`.
+func (c *TeamMemberClient) Intercept(interceptors ...Interceptor) {
+	c.inters.TeamMember = append(c.inters.TeamMember, interceptors...)
+}
+
+// Create returns a builder for creating a TeamMember entity.
+func (c *TeamMemberClient) Create() *TeamMemberCreate {
+	mutation := newTeamMemberMutation(c.config, OpCreate)
+	return &TeamMemberCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of TeamMember entities.
+func (c *TeamMemberClient) CreateBulk(builders ...*TeamMemberCreate) *TeamMemberCreateBulk {
+	return &TeamMemberCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *TeamMemberClient) MapCreateBulk(slice any, setFunc func(*TeamMemberCreate, int)) *TeamMemberCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &TeamMemberCreateBulk{err: fmt.Errorf("calling to TeamMemberClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*TeamMemberCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &TeamMemberCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for TeamMember.
+func (c *TeamMemberClient) Update() *TeamMemberUpdate {
+	mutation := newTeamMemberMutation(c.config, OpUpdate)
+	return &TeamMemberUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *TeamMemberClient) UpdateOne(_m *TeamMember) *TeamMemberUpdateOne {
+	mutation := newTeamMemberMutation(c.config, OpUpdateOne, withTeamMember(_m))
+	return &TeamMemberUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *TeamMemberClient) UpdateOneID(id int64) *TeamMemberUpdateOne {
+	mutation := newTeamMemberMutation(c.config, OpUpdateOne, withTeamMemberID(id))
+	return &TeamMemberUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for TeamMember.
+func (c *TeamMemberClient) Delete() *TeamMemberDelete {
+	mutation := newTeamMemberMutation(c.config, OpDelete)
+	return &TeamMemberDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *TeamMemberClient) DeleteOne(_m *TeamMember) *TeamMemberDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *TeamMemberClient) DeleteOneID(id int64) *TeamMemberDeleteOne {
+	builder := c.Delete().Where(teammember.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &TeamMemberDeleteOne{builder}
+}
+
+// Query returns a query builder for TeamMember.
+func (c *TeamMemberClient) Query() *TeamMemberQuery {
+	return &TeamMemberQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeTeamMember},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a TeamMember entity by its id.
+func (c *TeamMemberClient) Get(ctx context.Context, id int64) (*TeamMember, error) {
+	return c.Query().Where(teammember.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *TeamMemberClient) GetX(ctx context.Context, id int64) *TeamMember {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *TeamMemberClient) Hooks() []Hook {
+	return c.hooks.TeamMember
+}
+
+// Interceptors returns the client interceptors.
+func (c *TeamMemberClient) Interceptors() []Interceptor {
+	return c.inters.TeamMember
+}
+
+func (c *TeamMemberClient) mutate(ctx context.Context, m *TeamMemberMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&TeamMemberCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&TeamMemberUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&TeamMemberUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&TeamMemberDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown TeamMember mutation op: %q", m.Op())
+	}
+}
+
 // UsageCleanupTaskClient is a client for the UsageCleanupTask schema.
 type UsageCleanupTaskClient struct {
 	config
@@ -7376,25 +8224,29 @@ type (
 		APIKey, Account, AccountGroup, Announcement, AnnouncementRead, AuthIdentity,
 		AuthIdentityChannel, BatchImageEvent, BatchImageItem, BatchImageJob,
 		ChannelMonitor, ChannelMonitorDailyRollup, ChannelMonitorHistory,
-		ChannelMonitorRequestTemplate, Endpoint, ErrorPassthroughRule, Group,
-		IdempotencyRecord, IdentityAdoptionDecision, LingjingTask, ModelPricing,
-		PaymentAuditLog, PaymentOrder, PaymentProviderInstance, PendingAuthSession,
-		PricingDriftLog, PromoCode, PromoCodeUsage, ProviderPricing, Proxy, RedeemCode,
-		SecuritySecret, Setting, SubscriptionPlan, TLSFingerprintProfile,
-		UsageCleanupTask, UsageLog, User, UserAllowedGroup, UserAttributeDefinition,
-		UserAttributeValue, UserPlatformQuota, UserSubscription []ent.Hook
+		ChannelMonitorRequestTemplate, Endpoint, EnterpriseProfile,
+		ErrorPassthroughRule, Group, IdempotencyRecord, IdentityAdoptionDecision,
+		LingjingTask, ModelPricing, PaymentAuditLog, PaymentOrder,
+		PaymentProviderInstance, PendingAuthSession, PricingDriftLog, PromoCode,
+		PromoCodeUsage, ProviderPricing, Proxy, RedeemCode, SecuritySecret, Setting,
+		SubscriptionPlan, TLSFingerprintProfile, TeamActivityLog, TeamDepartment,
+		TeamFundTransfer, TeamInvitation, TeamMember, UsageCleanupTask, UsageLog, User,
+		UserAllowedGroup, UserAttributeDefinition, UserAttributeValue,
+		UserPlatformQuota, UserSubscription []ent.Hook
 	}
 	inters struct {
 		APIKey, Account, AccountGroup, Announcement, AnnouncementRead, AuthIdentity,
 		AuthIdentityChannel, BatchImageEvent, BatchImageItem, BatchImageJob,
 		ChannelMonitor, ChannelMonitorDailyRollup, ChannelMonitorHistory,
-		ChannelMonitorRequestTemplate, Endpoint, ErrorPassthroughRule, Group,
-		IdempotencyRecord, IdentityAdoptionDecision, LingjingTask, ModelPricing,
-		PaymentAuditLog, PaymentOrder, PaymentProviderInstance, PendingAuthSession,
-		PricingDriftLog, PromoCode, PromoCodeUsage, ProviderPricing, Proxy, RedeemCode,
-		SecuritySecret, Setting, SubscriptionPlan, TLSFingerprintProfile,
-		UsageCleanupTask, UsageLog, User, UserAllowedGroup, UserAttributeDefinition,
-		UserAttributeValue, UserPlatformQuota, UserSubscription []ent.Interceptor
+		ChannelMonitorRequestTemplate, Endpoint, EnterpriseProfile,
+		ErrorPassthroughRule, Group, IdempotencyRecord, IdentityAdoptionDecision,
+		LingjingTask, ModelPricing, PaymentAuditLog, PaymentOrder,
+		PaymentProviderInstance, PendingAuthSession, PricingDriftLog, PromoCode,
+		PromoCodeUsage, ProviderPricing, Proxy, RedeemCode, SecuritySecret, Setting,
+		SubscriptionPlan, TLSFingerprintProfile, TeamActivityLog, TeamDepartment,
+		TeamFundTransfer, TeamInvitation, TeamMember, UsageCleanupTask, UsageLog, User,
+		UserAllowedGroup, UserAttributeDefinition, UserAttributeValue,
+		UserPlatformQuota, UserSubscription []ent.Interceptor
 	}
 )
 

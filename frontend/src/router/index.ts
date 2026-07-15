@@ -206,6 +206,28 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/team/members',
+    name: 'TeamMembers',
+    component: () => import('@/views/user/TeamMembersView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'Team',
+      titleKey: 'nav.team'
+    }
+  },
+  {
+    path: '/team/invite/accept',
+    name: 'TeamInviteAccept',
+    component: () => import('@/views/user/TeamInviteAcceptView.vue'),
+    meta: {
+      requiresAuth: false,
+      requiresAdmin: false,
+      title: 'Accept Team Invitation',
+      titleKey: 'team.invite.title'
+    }
+  },
+  {
     path: '/batch-image',
     name: 'BatchImageGuide',
     alias: '/docs/batch-image',

@@ -65,6 +65,38 @@ func RegisterUserRoutes(
 			keys.DELETE("/:id", h.APIKey.Delete)
 		}
 
+		// 企业组织与额度分配（Team 协作 v2，zhiguofan fork-only）
+		team := authenticated.Group("/team")
+		{
+			team.POST("/invitations/accept/:token", h.Team.AcceptInvitation)
+			team.POST("/invitations", h.Team.InviteMember)
+			team.GET("/invitations", h.Team.ListInvitations)
+			team.POST("/invitations/:id/resend", h.Team.ResendInvitation)
+			team.DELETE("/invitations/:id", h.Team.RevokeInvitation)
+			team.GET("/members", h.Team.ListMembers)
+			team.DELETE("/members/:member_user_id", h.Team.RemoveMember)
+			team.PUT("/members/:member_user_id/department", h.Team.SetMemberDepartment)
+			team.PUT("/members/:member_user_id/quota-settings", h.Team.SetMemberQuotaSettings)
+			team.PUT("/members/:member_user_id/role", h.Team.SetMemberRole)
+			team.POST("/members/:member_user_id/grant", h.Team.GrantToMember)
+			team.POST("/members/:member_user_id/reclaim", h.Team.ReclaimFromMember)
+			team.GET("/members/:member_user_id/usage-stats", h.Team.GetMemberUsageStats)
+			team.GET("/departments", h.Team.ListDepartments)
+			team.POST("/departments", h.Team.CreateDepartment)
+			team.PUT("/departments/:id", h.Team.UpdateDepartment)
+			team.DELETE("/departments/:id", h.Team.DeleteDepartment)
+			team.GET("/transfers", h.Team.ListTransfers)
+			team.GET("/report", h.Team.GetReport)
+		}
+		authenticated.GET("/teams", h.Team.ListMyTeams)
+
+		// 企业客户自助升级（zhiguofan fork-only: Team 协作 v2）
+		enterprise := authenticated.Group("/enterprise")
+		{
+			enterprise.POST("/profile", h.Enterprise.Upgrade)
+			enterprise.GET("/profile", h.Enterprise.GetProfile)
+		}
+
 		// 用户可用分组（非管理员接口）
 		groups := authenticated.Group("/groups")
 		{
@@ -87,11 +119,14 @@ func RegisterUserRoutes(
 			usage.GET("/:id", h.Usage.GetByID)
 			usage.GET("/stats", h.Usage.Stats)
 			// User dashboard endpoints
-			usage.GET("/dashboard/stats", h.Usage.DashboardStats)
-			usage.GET("/dashboard/trend", h.Usage.DashboardTrend)
-			usage.GET("/dashboard/models", h.Usage.DashboardModels)
-			usage.GET("/dashboard/snapshot-v2", h.Usage.DashboardSnapshotV2)
-			usage.POST("/dashboard/api-keys-usage", h.Usage.DashboardAPIKeysUsage)
+			dashboard := usage.Group("/dashboard")
+			{
+				dashboard.GET("/stats", h.Usage.DashboardStats)
+				dashboard.GET("/trend", h.Usage.DashboardTrend)
+				dashboard.GET("/models", h.Usage.DashboardModels)
+				dashboard.GET("/snapshot-v2", h.Usage.DashboardSnapshotV2)
+				dashboard.POST("/api-keys-usage", h.Usage.DashboardAPIKeysUsage)
+			}
 		}
 
 		// 模型列表（用户可见的全部模型 + 定价信息）

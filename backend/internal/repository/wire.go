@@ -101,6 +101,12 @@ var ProviderSet = wire.NewSet(
 	NewSmsCache,                        // 功能29：手机号短信验证码 Redis 缓存
 	NewUserPlatformQuotaRepository,     // T14: user × platform quota
 	NewUserPlatformQuotaServiceAdapter, // T14: adapter → service.UserPlatformQuotaRepository
+	NewTeamMemberRepository,             // zhiguofan fork-only: 企业组织与额度分配（Team 协作 v2）
+	NewTeamInvitationRepository,        // zhiguofan fork-only: 企业组织与额度分配（Team 协作 v2）
+	NewTeamActivityLogRepository,       // zhiguofan fork-only: 企业控制面审计日志
+	NewEnterpriseProfileRepository,     // zhiguofan fork-only: 企业客户资料
+	NewTeamDepartmentRepository,        // zhiguofan fork-only: 企业一级部门
+	NewTeamFundRepository,              // zhiguofan fork-only: 企业↔员工余额划转
 
 	// Cache implementations
 	NewGatewayCache,

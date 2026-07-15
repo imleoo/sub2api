@@ -74,6 +74,15 @@ func ProvideDashboardAggregationService(repo DashboardAggregationRepository, tim
 	return svc
 }
 
+// ProvideTeamAutoTopupService 创建并启动企业共享额度自动补给后台服务。
+// zhiguofan fork-only: 企业组织与额度分配（Team 协作 v2）。
+func ProvideTeamAutoTopupService(memberRepo TeamMemberRepository, fundRepo TeamFundRepository, activityRepo TeamActivityLogRepository, lockCache LeaderLockCache, db *sql.DB) *TeamAutoTopupService {
+	svc := NewTeamAutoTopupService(memberRepo, fundRepo, activityRepo)
+	svc.SetLeaderLock(lockCache, db)
+	svc.Start()
+	return svc
+}
+
 // ProvideUsageCleanupService 创建并启动使用记录清理任务服务
 func ProvideUsageCleanupService(repo UsageCleanupRepository, timingWheel *TimingWheelService, dashboardAgg *DashboardAggregationService, cfg *config.Config) *UsageCleanupService {
 	svc := NewUsageCleanupService(repo, timingWheel, dashboardAgg, cfg)
@@ -520,6 +529,12 @@ var ProviderSet = wire.NewSet(
 	ProvideUserPlatformQuotaUsageFlusher,
 	NewSmsService,          // 功能29/30：短信验证码服务（多服务商）
 	NewModelRoutingService, // 功能34：可路由模型计算（后台=广场口径）
+	NewTeamService,               // zhiguofan fork-only: 企业组织与额度分配（Team 协作 v2）
+	NewEnterpriseService,         // zhiguofan fork-only: 企业客户自助升级
+	NewTeamDepartmentService,     // zhiguofan fork-only: 企业一级部门
+	NewTeamFundService,           // zhiguofan fork-only: 企业↔员工余额划转
+	NewTeamUsageStatsProvider,    // zhiguofan fork-only: 报表用量聚合适配器
+	ProvideTeamAutoTopupService,  // zhiguofan fork-only: 共享额度自动补给后台服务
 )
 
 // ProvideUserPlatformQuotaUsageFlusher 创建并启动 UserPlatformQuotaUsageFlusher。

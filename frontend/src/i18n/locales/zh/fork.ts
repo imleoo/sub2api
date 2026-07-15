@@ -40,7 +40,8 @@ export default {
   nav: {
     models: "模型广场",
     playground: "模型体验",
-    modelDiscounts: "模型折扣"
+    modelDiscounts: "模型折扣",
+    team: "团队协作"
   },
   auth: {
     errors: {
@@ -435,5 +436,132 @@ export default {
     contextWindow: "上下文窗口",
     features: "能力",
     promptCaching: "缓存"
+  },
+  team: {
+    orgSwitcher: {
+      label: "正在管理",
+      own: "我的企业"
+    },
+    members: {
+      title: "企业成员",
+      description: "员工使用自己的账号和 API Key，企业为其分配额度",
+      tabMembers: "成员",
+      tabDepartments: "部门",
+      tabInvitations: "邀请",
+      tabTransfers: "台账",
+      tabReport: "报表",
+      inviteTitle: "邀请员工",
+      inviteEmailPlaceholder: "输入员工邮箱",
+      inviteDepartment: "所属部门",
+      inviteDepartmentNone: "不设部门",
+      inviteRole: "角色",
+      inviteRoleMember: "普通员工",
+      inviteRoleAdmin: "管理员",
+      inviteQuotaMode: "额度模式",
+      inviteQuotaModeAllocated: "分配额度（手动划转）",
+      inviteQuotaModeShared: "共享额度（自动补给）",
+      inviteInitialGrant: "初始划转额度（可选）",
+      inviteSubmit: "发送邀请",
+      inviteSuccess: "邀请已发送",
+      inviteHint: "支持邀请尚未注册的邮箱，对方注册/登录后即可接受邀请",
+      pendingInvitations: "待处理邀请",
+      noPendingInvitations: "暂无待处理邀请",
+      revoke: "撤销",
+      resend: "重新发送",
+      resendSuccess: "邀请邮件已重新发送",
+      revokeConfirm: "确定撤销这条邀请吗？",
+      expiresAt: "过期时间",
+      memberList: "成员列表",
+      owner: "所有者",
+      admin: "管理员",
+      member: "员工",
+      department: "部门",
+      noDepartment: "未分配",
+      quotaMode: "额度模式",
+      quotaModeAllocated: "分配额度",
+      quotaModeShared: "共享额度",
+      grantedNet: "企业净投入",
+      joinedAt: "加入时间",
+      remove: "移除",
+      removeConfirm: "确定要移除该成员吗？",
+      grant: "划转额度",
+      reclaim: "回收额度",
+      grantTitle: "划转额度给 {email}",
+      reclaimTitle: "从 {email} 回收额度",
+      amountLabel: "金额",
+      noteLabel: "备注（可选）",
+      confirm: "确认",
+      cancel: "取消",
+      grantSuccess: "划转成功",
+      reclaimSuccess: "回收成功",
+      setDepartment: "设置部门",
+      setQuota: "设置额度模式",
+      setRole: "设置角色",
+      viewUsage: "查看",
+      quotaThreshold: "补给阈值",
+      quotaTarget: "补给目标水位",
+      quotaSharedHint: "余额低于阈值时自动从企业余额划转补到目标水位（分钟级延迟）",
+      updateSuccess: "已更新"
+    },
+    departments: {
+      title: "部门管理",
+      nameLabel: "部门名称",
+      createSubmit: "创建部门",
+      empty: "暂无部门",
+      edit: "编辑",
+      delete: "删除",
+      deleteConfirm: "确定删除该部门吗？成员将自动移出该部门",
+      createSuccess: "部门已创建",
+      updateSuccess: "部门已更新",
+      deleteSuccess: "部门已删除"
+    },
+    transfers: {
+      title: "划转台账",
+      empty: "暂无划转记录",
+      direction: "类型",
+      directionGrant: "划转",
+      directionReclaim: "回收",
+      directionAutoTopup: "自动补给",
+      amount: "金额",
+      operator: "操作人",
+      time: "时间",
+      note: "备注"
+    },
+    report: {
+      title: "成员报表",
+      balance: "当前余额",
+      grantedNet: "企业净投入",
+      usage: "使用统计"
+    },
+    invite: {
+      title: "接受企业邀请",
+      accepting: "正在处理邀请...",
+      success: "已成功加入企业",
+      goToTeam: "查看企业",
+      loginRequired: "请先登录或注册，然后重新点击邮件中的邀请链接",
+      goToLogin: "去登录"
+    }
+  },
+  enterprise: {
+    upgrade: {
+      title: "升级为企业客户",
+      description: "补充企业信息即可升级，之后可邀请员工加入并分配额度",
+      companyNameLabel: "企业名称",
+      companyNamePlaceholder: "请输入企业名称",
+      contactNameLabel: "联系人",
+      contactPhoneLabel: "联系电话",
+      industryLabel: "所属行业",
+      submit: "立即升级",
+      success: "升级成功，现在可以邀请员工加入企业了",
+      manageLink: "管理企业成员"
+    },
+    profile: {
+      title: "企业信息",
+      companyName: "企业名称",
+      contactName: "联系人",
+      contactPhone: "联系电话",
+      industry: "所属行业",
+      upgradedAt: "升级时间"
+    }
   }
 }

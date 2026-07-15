@@ -6,6 +6,31 @@
 
 ---
 
+## 新功能 - 2026-07-15 — 企业组织与额度分配（Team 协作 v2）
+
+新增功能 44（详见 `自定义开发功能列表.md` 功能 44、方案文档
+`claudedocs/企业账号多管理员共享额度与Key方案.md`）：用户注册后补充企业信息自助升级为企业客户，
+邀请员工加入企业（可指定一级部门、角色、额度模式与初始额度）；员工保留独立账号并**自行管理自己的
+API Key**；企业通过**真实余额划转**给员工分配额度（`allocated` 手动划转 / `shared` 后台自动补给到
+目标水位），全部划转进 `team_fund_transfers` 台账；三档角色 `owner`（隐式超管）/`admin`（部门、
+邀请、划转回收、报表，可设多个）/`member`。
+
+计费模型采用「真实划转余额」：员工 Key 的 owner 就是员工本人，消费扣员工自己的余额，**网关热路径/
+api_keys/usage_logs 零改动**（`DeductBalance` 为原子自减，与划转事务的双行 FOR UPDATE 固定锁序
+并发安全）。回收上限 = min(企业净投入 granted_net_usd, 员工当前余额)。
+
+后端：新表 `enterprise_profiles`/`team_departments`/`team_fund_transfers` + `team_members`/
+`team_invitations` 加列（部门/额度模式/自动补给水位/净投入）；`TeamFundService` 原子划转、
+`TeamAutoTopupService` 后台补给（`tryAcquireSingletonLeaderLock` 多实例互斥）、企业升级与部门
+CRUD、成员报表（复用 `GetBatchUserUsageStats`）。保留 v1 的邀请 token/邮件/60s 重发限流/行锁
+接受/成员上限 50/活动审计。
+
+本次同时**废弃回退 v1「共享控制面」模式**（同分支未推送的中间态）：删除 `middleware.TeamContext`
+（X-Team-Id 上下文切换）及 ~26 处 handler 的 `GetResourceOwnerID` 接入点（回退 `subject.UserID`）、
+前端 TeamSwitcher/TeamContextBanner/请求头注入。废弃原因：共管同一批 Key 不符合企业管理要求。
+
+---
+
 ## 清理 - 2026-07-14 — 删除 credentialsBuilder.ts 的 plan_type 孤儿函数
 
 2026-07-13 文档审计曾决定保留 `frontend/src/components/account/credentialsBuilder.ts` 里

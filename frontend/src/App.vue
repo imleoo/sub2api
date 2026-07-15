@@ -8,6 +8,7 @@ import { resolveRouteDocumentTitle } from '@/router/title'
 import AnnouncementPopup from '@/components/common/AnnouncementPopup.vue'
 import { useAppStore, useAuthStore, useSubscriptionStore, useAnnouncementStore, useAdminComplianceStore, useAdminSettingsStore } from '@/stores'
 import { getSetupStatus } from '@/api/setup'
+import { useTeamStore } from '@/stores/team'
 
 const router = useRouter()
 const route = useRoute()
@@ -17,6 +18,7 @@ const subscriptionStore = useSubscriptionStore()
 const announcementStore = useAnnouncementStore()
 const adminComplianceStore = useAdminComplianceStore()
 const adminSettingsStore = useAdminSettingsStore()
+const teamStore = useTeamStore()
 
 function updateDocumentTitle() {
   const customMenuItems = [
@@ -111,6 +113,7 @@ watch(
       subscriptionStore.clear()
       announcementStore.reset()
       adminComplianceStore.reset()
+      teamStore.reset()
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }
   },
