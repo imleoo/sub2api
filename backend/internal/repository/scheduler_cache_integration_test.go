@@ -109,8 +109,8 @@ func TestSchedulerCacheRetireAndReopenFencesOldEpochIntegration(t *testing.T) {
 	ctx := context.Background()
 	rdb := testRedis(t)
 	cache := NewSchedulerCache(rdb)
-	bucket := service.SchedulerBucket{GroupID: 77, Platform: service.PlatformAntigravity, Mode: service.SchedulerModeForced}
-	account := service.Account{ID: 7701, Platform: service.PlatformAntigravity, Type: service.AccountTypeOAuth}
+	bucket := service.SchedulerBucket{GroupID: 77, Platform: service.PlatformOpenAI, Mode: service.SchedulerModeForced}
+	account := service.Account{ID: 7701, Platform: service.PlatformOpenAI, Type: service.AccountTypeAPIKey}
 
 	oldToken, err := cache.CaptureBucketWriteToken(ctx, bucket)
 	require.NoError(t, err)

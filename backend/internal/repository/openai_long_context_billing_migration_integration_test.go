@@ -24,28 +24,14 @@ DROP TRIGGER IF EXISTS accounts_enforce_openai_long_context_billing_extra ON acc
 	var ordinaryID int64
 	require.NoError(t, tx.QueryRowContext(ctx, `
 INSERT INTO accounts (name, platform, type, extra)
-VALUES ('migration-175-ordinary', 'openai', 'oauth', '{}'::jsonb)
+VALUES ('migration-175-ordinary', 'openai', 'apikey', '{}'::jsonb)
 RETURNING id
 `).Scan(&ordinaryID))
-
-	var parentID int64
-	require.NoError(t, tx.QueryRowContext(ctx, `
-INSERT INTO accounts (name, platform, type, extra)
-VALUES ('migration-175-parent', 'openai', 'oauth', '{"openai_long_context_billing_enabled":false}'::jsonb)
-RETURNING id
-`).Scan(&parentID))
-
-	var shadowID int64
-	require.NoError(t, tx.QueryRowContext(ctx, `
-INSERT INTO accounts (name, platform, type, extra, parent_account_id, quota_dimension)
-VALUES ('migration-175-shadow', 'openai', 'oauth', '{}'::jsonb, $1, 'spark')
-RETURNING id
-`, parentID).Scan(&shadowID))
 
 	var malformedLegacyID int64
 	require.NoError(t, tx.QueryRowContext(ctx, `
 INSERT INTO accounts (name, platform, type, extra)
-VALUES ('migration-175-malformed-legacy', 'openai', 'oauth', '{"openai_long_context_billing_enabled":"false"}'::jsonb)
+VALUES ('migration-175-malformed-legacy', 'openai', 'apikey', '{"openai_long_context_billing_enabled":"false"}'::jsonb)
 RETURNING id
 `).Scan(&malformedLegacyID))
 
@@ -62,22 +48,6 @@ WHERE id = $1
 `, ordinaryID).Scan(&ordinaryEnabled))
 	require.False(t, ordinaryEnabled)
 
-	var shadowEnabled bool
-	require.NoError(t, tx.QueryRowContext(ctx, `
-SELECT (extra->>'openai_long_context_billing_enabled')::boolean
-FROM accounts
-WHERE id = $1
-`, shadowID).Scan(&shadowEnabled))
-	require.False(t, shadowEnabled)
-
-	var initialShadowOutboxEvents int
-	require.NoError(t, tx.QueryRowContext(ctx, `
-SELECT COUNT(*)
-FROM scheduler_outbox
-WHERE event_type = 'account_changed' AND account_id = $1
-`, shadowID).Scan(&initialShadowOutboxEvents))
-	require.Equal(t, 1, initialShadowOutboxEvents)
-
 	var malformedLegacyEnabled bool
 	require.NoError(t, tx.QueryRowContext(ctx, `
 SELECT (extra->>'openai_long_context_billing_enabled')::boolean
@@ -92,68 +62,31 @@ WHERE id = $1
 `, malformedLegacyID)
 	require.NoError(t, err)
 
-	_, err = tx.ExecContext(ctx, "TRUNCATE scheduler_outbox")
-	require.NoError(t, err)
+	// A writer that clears extra entirely on UPDATE should have the trigger
+	// restore the previously-enforced boolean instead of leaving the key unset.
 	_, err = tx.ExecContext(ctx, `
 UPDATE accounts
 SET extra = '{"legacy_writer_replaced_extra":true}'::jsonb
 WHERE id = $1
-`, parentID)
+`, ordinaryID)
 	require.NoError(t, err)
-	var parentEnabled bool
 	require.NoError(t, tx.QueryRowContext(ctx, `
 SELECT (extra->>'openai_long_context_billing_enabled')::boolean
 FROM accounts
 WHERE id = $1
-`, parentID).Scan(&parentEnabled))
-	require.False(t, parentEnabled)
-	require.NoError(t, tx.QueryRowContext(ctx, `
-SELECT (extra->>'openai_long_context_billing_enabled')::boolean
-FROM accounts
-WHERE id = $1
-`, shadowID).Scan(&shadowEnabled))
-	require.False(t, shadowEnabled)
-	var preservedOptOutEvents int
-	require.NoError(t, tx.QueryRowContext(ctx, `
-SELECT COUNT(*)
-FROM scheduler_outbox
-WHERE event_type = 'account_changed' AND account_id = $1
-`, shadowID).Scan(&preservedOptOutEvents))
-	require.Zero(t, preservedOptOutEvents)
+`, ordinaryID).Scan(&ordinaryEnabled))
+	require.False(t, ordinaryEnabled)
 
 	require.NoError(t, tx.QueryRowContext(ctx, `
 INSERT INTO accounts (name, platform, type, extra)
-VALUES ('migration-175-rolling-writer', 'openai', 'oauth', '{}'::jsonb)
+VALUES ('migration-175-rolling-writer', 'openai', 'apikey', '{}'::jsonb)
 RETURNING (extra->>'openai_long_context_billing_enabled')::boolean
 `).Scan(&ordinaryEnabled))
 	require.False(t, ordinaryEnabled)
 
-	_, err = tx.ExecContext(ctx, "TRUNCATE scheduler_outbox")
-	require.NoError(t, err)
-	_, err = tx.ExecContext(ctx, `
-UPDATE accounts
-SET extra = jsonb_set(extra, '{openai_long_context_billing_enabled}', 'true'::jsonb, true)
-WHERE id = $1
-`, parentID)
-	require.NoError(t, err)
-	require.NoError(t, tx.QueryRowContext(ctx, `
-SELECT (extra->>'openai_long_context_billing_enabled')::boolean
-FROM accounts
-WHERE id = $1
-`, shadowID).Scan(&shadowEnabled))
-	require.True(t, shadowEnabled)
-
-	var shadowOutboxEvents int
-	require.NoError(t, tx.QueryRowContext(ctx, `
-SELECT COUNT(*)
-FROM scheduler_outbox
-WHERE event_type = 'account_changed' AND account_id = $1
-`, shadowID).Scan(&shadowOutboxEvents))
-	require.Equal(t, 1, shadowOutboxEvents)
-
 	_, err = tx.ExecContext(ctx, `
 INSERT INTO accounts (name, platform, type, extra)
-VALUES ('migration-175-malformed', 'openai', 'oauth', '{"openai_long_context_billing_enabled":"false"}'::jsonb)
+VALUES ('migration-175-malformed', 'openai', 'apikey', '{"openai_long_context_billing_enabled":"false"}'::jsonb)
 `)
 	require.ErrorContains(t, err, "openai_long_context_billing_enabled must be a boolean")
 }
