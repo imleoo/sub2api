@@ -15,6 +15,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/handler/admin"
 	"github.com/Wei-Shaw/sub2api/internal/payment"
 	"github.com/Wei-Shaw/sub2api/internal/repository"
+	"github.com/Wei-Shaw/sub2api/internal/securityaudit"
 	"github.com/Wei-Shaw/sub2api/internal/server"
 	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
 	"github.com/Wei-Shaw/sub2api/internal/service"
@@ -146,10 +147,6 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	openAIGatewayService := service.NewOpenAIGatewayService(accountRepository, usageLogRepository, usageBillingRepository, userRepository, userSubscriptionRepository, userGroupRateRepository, gatewayCache, configConfig, schedulerSnapshotService, concurrencyService, billingService, rateLimitService, billingCacheService, httpUpstream, deferredService, modelPricingResolver, channelService, balanceNotifyService, settingService, upstreamCostResolver, serviceUserPlatformQuotaRepository)
 	geminiTokenProvider := service.ProvideGeminiTokenProvider(accountRepository, geminiTokenCache)
 	geminiMessagesCompatService := service.NewGeminiMessagesCompatService(accountRepository, groupRepository, gatewayCache, schedulerSnapshotService, geminiTokenProvider, rateLimitService, httpUpstream, configConfig)
-	gatewayService.SetEndpointRepository(endpointRepository)
-	gatewayService.SetModelRoutingService(modelRoutingService)
-	openAIGatewayService.SetEndpointRepository(endpointRepository)
-	geminiMessagesCompatService.SetEndpointRepository(endpointRepository)
 	opsSystemLogSink := service.ProvideOpsSystemLogSink(opsRepository)
 	opsService := service.ProvideOpsService(opsRepository, settingRepository, configConfig, accountRepository, userRepository, concurrencyService, gatewayService, openAIGatewayService, geminiMessagesCompatService, opsSystemLogSink, settingService)
 	usageHandler := handler.NewUsageHandler(usageService, apiKeyService, pricingService, scheduledTestResultRepository, groupRepository, modelRoutingService, opsService, settingService)
@@ -179,7 +176,6 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	usageCache := service.NewUsageCache()
 	accountUsageService := service.NewAccountUsageService(accountRepository, usageLogRepository, geminiQuotaService, usageCache, identityCache, tlsFingerprintProfileService)
 	accountTestService := service.NewAccountTestService(accountRepository, geminiTokenProvider, claudeTokenProvider, httpUpstream, configConfig, tlsFingerprintProfileService)
-	accountTestService.SetEndpointRepository(endpointRepository)
 	crsSyncService := service.NewCRSSyncService(accountRepository, proxyRepository, configConfig)
 	accountHandler := admin.NewAccountHandler(adminService, rateLimitService, accountUsageService, accountTestService, concurrencyService, crsSyncService, sessionLimitCache, rpmCache, compositeTokenCacheInvalidator, endpointRepository)
 	adminAnnouncementHandler := admin.NewAnnouncementHandler(announcementService)
@@ -232,6 +228,13 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	contentModerationHashCache := repository.NewContentModerationHashCache(redisClient)
 	contentModerationService := service.NewContentModerationService(settingRepository, contentModerationRepository, contentModerationHashCache, groupRepository, userRepository, apiKeyAuthCacheInvalidator, emailService)
 	contentModerationHandler := admin.NewContentModerationHandler(contentModerationService)
+	configManager := securityaudit.NewConfigManager(db, settingRepository, redisClient, secretEncryptor)
+	postgreSQLRepository := securityaudit.NewPostgreSQLRepository(db)
+	redisPayloadStore := securityaudit.NewRedisPayloadStore(redisClient)
+	openAICompatibleScanner := securityaudit.NewOpenAICompatibleScanner()
+	atomicMetrics := securityaudit.NewAtomicMetrics()
+	promptService := securityaudit.NewPromptService(configManager, postgreSQLRepository, redisPayloadStore, openAICompatibleScanner, atomicMetrics)
+	promptAdminHandler := securityaudit.NewPromptAdminHandler(promptService)
 	paymentHandler := admin.NewPaymentHandler(paymentService, paymentConfigService)
 	affiliateHandler := admin.NewAffiliateHandler(affiliateService, adminService)
 	modelPricingService := service.NewModelPricingService(modelPricingRepository)
@@ -243,13 +246,15 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	auditLogService := service.ProvideAuditLogService(auditLogRepository, settingService)
 	auditLogHandler := admin.NewAuditLogHandler(auditLogService, totpService)
 	upstreamBillingProbeService := service.ProvideUpstreamBillingProbeService(accountRepository, accountTestService, settingService, leaderLockCache, db)
-	adminHandlers := handler.ProvideAdminHandlers(dashboardHandler, adminUserHandler, groupHandler, accountHandler, adminAnnouncementHandler, dataManagementHandler, backupHandler, proxyHandler, adminRedeemHandler, promoHandler, settingHandler, opsHandler, systemHandler, adminSubscriptionHandler, adminUsageHandler, userAttributeHandler, errorPassthroughHandler, tlsFingerprintProfileHandler, adminAPIKeyHandler, scheduledTestHandler, channelHandler, channelMonitorHandler, channelMonitorRequestTemplateHandler, contentModerationHandler, paymentHandler, affiliateHandler, modelPricingHandler, providerPricingHandler, dualBucketStatsHandler, complianceHandler, auditLogHandler, upstreamBillingProbeService)
+	adminHandlers := handler.ProvideAdminHandlers(dashboardHandler, adminUserHandler, groupHandler, accountHandler, adminAnnouncementHandler, dataManagementHandler, backupHandler, proxyHandler, adminRedeemHandler, promoHandler, settingHandler, opsHandler, systemHandler, adminSubscriptionHandler, adminUsageHandler, userAttributeHandler, errorPassthroughHandler, tlsFingerprintProfileHandler, adminAPIKeyHandler, scheduledTestHandler, channelHandler, channelMonitorHandler, channelMonitorRequestTemplateHandler, contentModerationHandler, promptAdminHandler, paymentHandler, affiliateHandler, modelPricingHandler, providerPricingHandler, dualBucketStatsHandler, complianceHandler, auditLogHandler, upstreamBillingProbeService)
 	usageRecordWorkerPool := service.NewUsageRecordWorkerPool(configConfig)
 	userMsgQueueCache := repository.NewUserMsgQueueCache(redisClient)
 	userMessageQueueService := service.ProvideUserMessageQueueService(userMsgQueueCache, rpmCache, configConfig)
 	protocolBridgeRegistry := service.NewProtocolBridgeRegistry()
-	gatewayHandler := handler.NewGatewayHandler(gatewayService, openAIGatewayService, geminiMessagesCompatService, userService, concurrencyService, billingCacheService, usageService, apiKeyService, usageRecordWorkerPool, errorPassthroughService, contentModerationService, userMessageQueueService, configConfig, settingService, protocolBridgeRegistry)
-	openAIGatewayHandler := handler.NewOpenAIGatewayHandler(openAIGatewayService, concurrencyService, billingCacheService, apiKeyService, usageRecordWorkerPool, errorPassthroughService, contentModerationService, opsService, configConfig)
+	legacyEngine := securityaudit.NewLegacyModerationAdapter(contentModerationService)
+	coordinator := securityaudit.NewCoordinator(legacyEngine, promptService)
+	gatewayHandler := handler.ProvideGatewayHandler(gatewayService, openAIGatewayService, geminiMessagesCompatService, userService, concurrencyService, billingCacheService, usageService, apiKeyService, usageRecordWorkerPool, errorPassthroughService, contentModerationService, userMessageQueueService, configConfig, settingService, protocolBridgeRegistry, coordinator)
+	openAIGatewayHandler := handler.ProvideOpenAIGatewayHandler(openAIGatewayService, concurrencyService, billingCacheService, apiKeyService, usageRecordWorkerPool, errorPassthroughService, contentModerationService, opsService, configConfig, coordinator)
 	handlerSettingHandler := handler.ProvideSettingHandler(settingService, buildInfo, notificationEmailService)
 	totpHandler := handler.NewTotpHandler(totpService)
 	handlerPaymentHandler := handler.NewPaymentHandler(paymentService, paymentConfigService)
@@ -258,7 +263,6 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	lingjingClient := service.NewLingjingClient()
 	lingjingTaskRepository := repository.NewLingjingTaskRepository(client)
 	lingjingGatewayService := service.NewLingjingGatewayService(lingjingClient, lingjingTaskRepository, accountRepository, schedulerSnapshotService)
-	openAIGatewayService.SetLingjingService(lingjingGatewayService)
 	lingjingHandler := handler.NewLingjingHandler(lingjingGatewayService, billingCacheService, apiKeyService)
 	imageTaskStore := repository.NewImageTaskStore(redisClient)
 	imageStorage, err := repository.ProvideImageStorage(configConfig)
@@ -274,7 +278,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	batchImageDownloadLimiter := repository.NewBatchImageDownloadLimiter(redisClient, configConfig)
 	batchImageDownloadService := service.NewBatchImageDownloadService(batchImageRepository, accountRepository, batchImageDownloadLimiter, configConfig)
 	batchImageCleanupService := service.ProvideBatchImageCleanupService(batchImageRepository, accountRepository, configConfig)
-	batchImageHandler := handler.NewBatchImageHandler(batchImagePublicService, batchImageDownloadService, batchImageCleanupService)
+	batchImageHandler := handler.ProvideBatchImageHandler(batchImagePublicService, batchImageDownloadService, batchImageCleanupService, openAIGatewayHandler)
 	teamMemberRepository := repository.NewTeamMemberRepository(client)
 	teamInvitationRepository := repository.NewTeamInvitationRepository(client)
 	teamActivityLogRepository := repository.NewTeamActivityLogRepository(client)
@@ -313,11 +317,12 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	lingjingPollRunner := service.ProvideLingjingPollRunner(lingjingTaskRepository, lingjingGatewayService, accountRepository, billingService, billingCacheService, upstreamCostResolver, usageLogRepository)
 	userPlatformQuotaUsageFlusher := service.ProvideUserPlatformQuotaUsageFlusher(configConfig, billingCache, serviceUserPlatformQuotaRepository, timingWheelService)
 	teamAutoTopupService := service.ProvideTeamAutoTopupService(teamMemberRepository, teamFundRepository, teamActivityLogRepository, leaderLockCache, db)
-	v := provideCleanup(client, redisClient, opsMetricsCollector, opsAggregationService, opsAlertEvaluatorService, opsCleanupService, opsScheduledReportService, opsSystemLogSink, schedulerSnapshotService, accountExpiryService, proxyExpiryService, subscriptionExpiryService, usageCleanupService, idempotencyCleanupService, batchImageCleanupService, batchImageWorkerRuntime, pricingService, emailQueueService, billingCacheService, usageRecordWorkerPool, subscriptionService, openAIGatewayService, scheduledTestRunnerService, backupService, paymentOrderExpiryService, channelMonitorRunner, lingjingPollRunner, userPlatformQuotaUsageFlusher, teamAutoTopupService, upstreamBillingProbeService, auditLogService)
+	v := provideCleanup(client, redisClient, opsMetricsCollector, opsAggregationService, opsAlertEvaluatorService, opsCleanupService, opsScheduledReportService, opsSystemLogSink, schedulerSnapshotService, accountExpiryService, proxyExpiryService, subscriptionExpiryService, usageCleanupService, idempotencyCleanupService, batchImageCleanupService, batchImageWorkerRuntime, pricingService, emailQueueService, billingCacheService, usageRecordWorkerPool, subscriptionService, openAIGatewayService, scheduledTestRunnerService, backupService, paymentOrderExpiryService, channelMonitorRunner, lingjingPollRunner, userPlatformQuotaUsageFlusher, teamAutoTopupService, upstreamBillingProbeService, auditLogService, promptService)
 	application := &Application{
-		Server:  httpServer,
-		Cleanup: v,
-		SQLDB:   db,
+		Server:      httpServer,
+		PromptAudit: promptService,
+		Cleanup:     v,
+		SQLDB:       db,
 	}
 	return application, nil
 }
@@ -325,8 +330,9 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 // wire.go:
 
 type Application struct {
-	Server  *http.Server
-	Cleanup func()
+	Server      *http.Server
+	PromptAudit *securityaudit.PromptService
+	Cleanup     func()
 	// SQLDB 用于启动健康检查等需要直接读 DB 的运维场景（Phase 2 P2-4 引入）。
 	SQLDB *sql.DB
 }
@@ -370,6 +376,7 @@ func provideCleanup(
 	teamAutoTopup *service.TeamAutoTopupService,
 	upstreamBillingProbe *service.UpstreamBillingProbeService,
 	auditLog *service.AuditLogService,
+	promptAudit *securityaudit.PromptService,
 ) func() {
 	return func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -381,6 +388,12 @@ func provideCleanup(
 		}
 
 		parallelSteps := []cleanupStep{
+			{"PromptAuditService", func() error {
+				if promptAudit != nil {
+					return promptAudit.Shutdown(ctx)
+				}
+				return nil
+			}},
 			{"OpsScheduledReportService", func() error {
 				if opsScheduledReport != nil {
 					opsScheduledReport.Stop()

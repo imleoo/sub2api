@@ -190,6 +190,14 @@ func runMainServer() {
 		log.Fatalf("Failed to initialize application: %v", err)
 	}
 	defer app.Cleanup()
+	if app.PromptAudit != nil {
+		if err := app.PromptAudit.Start(context.Background()); err != nil {
+			// Startup continues so unrelated APIs stay up, but Prompt Audit itself
+			// fails closed (unavailable) until a later reload installs a trusted
+			// snapshot—avoiding a silent ModeOff bypass of persisted blocking policy.
+			log.Printf("Prompt Audit started in degraded fail-closed state: %v", err)
+		}
+	}
 
 	// Phase 2 P2-4：启动后异步跑一次 platform vs protocol 双字段一致性扫描。
 	// 不阻塞 server 启动（DB 慢 / 表大时也不耽误监听）；扫描结果通过 slog ERROR 暴露给运维。

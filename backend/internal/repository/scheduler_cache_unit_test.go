@@ -276,6 +276,28 @@ func TestBuildSchedulerMetadataAccount_KeepsOpenAIWSFlags(t *testing.T) {
 	require.Nil(t, got.Extra["unused_large_field"])
 }
 
+func TestBuildSchedulerMetadataAccount_KeepsGrokMediaEligibility(t *testing.T) {
+	t.Run("explicit override", func(t *testing.T) {
+		account := service.Account{
+			ID:       43,
+			Platform: service.PlatformGrok,
+			Type:     service.AccountTypeAPIKey,
+			Extra: map[string]any{
+				service.GrokMediaEligibleExtraKey: false,
+				"unused_large_field":              "drop-me",
+			},
+		}
+
+		got := buildSchedulerMetadataAccount(account)
+
+		eligible, reason := got.GrokMediaGenerationEligibility()
+		require.False(t, eligible)
+		require.Equal(t, "override_disabled", reason)
+		require.Equal(t, false, got.Extra[service.GrokMediaEligibleExtraKey])
+		require.Nil(t, got.Extra["unused_large_field"])
+	})
+}
+
 func TestBuildSchedulerMetadataAccount_KeepsSlimGroupMembership(t *testing.T) {
 	account := service.Account{
 		ID:       42,
