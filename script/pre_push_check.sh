@@ -4,9 +4,10 @@
 # 目的：每次 push 前检查「本次推送范围」（默认 origin/<当前分支>..HEAD）内：
 #   1. CHANGELOG.md 是否已随实质性代码改动更新；
 #   2. 是否新增了源码文件但未在 自定义开发功能列表.md 记录（漏记新功能）；
-#   3. 是否命中 自定义开发功能列表.md 里标 🔴 高 的高风险文件——命中则强制逐个打印
-#      diff，并要求「交互终端 y/N 确认」+「CHANGELOG/功能列表书面留痕（一行以
-#      『高风险复核：』开头的结论）」双重留痕，防止上游合并静默覆盖 fork 逻辑；
+#   3. 是否命中 自定义开发功能列表.md 风险表里登记的 fork 文件（🔴 高 / 🟡 中 / 🟢 低
+#      三档全部，非仅 🔴）——命中则强制逐个打印 diff，并要求「交互终端 y/N 确认」+
+#      「CHANGELOG/功能列表书面留痕（一行以『高风险复核：』开头的结论）」双重留痕，
+#      防止上游合并静默覆盖 fork 逻辑；
 #   4. 若范围内有实质源码改动，钩子内联跑一次 ./script/e2e-test.sh（全量 e2e，
 #      需要本地 script/e2e.env 真实上游凭证），未通过则阻塞推送。
 #
@@ -146,55 +147,56 @@ if [ -n "$NEW_MIG" ]; then
   echo "$NEW_MIG" | sed 's/^/     /'
 fi
 
-# ── 检查 3：命中 🔴 高风险文件 → 强制逐个 diff + 交互确认 + 书面留痕 ────────
+# ── 检查 3：命中功能列表登记的 fork 文件 → 强制逐个 diff + 交互确认 + 书面留痕 ──
 # 背景：上游合并会「静默吞掉 fork 代码块」（已出现 ≥3 次：workflow 触发器、批量改账号
 # 丢模型映射、setting_update.go fork 字段块）。编译过 + 测试绿 无法发现，只能人工逐行
-# 核对高风险文件 diff。本检查从 自定义开发功能列表.md 的「🔴 高」行文件列提取受保护文件，
-# 若本次推送范围改动了其中任意文件，则：
+# 核对文件 diff。本检查从 自定义开发功能列表.md 风险表提取**全部登记的 fork 文件**
+# （🔴 高 / 🟡 中 / 🟢 低 三档，而非仅 🔴），若本次推送范围改动了其中任意文件，则：
 #   (a) 逐个打印该文件在本推送范围内的 diff；
 #   (b) 要求 CHANGELOG/功能列表 在本范围内新增一行以「高风险复核：」开头的书面结论；
 #   (c) 交互终端 y/N 二次确认（读 /dev/tty；非交互环境无法确认 → 阻塞）。
-# 从功能列表「🔴 高」行的第 3 列（文件列，awk -F'|' 的 $3）提取反引号包裹的文件/glob。
-HIRISK_PATTERNS=$(awk -F'|' '/🔴/ {print $3}' "$DOC" 2>/dev/null \
+# 从风险表（含 🔴/🟡/🟢 标记的行）第 3 列（文件列，awk -F'|' 的 $3）提取反引号包裹的文件 token，
+# 过滤到安全字符集（含 { } , * 供 brace/glob，排除 shell 元字符防 eval 注入）。
+REG_RAW=$(awk -F'|' '/🔴|🟡|🟢/ {print $3}' "$DOC" 2>/dev/null \
   | grep -oE '`[^`]+`' | tr -d '`' \
   | grep -E '\.(go|ts|vue|yml|sql)$' \
   | grep -vE '_test\.go|\.spec\.ts' \
+  | grep -xE '[A-Za-z0-9_./{}*,-]+' \
   | sort -u || true)
+# bash 展开 brace（path/{a,b,c}.go → 三行完整路径）；set -f 关闭 glob，让 * 保持字面量交给下方正则。
+REG_PATTERNS=$( set -f; while IFS= read -r tok; do
+    [ -n "$tok" ] && eval "printf '%s\n' $tok"
+  done <<< "$REG_RAW" 2>/dev/null | sort -u )
+
+# 分类：含 / 的转整行正则（. 转义、* → [^/]*）；裸文件名转 (^|/)name$ 做 basename 精确匹配。
+# 全部并成一个正则集，对改动文件列表一次 grep -Ef（O(files+patterns)，避免逐文件×逐pattern 的慢循环）。
+ALL_RX=""
+while IFS= read -r p; do
+  [ -z "$p" ] && continue
+  case "$p" in
+    */*) ALL_RX+="^$(printf '%s' "$p" | sed 's|[.]|\\.|g; s|[*]|[^/]*|g')\$"$'\n' ;;
+    *)   ALL_RX+="(^|/)$(printf '%s' "$p" | sed 's|[.]|\\.|g; s|[*]|[^/]*|g')\$"$'\n' ;;
+  esac
+done <<< "$REG_PATTERNS"
 
 HIT_FILES=""
-if [ -n "$HIRISK_PATTERNS" ] && [ -n "$CHANGED" ]; then
-  while read -r f; do
-    [ -z "$f" ] && continue
-    fbase=$(basename "$f")
-    matched=0
-    while read -r p; do
-      [ -z "$p" ] && continue
-      if echo "$p" | grep -q '/'; then
-        # 含路径：把 . 转义、* 转 [^/]* 后做完整路径匹配（sed 用 | 作分隔符避开路径 /）
-        rx="^$(printf '%s' "$p" | sed 's|[.]|\\.|g; s|[*]|[^/]*|g')$"
-        if echo "$f" | grep -qE "$rx"; then matched=1; fi
-      else
-        # 裸文件名（无路径前缀）：按 basename 匹配
-        [ "$fbase" = "$p" ] && matched=1
-      fi
-      [ "$matched" = "1" ] && break
-    done <<< "$HIRISK_PATTERNS"
-    [ "$matched" = "1" ] && HIT_FILES="$HIT_FILES$f"$'\n'
-  done <<< "$CHANGED"
+if [ -n "$CHANGED" ] && [ -n "$ALL_RX" ]; then
+  HIT_FILES=$(printf '%s\n' "$CHANGED" \
+    | grep -Ef <(printf '%s\n' "$ALL_RX" | sed '/^$/d') 2>/dev/null \
+    | sed '/^$/d' | sort -u || true)
 fi
-HIT_FILES=$(printf '%s' "$HIT_FILES" | sed '/^$/d' | sort -u)
 
 if [ -n "$HIT_FILES" ]; then
   HIT_COUNT=$(printf '%s\n' "$HIT_FILES" | sed '/^$/d' | wc -l | tr -d ' ')
   echo ""
-  echo "🔴 本次推送范围命中 ${HIT_COUNT} 个高风险文件（自定义开发功能列表.md「🔴 高」）："
+  echo "🔎 本次推送范围命中 ${HIT_COUNT} 个功能列表登记的 fork 文件（🔴/🟡/🟢）："
   printf '%s\n' "$HIT_FILES" | sed 's/^/     /'
   echo "   ── 以下逐个打印 diff，请逐行核对 fork 逻辑是否被上游静默覆盖 ──"
   while read -r f; do
     [ -z "$f" ] && continue
     echo ""
     echo "════════════════════════════════════════════════════════════════"
-    echo "🔴 $f"
+    echo "📄 $f"
     echo "────────────────────────────────────────────────────────────────"
     git diff "${RANGE}" -- "$f" || true
   done <<< "$HIT_FILES"
@@ -216,17 +218,17 @@ if [ -n "$HIT_FILES" ]; then
   # (c) 交互终端二次确认
   echo ""
   if [ -r /dev/tty ] && [ -w /dev/tty ]; then
-    printf '❓ 已逐个核对以上 🔴 高风险文件 diff，确认无 fork 逻辑被上游静默覆盖？[y/N] ' > /dev/tty
-    read -r HIRISK_ANS < /dev/tty || HIRISK_ANS=""
-    case "$HIRISK_ANS" in
+    printf '❓ 已逐个核对以上登记 fork 文件 diff，确认无 fork 逻辑被上游静默覆盖？[y/N] ' > /dev/tty
+    read -r REG_ANS < /dev/tty || REG_ANS=""
+    case "$REG_ANS" in
       y|Y|yes|YES|Yes)
-        echo "✅ 高风险文件复核已确认" ;;
+        echo "✅ 登记 fork 文件复核已确认" ;;
       *)
-        echo "❌ 未确认高风险文件复核（回答非 y），阻塞推送"
+        echo "❌ 未确认登记 fork 文件复核（回答非 y），阻塞推送"
         FAIL=1 ;;
     esac
   else
-    echo "❌ 命中 🔴 高风险文件但当前无交互终端（/dev/tty 不可用，如 GUI 客户端/CI）。"
+    echo "❌ 命中登记 fork 文件但当前无交互终端（/dev/tty 不可用，如 GUI 客户端/CI）。"
     echo "   请改用命令行 git push 完成人工确认，或 git push --no-verify 绕过全部门禁。"
     FAIL=1
   fi
