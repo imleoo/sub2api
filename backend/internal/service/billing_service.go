@@ -152,7 +152,8 @@ type UsageTokens struct {
 
 // CostBreakdown 费用明细
 type CostBreakdown struct {
-	InputCost                 float64
+	InputCost                 float64 // 文本输入费用（不含图片输入，图片输入单独记入 ImageInputCost）
+	ImageInputCost            float64 // 图片输入 token 费用（如 gpt-image-2 图片编辑）
 	OutputCost                float64
 	ImageOutputCost           float64
 	CacheCreationCost         float64
@@ -255,6 +256,7 @@ func (s *BillingService) getModelPricingFromCatalog(model string) (*ModelPricing
 			dbEntry.OutputCostPerToken == nil &&
 			dbEntry.OutputCostPerImage == nil &&
 			dbEntry.OutputCostPerImageToken == nil &&
+			dbEntry.InputCostPerImageToken == nil &&
 			dbEntry.CustomInputCost == nil &&
 			dbEntry.CustomOutputCost == nil {
 			log.Printf("[Billing] model_unpriced_blocked model=%s catalog_id=%d", model, dbEntry.ID)
@@ -315,6 +317,9 @@ func projectDBPricingToModelPricing(dbEntry *DBModelPricing) *ModelPricing {
 	if dbEntry.ImageOutputPricePerToken != nil {
 		pricing.ImageOutputPricePerToken = *dbEntry.ImageOutputPricePerToken
 	}
+	if dbEntry.InputCostPerImageToken != nil {
+		pricing.ImageInputPricePerToken = *dbEntry.InputCostPerImageToken
+	}
 	return pricing
 }
 
@@ -356,7 +361,7 @@ func (s *BillingService) GetModelPricingWithChannel(model string, channelPricing
 		pricing.ImageOutputPricePerToken = 0
 	}
 	pricing.ImageOutputPriceExplicit = true
-	// 图片输入价：渠道显式配置则覆盖，否则保留基础值（计费时为 0 会回退到文本输入价）。
+	// 图片输入价：渠道显式配置则覆盖；未配置时保留 catalog 基础价（基础价也为 0 时计费回退文本输入价）。
 	if channelPricing.ImageInputPrice != nil {
 		pricing.ImageInputPricePerToken = *channelPricing.ImageInputPrice
 	}
@@ -502,7 +507,8 @@ func (s *BillingService) computeTokenBreakdown(
 	}
 
 	bd := &CostBreakdown{}
-	// 分离图片输入 token 与文本输入 token（多模态 embedding 等图文不同价场景）。
+	// 分离图片输入 token 与文本输入 token（多模态 embedding、图片编辑等图文不同价场景）。
+	// InputCost 仅计文本输入，图片输入费用单独记入 ImageInputCost，便于对账；总额不变。
 	// ImageInputTokens 为 0 时（绝大多数 chat/vision 流量）走原始单价路径，行为不变。
 	if tokens.ImageInputTokens > 0 {
 		imageInputTokens := tokens.ImageInputTokens
@@ -516,7 +522,8 @@ func (s *BillingService) computeTokenBreakdown(
 			// 未配置图片输入档时回退到文本 input 价（已含 priority / 长上下文调整）
 			imageInputPrice = inputPrice
 		}
-		bd.InputCost = float64(textInputTokens)*inputPrice + float64(imageInputTokens)*imageInputPrice
+		bd.InputCost = float64(textInputTokens) * inputPrice
+		bd.ImageInputCost = float64(imageInputTokens) * imageInputPrice
 	} else {
 		bd.InputCost = float64(tokens.InputTokens) * inputPrice
 	}
@@ -544,13 +551,14 @@ func (s *BillingService) computeTokenBreakdown(
 
 	if tierMultiplier != 1.0 {
 		bd.InputCost *= tierMultiplier
+		bd.ImageInputCost *= tierMultiplier
 		bd.OutputCost *= tierMultiplier
 		bd.ImageOutputCost *= tierMultiplier
 		bd.CacheCreationCost *= tierMultiplier
 		bd.CacheReadCost *= tierMultiplier
 	}
 
-	bd.TotalCost = bd.InputCost + bd.OutputCost + bd.ImageOutputCost +
+	bd.TotalCost = bd.InputCost + bd.ImageInputCost + bd.OutputCost + bd.ImageOutputCost +
 		bd.CacheCreationCost + bd.CacheReadCost
 	bd.ActualCost = bd.TotalCost * rateMultiplier
 	bd.LongContextBillingApplied = baselineCost != nil && bd.ActualCost > baselineCost.ActualCost
@@ -778,6 +786,7 @@ func (s *BillingService) CalculateCostWithLongContext(model string, tokens Usage
 	// 合并成本
 	return &CostBreakdown{
 		InputCost:                 inRangeCost.InputCost + outRangeCost.InputCost,
+		ImageInputCost:            inRangeCost.ImageInputCost + outRangeCost.ImageInputCost,
 		OutputCost:                inRangeCost.OutputCost,
 		ImageOutputCost:           inRangeCost.ImageOutputCost,
 		CacheCreationCost:         inRangeCost.CacheCreationCost,

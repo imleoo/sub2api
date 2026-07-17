@@ -131,6 +131,13 @@ deploy/docker-compose.override.yml
 .gocache/
 vite.config.js
 docs/claude-relay-service/
+docs/*
+!docs/PAYMENT.md
+!docs/PAYMENT_CN.md
+!docs/ADMIN_PAYMENT_INTEGRATION_API.md
+!docs/ASYNC_IMAGE_TASKS.md
+!docs/legal/
+!docs/legal/*.md
 .serena/
 .codex/
 frontend/coverage/

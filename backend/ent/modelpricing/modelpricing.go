@@ -38,6 +38,8 @@ const (
 	FieldOutputCostPerImage = "output_cost_per_image"
 	// FieldOutputCostPerImageToken holds the string denoting the output_cost_per_image_token field in the database.
 	FieldOutputCostPerImageToken = "output_cost_per_image_token"
+	// FieldInputCostPerImageToken holds the string denoting the input_cost_per_image_token field in the database.
+	FieldInputCostPerImageToken = "input_cost_per_image_token"
 	// FieldInputCostPerTokenPriority holds the string denoting the input_cost_per_token_priority field in the database.
 	FieldInputCostPerTokenPriority = "input_cost_per_token_priority"
 	// FieldOutputCostPerTokenPriority holds the string denoting the output_cost_per_token_priority field in the database.
@@ -105,6 +107,7 @@ var Columns = []string{
 	FieldCacheReadInputTokenCost,
 	FieldOutputCostPerImage,
 	FieldOutputCostPerImageToken,
+	FieldInputCostPerImageToken,
 	FieldInputCostPerTokenPriority,
 	FieldOutputCostPerTokenPriority,
 	FieldCacheReadInputTokenCostPriority,
@@ -276,6 +279,11 @@ func ByOutputCostPerImage(opts ...sql.OrderTermOption) OrderOption {
 // ByOutputCostPerImageToken orders the results by the output_cost_per_image_token field.
 func ByOutputCostPerImageToken(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldOutputCostPerImageToken, opts...).ToFunc()
+}
+
+// ByInputCostPerImageToken orders the results by the input_cost_per_image_token field.
+func ByInputCostPerImageToken(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInputCostPerImageToken, opts...).ToFunc()
 }
 
 // ByInputCostPerTokenPriority orders the results by the input_cost_per_token_priority field.

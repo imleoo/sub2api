@@ -60,6 +60,54 @@ func TestValidateBaseURLPathPrefixPolicy(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestIsOfficialBaseURL(t *testing.T) {
+	official := []string{
+		"",
+		"   ",
+		DefaultBaseURL,
+		"https://api.x.ai",
+		"HTTPS://API.X.AI:443/",
+		"https://api.x.ai:0443/v1",
+		"https://api.x.ai/%76%31",
+		"https://api.x.ai:8443/v1",
+		"HTTPS://CLI-CHAT-PROXY.GROK.COM:443/%76%31/",
+		"::invalid::url", // 无法解析的值按官方处理，回落默认端点
+	}
+	for _, raw := range official {
+		require.True(t, IsOfficialBaseURL(raw), "expected official: %q", raw)
+	}
+
+	custom := []string{
+		"https://relay.example.test/v1",
+		"https://relay.example.test/xai/v1",
+		"http://relay.example.test/v1",
+		"https://grok.com.evil.example.test/v1",
+		"https://api.x.ai.evil.example.test/v1", // 后缀伪装不属于 *.api.x.ai
+	}
+	for _, raw := range custom {
+		require.False(t, IsOfficialBaseURL(raw), "expected custom: %q", raw)
+	}
+}
+
+func TestRegionalAPIEndpointsAreOfficialAndTrusted(t *testing.T) {
+	regional := []string{
+		"https://us-east-1.api.x.ai/v1",
+		"https://us-west-2.api.x.ai/v1",
+		"https://eu-west-1.api.x.ai/v1",
+	}
+	for _, raw := range regional {
+		require.True(t, IsOfficialBaseURL(raw), "expected official: %q", raw)
+
+		validated, err := ValidateTrustedBaseURL(raw)
+		require.NoError(t, err, "trusted validation should accept regional endpoint %q", raw)
+		require.Equal(t, raw, validated)
+	}
+
+	// 区域端点作为官方主机同样强制 /v1 path
+	_, err := ValidateTrustedBaseURL("https://us-east-1.api.x.ai/other")
+	require.Error(t, err)
+}
+
 func TestValidateBaseURLsRejectEmptyQueryDelimiter(t *testing.T) {
 	_, err := ValidateBaseURL("https://grok.example.test/v1?")
 	require.Error(t, err)

@@ -212,6 +212,11 @@ func (c *openAIWSClientFrameConn) WriteFrame(ctx context.Context, msgType coderw
 	if ctx == nil {
 		ctx = context.Background()
 	}
+	if msgType == coderws.MessageText {
+		if normalized, changed := normalizeCompletedImageGenerationStatus(payload); changed {
+			payload = normalized
+		}
+	}
 	return c.conn.Write(ctx, msgType, payload)
 }
 
@@ -246,7 +251,9 @@ func (s *OpenAIGatewayService) proxyResponsesWebSocketV2Passthrough(
 	if err := validateOpenAIWSBearerToken(account, token); err != nil {
 		return err
 	}
-	if account.IsOpenAIOAuth() && isOpenAIResponsesLiteWebSocketPayload(firstClientMessage) {
+	// responses-lite 是客户端（Codex CLI）通过 metadata 声明的信号，与账号鉴权方式无关；
+	// fork 无 OAuth 账号（功能 35），apikey 账号同样需要按该信号规范化 payload。
+	if isOpenAIResponsesLiteWebSocketPayload(firstClientMessage) {
 		liteFirstMessage, _, liteErr := normalizeOpenAIResponsesLiteToolsPayload(firstClientMessage)
 		if liteErr != nil {
 			return NewOpenAIWSClientCloseError(coderws.StatusPolicyViolation, liteErr.Error(), liteErr)
@@ -386,7 +393,7 @@ func (s *OpenAIGatewayService) proxyResponsesWebSocketV2Passthrough(
 		if errors.As(err, &handshakeErr) && handshakeErr != nil {
 			responseBody = handshakeErr.Body
 		}
-		dialErr := &openAIWSDialError{StatusCode: statusCode, ResponseBody: responseBody, Err: err}
+		dialErr := &openAIWSDialError{StatusCode: statusCode, ResponseHeaders: cloneHeader(handshakeHeaders), ResponseBody: responseBody, Err: err}
 		if s.isAgentIdentityAccount(ctx, account) && isAgentIdentityTaskInvalidWSDialError(dialErr) && !agentTaskRecoveryTried {
 			agentTaskRecoveryTried = true
 			if recoveryErr := s.recoverAgentIdentityTask(ctx, account, account.GetCredential("task_id")); recoveryErr != nil {
@@ -400,6 +407,7 @@ func (s *OpenAIGatewayService) proxyResponsesWebSocketV2Passthrough(
 			statusCode,
 			truncateOpenAIWSLogValue(err.Error(), openAIWSLogValueMaxLen),
 		)
+		s.handleOpenAIWSDialTransientFailure(ctx, account, capturedSessionModel, dialErr)
 		if statusCode == http.StatusTooManyRequests {
 			s.persistOpenAIWSRateLimitSignal(ctx, account, handshakeHeaders, nil, "rate_limit_exceeded", "rate_limit_error", strings.TrimSpace(err.Error()))
 			return &UpstreamFailoverError{
@@ -436,7 +444,9 @@ func (s *OpenAIGatewayService) proxyResponsesWebSocketV2Passthrough(
 				return payload, nil, nil
 			}
 			if strings.TrimSpace(gjson.GetBytes(payload, "type").String()) == "response.create" {
-				if account.IsOpenAIOAuth() && isOpenAIResponsesLiteWebSocketPayload(payload) {
+				// responses-lite 是客户端（Codex CLI）通过 metadata 声明的信号，与账号鉴权方式无关；
+				// fork 无 OAuth 账号（功能 35），apikey 账号同样需要按该信号规范化 payload。
+				if isOpenAIResponsesLiteWebSocketPayload(payload) {
 					litePayload, _, liteErr := normalizeOpenAIResponsesLiteToolsPayload(payload)
 					if liteErr != nil {
 						return payload, nil, NewOpenAIWSClientCloseError(coderws.StatusPolicyViolation, liteErr.Error(), liteErr)
@@ -571,14 +581,15 @@ func (s *OpenAIGatewayService) proxyResponsesWebSocketV2Passthrough(
 						CacheReadInputTokens:     turn.Usage.CacheReadInputTokens,
 						ImageOutputTokens:        turn.Usage.ImageOutputTokens,
 					},
-					Model:           turn.RequestModel,
-					ServiceTier:     usageMeta.serviceTier.Load(),
-					ReasoningEffort: usageMeta.reasoningEffort.Load(),
-					Stream:          true,
-					OpenAIWSMode:    true,
-					ResponseHeaders: cloneHeader(handshakeHeaders),
-					Duration:        turn.Duration,
-					FirstTokenMs:    turn.FirstTokenMs,
+					Model:                 turn.RequestModel,
+					ServiceTier:           usageMeta.serviceTier.Load(),
+					ReasoningEffort:       usageMeta.reasoningEffort.Load(),
+					Stream:                true,
+					OpenAIWSMode:          true,
+					UpstreamTerminalEvent: normalizeOpenAIWSTerminalEvent(turn.TerminalEventType),
+					ResponseHeaders:       cloneHeader(handshakeHeaders),
+					Duration:              turn.Duration,
+					FirstTokenMs:          turn.FirstTokenMs,
 				}
 				logOpenAIWSV2Passthrough(
 					"relay_turn_completed account_id=%d turn=%d request_id=%s terminal_event=%s duration_ms=%d first_token_ms=%d input_tokens=%d output_tokens=%d cache_read_tokens=%d",
@@ -597,10 +608,17 @@ func (s *OpenAIGatewayService) proxyResponsesWebSocketV2Passthrough(
 				}
 			},
 			BeforeWriteClient: func(msgType coderws.MessageType, payload []byte, wroteDownstream bool) error {
-				if msgType != coderws.MessageText || wroteDownstream {
+				if msgType != coderws.MessageText {
 					return nil
 				}
-				if eventType, _, _ := parseOpenAIWSEventEnvelope(payload); eventType != "error" {
+				eventType, _, _ := parseOpenAIWSEventEnvelope(payload)
+				if isOpenAIWSTerminalEvent(eventType) {
+					s.handleOpenAIWSTerminalTransientFailure(ctx, account, capturedSessionModel, handshakeHeaders, payload)
+				}
+				if eventType == "error" {
+					s.handleOpenAIWSErrorEventTransientFailure(ctx, account, capturedSessionModel, handshakeHeaders, payload)
+				}
+				if wroteDownstream || eventType != "error" {
 					return nil
 				}
 				errCodeRaw, errTypeRaw, errMsgRaw := parseOpenAIWSErrorEventFields(payload)
@@ -646,14 +664,15 @@ func (s *OpenAIGatewayService) proxyResponsesWebSocketV2Passthrough(
 			CacheReadInputTokens:     relayResult.Usage.CacheReadInputTokens,
 			ImageOutputTokens:        relayResult.Usage.ImageOutputTokens,
 		},
-		Model:           relayResult.RequestModel,
-		ServiceTier:     usageMeta.serviceTier.Load(),
-		ReasoningEffort: usageMeta.reasoningEffort.Load(),
-		Stream:          true,
-		OpenAIWSMode:    true,
-		ResponseHeaders: cloneHeader(handshakeHeaders),
-		Duration:        relayResult.Duration,
-		FirstTokenMs:    relayResult.FirstTokenMs,
+		Model:                 relayResult.RequestModel,
+		ServiceTier:           usageMeta.serviceTier.Load(),
+		ReasoningEffort:       usageMeta.reasoningEffort.Load(),
+		Stream:                true,
+		OpenAIWSMode:          true,
+		UpstreamTerminalEvent: normalizeOpenAIWSTerminalEvent(relayResult.TerminalEventType),
+		ResponseHeaders:       cloneHeader(handshakeHeaders),
+		Duration:              relayResult.Duration,
+		FirstTokenMs:          relayResult.FirstTokenMs,
 	}
 
 	turnCount := int(completedTurns.Load())

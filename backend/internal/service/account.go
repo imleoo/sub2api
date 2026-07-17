@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/openai_compat"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/xai"
 )
 
@@ -86,6 +87,13 @@ const openAILongContextBillingEnabledKey = "openai_long_context_billing_enabled"
 const (
 	OpenAIEndpointCapabilityChatCompletions OpenAIEndpointCapability = "chat_completions"
 	OpenAIEndpointCapabilityEmbeddings      OpenAIEndpointCapability = "embeddings"
+	OpenAIEndpointCapabilityAlphaSearch     OpenAIEndpointCapability = "alpha_search"
+	// OpenAIEndpointCapabilityResponses 表示上游确实提供 /v1/responses 端点。
+	// 与其他能力不同：支持状态来自 accounts.extra 的自动探测标记
+	// （openai_responses_supported / openai_responses_mode），而非
+	// credentials["openai_capabilities"] 配置集。仅用于生图意图的 /v1/responses
+	// 调度，避免把请求调度到会在 forward 阶段被降级为 Chat Completions 的账号（#4417）。
+	OpenAIEndpointCapabilityResponses OpenAIEndpointCapability = "responses"
 )
 
 const openAIEndpointCapabilitiesCredentialKey = "openai_capabilities"
@@ -1079,7 +1087,9 @@ func (a *Account) GetGenericAPIKey() string {
 }
 
 func (a *Account) IsOpenAIChatGPTSubscription() bool {
-	if !a.IsOpenAIOAuth() {
+	// fork 无 OAuth 账号（功能 35），订阅池改由 apikey 账号的 plan_type 凭证字段标识
+	// （运营方在上游本身是订阅制中转时手动填写）。
+	if !a.IsOpenAIApiKey() {
 		return false
 	}
 	switch strings.ToLower(strings.TrimSpace(a.GetCredential("plan_type"))) {
@@ -1127,7 +1137,11 @@ func (a *Account) GetGrokMediaBaseURL() string {
 	if !a.IsGrok() {
 		return ""
 	}
-	return a.GetGrokBaseURL()
+	baseURL := a.GetGrokBaseURL()
+	if a.IsGrokOAuth() && isGrokCLIProxyTarget(baseURL) {
+		return xai.DefaultBaseURL
+	}
+	return baseURL
 }
 
 func (a *Account) GetOpenAIIDToken() string {
@@ -1187,6 +1201,23 @@ func (a *Account) SupportsOpenAIEndpointCapability(capability OpenAIEndpointCapa
 	}
 	switch capability {
 	case OpenAIEndpointCapabilityChatCompletions:
+	case OpenAIEndpointCapabilityResponses:
+		// Responses 支持状态由 accounts.extra 的自动探测标记决定，而非
+		// credentials 能力集。已探测确认不支持 /v1/responses 的 APIKey 上游
+		// 必须排除——否则会在 forward 阶段被静默降级为 Chat Completions，
+		// 无法完成生图（#4417）。未探测/OAuth 账号保留旧行为（不排除）。
+		if a.Type == AccountTypeAPIKey && !openai_compat.ShouldUseResponsesAPI(a.Extra) {
+			return false
+		}
+		// 支持 Responses 的上游同样需具备 chat 能力：复用下方 chat_completions
+		// 配置集校验。
+		capability = OpenAIEndpointCapabilityChatCompletions
+	case OpenAIEndpointCapabilityAlphaSearch:
+		// alpha/search 走 {base_url}/v1/alpha/search（见 openAIAlphaSearchURL），
+		// fork 仅支持 API key 账号。上游不支持该端点时由转发层 failover 兜底。
+		if a.Type != AccountTypeAPIKey {
+			return false
+		}
 	case OpenAIEndpointCapabilityEmbeddings:
 		if a.Type != AccountTypeAPIKey {
 			return false
@@ -1197,6 +1228,9 @@ func (a *Account) SupportsOpenAIEndpointCapability(capability OpenAIEndpointCapa
 
 	configured, found := a.openAIEndpointCapabilitySet()
 	if !found {
+		return true
+	}
+	if capability == OpenAIEndpointCapabilityAlphaSearch && configured[string(OpenAIEndpointCapabilityChatCompletions)] {
 		return true
 	}
 	return configured[string(capability)]
@@ -1250,12 +1284,10 @@ func (a *Account) openAIEndpointCapabilitySet() (map[string]bool, bool) {
 }
 
 func (a *Account) SupportsOpenAIImageCapability(capability OpenAIImagesCapability) bool {
-	if !a.IsOpenAI() {
-		return false
-	}
 	switch capability {
 	case OpenAIImagesCapabilityBasic, OpenAIImagesCapabilityNative:
-		return a.Type == AccountTypeAPIKey
+		// /v1/images 是 OpenAI 专属端点，Grok 等 OpenAI 兼容平台不支持。
+		return a.IsOpenAI() && a.Type == AccountTypeAPIKey
 	default:
 		return true
 	}

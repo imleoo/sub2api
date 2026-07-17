@@ -108,6 +108,7 @@ type UserRepository interface {
 	UpdateConcurrency(ctx context.Context, id int64, amount int) error
 	BatchSetConcurrency(ctx context.Context, userIDs []int64, value int) (int, error)
 	BatchAddConcurrency(ctx context.Context, userIDs []int64, delta int) (int, error)
+	BatchUpdateLimits(ctx context.Context, userIDs []int64, concurrency, rpmLimit *int) (int, error)
 	ExistsByEmail(ctx context.Context, email string) (bool, error)
 	GetByPhone(ctx context.Context, phone string) (*User, error)
 	ExistsByPhone(ctx context.Context, phone string) (bool, error)

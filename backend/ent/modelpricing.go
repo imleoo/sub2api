@@ -41,6 +41,8 @@ type ModelPricing struct {
 	OutputCostPerImage *float64 `json:"output_cost_per_image,omitempty"`
 	// OutputCostPerImageToken holds the value of the "output_cost_per_image_token" field.
 	OutputCostPerImageToken *float64 `json:"output_cost_per_image_token,omitempty"`
+	// InputCostPerImageToken holds the value of the "input_cost_per_image_token" field.
+	InputCostPerImageToken *float64 `json:"input_cost_per_image_token,omitempty"`
 	// InputCostPerTokenPriority holds the value of the "input_cost_per_token_priority" field.
 	InputCostPerTokenPriority *float64 `json:"input_cost_per_token_priority,omitempty"`
 	// OutputCostPerTokenPriority holds the value of the "output_cost_per_token_priority" field.
@@ -99,7 +101,7 @@ func (*ModelPricing) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case modelpricing.FieldSupportsCacheBreakdown, modelpricing.FieldSupportsPromptCaching, modelpricing.FieldIsCustom, modelpricing.FieldIsEnabled:
 			values[i] = new(sql.NullBool)
-		case modelpricing.FieldInputCostPerToken, modelpricing.FieldOutputCostPerToken, modelpricing.FieldCacheCreationInputTokenCost, modelpricing.FieldCacheReadInputTokenCost, modelpricing.FieldOutputCostPerImage, modelpricing.FieldOutputCostPerImageToken, modelpricing.FieldInputCostPerTokenPriority, modelpricing.FieldOutputCostPerTokenPriority, modelpricing.FieldCacheReadInputTokenCostPriority, modelpricing.FieldCacheCreation5mTokenCost, modelpricing.FieldCacheCreation1hTokenCost, modelpricing.FieldImageOutputPricePerToken, modelpricing.FieldLongContextInputCostMultiplier, modelpricing.FieldLongContextOutputCostMultiplier, modelpricing.FieldCustomInputCost, modelpricing.FieldCustomOutputCost, modelpricing.FieldDiscountRate:
+		case modelpricing.FieldInputCostPerToken, modelpricing.FieldOutputCostPerToken, modelpricing.FieldCacheCreationInputTokenCost, modelpricing.FieldCacheReadInputTokenCost, modelpricing.FieldOutputCostPerImage, modelpricing.FieldOutputCostPerImageToken, modelpricing.FieldInputCostPerImageToken, modelpricing.FieldInputCostPerTokenPriority, modelpricing.FieldOutputCostPerTokenPriority, modelpricing.FieldCacheReadInputTokenCostPriority, modelpricing.FieldCacheCreation5mTokenCost, modelpricing.FieldCacheCreation1hTokenCost, modelpricing.FieldImageOutputPricePerToken, modelpricing.FieldLongContextInputCostMultiplier, modelpricing.FieldLongContextOutputCostMultiplier, modelpricing.FieldCustomInputCost, modelpricing.FieldCustomOutputCost, modelpricing.FieldDiscountRate:
 			values[i] = new(sql.NullFloat64)
 		case modelpricing.FieldID, modelpricing.FieldLongContextInputTokenThreshold, modelpricing.FieldSourceAccountID:
 			values[i] = new(sql.NullInt64)
@@ -207,6 +209,13 @@ func (_m *ModelPricing) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.OutputCostPerImageToken = new(float64)
 				*_m.OutputCostPerImageToken = value.Float64
+			}
+		case modelpricing.FieldInputCostPerImageToken:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field input_cost_per_image_token", values[i])
+			} else if value.Valid {
+				_m.InputCostPerImageToken = new(float64)
+				*_m.InputCostPerImageToken = value.Float64
 			}
 		case modelpricing.FieldInputCostPerTokenPriority:
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
@@ -452,6 +461,11 @@ func (_m *ModelPricing) String() string {
 	builder.WriteString(", ")
 	if v := _m.OutputCostPerImageToken; v != nil {
 		builder.WriteString("output_cost_per_image_token=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.InputCostPerImageToken; v != nil {
+		builder.WriteString("input_cost_per_image_token=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")

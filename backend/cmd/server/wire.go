@@ -95,6 +95,8 @@ func provideCleanup(
 	lingjingPollRunner *service.LingjingPollRunner,
 	quotaFlusher *service.UserPlatformQuotaUsageFlusher,
 	teamAutoTopup *service.TeamAutoTopupService,
+	upstreamBillingProbe *service.UpstreamBillingProbeService,
+	auditLog *service.AuditLogService,
 ) func() {
 	return func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -122,6 +124,12 @@ func provideCleanup(
 			{"OpsSystemLogSink", func() error {
 				if opsSystemLogSink != nil {
 					opsSystemLogSink.Stop()
+				}
+				return nil
+			}},
+			{"AuditLogService", func() error {
+				if auditLog != nil {
+					auditLog.Stop()
 				}
 				return nil
 			}},
@@ -254,6 +262,12 @@ func provideCleanup(
 			{"TeamAutoTopupService", func() error {
 				if teamAutoTopup != nil {
 					teamAutoTopup.Stop()
+				}
+				return nil
+			}},
+			{"UpstreamBillingProbeService", func() error {
+				if upstreamBillingProbe != nil {
+					upstreamBillingProbe.Stop()
 				}
 				return nil
 			}},

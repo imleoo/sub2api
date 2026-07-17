@@ -36,6 +36,7 @@ type AdminHandlers struct {
 	ProviderPricing        *admin.ProviderPricingHandler
 	DualBucketStats        *admin.DualBucketStatsHandler
 	Compliance             *admin.ComplianceHandler
+	AuditLog               *admin.AuditLogHandler
 }
 
 // Handlers contains all HTTP handlers
@@ -57,6 +58,7 @@ type Handlers struct {
 	PaymentWebhook   *PaymentWebhookHandler
 	AvailableChannel *AvailableChannelHandler
 	Lingjing         *LingjingHandler
+	AsyncImage       *AsyncImageHandler
 	BatchImage       *BatchImageHandler
 	Team             *TeamHandler
 	Enterprise       *EnterpriseHandler

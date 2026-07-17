@@ -89,6 +89,13 @@ func (ModelPricing) Fields() []ent.Field {
 			Nillable().
 			SchemaType(map[string]string{dialect.Postgres: "decimal(30,15)"}),
 
+		// 图片输入 token 独立费率（gpt-image-2 图片编辑等图文不同价场景），
+		// 未设置则计费回退 input_cost_per_token（见 computeTokenBreakdown）。
+		field.Float("input_cost_per_image_token").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{dialect.Postgres: "decimal(30,15)"}),
+
 		// Priority service tier 价格（service_tier=priority 时优先使用）
 		field.Float("input_cost_per_token_priority").
 			Optional().

@@ -182,6 +182,20 @@ func (_c *ModelPricingCreate) SetNillableOutputCostPerImageToken(v *float64) *Mo
 	return _c
 }
 
+// SetInputCostPerImageToken sets the "input_cost_per_image_token" field.
+func (_c *ModelPricingCreate) SetInputCostPerImageToken(v float64) *ModelPricingCreate {
+	_c.mutation.SetInputCostPerImageToken(v)
+	return _c
+}
+
+// SetNillableInputCostPerImageToken sets the "input_cost_per_image_token" field if the given value is not nil.
+func (_c *ModelPricingCreate) SetNillableInputCostPerImageToken(v *float64) *ModelPricingCreate {
+	if v != nil {
+		_c.SetInputCostPerImageToken(*v)
+	}
+	return _c
+}
+
 // SetInputCostPerTokenPriority sets the "input_cost_per_token_priority" field.
 func (_c *ModelPricingCreate) SetInputCostPerTokenPriority(v float64) *ModelPricingCreate {
 	_c.mutation.SetInputCostPerTokenPriority(v)
@@ -759,6 +773,10 @@ func (_c *ModelPricingCreate) createSpec() (*ModelPricing, *sqlgraph.CreateSpec)
 		_spec.SetField(modelpricing.FieldOutputCostPerImageToken, field.TypeFloat64, value)
 		_node.OutputCostPerImageToken = &value
 	}
+	if value, ok := _c.mutation.InputCostPerImageToken(); ok {
+		_spec.SetField(modelpricing.FieldInputCostPerImageToken, field.TypeFloat64, value)
+		_node.InputCostPerImageToken = &value
+	}
 	if value, ok := _c.mutation.InputCostPerTokenPriority(); ok {
 		_spec.SetField(modelpricing.FieldInputCostPerTokenPriority, field.TypeFloat64, value)
 		_node.InputCostPerTokenPriority = &value
@@ -1132,6 +1150,30 @@ func (u *ModelPricingUpsert) AddOutputCostPerImageToken(v float64) *ModelPricing
 // ClearOutputCostPerImageToken clears the value of the "output_cost_per_image_token" field.
 func (u *ModelPricingUpsert) ClearOutputCostPerImageToken() *ModelPricingUpsert {
 	u.SetNull(modelpricing.FieldOutputCostPerImageToken)
+	return u
+}
+
+// SetInputCostPerImageToken sets the "input_cost_per_image_token" field.
+func (u *ModelPricingUpsert) SetInputCostPerImageToken(v float64) *ModelPricingUpsert {
+	u.Set(modelpricing.FieldInputCostPerImageToken, v)
+	return u
+}
+
+// UpdateInputCostPerImageToken sets the "input_cost_per_image_token" field to the value that was provided on create.
+func (u *ModelPricingUpsert) UpdateInputCostPerImageToken() *ModelPricingUpsert {
+	u.SetExcluded(modelpricing.FieldInputCostPerImageToken)
+	return u
+}
+
+// AddInputCostPerImageToken adds v to the "input_cost_per_image_token" field.
+func (u *ModelPricingUpsert) AddInputCostPerImageToken(v float64) *ModelPricingUpsert {
+	u.Add(modelpricing.FieldInputCostPerImageToken, v)
+	return u
+}
+
+// ClearInputCostPerImageToken clears the value of the "input_cost_per_image_token" field.
+func (u *ModelPricingUpsert) ClearInputCostPerImageToken() *ModelPricingUpsert {
+	u.SetNull(modelpricing.FieldInputCostPerImageToken)
 	return u
 }
 
@@ -1887,6 +1929,34 @@ func (u *ModelPricingUpsertOne) UpdateOutputCostPerImageToken() *ModelPricingUps
 func (u *ModelPricingUpsertOne) ClearOutputCostPerImageToken() *ModelPricingUpsertOne {
 	return u.Update(func(s *ModelPricingUpsert) {
 		s.ClearOutputCostPerImageToken()
+	})
+}
+
+// SetInputCostPerImageToken sets the "input_cost_per_image_token" field.
+func (u *ModelPricingUpsertOne) SetInputCostPerImageToken(v float64) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetInputCostPerImageToken(v)
+	})
+}
+
+// AddInputCostPerImageToken adds v to the "input_cost_per_image_token" field.
+func (u *ModelPricingUpsertOne) AddInputCostPerImageToken(v float64) *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.AddInputCostPerImageToken(v)
+	})
+}
+
+// UpdateInputCostPerImageToken sets the "input_cost_per_image_token" field to the value that was provided on create.
+func (u *ModelPricingUpsertOne) UpdateInputCostPerImageToken() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateInputCostPerImageToken()
+	})
+}
+
+// ClearInputCostPerImageToken clears the value of the "input_cost_per_image_token" field.
+func (u *ModelPricingUpsertOne) ClearInputCostPerImageToken() *ModelPricingUpsertOne {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.ClearInputCostPerImageToken()
 	})
 }
 
@@ -2882,6 +2952,34 @@ func (u *ModelPricingUpsertBulk) UpdateOutputCostPerImageToken() *ModelPricingUp
 func (u *ModelPricingUpsertBulk) ClearOutputCostPerImageToken() *ModelPricingUpsertBulk {
 	return u.Update(func(s *ModelPricingUpsert) {
 		s.ClearOutputCostPerImageToken()
+	})
+}
+
+// SetInputCostPerImageToken sets the "input_cost_per_image_token" field.
+func (u *ModelPricingUpsertBulk) SetInputCostPerImageToken(v float64) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.SetInputCostPerImageToken(v)
+	})
+}
+
+// AddInputCostPerImageToken adds v to the "input_cost_per_image_token" field.
+func (u *ModelPricingUpsertBulk) AddInputCostPerImageToken(v float64) *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.AddInputCostPerImageToken(v)
+	})
+}
+
+// UpdateInputCostPerImageToken sets the "input_cost_per_image_token" field to the value that was provided on create.
+func (u *ModelPricingUpsertBulk) UpdateInputCostPerImageToken() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.UpdateInputCostPerImageToken()
+	})
+}
+
+// ClearInputCostPerImageToken clears the value of the "input_cost_per_image_token" field.
+func (u *ModelPricingUpsertBulk) ClearInputCostPerImageToken() *ModelPricingUpsertBulk {
+	return u.Update(func(s *ModelPricingUpsert) {
+		s.ClearInputCostPerImageToken()
 	})
 }
 

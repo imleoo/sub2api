@@ -898,6 +898,7 @@ var (
 		{Name: "peak_rate_multiplier", Type: field.TypeFloat64, Default: 1, SchemaType: map[string]string{"postgres": "decimal(10,4)"}},
 		{Name: "is_exclusive", Type: field.TypeBool, Default: false},
 		{Name: "status", Type: field.TypeString, Size: 20, Default: "active"},
+		{Name: "duplicate_operation_id", Type: field.TypeString, Nullable: true, Size: 64},
 		{Name: "platform", Type: field.TypeString, Size: 50, Default: "anthropic"},
 		{Name: "inbound_protocol", Type: field.TypeString, Nullable: true, Size: 30, Default: ""},
 		{Name: "subscription_type", Type: field.TypeString, Size: 20, Default: "standard"},
@@ -947,12 +948,12 @@ var (
 			{
 				Name:    "group_platform",
 				Unique:  false,
-				Columns: []*schema.Column{GroupsColumns[13]},
+				Columns: []*schema.Column{GroupsColumns[14]},
 			},
 			{
 				Name:    "group_subscription_type",
 				Unique:  false,
-				Columns: []*schema.Column{GroupsColumns[15]},
+				Columns: []*schema.Column{GroupsColumns[16]},
 			},
 			{
 				Name:    "group_is_exclusive",
@@ -967,7 +968,15 @@ var (
 			{
 				Name:    "group_sort_order",
 				Unique:  false,
-				Columns: []*schema.Column{GroupsColumns[41]},
+				Columns: []*schema.Column{GroupsColumns[42]},
+			},
+			{
+				Name:    "idx_groups_duplicate_operation_id_active",
+				Unique:  true,
+				Columns: []*schema.Column{GroupsColumns[13]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "duplicate_operation_id IS NOT NULL AND deleted_at IS NULL",
+				},
 			},
 		},
 	}
@@ -1124,6 +1133,7 @@ var (
 		{Name: "cache_read_input_token_cost", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
 		{Name: "output_cost_per_image", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
 		{Name: "output_cost_per_image_token", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
+		{Name: "input_cost_per_image_token", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
 		{Name: "input_cost_per_token_priority", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
 		{Name: "output_cost_per_token_priority", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
 		{Name: "cache_read_input_token_cost_priority", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "decimal(30,15)"}},
@@ -1168,22 +1178,22 @@ var (
 			{
 				Name:    "modelpricing_is_custom",
 				Unique:  false,
-				Columns: []*schema.Column{ModelPricingsColumns[27]},
+				Columns: []*schema.Column{ModelPricingsColumns[28]},
 			},
 			{
 				Name:    "modelpricing_is_enabled",
 				Unique:  false,
-				Columns: []*schema.Column{ModelPricingsColumns[29]},
+				Columns: []*schema.Column{ModelPricingsColumns[30]},
 			},
 			{
 				Name:    "modelpricing_source",
 				Unique:  false,
-				Columns: []*schema.Column{ModelPricingsColumns[30]},
+				Columns: []*schema.Column{ModelPricingsColumns[31]},
 			},
 			{
 				Name:    "modelpricing_pricing_status",
 				Unique:  false,
-				Columns: []*schema.Column{ModelPricingsColumns[33]},
+				Columns: []*schema.Column{ModelPricingsColumns[34]},
 			},
 		},
 	}

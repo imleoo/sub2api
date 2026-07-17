@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"reflect"
 	"strings"
 	"time"
 
@@ -246,7 +247,7 @@ func (s *CRSSyncService) SyncFromCRS(ctx context.Context, input SyncFromCRSInput
 		proxies, _ = s.proxyRepo.ListActive(ctx)
 	}
 
-	// Claude Console API Key -> tokenpanel anthropic apikey
+	// Claude Console API Key -> sub2api anthropic apikey
 	for _, src := range exported.Data.ClaudeConsoleAccounts {
 		item := SyncFromCRSItemResult{
 			CRSAccountID: src.ID,
@@ -294,6 +295,11 @@ func (s *CRSSyncService) SyncFromCRS(ctx context.Context, input SyncFromCRSInput
 			result.Items = append(result.Items, item)
 			continue
 		}
+		if existing != nil {
+			extra = mergeMap(existing.Extra, extra)
+			credentials = mergeMap(existing.Credentials, credentials)
+		}
+		reconcileCRSUpstreamBillingProbeExtra(existing, PlatformAnthropic, AccountTypeAPIKey, credentials, extra)
 
 		if existing == nil {
 			if !shouldCreateAccount(src.ID, selectedSet) {
@@ -328,11 +334,11 @@ func (s *CRSSyncService) SyncFromCRS(ctx context.Context, input SyncFromCRSInput
 			continue
 		}
 
-		existing.Extra = mergeMap(existing.Extra, extra)
+		existing.Extra = extra
 		existing.Name = defaultName(src.Name, src.ID)
 		existing.Platform = PlatformAnthropic
 		existing.Type = AccountTypeAPIKey
-		existing.Credentials = mergeMap(existing.Credentials, credentials)
+		existing.Credentials = credentials
 		if proxyID != nil {
 			existing.ProxyID = proxyID
 		}
@@ -354,7 +360,7 @@ func (s *CRSSyncService) SyncFromCRS(ctx context.Context, input SyncFromCRSInput
 		result.Items = append(result.Items, item)
 	}
 
-	// OpenAI Responses API Key -> tokenpanel openai apikey
+	// OpenAI Responses API Key -> sub2api openai apikey
 	for _, src := range exported.Data.OpenAIResponsesAccounts {
 		item := SyncFromCRSItemResult{
 			CRSAccountID: src.ID,
@@ -425,6 +431,10 @@ func (s *CRSSyncService) SyncFromCRS(ctx context.Context, input SyncFromCRSInput
 			result.Items = append(result.Items, item)
 			continue
 		}
+		if existing != nil {
+			credentials = mergeMap(existing.Credentials, credentials)
+		}
+		reconcileCRSUpstreamBillingProbeExtra(existing, PlatformOpenAI, AccountTypeAPIKey, credentials, extra)
 
 		if existing == nil {
 			if !shouldCreateAccount(src.ID, selectedSet) {
@@ -463,7 +473,7 @@ func (s *CRSSyncService) SyncFromCRS(ctx context.Context, input SyncFromCRSInput
 		existing.Name = defaultName(src.Name, src.ID)
 		existing.Platform = PlatformOpenAI
 		existing.Type = AccountTypeAPIKey
-		existing.Credentials = mergeMap(existing.Credentials, credentials)
+		existing.Credentials = credentials
 		if proxyID != nil {
 			existing.ProxyID = proxyID
 		}
@@ -485,7 +495,7 @@ func (s *CRSSyncService) SyncFromCRS(ctx context.Context, input SyncFromCRSInput
 		result.Items = append(result.Items, item)
 	}
 
-	// Gemini API Key -> tokenpanel gemini apikey
+	// Gemini API Key -> sub2api gemini apikey
 	for _, src := range exported.Data.GeminiAPIKeyAccounts {
 		item := SyncFromCRSItemResult{
 			CRSAccountID: src.ID,
@@ -534,6 +544,11 @@ func (s *CRSSyncService) SyncFromCRS(ctx context.Context, input SyncFromCRSInput
 			result.Items = append(result.Items, item)
 			continue
 		}
+		if existing != nil {
+			extra = mergeMap(existing.Extra, extra)
+			credentials = mergeMap(existing.Credentials, credentials)
+		}
+		reconcileCRSUpstreamBillingProbeExtra(existing, PlatformGemini, AccountTypeAPIKey, credentials, extra)
 
 		if existing == nil {
 			if !shouldCreateAccount(src.ID, selectedSet) {
@@ -568,11 +583,11 @@ func (s *CRSSyncService) SyncFromCRS(ctx context.Context, input SyncFromCRSInput
 			continue
 		}
 
-		existing.Extra = mergeMap(existing.Extra, extra)
+		existing.Extra = extra
 		existing.Name = defaultName(src.Name, src.ID)
 		existing.Platform = PlatformGemini
 		existing.Type = AccountTypeAPIKey
-		existing.Credentials = mergeMap(existing.Credentials, credentials)
+		existing.Credentials = credentials
 		if proxyID != nil {
 			existing.ProxyID = proxyID
 		}
@@ -606,6 +621,31 @@ func mergeMap(existing map[string]any, updates map[string]any) map[string]any {
 		out[k] = v
 	}
 	return out
+}
+
+func reconcileCRSUpstreamBillingProbeExtra(
+	existing *Account,
+	targetPlatform, targetType string,
+	targetCredentials map[string]any,
+	extra map[string]any,
+) {
+	delete(extra, UpstreamBillingProbeEnabledExtraKey)
+	delete(extra, UpstreamBillingProbeExtraKey)
+	if existing == nil {
+		return
+	}
+	if targetPlatform != PlatformOpenAI || targetType != AccountTypeAPIKey {
+		return
+	}
+	if enabled, ok := existing.Extra[UpstreamBillingProbeEnabledExtraKey]; ok {
+		extra[UpstreamBillingProbeEnabledExtraKey] = enabled
+	}
+	target := &Account{Platform: targetPlatform, Type: targetType, Credentials: targetCredentials}
+	if reflect.DeepEqual(upstreamBillingProbeIdentity(existing), upstreamBillingProbeIdentity(target)) {
+		if snapshot, ok := existing.Extra[UpstreamBillingProbeExtraKey]; ok {
+			extra[UpstreamBillingProbeExtraKey] = snapshot
+		}
+	}
 }
 
 func mergeCRSOpenAILongContextBillingExtra(existing, updates map[string]any) (map[string]any, error) {

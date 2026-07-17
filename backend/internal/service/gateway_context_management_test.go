@@ -152,6 +152,15 @@ func TestComputeFinalAnthropicBeta_APIKey_NoClientBetaInjectOff_ShouldNotSet(t *
 	require.Equal(t, "", final)
 }
 
+func TestComputeFinalAnthropicBeta_APIKeyHaiku_StillUsesAPIKeyBetas(t *testing.T) {
+	s := newTestGatewayServiceForBeta(true)
+	body := []byte(`{"model":"claude-haiku-4-5","thinking":{"type":"enabled"},"messages":[]}`)
+	final, ok := s.computeFinalAnthropicBeta(http.Header{}, body, nil)
+	require.True(t, ok)
+	require.Equal(t, claude.APIKeyHaikuBetaHeader, final)
+	require.False(t, anthropicBetaTokensContains(final, claude.BetaClaudeCode))
+}
+
 // ============================================================================
 // computeFinalCountTokensAnthropicBeta
 // ============================================================================
@@ -172,14 +181,6 @@ func TestComputeFinalCountTokensAnthropicBeta_APIKey_NoClientBetaInjectOff_Shoul
 	require.False(t, ok, "API-key + 客户端未传 + InjectBetaForAPIKey 关 → 不应主动设置 anthropic-beta")
 	require.Equal(t, "", final)
 }
-
-// ============================================================================
-// normalizeClaudeOAuthRequestBody — 回归：context_management 补齐恢复原行为
-// ============================================================================
-//
-// 重构后该函数不再按 model 名短路：thinking=enabled/adaptive 时补齐 context_management，
-// 与 model 无关。strip 责任移交 sanitizeAnthropicBodyForBetaTokens（在
-// buildUpstreamRequest 层按最终 beta header 执行）。
 
 // ============================================================================
 // passthrough 集成测试：buildUpstreamRequest-

@@ -86,6 +86,9 @@ func (r *fakeTeamUserRepo) BatchSetConcurrency(context.Context, []int64, int) (i
 func (r *fakeTeamUserRepo) BatchAddConcurrency(context.Context, []int64, int) (int, error) {
 	panic("not implemented")
 }
+func (r *fakeTeamUserRepo) BatchUpdateLimits(context.Context, []int64, *int, *int) (int, error) {
+	panic("not implemented")
+}
 func (r *fakeTeamUserRepo) ExistsByEmail(context.Context, string) (bool, error) {
 	panic("not implemented")
 }

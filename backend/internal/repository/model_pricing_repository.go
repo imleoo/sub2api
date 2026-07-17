@@ -84,7 +84,8 @@ func (r *modelPricingRepository) upsertBatchSlice(ctx context.Context, models []
 		// SSOT PR-1：远端同步行强制 source=litellm，pricing_status 根据是否有上游价推断。
 		pricingStatus := service.ModelPricingStatusUnpriced
 		if m.InputCostPerToken != nil || m.OutputCostPerToken != nil ||
-			m.OutputCostPerImage != nil || m.OutputCostPerImageToken != nil {
+			m.OutputCostPerImage != nil || m.OutputCostPerImageToken != nil ||
+			m.InputCostPerImageToken != nil {
 			pricingStatus = service.ModelPricingStatusPriced
 		}
 		c := r.client.ModelPricing.Create().
@@ -107,6 +108,7 @@ func (r *modelPricingRepository) upsertBatchSlice(ctx context.Context, models []
 			SetNillableCacheReadInputTokenCost(m.CacheReadInputTokenCost).
 			SetNillableOutputCostPerImage(m.OutputCostPerImage).
 			SetNillableOutputCostPerImageToken(m.OutputCostPerImageToken).
+			SetNillableInputCostPerImageToken(m.InputCostPerImageToken).
 			SetNillableInputCostPerTokenPriority(m.InputCostPerTokenPriority).
 			SetNillableOutputCostPerTokenPriority(m.OutputCostPerTokenPriority).
 			SetNillableCacheReadInputTokenCostPriority(m.CacheReadInputTokenCostPriority).
@@ -136,6 +138,7 @@ func (r *modelPricingRepository) upsertBatchSlice(ctx context.Context, models []
 			u.UpdateCacheReadInputTokenCost()
 			u.UpdateOutputCostPerImage()
 			u.UpdateOutputCostPerImageToken()
+			u.UpdateInputCostPerImageToken()
 			u.UpdateInputCostPerTokenPriority()
 			u.UpdateOutputCostPerTokenPriority()
 			u.UpdateCacheReadInputTokenCostPriority()
@@ -168,7 +171,8 @@ func (r *modelPricingRepository) Create(ctx context.Context, m *service.DBModelP
 	if pricingStatus == "" {
 		if m.InputCostPerToken != nil || m.OutputCostPerToken != nil ||
 			m.CustomInputCost != nil || m.CustomOutputCost != nil ||
-			m.OutputCostPerImage != nil || m.OutputCostPerImageToken != nil {
+			m.OutputCostPerImage != nil || m.OutputCostPerImageToken != nil ||
+			m.InputCostPerImageToken != nil {
 			pricingStatus = service.ModelPricingStatusPriced
 		} else {
 			pricingStatus = service.ModelPricingStatusUnpriced
@@ -198,6 +202,7 @@ func (r *modelPricingRepository) Create(ctx context.Context, m *service.DBModelP
 		SetNillableCacheReadInputTokenCost(m.CacheReadInputTokenCost).
 		SetNillableOutputCostPerImage(m.OutputCostPerImage).
 		SetNillableOutputCostPerImageToken(m.OutputCostPerImageToken).
+		SetNillableInputCostPerImageToken(m.InputCostPerImageToken).
 		SetNillableCustomInputCost(m.CustomInputCost).
 		SetNillableCustomOutputCost(m.CustomOutputCost).
 		SetNillableDiscountRate(m.DiscountRate).
@@ -372,6 +377,11 @@ func (r *modelPricingRepository) Update(ctx context.Context, m *service.DBModelP
 		builder.SetOutputCostPerImageToken(*m.OutputCostPerImageToken)
 	} else {
 		builder.ClearOutputCostPerImageToken()
+	}
+	if m.InputCostPerImageToken != nil {
+		builder.SetInputCostPerImageToken(*m.InputCostPerImageToken)
+	} else {
+		builder.ClearInputCostPerImageToken()
 	}
 	if m.CustomInputCost != nil {
 		builder.SetCustomInputCost(*m.CustomInputCost)
@@ -700,6 +710,7 @@ func modelPricingEntityToService(m *dbent.ModelPricing) *service.DBModelPricing 
 		CacheReadInputTokenCost:     m.CacheReadInputTokenCost,
 		OutputCostPerImage:          m.OutputCostPerImage,
 		OutputCostPerImageToken:     m.OutputCostPerImageToken,
+		InputCostPerImageToken:      m.InputCostPerImageToken,
 		SupportsPromptCaching:       m.SupportsPromptCaching,
 		CustomInputCost:             m.CustomInputCost,
 		CustomOutputCost:            m.CustomOutputCost,

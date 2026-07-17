@@ -44,6 +44,7 @@ type AccountHandler struct {
 	modelPricingRepo      service.ModelPricingRepository // 功能 25：端点拉取模型后顺便去重入库到折扣表
 	pricingService        *service.PricingService        // 写完入库后触发 pricingData 重载
 	modelCatalogService   *service.ModelCatalogService   // PR-7：统一写路径
+	upstreamBillingProbe  *service.UpstreamBillingProbeService
 }
 
 // SetModelPricingRepository 注入模型定价仓库（Wire 完成后调用）。
@@ -59,6 +60,11 @@ func (h *AccountHandler) SetPricingService(ps *service.PricingService) {
 // SetModelCatalogService 注入 catalog 写路径服务（Wire 完成后调用）。
 func (h *AccountHandler) SetModelCatalogService(s *service.ModelCatalogService) {
 	h.modelCatalogService = s
+}
+
+// SetUpstreamBillingProbeService attaches the optional remote billing probe service.
+func (h *AccountHandler) SetUpstreamBillingProbeService(probe *service.UpstreamBillingProbeService) {
+	h.upstreamBillingProbe = probe
 }
 
 // NewAccountHandler creates a new admin account handler

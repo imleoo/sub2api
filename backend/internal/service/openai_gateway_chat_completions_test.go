@@ -705,7 +705,7 @@ func TestForwardAsChatCompletions_BufferedContextWindowResponseFailedReturnsErro
 		Body:       io.NopCloser(strings.NewReader(upstreamBody)),
 	}}
 
-	svc := &OpenAIGatewayService{httpUpstream: upstream, cfg: rawChatCompletionsTestConfig()}
+	svc := &OpenAIGatewayService{httpUpstream: upstream, cfg: &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false, AllowInsecureHTTP: true}}}}
 	account := &Account{
 		ID:          1,
 		Name:        "openai-apikey",
@@ -750,7 +750,7 @@ func TestForwardAsChatCompletions_StreamContextWindowResponseFailedReturnsErrorW
 		Body:       io.NopCloser(strings.NewReader(upstreamBody)),
 	}}
 
-	svc := &OpenAIGatewayService{httpUpstream: upstream, cfg: rawChatCompletionsTestConfig()}
+	svc := &OpenAIGatewayService{httpUpstream: upstream, cfg: &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false, AllowInsecureHTTP: true}}}}
 	account := &Account{
 		ID:          1,
 		Name:        "openai-apikey",
@@ -797,7 +797,7 @@ func TestForwardAsChatCompletions_StreamCyberPolicyNoFailover(t *testing.T) {
 		Body:       io.NopCloser(strings.NewReader(upstreamBody)),
 	}}
 
-	svc := &OpenAIGatewayService{httpUpstream: upstream, cfg: rawChatCompletionsTestConfig()}
+	svc := &OpenAIGatewayService{httpUpstream: upstream, cfg: &config.Config{Security: config.SecurityConfig{URLAllowlist: config.URLAllowlistConfig{Enabled: false, AllowInsecureHTTP: true}}}}
 	account := &Account{
 		ID:          1,
 		Name:        "openai-apikey",

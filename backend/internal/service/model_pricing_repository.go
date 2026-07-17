@@ -20,6 +20,7 @@ type DBModelPricing struct {
 	CacheReadInputTokenCost     *float64
 	OutputCostPerImage          *float64
 	OutputCostPerImageToken     *float64
+	InputCostPerImageToken      *float64
 	SupportsPromptCaching       bool
 	CustomInputCost             *float64
 	CustomOutputCost            *float64

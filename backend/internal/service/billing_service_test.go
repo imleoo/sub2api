@@ -321,6 +321,34 @@ func TestCalculateCost_OpenAIGPT54NoLongContextKeepsCacheCreationAtBasePrice(t *
 		"cache_creation_cost should remain at base price when below long-context threshold")
 }
 
+func TestComputeTokenBreakdown_GptImage2ImageEditIssue4386(t *testing.T) {
+	svc := newTestBillingService()
+
+	pricing := &ModelPricing{
+		InputPricePerToken:       5e-6,
+		ImageInputPricePerToken:  8e-6,
+		OutputPricePerToken:      10e-6,
+		ImageOutputPricePerToken: 30e-6,
+		ImageOutputPriceExplicit: true,
+	}
+	tokens := UsageTokens{
+		InputTokens:       371,
+		ImageInputTokens:  352,
+		OutputTokens:      439,
+		ImageOutputTokens: 439,
+	}
+
+	cost := svc.computeTokenBreakdown(pricing, tokens, 1.0, "", false)
+
+	wantTextInput := float64(19) * 5e-6    // 0.000095
+	wantImageInput := float64(352) * 8e-6  // 0.002816
+	wantImageOutput := float64(439) * 30e-6 // 0.013170
+	require.InDelta(t, wantTextInput, cost.InputCost, 1e-15, "InputCost 仅含文本输入")
+	require.InDelta(t, wantImageInput, cost.ImageInputCost, 1e-15, "图片输入按 $8/1M 独立计费")
+	require.Zero(t, cost.OutputCost, "输出全部为图片，文本输出费用为 0")
+	require.InDelta(t, wantImageOutput, cost.ImageOutputCost, 1e-15)
+	require.InDelta(t, 0.016081, cost.TotalCost, 1e-9, "总额应为 $0.016081（修复前为 $0.015025）")
+}
 func TestCalculateCostWithLongContext_BelowThreshold(t *testing.T) {
 	svc := newTestBillingService()
 
@@ -1083,8 +1111,9 @@ func TestComputeTokenBreakdown_ImageInputPrice_Differentiated(t *testing.T) {
 	}
 	bd := svc.computeTokenBreakdown(pricing, tokens, 1.0, "", false)
 
-	// textInputTokens = 100 - 40 = 60，按文本价；图片 40 个按图片输入价。
-	require.InDelta(t, 60*3e-6+40*10e-6, bd.InputCost, 1e-12)
+	// textInputTokens = 100 - 40 = 60，按文本价；图片 40 个按图片输入价单独计入 ImageInputCost。
+	require.InDelta(t, 60*3e-6, bd.InputCost, 1e-12)
+	require.InDelta(t, 40*10e-6, bd.ImageInputCost, 1e-12)
 }
 
 func TestComputeTokenBreakdown_ImageInputPrice_ZeroFallsBackToInput(t *testing.T) {
@@ -1102,6 +1131,64 @@ func TestComputeTokenBreakdown_ImageInputPrice_ZeroFallsBackToInput(t *testing.T
 	}
 	bd := svc.computeTokenBreakdown(pricing, tokens, 1.0, "", false)
 
-	// 全部 100 个 input token 按文本价计费。
-	require.InDelta(t, 100*3e-6, bd.InputCost, 1e-12)
+	// 图片输入价未配置时回退到文本 input 价，但仍分开计入 InputCost / ImageInputCost；
+	// 总额等价于全部 100 个 token 按文本价计费。
+	require.InDelta(t, 60*3e-6, bd.InputCost, 1e-12)
+	require.InDelta(t, 40*3e-6, bd.ImageInputCost, 1e-12)
+	require.InDelta(t, 100*3e-6, bd.InputCost+bd.ImageInputCost, 1e-12)
+}
+
+// TestCatalogImageInputPrice_ProjectsAndBills 覆盖 LiteLLM input_cost_per_image_token
+// 经 catalog（model_pricings.input_cost_per_image_token）到计费的完整默认价链路
+// （上游 0.1.158 功能在 fork SSOT 目录中的等价实现，见迁移 182）。
+func TestCatalogImageInputPrice_ProjectsAndBills(t *testing.T) {
+	imageInput := 8e-6
+	textInput := 5e-6
+	output := 10e-6
+	entry := &DBModelPricing{
+		ModelID:                "gpt-image-2-test",
+		Provider:               "openai",
+		Mode:                   "chat",
+		PricingUnit:            ModelPricingUnitToken,
+		InputCostPerToken:      &textInput,
+		OutputCostPerToken:     &output,
+		InputCostPerImageToken: &imageInput,
+		IsEnabled:              true,
+		PricingStatus:          ModelPricingStatusPriced,
+	}
+	catalog := map[string]*DBModelPricing{entry.ModelID: entry}
+	ps := &PricingService{
+		modelPricingRepo: &stubModelPricingRepo{items: []*DBModelPricing{entry}},
+		catalog:          catalog,
+		aliasIdx:         buildAliasIndex(catalog),
+	}
+	svc := NewBillingService(&config.Config{}, ps)
+
+	pricing, err := svc.GetModelPricing("gpt-image-2-test")
+	require.NoError(t, err)
+	require.InDelta(t, imageInput, pricing.ImageInputPricePerToken, 1e-15, "catalog 图片输入价应投影到 ModelPricing")
+
+	tokens := UsageTokens{
+		InputTokens:      100, // 含 40 个图片输入 token
+		ImageInputTokens: 40,
+	}
+	cost, err := svc.CalculateCost("gpt-image-2-test", tokens, 1.0)
+	require.NoError(t, err)
+	require.InDelta(t, 60*textInput, cost.InputCost, 1e-12)
+	require.InDelta(t, 40*imageInput, cost.ImageInputCost, 1e-12, "图片输入 token 应按 catalog 独立单价计费")
+}
+
+// TestLiteLLMMapToDBModels_ImageInputPrice 覆盖 LiteLLM 解析结果到 DB 行的图片输入价映射。
+func TestLiteLLMMapToDBModels_ImageInputPrice(t *testing.T) {
+	models := liteLLMMapToDBModels(map[string]*LiteLLMModelPricing{
+		"gpt-image-2": {
+			LiteLLMProvider:        "openai",
+			Mode:                   "chat",
+			InputCostPerToken:      5e-6,
+			InputCostPerImageToken: 8e-6,
+		},
+	})
+	require.Len(t, models, 1)
+	require.NotNil(t, models[0].InputCostPerImageToken)
+	require.InDelta(t, 8e-6, *models[0].InputCostPerImageToken, 1e-15)
 }

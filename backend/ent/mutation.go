@@ -22542,6 +22542,7 @@ type GroupMutation struct {
 	addpeak_rate_multiplier                 *float64
 	is_exclusive                            *bool
 	status                                  *string
+	duplicate_operation_id                  *string
 	platform                                *string
 	inbound_protocol                        *string
 	subscription_type                       *string
@@ -23214,6 +23215,55 @@ func (m *GroupMutation) OldStatus(ctx context.Context) (v string, err error) {
 // ResetStatus resets all changes to the "status" field.
 func (m *GroupMutation) ResetStatus() {
 	m.status = nil
+}
+
+// SetDuplicateOperationID sets the "duplicate_operation_id" field.
+func (m *GroupMutation) SetDuplicateOperationID(s string) {
+	m.duplicate_operation_id = &s
+}
+
+// DuplicateOperationID returns the value of the "duplicate_operation_id" field in the mutation.
+func (m *GroupMutation) DuplicateOperationID() (r string, exists bool) {
+	v := m.duplicate_operation_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDuplicateOperationID returns the old "duplicate_operation_id" field's value of the Group entity.
+// If the Group object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GroupMutation) OldDuplicateOperationID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDuplicateOperationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDuplicateOperationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDuplicateOperationID: %w", err)
+	}
+	return oldValue.DuplicateOperationID, nil
+}
+
+// ClearDuplicateOperationID clears the value of the "duplicate_operation_id" field.
+func (m *GroupMutation) ClearDuplicateOperationID() {
+	m.duplicate_operation_id = nil
+	m.clearedFields[group.FieldDuplicateOperationID] = struct{}{}
+}
+
+// DuplicateOperationIDCleared returns if the "duplicate_operation_id" field was cleared in this mutation.
+func (m *GroupMutation) DuplicateOperationIDCleared() bool {
+	_, ok := m.clearedFields[group.FieldDuplicateOperationID]
+	return ok
+}
+
+// ResetDuplicateOperationID resets all changes to the "duplicate_operation_id" field.
+func (m *GroupMutation) ResetDuplicateOperationID() {
+	m.duplicate_operation_id = nil
+	delete(m.clearedFields, group.FieldDuplicateOperationID)
 }
 
 // SetPlatform sets the "platform" field.
@@ -25387,7 +25437,7 @@ func (m *GroupMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GroupMutation) Fields() []string {
-	fields := make([]string, 0, 46)
+	fields := make([]string, 0, 47)
 	if m.created_at != nil {
 		fields = append(fields, group.FieldCreatedAt)
 	}
@@ -25423,6 +25473,9 @@ func (m *GroupMutation) Fields() []string {
 	}
 	if m.status != nil {
 		fields = append(fields, group.FieldStatus)
+	}
+	if m.duplicate_operation_id != nil {
+		fields = append(fields, group.FieldDuplicateOperationID)
 	}
 	if m.platform != nil {
 		fields = append(fields, group.FieldPlatform)
@@ -25558,6 +25611,8 @@ func (m *GroupMutation) Field(name string) (ent.Value, bool) {
 		return m.IsExclusive()
 	case group.FieldStatus:
 		return m.Status()
+	case group.FieldDuplicateOperationID:
+		return m.DuplicateOperationID()
 	case group.FieldPlatform:
 		return m.Platform()
 	case group.FieldInboundProtocol:
@@ -25659,6 +25714,8 @@ func (m *GroupMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldIsExclusive(ctx)
 	case group.FieldStatus:
 		return m.OldStatus(ctx)
+	case group.FieldDuplicateOperationID:
+		return m.OldDuplicateOperationID(ctx)
 	case group.FieldPlatform:
 		return m.OldPlatform(ctx)
 	case group.FieldInboundProtocol:
@@ -25819,6 +25876,13 @@ func (m *GroupMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetStatus(v)
+		return nil
+	case group.FieldDuplicateOperationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDuplicateOperationID(v)
 		return nil
 	case group.FieldPlatform:
 		v, ok := value.(string)
@@ -26349,6 +26413,9 @@ func (m *GroupMutation) ClearedFields() []string {
 	if m.FieldCleared(group.FieldDescription) {
 		fields = append(fields, group.FieldDescription)
 	}
+	if m.FieldCleared(group.FieldDuplicateOperationID) {
+		fields = append(fields, group.FieldDuplicateOperationID)
+	}
 	if m.FieldCleared(group.FieldInboundProtocol) {
 		fields = append(fields, group.FieldInboundProtocol)
 	}
@@ -26410,6 +26477,9 @@ func (m *GroupMutation) ClearField(name string) error {
 		return nil
 	case group.FieldDescription:
 		m.ClearDescription()
+		return nil
+	case group.FieldDuplicateOperationID:
+		m.ClearDuplicateOperationID()
 		return nil
 	case group.FieldInboundProtocol:
 		m.ClearInboundProtocol()
@@ -26496,6 +26566,9 @@ func (m *GroupMutation) ResetField(name string) error {
 		return nil
 	case group.FieldStatus:
 		m.ResetStatus()
+		return nil
+	case group.FieldDuplicateOperationID:
+		m.ResetDuplicateOperationID()
 		return nil
 	case group.FieldPlatform:
 		m.ResetPlatform()
@@ -30250,6 +30323,8 @@ type ModelPricingMutation struct {
 	addoutput_cost_per_image                *float64
 	output_cost_per_image_token             *float64
 	addoutput_cost_per_image_token          *float64
+	input_cost_per_image_token              *float64
+	addinput_cost_per_image_token           *float64
 	input_cost_per_token_priority           *float64
 	addinput_cost_per_token_priority        *float64
 	output_cost_per_token_priority          *float64
@@ -31051,6 +31126,76 @@ func (m *ModelPricingMutation) ResetOutputCostPerImageToken() {
 	m.output_cost_per_image_token = nil
 	m.addoutput_cost_per_image_token = nil
 	delete(m.clearedFields, modelpricing.FieldOutputCostPerImageToken)
+}
+
+// SetInputCostPerImageToken sets the "input_cost_per_image_token" field.
+func (m *ModelPricingMutation) SetInputCostPerImageToken(f float64) {
+	m.input_cost_per_image_token = &f
+	m.addinput_cost_per_image_token = nil
+}
+
+// InputCostPerImageToken returns the value of the "input_cost_per_image_token" field in the mutation.
+func (m *ModelPricingMutation) InputCostPerImageToken() (r float64, exists bool) {
+	v := m.input_cost_per_image_token
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInputCostPerImageToken returns the old "input_cost_per_image_token" field's value of the ModelPricing entity.
+// If the ModelPricing object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ModelPricingMutation) OldInputCostPerImageToken(ctx context.Context) (v *float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInputCostPerImageToken is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInputCostPerImageToken requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInputCostPerImageToken: %w", err)
+	}
+	return oldValue.InputCostPerImageToken, nil
+}
+
+// AddInputCostPerImageToken adds f to the "input_cost_per_image_token" field.
+func (m *ModelPricingMutation) AddInputCostPerImageToken(f float64) {
+	if m.addinput_cost_per_image_token != nil {
+		*m.addinput_cost_per_image_token += f
+	} else {
+		m.addinput_cost_per_image_token = &f
+	}
+}
+
+// AddedInputCostPerImageToken returns the value that was added to the "input_cost_per_image_token" field in this mutation.
+func (m *ModelPricingMutation) AddedInputCostPerImageToken() (r float64, exists bool) {
+	v := m.addinput_cost_per_image_token
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearInputCostPerImageToken clears the value of the "input_cost_per_image_token" field.
+func (m *ModelPricingMutation) ClearInputCostPerImageToken() {
+	m.input_cost_per_image_token = nil
+	m.addinput_cost_per_image_token = nil
+	m.clearedFields[modelpricing.FieldInputCostPerImageToken] = struct{}{}
+}
+
+// InputCostPerImageTokenCleared returns if the "input_cost_per_image_token" field was cleared in this mutation.
+func (m *ModelPricingMutation) InputCostPerImageTokenCleared() bool {
+	_, ok := m.clearedFields[modelpricing.FieldInputCostPerImageToken]
+	return ok
+}
+
+// ResetInputCostPerImageToken resets all changes to the "input_cost_per_image_token" field.
+func (m *ModelPricingMutation) ResetInputCostPerImageToken() {
+	m.input_cost_per_image_token = nil
+	m.addinput_cost_per_image_token = nil
+	delete(m.clearedFields, modelpricing.FieldInputCostPerImageToken)
 }
 
 // SetInputCostPerTokenPriority sets the "input_cost_per_token_priority" field.
@@ -32419,7 +32564,7 @@ func (m *ModelPricingMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ModelPricingMutation) Fields() []string {
-	fields := make([]string, 0, 36)
+	fields := make([]string, 0, 37)
 	if m.model_id != nil {
 		fields = append(fields, modelpricing.FieldModelID)
 	}
@@ -32455,6 +32600,9 @@ func (m *ModelPricingMutation) Fields() []string {
 	}
 	if m.output_cost_per_image_token != nil {
 		fields = append(fields, modelpricing.FieldOutputCostPerImageToken)
+	}
+	if m.input_cost_per_image_token != nil {
+		fields = append(fields, modelpricing.FieldInputCostPerImageToken)
 	}
 	if m.input_cost_per_token_priority != nil {
 		fields = append(fields, modelpricing.FieldInputCostPerTokenPriority)
@@ -32560,6 +32708,8 @@ func (m *ModelPricingMutation) Field(name string) (ent.Value, bool) {
 		return m.OutputCostPerImage()
 	case modelpricing.FieldOutputCostPerImageToken:
 		return m.OutputCostPerImageToken()
+	case modelpricing.FieldInputCostPerImageToken:
+		return m.InputCostPerImageToken()
 	case modelpricing.FieldInputCostPerTokenPriority:
 		return m.InputCostPerTokenPriority()
 	case modelpricing.FieldOutputCostPerTokenPriority:
@@ -32641,6 +32791,8 @@ func (m *ModelPricingMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldOutputCostPerImage(ctx)
 	case modelpricing.FieldOutputCostPerImageToken:
 		return m.OldOutputCostPerImageToken(ctx)
+	case modelpricing.FieldInputCostPerImageToken:
+		return m.OldInputCostPerImageToken(ctx)
 	case modelpricing.FieldInputCostPerTokenPriority:
 		return m.OldInputCostPerTokenPriority(ctx)
 	case modelpricing.FieldOutputCostPerTokenPriority:
@@ -32781,6 +32933,13 @@ func (m *ModelPricingMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetOutputCostPerImageToken(v)
+		return nil
+	case modelpricing.FieldInputCostPerImageToken:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInputCostPerImageToken(v)
 		return nil
 	case modelpricing.FieldInputCostPerTokenPriority:
 		v, ok := value.(float64)
@@ -32976,6 +33135,9 @@ func (m *ModelPricingMutation) AddedFields() []string {
 	if m.addoutput_cost_per_image_token != nil {
 		fields = append(fields, modelpricing.FieldOutputCostPerImageToken)
 	}
+	if m.addinput_cost_per_image_token != nil {
+		fields = append(fields, modelpricing.FieldInputCostPerImageToken)
+	}
 	if m.addinput_cost_per_token_priority != nil {
 		fields = append(fields, modelpricing.FieldInputCostPerTokenPriority)
 	}
@@ -33035,6 +33197,8 @@ func (m *ModelPricingMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedOutputCostPerImage()
 	case modelpricing.FieldOutputCostPerImageToken:
 		return m.AddedOutputCostPerImageToken()
+	case modelpricing.FieldInputCostPerImageToken:
+		return m.AddedInputCostPerImageToken()
 	case modelpricing.FieldInputCostPerTokenPriority:
 		return m.AddedInputCostPerTokenPriority()
 	case modelpricing.FieldOutputCostPerTokenPriority:
@@ -33111,6 +33275,13 @@ func (m *ModelPricingMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddOutputCostPerImageToken(v)
+		return nil
+	case modelpricing.FieldInputCostPerImageToken:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddInputCostPerImageToken(v)
 		return nil
 	case modelpricing.FieldInputCostPerTokenPriority:
 		v, ok := value.(float64)
@@ -33235,6 +33406,9 @@ func (m *ModelPricingMutation) ClearedFields() []string {
 	if m.FieldCleared(modelpricing.FieldOutputCostPerImageToken) {
 		fields = append(fields, modelpricing.FieldOutputCostPerImageToken)
 	}
+	if m.FieldCleared(modelpricing.FieldInputCostPerImageToken) {
+		fields = append(fields, modelpricing.FieldInputCostPerImageToken)
+	}
 	if m.FieldCleared(modelpricing.FieldInputCostPerTokenPriority) {
 		fields = append(fields, modelpricing.FieldInputCostPerTokenPriority)
 	}
@@ -33317,6 +33491,9 @@ func (m *ModelPricingMutation) ClearField(name string) error {
 		return nil
 	case modelpricing.FieldOutputCostPerImageToken:
 		m.ClearOutputCostPerImageToken()
+		return nil
+	case modelpricing.FieldInputCostPerImageToken:
+		m.ClearInputCostPerImageToken()
 		return nil
 	case modelpricing.FieldInputCostPerTokenPriority:
 		m.ClearInputCostPerTokenPriority()
@@ -33406,6 +33583,9 @@ func (m *ModelPricingMutation) ResetField(name string) error {
 		return nil
 	case modelpricing.FieldOutputCostPerImageToken:
 		m.ResetOutputCostPerImageToken()
+		return nil
+	case modelpricing.FieldInputCostPerImageToken:
+		m.ResetInputCostPerImageToken()
 		return nil
 	case modelpricing.FieldInputCostPerTokenPriority:
 		m.ResetInputCostPerTokenPriority()

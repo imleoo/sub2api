@@ -161,7 +161,7 @@ func (r *ModelPricingResolver) applyTokenOverrides(chPricing *ChannelModelPricin
 			resolved.BasePricing.ImageOutputPricePerToken = 0
 		}
 		resolved.BasePricing.ImageOutputPriceExplicit = true
-		// 图片输入价：渠道显式配置则覆盖；未配置时计费回退到文本输入价。
+		// 图片输入价：渠道显式配置则覆盖；未配置时保留 catalog 基础价（基础价也为 0 时计费回退文本输入价）。
 		if chPricing.ImageInputPrice != nil {
 			resolved.BasePricing.ImageInputPricePerToken = *chPricing.ImageInputPrice
 		}
@@ -203,7 +203,7 @@ func (r *ModelPricingResolver) applyTokenOverrides(chPricing *ChannelModelPricin
 		resolved.BasePricing.ImageOutputPricePerToken = 0
 	}
 	resolved.BasePricing.ImageOutputPriceExplicit = true
-	// 图片输入价：渠道显式配置则覆盖；未配置时计费回退到文本输入价。
+	// 图片输入价：渠道显式配置则覆盖；未配置时保留 catalog 基础价（基础价也为 0 时计费回退文本输入价）。
 	if chPricing.ImageInputPrice != nil {
 		resolved.BasePricing.ImageInputPricePerToken = *chPricing.ImageInputPrice
 	}
@@ -270,13 +270,14 @@ func intervalToModelPricing(iv *PricingInterval, supportsCacheBreakdown bool, ch
 		pricing.CacheReadPricePerToken = *iv.CacheReadPrice
 		pricing.CacheReadPricePerTokenPriority = *iv.CacheReadPrice
 	}
-	// 渠道定价存在时，ImageOutputPrice 显式覆盖
+	// 渠道定价存在时，ImageOutputPrice 显式覆盖；图片输入价用渠道级配置
+	// （区间不携带图片输入价，与 image_output 一致）。
 	if chPricing != nil {
 		pricing.ImageOutputPriceExplicit = true
 		if chPricing.ImageOutputPrice != nil {
 			pricing.ImageOutputPricePerToken = *chPricing.ImageOutputPrice
 		}
-		// 图片输入价：渠道显式配置则覆盖；未配置时计费回退到文本输入价。
+		// 图片输入价：渠道显式配置则覆盖；未配置时保留 catalog 基础价（基础价也为 0 时计费回退文本输入价）。
 		if chPricing.ImageInputPrice != nil {
 			pricing.ImageInputPricePerToken = *chPricing.ImageInputPrice
 		}

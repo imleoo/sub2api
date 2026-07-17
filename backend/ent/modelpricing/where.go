@@ -109,6 +109,11 @@ func OutputCostPerImageToken(v float64) predicate.ModelPricing {
 	return predicate.ModelPricing(sql.FieldEQ(FieldOutputCostPerImageToken, v))
 }
 
+// InputCostPerImageToken applies equality check predicate on the "input_cost_per_image_token" field. It's identical to InputCostPerImageTokenEQ.
+func InputCostPerImageToken(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldInputCostPerImageToken, v))
+}
+
 // InputCostPerTokenPriority applies equality check predicate on the "input_cost_per_token_priority" field. It's identical to InputCostPerTokenPriorityEQ.
 func InputCostPerTokenPriority(v float64) predicate.ModelPricing {
 	return predicate.ModelPricing(sql.FieldEQ(FieldInputCostPerTokenPriority, v))
@@ -892,6 +897,56 @@ func OutputCostPerImageTokenIsNil() predicate.ModelPricing {
 // OutputCostPerImageTokenNotNil applies the NotNil predicate on the "output_cost_per_image_token" field.
 func OutputCostPerImageTokenNotNil() predicate.ModelPricing {
 	return predicate.ModelPricing(sql.FieldNotNull(FieldOutputCostPerImageToken))
+}
+
+// InputCostPerImageTokenEQ applies the EQ predicate on the "input_cost_per_image_token" field.
+func InputCostPerImageTokenEQ(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldEQ(FieldInputCostPerImageToken, v))
+}
+
+// InputCostPerImageTokenNEQ applies the NEQ predicate on the "input_cost_per_image_token" field.
+func InputCostPerImageTokenNEQ(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNEQ(FieldInputCostPerImageToken, v))
+}
+
+// InputCostPerImageTokenIn applies the In predicate on the "input_cost_per_image_token" field.
+func InputCostPerImageTokenIn(vs ...float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIn(FieldInputCostPerImageToken, vs...))
+}
+
+// InputCostPerImageTokenNotIn applies the NotIn predicate on the "input_cost_per_image_token" field.
+func InputCostPerImageTokenNotIn(vs ...float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotIn(FieldInputCostPerImageToken, vs...))
+}
+
+// InputCostPerImageTokenGT applies the GT predicate on the "input_cost_per_image_token" field.
+func InputCostPerImageTokenGT(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGT(FieldInputCostPerImageToken, v))
+}
+
+// InputCostPerImageTokenGTE applies the GTE predicate on the "input_cost_per_image_token" field.
+func InputCostPerImageTokenGTE(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldGTE(FieldInputCostPerImageToken, v))
+}
+
+// InputCostPerImageTokenLT applies the LT predicate on the "input_cost_per_image_token" field.
+func InputCostPerImageTokenLT(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLT(FieldInputCostPerImageToken, v))
+}
+
+// InputCostPerImageTokenLTE applies the LTE predicate on the "input_cost_per_image_token" field.
+func InputCostPerImageTokenLTE(v float64) predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldLTE(FieldInputCostPerImageToken, v))
+}
+
+// InputCostPerImageTokenIsNil applies the IsNil predicate on the "input_cost_per_image_token" field.
+func InputCostPerImageTokenIsNil() predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldIsNull(FieldInputCostPerImageToken))
+}
+
+// InputCostPerImageTokenNotNil applies the NotNil predicate on the "input_cost_per_image_token" field.
+func InputCostPerImageTokenNotNil() predicate.ModelPricing {
+	return predicate.ModelPricing(sql.FieldNotNull(FieldInputCostPerImageToken))
 }
 
 // InputCostPerTokenPriorityEQ applies the EQ predicate on the "input_cost_per_token_priority" field.

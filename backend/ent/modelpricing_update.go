@@ -286,6 +286,33 @@ func (_u *ModelPricingUpdate) ClearOutputCostPerImageToken() *ModelPricingUpdate
 	return _u
 }
 
+// SetInputCostPerImageToken sets the "input_cost_per_image_token" field.
+func (_u *ModelPricingUpdate) SetInputCostPerImageToken(v float64) *ModelPricingUpdate {
+	_u.mutation.ResetInputCostPerImageToken()
+	_u.mutation.SetInputCostPerImageToken(v)
+	return _u
+}
+
+// SetNillableInputCostPerImageToken sets the "input_cost_per_image_token" field if the given value is not nil.
+func (_u *ModelPricingUpdate) SetNillableInputCostPerImageToken(v *float64) *ModelPricingUpdate {
+	if v != nil {
+		_u.SetInputCostPerImageToken(*v)
+	}
+	return _u
+}
+
+// AddInputCostPerImageToken adds value to the "input_cost_per_image_token" field.
+func (_u *ModelPricingUpdate) AddInputCostPerImageToken(v float64) *ModelPricingUpdate {
+	_u.mutation.AddInputCostPerImageToken(v)
+	return _u
+}
+
+// ClearInputCostPerImageToken clears the value of the "input_cost_per_image_token" field.
+func (_u *ModelPricingUpdate) ClearInputCostPerImageToken() *ModelPricingUpdate {
+	_u.mutation.ClearInputCostPerImageToken()
+	return _u
+}
+
 // SetInputCostPerTokenPriority sets the "input_cost_per_token_priority" field.
 func (_u *ModelPricingUpdate) SetInputCostPerTokenPriority(v float64) *ModelPricingUpdate {
 	_u.mutation.ResetInputCostPerTokenPriority()
@@ -957,6 +984,15 @@ func (_u *ModelPricingUpdate) sqlSave(ctx context.Context) (_node int, err error
 	if _u.mutation.OutputCostPerImageTokenCleared() {
 		_spec.ClearField(modelpricing.FieldOutputCostPerImageToken, field.TypeFloat64)
 	}
+	if value, ok := _u.mutation.InputCostPerImageToken(); ok {
+		_spec.SetField(modelpricing.FieldInputCostPerImageToken, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedInputCostPerImageToken(); ok {
+		_spec.AddField(modelpricing.FieldInputCostPerImageToken, field.TypeFloat64, value)
+	}
+	if _u.mutation.InputCostPerImageTokenCleared() {
+		_spec.ClearField(modelpricing.FieldInputCostPerImageToken, field.TypeFloat64)
+	}
 	if value, ok := _u.mutation.InputCostPerTokenPriority(); ok {
 		_spec.SetField(modelpricing.FieldInputCostPerTokenPriority, field.TypeFloat64, value)
 	}
@@ -1385,6 +1421,33 @@ func (_u *ModelPricingUpdateOne) AddOutputCostPerImageToken(v float64) *ModelPri
 // ClearOutputCostPerImageToken clears the value of the "output_cost_per_image_token" field.
 func (_u *ModelPricingUpdateOne) ClearOutputCostPerImageToken() *ModelPricingUpdateOne {
 	_u.mutation.ClearOutputCostPerImageToken()
+	return _u
+}
+
+// SetInputCostPerImageToken sets the "input_cost_per_image_token" field.
+func (_u *ModelPricingUpdateOne) SetInputCostPerImageToken(v float64) *ModelPricingUpdateOne {
+	_u.mutation.ResetInputCostPerImageToken()
+	_u.mutation.SetInputCostPerImageToken(v)
+	return _u
+}
+
+// SetNillableInputCostPerImageToken sets the "input_cost_per_image_token" field if the given value is not nil.
+func (_u *ModelPricingUpdateOne) SetNillableInputCostPerImageToken(v *float64) *ModelPricingUpdateOne {
+	if v != nil {
+		_u.SetInputCostPerImageToken(*v)
+	}
+	return _u
+}
+
+// AddInputCostPerImageToken adds value to the "input_cost_per_image_token" field.
+func (_u *ModelPricingUpdateOne) AddInputCostPerImageToken(v float64) *ModelPricingUpdateOne {
+	_u.mutation.AddInputCostPerImageToken(v)
+	return _u
+}
+
+// ClearInputCostPerImageToken clears the value of the "input_cost_per_image_token" field.
+func (_u *ModelPricingUpdateOne) ClearInputCostPerImageToken() *ModelPricingUpdateOne {
+	_u.mutation.ClearInputCostPerImageToken()
 	return _u
 }
 
@@ -2088,6 +2151,15 @@ func (_u *ModelPricingUpdateOne) sqlSave(ctx context.Context) (_node *ModelPrici
 	}
 	if _u.mutation.OutputCostPerImageTokenCleared() {
 		_spec.ClearField(modelpricing.FieldOutputCostPerImageToken, field.TypeFloat64)
+	}
+	if value, ok := _u.mutation.InputCostPerImageToken(); ok {
+		_spec.SetField(modelpricing.FieldInputCostPerImageToken, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedInputCostPerImageToken(); ok {
+		_spec.AddField(modelpricing.FieldInputCostPerImageToken, field.TypeFloat64, value)
+	}
+	if _u.mutation.InputCostPerImageTokenCleared() {
+		_spec.ClearField(modelpricing.FieldInputCostPerImageToken, field.TypeFloat64)
 	}
 	if value, ok := _u.mutation.InputCostPerTokenPriority(); ok {
 		_spec.SetField(modelpricing.FieldInputCostPerTokenPriority, field.TypeFloat64, value)
