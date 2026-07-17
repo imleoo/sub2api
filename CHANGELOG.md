@@ -6,6 +6,40 @@
 
 ---
 
+## [1.1.160] - 2026-07-17 — 同步上游 0.1.160（OpenAI 兼容 prompt 审计）
+
+同步上游 25 提交（0.1.158→0.1.160）。主体为**新功能：OpenAI 兼容 prompt 审计**
+（`internal/securityaudit/` 后端 + `frontend/src/features/prompt-audit/` 前端，Qwen3Guard
+异步复核/同步阻断，事件全量提示词入库仅管理员可查），附带 grok media 修复、image_gen 被动
+namespace 显式意图检查（#4476）、backup S3 step-up TOTP。VERSION → 1.1.160。
+
+15 个冲突文件 + auto-merge 后遗症的 fork 适配要点：
+- `cmd/server/wire.go`：Application 保留 fork `SQLDB` + 并入上游 `PromptAudit`
+- `handler/wire.go`：`ProvideGatewayHandler` 去 antigravity 参、补 fork `bridgeRegistry`；
+  BatchImage 用上游 `ProvideBatchImageHandler` + 保留 fork Team/Enterprise 注入
+- `gateway_handler.go`：结构体保留 fork `bridgeRegistry` + 并入 `securityAuditCoordinator`，
+  不引入上游 `antigravityGatewayService`（功能 35 已删 antigravity）
+- `openai_gateway_handler.go`：生图能力路由复用已升级为显式意图的 `imageIntent`（采纳 #4476）
+- `service/account.go`：保留上游 `GrokMediaEligibleExtraKey`；`GrokMediaGenerationEligibility`
+  按 fork 世界化简（无 OAuth/billing 快照，除显式 override 外一律 eligible）；弃 codex-PAT auth
+- `securityaudit/prompt_module.go`：补 `PromptAdminService` 显式 `wire.Bind`，供离线重生成 wire_gen
+- `wire_gen.go`：用 `go run wire` 从已解决 injector 重新生成（权威），fork 注入全保留、
+  securityaudit 正确接线、无 OAuth/antigravity 残留
+- 改/删冲突保持 fork 删除：`grok_quota_service.go`、`xai/billing.go` 及相关 OAuth/billing 测试
+- `docker-compose.yml` 保留 fork tokenpanel 品牌；pnpm-lock 去重 `@intlify/message-compiler`
+
+高风险复核：本次同步逐个人工核对了 `wire.go`/`wire_gen.go`/`handler/wire.go`/`gateway_handler.go`/
+`openai_gateway_handler.go`/`service/account.go`/`admin_account.go`/`routes/admin.go` 等登记 fork
+文件的合并结果，确认 fork 注入链（lingjing/provider-pricing/model-pricing/team/enterprise/bridgeRegistry）
+与逆向清理（antigravity/grok-OAuth/codex-PAT 已删）均未被上游静默吞回；wire 从 injector 权威重生成。
+
+验证：后端 `go build ./...` + 单元测试全过（service/repository/server/handler/securityaudit）；
+前端 typecheck + 58 测试（含 prompt-audit）+ lint + `--frozen-lockfile` 全过；本地起服务 +
+浏览器 E2E 实操：v1.1.160 登录、仪表盘、**提示词审计**（事件/配置、运行态 DB·Redis ok、Qwen3Guard
+策略）、**模型折扣**（90 条 + MaaS 同步 + lingjing 模型）均正常。
+
+---
+
 ## 工具 - 2026-07-17 — pre-push 门禁检查 3 扩到全部登记 fork 文件
 
 `script/pre_push_check.sh` 检查 3 的复核范围从"仅 🔴 高风险文件"扩大到 `自定义开发功能列表.md`
