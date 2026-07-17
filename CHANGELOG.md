@@ -6,6 +6,22 @@
 
 ---
 
+## 修复 - 2026-07-17 — 团队协作页移动端适配（迁移共享 DataTable）
+
+`TeamMembersView.vue`（企业成员管理，功能 44）此前三个裸 `<table>`（成员 6 列 + 每行 6 个
+操作按钮 / 流水 / 报表）在窄屏横向撑破页面。改为复用全站共享的 `DataTable` 组件（内置
+`matchMedia('min-width:768px')` 桌面表↔移动卡片切换，与使用记录/用户/账号等页一致）：桌面端
+仍渲染表格，移动端每行自动降级为 `label:value` 卡片、操作按钮落在卡片底部独立区块。新增
+`memberColumns`/`transferColumns`/`reportColumns` 列定义 + `#cell-*` 插槽承接原单元格内容
+（含 `UserStatsModal` 使用统计、划拨/回收/额度/部门/角色/移除按钮、`PlatformUsageBreakdown`）；
+Tab 栏加 `overflow-x-auto` 防 5 Tab 溢出。移动端 390px 浏览器实测三 Tab 均正常卡片化。
+
+高风险复核：`TeamMembersView.vue` 仅视图层重构（表格→共享 DataTable 组件 + 列定义/插槽），
+业务逻辑/接口/数据流（teamStore、各 handler 调用、对话框）均未改动；功能 44 后端零影响。
+typecheck + lint 通过；`TeamMembersView.spec.ts`(4) + `team.spec.ts`(5) + `TeamInviteAcceptView.spec.ts`(3) 全绿。
+
+---
+
 ## [1.1.160] - 2026-07-17 — 同步上游 0.1.160（OpenAI 兼容 prompt 审计）
 
 同步上游 25 提交（0.1.158→0.1.160）。主体为**新功能：OpenAI 兼容 prompt 审计**

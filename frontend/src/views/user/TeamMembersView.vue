@@ -26,11 +26,11 @@
       </div>
 
       <div class="card overflow-hidden">
-        <div class="flex border-b border-gray-100 dark:border-dark-700">
+        <div class="flex overflow-x-auto border-b border-gray-100 dark:border-dark-700">
           <button
             v-for="tab in tabs"
             :key="tab.key"
-            class="px-4 py-3 text-sm font-medium transition-colors"
+            class="shrink-0 whitespace-nowrap px-4 py-3 text-sm font-medium transition-colors"
             :class="activeTab === tab.key ? 'border-b-2 border-primary-600 text-primary-600 dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 dark:text-dark-400'"
             @click="activeTab = tab.key"
           >
@@ -40,57 +40,42 @@
 
         <!-- Members tab -->
         <div v-if="activeTab === 'members'" class="p-6">
-          <div v-if="loadingMembers" class="text-sm text-gray-400">{{ t('common.loading') }}</div>
-          <table v-else class="w-full text-left text-sm">
-            <thead>
-              <tr class="border-b border-gray-100 text-xs text-gray-400 dark:border-dark-700">
-                <th class="pb-2 font-medium">{{ t('team.members.memberList') }}</th>
-                <th class="pb-2 font-medium">{{ t('team.members.department') }}</th>
-                <th class="pb-2 font-medium">{{ t('team.members.quotaMode') }}</th>
-                <th class="pb-2 font-medium">{{ t('team.members.grantedNet') }}</th>
-                <th class="pb-2 font-medium">{{ t('team.report.usage') }}</th>
-                <th class="pb-2 font-medium"></th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100 dark:divide-dark-700">
-              <tr v-for="m in members" :key="m.user_id">
-                <td class="py-3">
-                  <p class="font-medium text-gray-900 dark:text-white">{{ m.email }}</p>
-                  <p class="text-xs text-gray-400">{{ roleLabel(m.role) }}</p>
-                </td>
-                <td class="py-3 text-gray-500 dark:text-dark-300">
-                  {{ departmentName(m.department_id) }}
-                </td>
-                <td class="py-3 text-gray-500 dark:text-dark-300">
-                  {{ m.role === 'owner' ? '—' : quotaModeLabel(m.quota_mode) }}
-                </td>
-                <td class="py-3 text-gray-500 dark:text-dark-300">
-                  {{ m.role === 'owner' ? '—' : m.granted_net_usd.toFixed(2) }}
-                </td>
-                <td class="py-3">
-                  <button class="btn btn-secondary btn-sm" @click="openUsageStats(m)">{{ t('team.members.viewUsage') }}</button>
-                </td>
-                <td class="py-3">
-                  <div v-if="m.role !== 'owner'" class="flex flex-wrap justify-end gap-2">
-                    <button class="btn btn-secondary btn-sm" @click="openTransferDialog(m, 'grant')">{{ t('team.members.grant') }}</button>
-                    <button class="btn btn-secondary btn-sm" @click="openTransferDialog(m, 'reclaim')">{{ t('team.members.reclaim') }}</button>
-                    <button class="btn btn-secondary btn-sm" @click="openQuotaDialog(m)">{{ t('team.members.setQuota') }}</button>
-                    <button class="btn btn-secondary btn-sm" @click="openDepartmentDialog(m)">{{ t('team.members.setDepartment') }}</button>
-                    <button
-                      v-if="isOwnerOfSelected"
-                      class="btn btn-secondary btn-sm"
-                      @click="handleToggleRole(m)"
-                    >
-                      {{ m.role === 'admin' ? t('team.members.member') : t('team.members.admin') }}
-                    </button>
-                    <button class="btn btn-secondary btn-sm text-red-600 dark:text-red-400" @click="handleRemove(m)">
-                      {{ t('team.members.remove') }}
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <DataTable :columns="memberColumns" :data="members" :loading="loadingMembers" row-key="user_id" flat>
+            <template #cell-member="{ row }">
+              <p class="font-medium text-gray-900 dark:text-white">{{ row.email }}</p>
+              <p class="text-xs text-gray-400">{{ roleLabel(row.role) }}</p>
+            </template>
+            <template #cell-department="{ row }">
+              <span class="text-gray-500 dark:text-dark-300">{{ departmentName(row.department_id) }}</span>
+            </template>
+            <template #cell-quota_mode="{ row }">
+              <span class="text-gray-500 dark:text-dark-300">{{ row.role === 'owner' ? '—' : quotaModeLabel(row.quota_mode) }}</span>
+            </template>
+            <template #cell-granted="{ row }">
+              <span class="text-gray-500 dark:text-dark-300">{{ row.role === 'owner' ? '—' : row.granted_net_usd.toFixed(2) }}</span>
+            </template>
+            <template #cell-usage="{ row }">
+              <button class="btn btn-secondary btn-sm" @click.stop="openUsageStats(row)">{{ t('team.members.viewUsage') }}</button>
+            </template>
+            <template #cell-actions="{ row }">
+              <div v-if="row.role !== 'owner'" class="flex flex-wrap justify-end gap-2">
+                <button class="btn btn-secondary btn-sm" @click.stop="openTransferDialog(row, 'grant')">{{ t('team.members.grant') }}</button>
+                <button class="btn btn-secondary btn-sm" @click.stop="openTransferDialog(row, 'reclaim')">{{ t('team.members.reclaim') }}</button>
+                <button class="btn btn-secondary btn-sm" @click.stop="openQuotaDialog(row)">{{ t('team.members.setQuota') }}</button>
+                <button class="btn btn-secondary btn-sm" @click.stop="openDepartmentDialog(row)">{{ t('team.members.setDepartment') }}</button>
+                <button
+                  v-if="isOwnerOfSelected"
+                  class="btn btn-secondary btn-sm"
+                  @click.stop="handleToggleRole(row)"
+                >
+                  {{ row.role === 'admin' ? t('team.members.member') : t('team.members.admin') }}
+                </button>
+                <button class="btn btn-secondary btn-sm text-red-600 dark:text-red-400" @click.stop="handleRemove(row)">
+                  {{ t('team.members.remove') }}
+                </button>
+              </div>
+            </template>
+          </DataTable>
         </div>
 
         <!-- Departments tab -->
@@ -182,52 +167,32 @@
         <!-- Transfers tab -->
         <div v-if="activeTab === 'transfers'" class="p-6">
           <h2 class="text-base font-medium text-gray-900 dark:text-white">{{ t('team.transfers.title') }}</h2>
-          <div v-if="loadingTransfers" class="mt-4 text-sm text-gray-400">{{ t('common.loading') }}</div>
-          <div v-else-if="transfers.length === 0" class="mt-4 text-sm text-gray-400">{{ t('team.transfers.empty') }}</div>
-          <table v-else class="mt-4 w-full text-left text-sm">
-            <thead>
-              <tr class="border-b border-gray-100 text-xs text-gray-400 dark:border-dark-700">
-                <th class="pb-2 font-medium">{{ t('team.transfers.direction') }}</th>
-                <th class="pb-2 font-medium">{{ t('team.transfers.amount') }}</th>
-                <th class="pb-2 font-medium">{{ t('team.transfers.time') }}</th>
-                <th class="pb-2 font-medium">{{ t('team.transfers.note') }}</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100 dark:divide-dark-700">
-              <tr v-for="tr in transfers" :key="tr.id">
-                <td class="py-2">{{ directionLabel(tr.direction) }}</td>
-                <td class="py-2">{{ tr.amount.toFixed(2) }}</td>
-                <td class="py-2 text-gray-400">{{ formatDate(tr.created_at) }}</td>
-                <td class="py-2 text-gray-400">{{ tr.note }}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="mt-4">
+            <DataTable :columns="transferColumns" :data="transfers" :loading="loadingTransfers" row-key="id" flat>
+              <template #cell-direction="{ row }">{{ directionLabel(row.direction) }}</template>
+              <template #cell-amount="{ row }">{{ row.amount.toFixed(2) }}</template>
+              <template #cell-time="{ row }"><span class="text-gray-400">{{ formatDate(row.created_at) }}</span></template>
+              <template #cell-note="{ row }"><span class="text-gray-400">{{ row.note }}</span></template>
+              <template #empty>
+                <div class="p-6 text-center text-sm text-gray-400">{{ t('team.transfers.empty') }}</div>
+              </template>
+            </DataTable>
+          </div>
         </div>
 
         <!-- Report tab -->
         <div v-if="activeTab === 'report'" class="p-6">
           <h2 class="text-base font-medium text-gray-900 dark:text-white">{{ t('team.report.title') }}</h2>
-          <div v-if="loadingReport" class="mt-4 text-sm text-gray-400">{{ t('common.loading') }}</div>
-          <table v-else class="mt-4 w-full text-left text-sm">
-            <thead>
-              <tr class="border-b border-gray-100 text-xs text-gray-400 dark:border-dark-700">
-                <th class="pb-2 font-medium">{{ t('team.members.memberList') }}</th>
-                <th class="pb-2 font-medium">{{ t('team.report.balance') }}</th>
-                <th class="pb-2 font-medium">{{ t('team.report.grantedNet') }}</th>
-                <th class="pb-2 font-medium">{{ t('team.report.usage') }}</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100 dark:divide-dark-700">
-              <tr v-for="row in report" :key="row.user_id">
-                <td class="py-2 text-gray-900 dark:text-white">{{ row.email }}</td>
-                <td class="py-2">{{ row.balance.toFixed(2) }}</td>
-                <td class="py-2">{{ row.granted_net_usd.toFixed(2) }}</td>
-                <td class="py-2">
-                  <PlatformUsageBreakdown :today="row.today_cost" :total="row.cost_30d" :by-platform="row.by_platform" align="left" />
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="mt-4">
+            <DataTable :columns="reportColumns" :data="report" :loading="loadingReport" row-key="user_id" flat>
+              <template #cell-member="{ row }"><span class="text-gray-900 dark:text-white">{{ row.email }}</span></template>
+              <template #cell-balance="{ row }">{{ row.balance.toFixed(2) }}</template>
+              <template #cell-granted="{ row }">{{ row.granted_net_usd.toFixed(2) }}</template>
+              <template #cell-usage="{ row }">
+                <PlatformUsageBreakdown :today="row.today_cost" :total="row.cost_30d" :by-platform="row.by_platform" align="left" />
+              </template>
+            </DataTable>
+          </div>
         </div>
       </div>
     </div>
@@ -313,6 +278,8 @@ import AppLayout from '@/components/layout/AppLayout.vue'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import PlatformUsageBreakdown from '@/components/user/PlatformUsageBreakdown.vue'
 import UserStatsModal from '@/components/admin/user/UserStatsModal.vue'
+import DataTable from '@/components/common/DataTable.vue'
+import type { Column } from '@/components/common/types'
 import { useTeamStore } from '@/stores/team'
 import { useAuthStore } from '@/stores/auth'
 import {
@@ -336,6 +303,28 @@ const tabs = computed(() => [
   { key: 'invitations' as TabKey, label: t('team.members.tabInvitations') },
   { key: 'transfers' as TabKey, label: t('team.members.tabTransfers') },
   { key: 'report' as TabKey, label: t('team.members.tabReport') }
+])
+
+// DataTable 列定义：桌面渲染为表格，移动端由 DataTable 自动降级为 label:value 卡片
+const memberColumns = computed<Column[]>(() => [
+  { key: 'member', label: t('team.members.memberList') },
+  { key: 'department', label: t('team.members.department') },
+  { key: 'quota_mode', label: t('team.members.quotaMode') },
+  { key: 'granted', label: t('team.members.grantedNet') },
+  { key: 'usage', label: t('team.report.usage') },
+  { key: 'actions', label: '' }
+])
+const transferColumns = computed<Column[]>(() => [
+  { key: 'direction', label: t('team.transfers.direction') },
+  { key: 'amount', label: t('team.transfers.amount') },
+  { key: 'time', label: t('team.transfers.time') },
+  { key: 'note', label: t('team.transfers.note') }
+])
+const reportColumns = computed<Column[]>(() => [
+  { key: 'member', label: t('team.members.memberList') },
+  { key: 'balance', label: t('team.report.balance') },
+  { key: 'granted', label: t('team.report.grantedNet') },
+  { key: 'usage', label: t('team.report.usage') }
 ])
 
 // 可管理的企业列表：自己创建的企业（默认，ownerUserId=undefined 让后端按调用者本人解析）
