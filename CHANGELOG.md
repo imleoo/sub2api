@@ -6,6 +6,48 @@
 
 ---
 
+## 同步上游 - 2026-07-17 — 合并 100 个上游 commit（版本 → 1.1.158）
+
+`git merge upstream/main` 合并 100 个上游提交（41 个 merge PR），覆盖后端
+`internal/service`、`internal/repository`、`internal/handler`、`ent/`（含 schema 与生成代码）
+及前端账号/管理组件，新增迁移 178~182。主要合法上游新功能：
+
+- **管理面操作审计日志**（PR #4418，migration `180_audit_logs.sql`）：append-only 记录管理面
+  变更类请求/敏感读取/认证事件，新增 `audit_log_handler.go`/`audit_log_repo.go`/
+  `audit_log_service.go`/`middleware/audit_log.go` + 前端 `AuditLogView.vue`。仅支持带 2FA
+  验证的全量清空，不提供单条删除。
+- **管理员二次验证（Step-up）**（PR #4429）：敏感操作前要求 2FA 重新确认，新增
+  `middleware/step_up.go`、`service/session_binding.go`（含 `middleware/session_binding.go`）、
+  前端 `TotpStepUpDialog.vue`/`useStepUp.ts`。
+- **异步图片任务 + 对象存储**（PR #4406，为 #4381 的 revert-and-redo，migration
+  `179_usage_log_image_input_tokens.sql`）：图片编辑/图生图请求转为异步任务落 S3，新增
+  `image_task_handler.go`/`service/image_task.go`/`service/image_storage.go`/
+  `repository/image_task_store.go`/`repository/image_storage_s3.go`/`repository/s3_client.go`，
+  文档 `docs/ASYNC_IMAGE_TASKS.md`；`usage_logs` 拆分 `image_input_tokens`/`image_input_cost`
+  独立计费口径。
+- **图片输入 token 独立单价**（PR #4396，migration `178_channel_image_input_price.sql` 渠道级 +
+  `182_model_pricing_image_input_price.sql` 目录级）：`gpt-image-2` 等模型 image_tokens 按独立
+  单价计费，未配置时回退文本 input_price。
+- **上游账号费率探测 / Key 账单信息**（PR #4385 `feat/upstream-billing-probe`、#4108
+  `feat/key-billing-info`、#4387 `feat/upstream-rate-scheduling`）：新增
+  `account_upstream_billing_probe.go`（+test）、`gateway_key_billing.go`（+test）、
+  `service/upstream_billing_probe.go`，前端 `UpstreamBillingRateCell.vue`。
+- **分组/渠道一键复制**（PR #4434 `feat/group-one-click-copy`、#4427
+  `feat/channel-monitor-one-click-copy`，migration `181_group_duplicate_operation_id.sql`）：
+  新增 `service/admin_group_duplicate.go`，`groups` 表加 `duplicate_operation_id` 用于幂等恢复。
+- **用户批量限额编辑**（PR #4425 `agent/admin-users-batch-limits`）：新增前端
+  `BulkEditUserModal.vue`。
+- 其余为 Grok/Codex 兼容性修复（WSv2 模板、alpha-search 调度、function-tool 缓存等）、Stripe
+  懒加载修复（`StripePopupView.vue`）等零散 bugfix。
+
+抽查确认 fork 剥离的 OpenAI/Grok OAuth 账号类型未被本次合并重新引入：`Account.IsOpenAIOAuth()`
+仍恒为 `false`（`account.go:1057` 注释标注"已随 OpenAI OAuth 账号类型移除"），
+`grok_oauth_service.go`/`grok_quota_fetcher.go`/`admin/grok_oauth_handler.go`/
+`admin/openai_oauth_handler.go` 均未重新出现。未做 🔴 高风险文件全量人工 diff，仅抽查；
+后续按惯例仍建议对照《自定义开发功能列表.md》风险表逐个核对。
+
+---
+
 ## 同步上游 - 2026-07-15 — 合并 214 个上游 commit（版本 → 1.1.156）
 
 `git merge upstream/main` 合并 214 个上游提交，71 处内容冲突 + 44 处 delete/modify 冲突，覆盖
