@@ -6,6 +6,21 @@
 
 ---
 
+## 修复 - 2026-07-17 — 平台费用悬浮层被表格 overflow 裁切
+
+`PlatformUsageBreakdown.vue`（功能 44 复用组件，风险表 🟡 中）在 `DataTable` 单元格内悬浮时被
+祖先 `.table-wrapper`（`overflow-x/y:auto`）裁掉顶部/侧边。原来靠绝对定位 + `align` prop 只改弹出
+方向，无法逃出滚动容器的裁剪。改为复用全站既有做法（同 `UsageTable.vue`）：弹层 `Teleport` 到
+`body` + `position:fixed` + `getBoundingClientRect` 定位，脱离 overflow 容器；`align` 语义保留
+（`left` 向左展开、默认 `right` 向右）。一处改动同修团队成员报表与后台用户管理两个引用点；组件
+在 `TeamMembersView.spec.ts` 中为 stub，不受影响。typecheck + lint 通过。
+
+高风险复核：`PlatformUsageBreakdown.vue` 仅改 tooltip 定位机制（绝对定位→Teleport+fixed），
+props 契约（`today/total/byPlatform/align`）、`sortedBreakdown`「其他」行聚合、文案与显示内容均
+未变；两个引用点 `TeamMembersView.vue`/`UsersView.vue` 无需改动。
+
+---
+
 ## 修复 - 2026-07-17 — 团队协作页移动端适配（迁移共享 DataTable）
 
 `TeamMembersView.vue`（企业成员管理，功能 44）此前三个裸 `<table>`（成员 6 列 + 每行 6 个
