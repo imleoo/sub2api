@@ -59,11 +59,28 @@
 - 其余为 Grok/Codex 兼容性修复（WSv2 模板、alpha-search 调度、function-tool 缓存等）、Stripe
   懒加载修复（`StripePopupView.vue`）等零散 bugfix。
 
-抽查确认 fork 剥离的 OpenAI/Grok OAuth 账号类型未被本次合并重新引入：`Account.IsOpenAIOAuth()`
-仍恒为 `false`（`account.go:1057` 注释标注"已随 OpenAI OAuth 账号类型移除"），
-`grok_oauth_service.go`/`grok_quota_fetcher.go`/`admin/grok_oauth_handler.go`/
-`admin/openai_oauth_handler.go` 均未重新出现。未做 🔴 高风险文件全量人工 diff，仅抽查；
-后续按惯例仍建议对照《自定义开发功能列表.md》风险表逐个核对。
+高风险复核：已对本次同步范围（`6be4b0cd6..HEAD`）命中的 9 个 🔴 高风险文件逐个核对 diff，全部通过、
+无 fork 逻辑被上游静默覆盖——`billing_service.go`（无 `applyDiscount`/`fallbackPrices` 回归，catalog 路径 +
+`CalculateSeedanceVideoCost` 走 tier_pricing 未被触碰）、`pricing_service.go`（`catalog`/`aliasIdx` 在位，
+无 `pricingData/discounts/customPrices` 回归）、`ent/schema/model_pricing.go`（`pricing_unit` 四值 +
+`tier_pricing` 在位）、`cmd/server/wire_gen.go`（手改 setter `SetEndpointRepository`×4 / `SetModelRoutingService`×1
+在位，lingjing/provider-pricing/team-enterprise 注入链完整，无 `-` 删除）、`routes/admin.go`（`provider-pricings` +
+`sync-from-upstream`/`sync-maas` 在位，旧 `model-discounts` 未回流）、`routes/gateway.go`（`getGroupInboundProtocol`
++ lingjing images/video 路由在位）、`config.go`（`ProtocolBucketEnabled`/`GenericRuntimeEnabled` 两字段在位）、
+`setting_update.go`（`buildSystemSettingsUpdates` 尾部 fork 字段块 currency_mode/ui_theme/phone_register/CNY/SMS
+完整，回归测试 `setting_fork_fields_persist_test.go` 在位）、`frontend/src/router/index.ts`（`/models` +
+`model-discounts`→重定向 在位）。功能 35（OAuth/逆向剥离）无生产代码重新引入：`Account.IsOpenAIOAuth()` 恒
+`false`，`grok_oauth_service.go`/`grok_quota_fetcher.go`/`admin/{grok,openai}_oauth_handler.go` 均未重现，仅剩
+`GroupsView.{columnSettings,duplicate}.spec.ts` 4 处测试 mock 惰性字段残留（无运行时逆向逻辑）。
+
+e2e 验证：`./script/e2e-test.sh` 全功能自包含套件（`TestE2EFull`）通过，覆盖网关多平台转发/流式/
+count_tokens、计费扣减、配额/余额/限流拦截、API Key 生命周期、admin 账号/分组 CRUD、Kiro vision
+reroute 等。过程中修复一处与本次合并无关的既存 e2e 测试脆弱性：`TestE2EFull_AdminAccountGroupCRUD`
+原用无过滤的 `/api/v1/admin/groups?page_size=100` 断言新建分组出现在列表，但本地 e2e DB 跨历次运行
+累积分组（默认排序 `sort_order ASC, id ASC`，新组 id 最大排最后），累积数超单页即漏；改为用 `search`
+按唯一名字精确过滤（走 `NameContainsFold`），不依赖分组总数。另 `TestE2EFull_KiroVisionReroute` 的
+vision 子测试走真实上游处理 image，耗时贴近 90s 客户端超时线，偶发 `context deadline exceeded`，重跑
+即过——属上游延迟抖动，非代码缺陷。
 
 ---
 

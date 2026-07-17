@@ -346,8 +346,10 @@ func TestE2EFull_AdminAccountGroupCRUD(t *testing.T) {
 		t.Fatalf("改账号失败: %v", err)
 	}
 
-	// 列分组能找到
-	env, err := adminAPI(pc.adminToken, "GET", "/api/v1/admin/groups?page=1&page_size=100", nil)
+	// 列分组能找到——用 search 按唯一名字精确过滤。共享/累积的本地 e2e DB 里分组会跨历次运行
+	// 堆积（默认排序 sort_order ASC, id ASC，新组 id 最大排最后），一旦总数超过单页 page_size，
+	// 无过滤的第 1 页就查不到新组。search 走 NameContainsFold，不依赖分组总数，稳定命中。
+	env, err := adminAPI(pc.adminToken, "GET", fmt.Sprintf("/api/v1/admin/groups?page=1&page_size=100&search=%s", gname), nil)
 	if err != nil {
 		t.Fatalf("列分组失败: %v", err)
 	}
