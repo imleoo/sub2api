@@ -6,6 +6,25 @@
 
 ---
 
+## 工具 - 2026-07-17 — pre-push 门禁新增高风险文件复核 + e2e 强制
+
+`script/pre_push_check.sh` 在原有两项（CHANGELOG 必更、功能列表一致性）基础上新增两项，
+针对"上游合并静默吞掉 fork 代码块"（已出现 ≥3 次）与"合并后未跑 e2e 直接推送"两类隐患：
+
+- **检查 3 — 🔴 高风险文件逐个复核**：自动从 `自定义开发功能列表.md`「🔴 高」行文件列
+  提取受保护文件（含 `.github/workflows/*.yml` 等 glob 与 `setting_public.go` 等裸文件名，
+  实测提取 25 个 pattern）。本次推送范围改动其中任意文件时，钩子逐个打印其 diff，并要求
+  两重留痕才放行：(a) `CHANGELOG.md`/功能列表在本范围内新增一行以「高风险复核：」开头的
+  书面结论；(b) 交互终端（`/dev/tty`）y/N 二次确认。GUI 客户端无 tty 时命中即阻塞，需命令行推送。
+- **检查 4 — e2e 全量强制**：范围内有实质源码改动（`.go/.ts/.vue`，排除测试）时，内联运行
+  `./script/e2e-test.sh`（需本地 `script/e2e.env` 真实上游凭证），未通过则阻塞；若检查 1–3
+  已失败则跳过（fail-fast）。
+
+绕过口径不变：`git push --no-verify` 或 `PREPUSH_SKIP=1 git push` 跳过全部四项。CLAUDE.md
+「推送前门禁」章节同步更新。
+
+---
+
 ## 同步上游 - 2026-07-17 — 合并 100 个上游 commit（版本 → 1.1.158）
 
 `git merge upstream/main` 合并 100 个上游提交（41 个 merge PR），覆盖后端

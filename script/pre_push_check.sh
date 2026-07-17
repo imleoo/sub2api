@@ -1,16 +1,24 @@
 #!/usr/bin/env bash
-# pre_push_check.sh —— 推送前门禁：CHANGELOG 更新 + 自定义功能列表一致性
+# pre_push_check.sh —— 推送前门禁：CHANGELOG 更新 + 自定义功能列表一致性 + 高风险复核 + e2e
 #
 # 目的：每次 push 前检查「本次推送范围」（默认 origin/<当前分支>..HEAD）内：
 #   1. CHANGELOG.md 是否已随实质性代码改动更新；
-#   2. 是否新增了源码文件但未在 自定义开发功能列表.md 记录（漏记新功能）。
+#   2. 是否新增了源码文件但未在 自定义开发功能列表.md 记录（漏记新功能）；
+#   3. 是否命中 自定义开发功能列表.md 里标 🔴 高 的高风险文件——命中则强制逐个打印
+#      diff，并要求「交互终端 y/N 确认」+「CHANGELOG/功能列表书面留痕（一行以
+#      『高风险复核：』开头的结论）」双重留痕，防止上游合并静默覆盖 fork 逻辑；
+#   4. 若范围内有实质源码改动，钩子内联跑一次 ./script/e2e-test.sh（全量 e2e，
+#      需要本地 script/e2e.env 真实上游凭证），未通过则阻塞推送。
+#
+# 注意：命中检查 3/4 时本钩子可能耗时数分钟，且检查 3 需要交互终端（读 /dev/tty），
+# 非交互环境（如 CI、无 tty 的自动化脚本）会直接失败，只能 git push --no-verify 绕过。
 #
 # 用法：
 #   手动：  ./script/pre_push_check.sh
 #   钩子：  由 .git/hooks/pre-push 调用（自动传入远端 sha 精确界定推送范围）
-#   绕过：  git push --no-verify  或  PREPUSH_SKIP=1 git push
+#   绕过：  git push --no-verify  或  PREPUSH_SKIP=1 git push（四项检查全部跳过）
 #
-# 退出码：0=通过；1=有阻塞项（缺 CHANGELOG / 有未记录新文件）。
+# 退出码：0=通过；1=有阻塞项。
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
@@ -136,6 +144,113 @@ NEW_MIG=$(git diff --diff-filter=A --name-only "${RANGE}" | grep -E 'backend/mig
 if [ -n "$NEW_MIG" ]; then
   echo "ℹ️  本次新增迁移（确认对应功能已在列表记录）："
   echo "$NEW_MIG" | sed 's/^/     /'
+fi
+
+# ── 检查 3：命中 🔴 高风险文件 → 强制逐个 diff + 交互确认 + 书面留痕 ────────
+# 背景：上游合并会「静默吞掉 fork 代码块」（已出现 ≥3 次：workflow 触发器、批量改账号
+# 丢模型映射、setting_update.go fork 字段块）。编译过 + 测试绿 无法发现，只能人工逐行
+# 核对高风险文件 diff。本检查从 自定义开发功能列表.md 的「🔴 高」行文件列提取受保护文件，
+# 若本次推送范围改动了其中任意文件，则：
+#   (a) 逐个打印该文件在本推送范围内的 diff；
+#   (b) 要求 CHANGELOG/功能列表 在本范围内新增一行以「高风险复核：」开头的书面结论；
+#   (c) 交互终端 y/N 二次确认（读 /dev/tty；非交互环境无法确认 → 阻塞）。
+# 从功能列表「🔴 高」行的第 3 列（文件列，awk -F'|' 的 $3）提取反引号包裹的文件/glob。
+HIRISK_PATTERNS=$(awk -F'|' '/🔴/ {print $3}' "$DOC" 2>/dev/null \
+  | grep -oE '`[^`]+`' | tr -d '`' \
+  | grep -E '\.(go|ts|vue|yml|sql)$' \
+  | grep -vE '_test\.go|\.spec\.ts' \
+  | sort -u || true)
+
+HIT_FILES=""
+if [ -n "$HIRISK_PATTERNS" ] && [ -n "$CHANGED" ]; then
+  while read -r f; do
+    [ -z "$f" ] && continue
+    fbase=$(basename "$f")
+    matched=0
+    while read -r p; do
+      [ -z "$p" ] && continue
+      if echo "$p" | grep -q '/'; then
+        # 含路径：把 . 转义、* 转 [^/]* 后做完整路径匹配（sed 用 | 作分隔符避开路径 /）
+        rx="^$(printf '%s' "$p" | sed 's|[.]|\\.|g; s|[*]|[^/]*|g')$"
+        if echo "$f" | grep -qE "$rx"; then matched=1; fi
+      else
+        # 裸文件名（无路径前缀）：按 basename 匹配
+        [ "$fbase" = "$p" ] && matched=1
+      fi
+      [ "$matched" = "1" ] && break
+    done <<< "$HIRISK_PATTERNS"
+    [ "$matched" = "1" ] && HIT_FILES="$HIT_FILES$f"$'\n'
+  done <<< "$CHANGED"
+fi
+HIT_FILES=$(printf '%s' "$HIT_FILES" | sed '/^$/d' | sort -u)
+
+if [ -n "$HIT_FILES" ]; then
+  HIT_COUNT=$(printf '%s\n' "$HIT_FILES" | sed '/^$/d' | wc -l | tr -d ' ')
+  echo ""
+  echo "🔴 本次推送范围命中 ${HIT_COUNT} 个高风险文件（自定义开发功能列表.md「🔴 高」）："
+  printf '%s\n' "$HIT_FILES" | sed 's/^/     /'
+  echo "   ── 以下逐个打印 diff，请逐行核对 fork 逻辑是否被上游静默覆盖 ──"
+  while read -r f; do
+    [ -z "$f" ] && continue
+    echo ""
+    echo "════════════════════════════════════════════════════════════════"
+    echo "🔴 $f"
+    echo "────────────────────────────────────────────────────────────────"
+    git diff "${RANGE}" -- "$f" || true
+  done <<< "$HIT_FILES"
+
+  # (b) 书面留痕：本范围内 CHANGELOG/功能列表 须新增一行以「高风险复核：」开头
+  REVIEW_NOTE=$(git diff "${RANGE}" -- "$CHANGELOG" "$DOC" 2>/dev/null \
+    | grep -E '^\+' | grep -F '高风险复核：' || true)
+  echo ""
+  if [ -n "$REVIEW_NOTE" ]; then
+    echo "✅ 已找到高风险复核书面留痕："
+    printf '%s\n' "$REVIEW_NOTE" | sed 's/^+/     /'
+  else
+    echo "❌ 缺少高风险复核书面留痕：请在 $CHANGELOG 或 $DOC 内新增一行，以"
+    echo "   「高风险复核：」开头，写明已核对上述文件 diff 的结论（如：高风险复核：已逐个核对"
+    echo "   config.go/wire_gen.go，fork 字段与注入链完整，未被上游覆盖）。"
+    FAIL=1
+  fi
+
+  # (c) 交互终端二次确认
+  echo ""
+  if [ -r /dev/tty ] && [ -w /dev/tty ]; then
+    printf '❓ 已逐个核对以上 🔴 高风险文件 diff，确认无 fork 逻辑被上游静默覆盖？[y/N] ' > /dev/tty
+    read -r HIRISK_ANS < /dev/tty || HIRISK_ANS=""
+    case "$HIRISK_ANS" in
+      y|Y|yes|YES|Yes)
+        echo "✅ 高风险文件复核已确认" ;;
+      *)
+        echo "❌ 未确认高风险文件复核（回答非 y），阻塞推送"
+        FAIL=1 ;;
+    esac
+  else
+    echo "❌ 命中 🔴 高风险文件但当前无交互终端（/dev/tty 不可用，如 GUI 客户端/CI）。"
+    echo "   请改用命令行 git push 完成人工确认，或 git push --no-verify 绕过全部门禁。"
+    FAIL=1
+  fi
+fi
+
+# ── 检查 4：实质源码改动 → 内联跑全量 e2e（最慢，放最后；前置已失败则跳过）──────
+if [ -n "$SRC_CHANGED" ]; then
+  if [ "$FAIL" = "1" ]; then
+    echo ""
+    echo "⏭  前置检查已失败，跳过 e2e 全量测试（请先修复上面的阻塞项再重推）"
+  else
+    echo ""
+    echo "▶ 检测到实质源码改动，内联运行全量 e2e（./script/e2e-test.sh，需 script/e2e.env）..."
+    if [ ! -f "script/e2e.env" ] && [ -z "${E2E_ANTHROPIC_UPSTREAM_KEY:-}" ]; then
+      echo "❌ 缺少 script/e2e.env（且环境未设 E2E_ANTHROPIC_UPSTREAM_KEY），无法运行 e2e。"
+      echo "   请 cp script/e2e.env.example script/e2e.env 并填入真实上游凭证，或 git push --no-verify 绕过。"
+      FAIL=1
+    elif ./script/e2e-test.sh; then
+      echo "✅ e2e 全量测试通过"
+    else
+      echo "❌ e2e 全量测试未通过，阻塞推送"
+      FAIL=1
+    fi
+  fi
 fi
 
 echo ""

@@ -55,11 +55,13 @@ cd frontend && pnpm run lint:check
 
 1. **CHANGELOG 必更**：范围内有实质源码改动（`.go/.ts/.vue`，排除测试）时，根目录 `CHANGELOG.md` 必须也在范围内更新，否则阻塞。
 2. **功能列表一致性**：范围内新增的 **fork 独有**源码文件（排除测试/生成码/`upstream/main` 已有的文件）必须已在 `自定义开发功能列表.md` 出现，否则阻塞（防漏记 fork 功能）。
+3. **🔴 高风险文件逐个复核**：范围内改动了 `自定义开发功能列表.md`「🔴 高」行文件列里的任意受保护文件（自动从该文档提取，含 glob 与裸文件名）时，钩子会**逐个打印这些文件的 diff**，并要求两重留痕才放行：(a) `CHANGELOG.md` 或 `自定义开发功能列表.md` 在本范围内**新增一行以「高风险复核：」开头**的书面结论；(b) **交互终端 y/N 二次确认**（读 `/dev/tty`）。用于对抗"上游合并静默吞掉 fork 代码块"（已出现 ≥3 次）。**注意**：GUI git 客户端（如 VS Code 推送）通常无 `/dev/tty`，命中高风险文件时会被阻塞——需改用命令行 `git push` 完成确认，或 `--no-verify` 绕过。
+4. **e2e 全量测试**：范围内有实质源码改动时，钩子**内联运行 `./script/e2e-test.sh`**（自动起本地服务 + 全功能断言），未通过则阻塞。需要本地已配置 `script/e2e.env`（真实上游凭证，已 gitignore；首次 `cp script/e2e.env.example script/e2e.env` 后填入）。此步耗时数分钟；若检查 1–3 已失败则跳过（fail-fast，先修文档再跑慢测试）。
 
 - 安装（克隆后一次）：`./script/install_git_hooks.sh`（`.git/hooks/` 不进版本库）
-- 绕过：`git push --no-verify` 或 `PREPUSH_SKIP=1 git push`
-- 被挡时按提示补 `CHANGELOG.md`（顶部加本次改动段）/ 功能列表（新功能加编号段 + 风险表行）；改检查逻辑改 `script/pre_push_check.sh`，勿手改 `.git/hooks/pre-push`
-- 因此**新增 fork 功能/文件时，同一批提交内就要更新 `CHANGELOG.md` 与 `自定义开发功能列表.md`**，否则推送被拦。
+- 绕过：`git push --no-verify` 或 `PREPUSH_SKIP=1 git push`（四项检查全部跳过）
+- 被挡时：检查 1 补 `CHANGELOG.md`（顶部加本次改动段）；检查 2 补功能列表（新功能加编号段 + 风险表行）；检查 3 逐行核对打印出的高风险 diff → 补一行「高风险复核：…」结论 → 命令行推送时回答 `y`；检查 4 修复 e2e 失败项或补 `script/e2e.env`。改检查逻辑改 `script/pre_push_check.sh`，勿手改 `.git/hooks/pre-push`
+- 因此**新增 fork 功能/文件时，同一批提交内就要更新 `CHANGELOG.md` 与 `自定义开发功能列表.md`**，否则推送被拦。**同步上游后推送时，务必留出跑完 e2e（数分钟）+ 逐个核对高风险文件 diff 的时间。**
 
 ## 常用命令
 
