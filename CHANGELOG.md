@@ -73,6 +73,21 @@
 `false`，`grok_oauth_service.go`/`grok_quota_fetcher.go`/`admin/{grok,openai}_oauth_handler.go` 均未重现，仅剩
 `GroupsView.{columnSettings,duplicate}.spec.ts` 4 处测试 mock 惰性字段残留（无运行时逆向逻辑）。
 
+扩展核对（覆盖 🔴 高之外的其余登记文件与增删盲区）：本次同步范围还改动了功能列表登记的
+**13 个 🟡 中风险文件**，逐个核对全部通过、fork 逻辑完整——handler/routes 组
+（`setting_handler.go`/`user_handler.go`/`gateway_handler.go`/`routes/auth.go`/`routes/user.go`：
+fork 设置字段/短信路由/功能 37 选号重路由区/enterprise-team 路由均在，`gateway_handler.go` 4 处删除
+是 `writeModelsList` 加 Grok 支持的签名重构、保留 generic 空列表语义）、service/repo 组
+（两个 `model_pricing_repository.go`/`domain_constants.go`/`openai_gateway_service.go`/
+`scheduler_snapshot_service.go`/`settings_view.go`：maas/tier_pricing/visible_only、fork 设置常量、
+功能 25 lingjing/endpoint 装配、`ProtocolBucketEnabled` 分支均在，`openai_gateway_service.go` 16 处
+删除全为 gofmt 重对齐，`scheduler_snapshot_service.go` 平台列表被上游追加 `PlatformGrok` 但
+`PlatformLingjing` 保留=安全扩容）、前端组（`types/index.ts` fork 平台枚举无 antigravity/oauth 回归、
+`SettingsView.vue` 手机注册/短信/主题/货币配置区完整，删除仅为无关排版）。**🟢 低风险 0 命中**。
+增删盲区亦已排查：本次新增的 30 个源码文件全部来自 upstream/main（无漏登记的 fork 独有新文件），
+本次范围**未删除任何非测试源码文件**（无误删 fork 保留文件）。即同步触碰的全部 22 个登记 fork 文件
+（9 🔴 + 13 🟡）均已逐个核对，无一处被上游静默覆盖。
+
 e2e 验证：`./script/e2e-test.sh` 全功能自包含套件（`TestE2EFull`）通过，覆盖网关多平台转发/流式/
 count_tokens、计费扣减、配额/余额/限流拦截、API Key 生命周期、admin 账号/分组 CRUD、Kiro vision
 reroute 等。过程中修复一处与本次合并无关的既存 e2e 测试脆弱性：`TestE2EFull_AdminAccountGroupCRUD`
