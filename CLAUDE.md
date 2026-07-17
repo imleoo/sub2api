@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目概述
 
-**tokenpanel**（fork: bayma888/tokenpanel-bmai，分支: zhiguofan）是一个 AI API 网关平台，用于订阅配额分发。从上游 AI 订阅（OpenAI、Anthropic/Claude、Gemini、Antigravity 等）生成 API Key，分发给用户，支持计费、负载均衡和请求转发。
+**tokenpanel**（fork: imleoo/tokenpanel，上游: Wei-Shaw/sub2api，分支: zhiguofan）是一个 AI API 网关平台，用于订阅配额分发。从上游 AI 订阅（OpenAI、Anthropic/Claude、Gemini、Antigravity 等）生成 API Key，分发给用户，支持计费、负载均衡和请求转发。
 
 **技术栈**：Go 1.26（具体小版本以 `backend/go.mod` 为准）+ Gin + Ent ORM；Vue 3.4+（Vite 5 + TailwindCSS + Pinia）+ PostgreSQL 18 + Redis 8
 
@@ -253,7 +253,7 @@ Vitest 配置要求语句/分支/函数/行均达到 80% 覆盖率（`frontend/v
 
 ## Fork 信息
 
-- 上游仓库：`Wei-Shaw/sub2api`
-- Fork 仓库：`bayma888/tokenpanel-bmai`
+- 上游仓库：`Wei-Shaw/sub2api`（remote `upstream`）
+- Fork 仓库：`imleoo/tokenpanel`（remote `origin`；另有镜像 `imleoo/sub2api` = remote `mirror`）
 - 当前分支：`zhiguofan`
 - 同步上游：`git fetch upstream && git merge upstream/main`

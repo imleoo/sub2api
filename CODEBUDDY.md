@@ -11,7 +11,7 @@ This file provides guidance to CodeBuddy Code when working with code in this rep
 ## Repository Information
 
 - **Upstream**: `Wei-Shaw/sub2api`
-- **Fork**: `bayma888/tokenpanel-bmai`
+- **Fork**: `imleoo/tokenpanel`
 - **Current branch**: `zhiguofan`
 
 ## Common Commands

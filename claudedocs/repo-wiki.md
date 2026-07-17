@@ -59,7 +59,7 @@
 **上游 Fork 关系**：
 ```
 Wei-Shaw/sub2api (上游 main)
-    └── bayma888/tokenpanel-bmai (fork)
+    └── imleoo/tokenpanel (fork)
             └── zhiguofan (本开发分支，含自定义功能)
 ```
 
