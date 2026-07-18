@@ -72,6 +72,7 @@ async function mountView() {
   const wrapper = mount(StatementView, {
     global: {
       stubs: {
+        AppLayout: { template: '<div><slot /></div>' },
         DataTable: {
           template: '<div data-testid="data-table"><slot v-for="row in data" name="cell-nature" :row="row" /></div>',
           props: ['columns', 'data', 'loading', 'rowKey', 'virtualizeThreshold'],

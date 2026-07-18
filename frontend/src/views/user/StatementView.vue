@@ -1,7 +1,20 @@
 <template>
-  <div class="space-y-6">
-    <!-- 工具栏：月份选择 + 导出 -->
-    <div class="flex flex-wrap items-center justify-between gap-3">
+  <AppLayout>
+    <div class="space-y-6">
+      <!-- 页头（与模型广场一致的标题区） -->
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+            {{ t('statement.title') }}
+          </h1>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            {{ t('statement.description') }}
+          </p>
+        </div>
+      </div>
+
+      <!-- 工具栏：月份选择 + 导出 -->
+      <div class="flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-3">
         <select
           v-model="selectedMonth"
@@ -106,14 +119,16 @@
       class="text-xs text-amber-600 dark:text-amber-400"
     >
       {{ t('statement.identityGapNote', { gap: fmt(statement.totals.identity_gap) }) }}
-    </p>
-  </div>
+      </p>
+    </div>
+  </AppLayout>
 </template>
 
 <script setup lang="ts">
 // zhiguofan fork-only: 月度对账（Vendor Report，功能 45）
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import AppLayout from '@/components/layout/AppLayout.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import Icon from '@/components/icons/Icon.vue'
 import { statementAPI, type StatementResponse, type StatementRow } from '@/api/statement'
