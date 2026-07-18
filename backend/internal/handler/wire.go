@@ -44,8 +44,11 @@ func ProvideAdminHandlers(
 	complianceHandler *admin.ComplianceHandler,
 	auditLogHandler *admin.AuditLogHandler,
 	upstreamBillingProbe *service.UpstreamBillingProbeService,
+	statementService *service.StatementService,
 ) *AdminHandlers {
 	accountHandler.SetUpstreamBillingProbeService(upstreamBillingProbe)
+	// zhiguofan fork-only: 月度对账导出（功能 45）
+	userHandler.SetStatementService(statementService)
 	return &AdminHandlers{
 		Dashboard:              dashboardHandler,
 		User:                   userHandler,
@@ -178,6 +181,7 @@ func ProvideHandlers(
 	batchImageHandler *BatchImageHandler,
 	teamHandler *TeamHandler,
 	enterpriseHandler *EnterpriseHandler,
+	statementHandler *StatementHandler,
 	_ *service.IdempotencyCoordinator,
 	_ *service.IdempotencyCleanupService,
 ) *Handlers {
@@ -203,6 +207,7 @@ func ProvideHandlers(
 		BatchImage:       batchImageHandler,
 		Team:             teamHandler,
 		Enterprise:       enterpriseHandler,
+		Statement:        statementHandler,
 	}
 }
 
@@ -229,6 +234,7 @@ var ProviderSet = wire.NewSet(
 	ProvideBatchImageHandler,
 	NewTeamHandler,
 	NewEnterpriseHandler,
+	NewStatementHandler, // zhiguofan fork-only: 月度对账（功能 45）
 
 	// Admin handlers
 	admin.NewDashboardHandler,

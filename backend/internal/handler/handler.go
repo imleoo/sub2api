@@ -64,6 +64,7 @@ type Handlers struct {
 	BatchImage       *BatchImageHandler
 	Team             *TeamHandler
 	Enterprise       *EnterpriseHandler
+	Statement        *StatementHandler // zhiguofan fork-only: 月度对账（功能 45）
 }
 
 // BuildInfo contains build-time information

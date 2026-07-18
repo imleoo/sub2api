@@ -6,6 +6,25 @@
 
 ---
 
+## 新增 - 2026-07-18 — 月度对账后端 API + Excel 导出（功能 45 PR2/3）
+
+在 PR1 数据层之上落地对账 API：`StatementService` 拼装六种行（期初/充值/提现/赠送/按日消耗/
+期末，含 Qty/等效单价/折扣率反算、逐行滚动余额、恒等式 gap），已封账月快照优先、当月与缺失月
+实时反推（`source: snapshot|computed`，当月 `closed=false`）。新增 `pkg/statement` 共享 DTO 与
+`pkg/xlsxreport`（首次引入 excelize v2.11）逐格复刻 Eonreach 模板（标题/Period/双行表头/活公式
+`E*F`、`G*(1-H)`、`C+I`、期末 SUM），未封账月文件名带 `-partial`。路由：用户端
+`GET /api/v1/usage/statement{,/months,/export}`（挂 usage 组，静态段优先于 `/:id`）；管理端
+`GET /api/v1/admin/users/:id/statement/export`（`SetStatementService` setter 注入，不改
+`NewUserHandler` 签名，导出方法在独立 fork 文件 `user_statement_handler.go`）。
+单测：service（快照优先/反推/当月/gap/非法入参/月份列表）+ xlsxreport（读回断言单元格与公式）+
+handler（401/400/导出头/-partial/静态段不落入 `/:id`）全绿；全量 unit 套件回归通过。
+
+高风险复核：`wire_gen.go` 本次新增 statementService/statementHandler 构造与
+`ProvideAdminHandlers`/`ProvideHandlers` 实参（`go generate ./cmd/server` 生成）；
+`routes/user.go`/`routes/admin.go` 仅追加 statement 路由行，既有路由未动。
+
+---
+
 ## 新增 - 2026-07-18 — 月度对账（Vendor Report）数据层（功能 45 PR1/3）
 
 按 Eonreach 供应商对账单模板实现按月对账的数据层（方案见

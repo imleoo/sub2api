@@ -34,6 +34,7 @@ type UserHandler struct {
 	billingCache          service.BillingCache                // T17/T18 缓存失效（PUT/POST 路径）
 	totpService           *service.TotpService                // 角色提升为管理员的 step-up 门控
 	userService           *service.UserService
+	statementService      *service.StatementService // zhiguofan fork-only: 月度对账导出（功能 45）
 }
 
 // NewUserHandler creates a new admin user handler
@@ -53,6 +54,12 @@ func NewUserHandler(
 		totpService:           totpService,
 		userService:           userService,
 	}
+}
+
+// SetStatementService 注入月度对账服务（wire 装配用 setter，避免改构造函数
+// 签名引发测试连锁修改）。zhiguofan fork-only: 月度对账（功能 45）。
+func (h *UserHandler) SetStatementService(statementService *service.StatementService) {
+	h.statementService = statementService
 }
 
 // CreateUserRequest represents admin create user request

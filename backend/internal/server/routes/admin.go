@@ -327,6 +327,8 @@ func registerUserManagementRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		users.GET("/:id/platform-quotas", h.Admin.User.GetUserPlatformQuotas)
 		users.PUT("/:id/platform-quotas", h.Admin.User.UpdateUserPlatformQuotas)
 		users.POST("/:id/platform-quotas/reset", h.Admin.User.ResetUserPlatformQuotaWindow)
+		// zhiguofan fork-only: 月度对账导出（功能 45）
+		users.GET("/:id/statement/export", h.Admin.User.ExportStatement)
 
 		// User attribute values
 		users.GET("/:id/attributes", h.Admin.UserAttribute.GetUserAttributes)

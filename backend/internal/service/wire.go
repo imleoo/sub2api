@@ -563,6 +563,7 @@ var ProviderSet = wire.NewSet(
 	NewTeamUsageStatsProvider,    // zhiguofan fork-only: 报表用量聚合适配器
 	ProvideTeamAutoTopupService,  // zhiguofan fork-only: 共享额度自动补给后台服务
 	ProvideBalanceSnapshotService, // zhiguofan fork-only: 月度对账余额月结快照后台服务
+	NewStatementService,           // zhiguofan fork-only: 月度对账单拼装（功能 45）
 )
 
 // ProvideUserPlatformQuotaUsageFlusher 创建并启动 UserPlatformQuotaUsageFlusher。

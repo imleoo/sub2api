@@ -123,6 +123,10 @@ func RegisterUserRoutes(
 			usage.GET("/errors/:id", h.Usage.GetErrorDetail)
 			usage.GET("/:id", h.Usage.GetByID)
 			usage.GET("/stats", h.Usage.Stats)
+			// zhiguofan fork-only: 月度对账（功能 45）；静态段优先于上方 /:id，无冲突
+			usage.GET("/statement", h.Statement.GetStatement)
+			usage.GET("/statement/months", h.Statement.GetMonths)
+			usage.GET("/statement/export", h.Statement.Export)
 			// User dashboard endpoints
 			dashboard := usage.Group("/dashboard")
 			{
