@@ -111,6 +111,8 @@ var ProviderSet = wire.NewSet(
 	NewEnterpriseProfileRepository,     // zhiguofan fork-only: 企业客户资料
 	NewTeamDepartmentRepository,        // zhiguofan fork-only: 企业一级部门
 	NewTeamFundRepository,              // zhiguofan fork-only: 企业↔员工余额划转
+	NewStatementRepository,             // zhiguofan fork-only: 月度对账（Vendor Report）聚合查询
+	NewBalanceSnapshotRepository,       // zhiguofan fork-only: 月度对账余额月结快照
 
 	// Cache implementations
 	NewGatewayCache,

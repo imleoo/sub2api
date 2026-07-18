@@ -98,6 +98,7 @@ func provideCleanup(
 	lingjingPollRunner *service.LingjingPollRunner,
 	quotaFlusher *service.UserPlatformQuotaUsageFlusher,
 	teamAutoTopup *service.TeamAutoTopupService,
+	balanceSnapshot *service.BalanceSnapshotService,
 	upstreamBillingProbe *service.UpstreamBillingProbeService,
 	auditLog *service.AuditLogService,
 	promptAudit *securityaudit.PromptService,
@@ -278,6 +279,13 @@ func provideCleanup(
 			{"UpstreamBillingProbeService", func() error {
 				if upstreamBillingProbe != nil {
 					upstreamBillingProbe.Stop()
+				}
+				return nil
+			}},
+			// zhiguofan fork-only: 月度对账余额月结快照后台服务
+			{"BalanceSnapshotService", func() error {
+				if balanceSnapshot != nil {
+					balanceSnapshot.Stop()
 				}
 				return nil
 			}},

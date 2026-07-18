@@ -15,6 +15,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/apikey"
 	"github.com/Wei-Shaw/sub2api/ent/authidentity"
 	"github.com/Wei-Shaw/sub2api/ent/authidentitychannel"
+	"github.com/Wei-Shaw/sub2api/ent/balancesnapshot"
 	"github.com/Wei-Shaw/sub2api/ent/batchimageevent"
 	"github.com/Wei-Shaw/sub2api/ent/batchimageitem"
 	"github.com/Wei-Shaw/sub2api/ent/batchimagejob"
@@ -303,6 +304,33 @@ func (f TraverseAuthIdentityChannel) Traverse(ctx context.Context, q ent.Query) 
 		return f(ctx, q)
 	}
 	return fmt.Errorf("unexpected query type %T. expect *ent.AuthIdentityChannelQuery", q)
+}
+
+// The BalanceSnapshotFunc type is an adapter to allow the use of ordinary function as a Querier.
+type BalanceSnapshotFunc func(context.Context, *ent.BalanceSnapshotQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f BalanceSnapshotFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.BalanceSnapshotQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.BalanceSnapshotQuery", q)
+}
+
+// The TraverseBalanceSnapshot type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseBalanceSnapshot func(context.Context, *ent.BalanceSnapshotQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseBalanceSnapshot) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseBalanceSnapshot) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.BalanceSnapshotQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.BalanceSnapshotQuery", q)
 }
 
 // The BatchImageEventFunc type is an adapter to allow the use of ordinary function as a Querier.
@@ -1456,6 +1484,8 @@ func NewQuery(q ent.Query) (Query, error) {
 		return &query[*ent.AuthIdentityQuery, predicate.AuthIdentity, authidentity.OrderOption]{typ: ent.TypeAuthIdentity, tq: q}, nil
 	case *ent.AuthIdentityChannelQuery:
 		return &query[*ent.AuthIdentityChannelQuery, predicate.AuthIdentityChannel, authidentitychannel.OrderOption]{typ: ent.TypeAuthIdentityChannel, tq: q}, nil
+	case *ent.BalanceSnapshotQuery:
+		return &query[*ent.BalanceSnapshotQuery, predicate.BalanceSnapshot, balancesnapshot.OrderOption]{typ: ent.TypeBalanceSnapshot, tq: q}, nil
 	case *ent.BatchImageEventQuery:
 		return &query[*ent.BatchImageEventQuery, predicate.BatchImageEvent, batchimageevent.OrderOption]{typ: ent.TypeBatchImageEvent, tq: q}, nil
 	case *ent.BatchImageItemQuery:

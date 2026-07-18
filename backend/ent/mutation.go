@@ -19,6 +19,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/apikey"
 	"github.com/Wei-Shaw/sub2api/ent/authidentity"
 	"github.com/Wei-Shaw/sub2api/ent/authidentitychannel"
+	"github.com/Wei-Shaw/sub2api/ent/balancesnapshot"
 	"github.com/Wei-Shaw/sub2api/ent/batchimageevent"
 	"github.com/Wei-Shaw/sub2api/ent/batchimageitem"
 	"github.com/Wei-Shaw/sub2api/ent/batchimagejob"
@@ -81,6 +82,7 @@ const (
 	TypeAnnouncementRead              = "AnnouncementRead"
 	TypeAuthIdentity                  = "AuthIdentity"
 	TypeAuthIdentityChannel           = "AuthIdentityChannel"
+	TypeBalanceSnapshot               = "BalanceSnapshot"
 	TypeBatchImageEvent               = "BatchImageEvent"
 	TypeBatchImageItem                = "BatchImageItem"
 	TypeBatchImageJob                 = "BatchImageJob"
@@ -9033,6 +9035,1085 @@ func (m *AuthIdentityChannelMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown AuthIdentityChannel edge %s", name)
+}
+
+// BalanceSnapshotMutation represents an operation that mutates the BalanceSnapshot nodes in the graph.
+type BalanceSnapshotMutation struct {
+	config
+	op                         Op
+	typ                        string
+	id                         *int64
+	user_id                    *int64
+	adduser_id                 *int64
+	period                     *string
+	opening_balance            *float64
+	addopening_balance         *float64
+	closing_balance            *float64
+	addclosing_balance         *float64
+	deposit_total              *float64
+	adddeposit_total           *float64
+	withdraw_total             *float64
+	addwithdraw_total          *float64
+	credit_total               *float64
+	addcredit_total            *float64
+	utilisation_gross_total    *float64
+	addutilisation_gross_total *float64
+	utilisation_total          *float64
+	addutilisation_total       *float64
+	computed_at                *time.Time
+	clearedFields              map[string]struct{}
+	done                       bool
+	oldValue                   func(context.Context) (*BalanceSnapshot, error)
+	predicates                 []predicate.BalanceSnapshot
+}
+
+var _ ent.Mutation = (*BalanceSnapshotMutation)(nil)
+
+// balancesnapshotOption allows management of the mutation configuration using functional options.
+type balancesnapshotOption func(*BalanceSnapshotMutation)
+
+// newBalanceSnapshotMutation creates new mutation for the BalanceSnapshot entity.
+func newBalanceSnapshotMutation(c config, op Op, opts ...balancesnapshotOption) *BalanceSnapshotMutation {
+	m := &BalanceSnapshotMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeBalanceSnapshot,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withBalanceSnapshotID sets the ID field of the mutation.
+func withBalanceSnapshotID(id int64) balancesnapshotOption {
+	return func(m *BalanceSnapshotMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *BalanceSnapshot
+		)
+		m.oldValue = func(ctx context.Context) (*BalanceSnapshot, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().BalanceSnapshot.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withBalanceSnapshot sets the old BalanceSnapshot of the mutation.
+func withBalanceSnapshot(node *BalanceSnapshot) balancesnapshotOption {
+	return func(m *BalanceSnapshotMutation) {
+		m.oldValue = func(context.Context) (*BalanceSnapshot, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m BalanceSnapshotMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m BalanceSnapshotMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *BalanceSnapshotMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *BalanceSnapshotMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().BalanceSnapshot.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetUserID sets the "user_id" field.
+func (m *BalanceSnapshotMutation) SetUserID(i int64) {
+	m.user_id = &i
+	m.adduser_id = nil
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *BalanceSnapshotMutation) UserID() (r int64, exists bool) {
+	v := m.user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the BalanceSnapshot entity.
+// If the BalanceSnapshot object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BalanceSnapshotMutation) OldUserID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// AddUserID adds i to the "user_id" field.
+func (m *BalanceSnapshotMutation) AddUserID(i int64) {
+	if m.adduser_id != nil {
+		*m.adduser_id += i
+	} else {
+		m.adduser_id = &i
+	}
+}
+
+// AddedUserID returns the value that was added to the "user_id" field in this mutation.
+func (m *BalanceSnapshotMutation) AddedUserID() (r int64, exists bool) {
+	v := m.adduser_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *BalanceSnapshotMutation) ResetUserID() {
+	m.user_id = nil
+	m.adduser_id = nil
+}
+
+// SetPeriod sets the "period" field.
+func (m *BalanceSnapshotMutation) SetPeriod(s string) {
+	m.period = &s
+}
+
+// Period returns the value of the "period" field in the mutation.
+func (m *BalanceSnapshotMutation) Period() (r string, exists bool) {
+	v := m.period
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPeriod returns the old "period" field's value of the BalanceSnapshot entity.
+// If the BalanceSnapshot object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BalanceSnapshotMutation) OldPeriod(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPeriod is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPeriod requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPeriod: %w", err)
+	}
+	return oldValue.Period, nil
+}
+
+// ResetPeriod resets all changes to the "period" field.
+func (m *BalanceSnapshotMutation) ResetPeriod() {
+	m.period = nil
+}
+
+// SetOpeningBalance sets the "opening_balance" field.
+func (m *BalanceSnapshotMutation) SetOpeningBalance(f float64) {
+	m.opening_balance = &f
+	m.addopening_balance = nil
+}
+
+// OpeningBalance returns the value of the "opening_balance" field in the mutation.
+func (m *BalanceSnapshotMutation) OpeningBalance() (r float64, exists bool) {
+	v := m.opening_balance
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOpeningBalance returns the old "opening_balance" field's value of the BalanceSnapshot entity.
+// If the BalanceSnapshot object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BalanceSnapshotMutation) OldOpeningBalance(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOpeningBalance is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOpeningBalance requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOpeningBalance: %w", err)
+	}
+	return oldValue.OpeningBalance, nil
+}
+
+// AddOpeningBalance adds f to the "opening_balance" field.
+func (m *BalanceSnapshotMutation) AddOpeningBalance(f float64) {
+	if m.addopening_balance != nil {
+		*m.addopening_balance += f
+	} else {
+		m.addopening_balance = &f
+	}
+}
+
+// AddedOpeningBalance returns the value that was added to the "opening_balance" field in this mutation.
+func (m *BalanceSnapshotMutation) AddedOpeningBalance() (r float64, exists bool) {
+	v := m.addopening_balance
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetOpeningBalance resets all changes to the "opening_balance" field.
+func (m *BalanceSnapshotMutation) ResetOpeningBalance() {
+	m.opening_balance = nil
+	m.addopening_balance = nil
+}
+
+// SetClosingBalance sets the "closing_balance" field.
+func (m *BalanceSnapshotMutation) SetClosingBalance(f float64) {
+	m.closing_balance = &f
+	m.addclosing_balance = nil
+}
+
+// ClosingBalance returns the value of the "closing_balance" field in the mutation.
+func (m *BalanceSnapshotMutation) ClosingBalance() (r float64, exists bool) {
+	v := m.closing_balance
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldClosingBalance returns the old "closing_balance" field's value of the BalanceSnapshot entity.
+// If the BalanceSnapshot object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BalanceSnapshotMutation) OldClosingBalance(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldClosingBalance is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldClosingBalance requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldClosingBalance: %w", err)
+	}
+	return oldValue.ClosingBalance, nil
+}
+
+// AddClosingBalance adds f to the "closing_balance" field.
+func (m *BalanceSnapshotMutation) AddClosingBalance(f float64) {
+	if m.addclosing_balance != nil {
+		*m.addclosing_balance += f
+	} else {
+		m.addclosing_balance = &f
+	}
+}
+
+// AddedClosingBalance returns the value that was added to the "closing_balance" field in this mutation.
+func (m *BalanceSnapshotMutation) AddedClosingBalance() (r float64, exists bool) {
+	v := m.addclosing_balance
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetClosingBalance resets all changes to the "closing_balance" field.
+func (m *BalanceSnapshotMutation) ResetClosingBalance() {
+	m.closing_balance = nil
+	m.addclosing_balance = nil
+}
+
+// SetDepositTotal sets the "deposit_total" field.
+func (m *BalanceSnapshotMutation) SetDepositTotal(f float64) {
+	m.deposit_total = &f
+	m.adddeposit_total = nil
+}
+
+// DepositTotal returns the value of the "deposit_total" field in the mutation.
+func (m *BalanceSnapshotMutation) DepositTotal() (r float64, exists bool) {
+	v := m.deposit_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDepositTotal returns the old "deposit_total" field's value of the BalanceSnapshot entity.
+// If the BalanceSnapshot object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BalanceSnapshotMutation) OldDepositTotal(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDepositTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDepositTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDepositTotal: %w", err)
+	}
+	return oldValue.DepositTotal, nil
+}
+
+// AddDepositTotal adds f to the "deposit_total" field.
+func (m *BalanceSnapshotMutation) AddDepositTotal(f float64) {
+	if m.adddeposit_total != nil {
+		*m.adddeposit_total += f
+	} else {
+		m.adddeposit_total = &f
+	}
+}
+
+// AddedDepositTotal returns the value that was added to the "deposit_total" field in this mutation.
+func (m *BalanceSnapshotMutation) AddedDepositTotal() (r float64, exists bool) {
+	v := m.adddeposit_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetDepositTotal resets all changes to the "deposit_total" field.
+func (m *BalanceSnapshotMutation) ResetDepositTotal() {
+	m.deposit_total = nil
+	m.adddeposit_total = nil
+}
+
+// SetWithdrawTotal sets the "withdraw_total" field.
+func (m *BalanceSnapshotMutation) SetWithdrawTotal(f float64) {
+	m.withdraw_total = &f
+	m.addwithdraw_total = nil
+}
+
+// WithdrawTotal returns the value of the "withdraw_total" field in the mutation.
+func (m *BalanceSnapshotMutation) WithdrawTotal() (r float64, exists bool) {
+	v := m.withdraw_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWithdrawTotal returns the old "withdraw_total" field's value of the BalanceSnapshot entity.
+// If the BalanceSnapshot object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BalanceSnapshotMutation) OldWithdrawTotal(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWithdrawTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWithdrawTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWithdrawTotal: %w", err)
+	}
+	return oldValue.WithdrawTotal, nil
+}
+
+// AddWithdrawTotal adds f to the "withdraw_total" field.
+func (m *BalanceSnapshotMutation) AddWithdrawTotal(f float64) {
+	if m.addwithdraw_total != nil {
+		*m.addwithdraw_total += f
+	} else {
+		m.addwithdraw_total = &f
+	}
+}
+
+// AddedWithdrawTotal returns the value that was added to the "withdraw_total" field in this mutation.
+func (m *BalanceSnapshotMutation) AddedWithdrawTotal() (r float64, exists bool) {
+	v := m.addwithdraw_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetWithdrawTotal resets all changes to the "withdraw_total" field.
+func (m *BalanceSnapshotMutation) ResetWithdrawTotal() {
+	m.withdraw_total = nil
+	m.addwithdraw_total = nil
+}
+
+// SetCreditTotal sets the "credit_total" field.
+func (m *BalanceSnapshotMutation) SetCreditTotal(f float64) {
+	m.credit_total = &f
+	m.addcredit_total = nil
+}
+
+// CreditTotal returns the value of the "credit_total" field in the mutation.
+func (m *BalanceSnapshotMutation) CreditTotal() (r float64, exists bool) {
+	v := m.credit_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreditTotal returns the old "credit_total" field's value of the BalanceSnapshot entity.
+// If the BalanceSnapshot object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BalanceSnapshotMutation) OldCreditTotal(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreditTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreditTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreditTotal: %w", err)
+	}
+	return oldValue.CreditTotal, nil
+}
+
+// AddCreditTotal adds f to the "credit_total" field.
+func (m *BalanceSnapshotMutation) AddCreditTotal(f float64) {
+	if m.addcredit_total != nil {
+		*m.addcredit_total += f
+	} else {
+		m.addcredit_total = &f
+	}
+}
+
+// AddedCreditTotal returns the value that was added to the "credit_total" field in this mutation.
+func (m *BalanceSnapshotMutation) AddedCreditTotal() (r float64, exists bool) {
+	v := m.addcredit_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetCreditTotal resets all changes to the "credit_total" field.
+func (m *BalanceSnapshotMutation) ResetCreditTotal() {
+	m.credit_total = nil
+	m.addcredit_total = nil
+}
+
+// SetUtilisationGrossTotal sets the "utilisation_gross_total" field.
+func (m *BalanceSnapshotMutation) SetUtilisationGrossTotal(f float64) {
+	m.utilisation_gross_total = &f
+	m.addutilisation_gross_total = nil
+}
+
+// UtilisationGrossTotal returns the value of the "utilisation_gross_total" field in the mutation.
+func (m *BalanceSnapshotMutation) UtilisationGrossTotal() (r float64, exists bool) {
+	v := m.utilisation_gross_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUtilisationGrossTotal returns the old "utilisation_gross_total" field's value of the BalanceSnapshot entity.
+// If the BalanceSnapshot object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BalanceSnapshotMutation) OldUtilisationGrossTotal(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUtilisationGrossTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUtilisationGrossTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUtilisationGrossTotal: %w", err)
+	}
+	return oldValue.UtilisationGrossTotal, nil
+}
+
+// AddUtilisationGrossTotal adds f to the "utilisation_gross_total" field.
+func (m *BalanceSnapshotMutation) AddUtilisationGrossTotal(f float64) {
+	if m.addutilisation_gross_total != nil {
+		*m.addutilisation_gross_total += f
+	} else {
+		m.addutilisation_gross_total = &f
+	}
+}
+
+// AddedUtilisationGrossTotal returns the value that was added to the "utilisation_gross_total" field in this mutation.
+func (m *BalanceSnapshotMutation) AddedUtilisationGrossTotal() (r float64, exists bool) {
+	v := m.addutilisation_gross_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetUtilisationGrossTotal resets all changes to the "utilisation_gross_total" field.
+func (m *BalanceSnapshotMutation) ResetUtilisationGrossTotal() {
+	m.utilisation_gross_total = nil
+	m.addutilisation_gross_total = nil
+}
+
+// SetUtilisationTotal sets the "utilisation_total" field.
+func (m *BalanceSnapshotMutation) SetUtilisationTotal(f float64) {
+	m.utilisation_total = &f
+	m.addutilisation_total = nil
+}
+
+// UtilisationTotal returns the value of the "utilisation_total" field in the mutation.
+func (m *BalanceSnapshotMutation) UtilisationTotal() (r float64, exists bool) {
+	v := m.utilisation_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUtilisationTotal returns the old "utilisation_total" field's value of the BalanceSnapshot entity.
+// If the BalanceSnapshot object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BalanceSnapshotMutation) OldUtilisationTotal(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUtilisationTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUtilisationTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUtilisationTotal: %w", err)
+	}
+	return oldValue.UtilisationTotal, nil
+}
+
+// AddUtilisationTotal adds f to the "utilisation_total" field.
+func (m *BalanceSnapshotMutation) AddUtilisationTotal(f float64) {
+	if m.addutilisation_total != nil {
+		*m.addutilisation_total += f
+	} else {
+		m.addutilisation_total = &f
+	}
+}
+
+// AddedUtilisationTotal returns the value that was added to the "utilisation_total" field in this mutation.
+func (m *BalanceSnapshotMutation) AddedUtilisationTotal() (r float64, exists bool) {
+	v := m.addutilisation_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetUtilisationTotal resets all changes to the "utilisation_total" field.
+func (m *BalanceSnapshotMutation) ResetUtilisationTotal() {
+	m.utilisation_total = nil
+	m.addutilisation_total = nil
+}
+
+// SetComputedAt sets the "computed_at" field.
+func (m *BalanceSnapshotMutation) SetComputedAt(t time.Time) {
+	m.computed_at = &t
+}
+
+// ComputedAt returns the value of the "computed_at" field in the mutation.
+func (m *BalanceSnapshotMutation) ComputedAt() (r time.Time, exists bool) {
+	v := m.computed_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldComputedAt returns the old "computed_at" field's value of the BalanceSnapshot entity.
+// If the BalanceSnapshot object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BalanceSnapshotMutation) OldComputedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldComputedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldComputedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldComputedAt: %w", err)
+	}
+	return oldValue.ComputedAt, nil
+}
+
+// ResetComputedAt resets all changes to the "computed_at" field.
+func (m *BalanceSnapshotMutation) ResetComputedAt() {
+	m.computed_at = nil
+}
+
+// Where appends a list predicates to the BalanceSnapshotMutation builder.
+func (m *BalanceSnapshotMutation) Where(ps ...predicate.BalanceSnapshot) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the BalanceSnapshotMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *BalanceSnapshotMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.BalanceSnapshot, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *BalanceSnapshotMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *BalanceSnapshotMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (BalanceSnapshot).
+func (m *BalanceSnapshotMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *BalanceSnapshotMutation) Fields() []string {
+	fields := make([]string, 0, 10)
+	if m.user_id != nil {
+		fields = append(fields, balancesnapshot.FieldUserID)
+	}
+	if m.period != nil {
+		fields = append(fields, balancesnapshot.FieldPeriod)
+	}
+	if m.opening_balance != nil {
+		fields = append(fields, balancesnapshot.FieldOpeningBalance)
+	}
+	if m.closing_balance != nil {
+		fields = append(fields, balancesnapshot.FieldClosingBalance)
+	}
+	if m.deposit_total != nil {
+		fields = append(fields, balancesnapshot.FieldDepositTotal)
+	}
+	if m.withdraw_total != nil {
+		fields = append(fields, balancesnapshot.FieldWithdrawTotal)
+	}
+	if m.credit_total != nil {
+		fields = append(fields, balancesnapshot.FieldCreditTotal)
+	}
+	if m.utilisation_gross_total != nil {
+		fields = append(fields, balancesnapshot.FieldUtilisationGrossTotal)
+	}
+	if m.utilisation_total != nil {
+		fields = append(fields, balancesnapshot.FieldUtilisationTotal)
+	}
+	if m.computed_at != nil {
+		fields = append(fields, balancesnapshot.FieldComputedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *BalanceSnapshotMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case balancesnapshot.FieldUserID:
+		return m.UserID()
+	case balancesnapshot.FieldPeriod:
+		return m.Period()
+	case balancesnapshot.FieldOpeningBalance:
+		return m.OpeningBalance()
+	case balancesnapshot.FieldClosingBalance:
+		return m.ClosingBalance()
+	case balancesnapshot.FieldDepositTotal:
+		return m.DepositTotal()
+	case balancesnapshot.FieldWithdrawTotal:
+		return m.WithdrawTotal()
+	case balancesnapshot.FieldCreditTotal:
+		return m.CreditTotal()
+	case balancesnapshot.FieldUtilisationGrossTotal:
+		return m.UtilisationGrossTotal()
+	case balancesnapshot.FieldUtilisationTotal:
+		return m.UtilisationTotal()
+	case balancesnapshot.FieldComputedAt:
+		return m.ComputedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *BalanceSnapshotMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case balancesnapshot.FieldUserID:
+		return m.OldUserID(ctx)
+	case balancesnapshot.FieldPeriod:
+		return m.OldPeriod(ctx)
+	case balancesnapshot.FieldOpeningBalance:
+		return m.OldOpeningBalance(ctx)
+	case balancesnapshot.FieldClosingBalance:
+		return m.OldClosingBalance(ctx)
+	case balancesnapshot.FieldDepositTotal:
+		return m.OldDepositTotal(ctx)
+	case balancesnapshot.FieldWithdrawTotal:
+		return m.OldWithdrawTotal(ctx)
+	case balancesnapshot.FieldCreditTotal:
+		return m.OldCreditTotal(ctx)
+	case balancesnapshot.FieldUtilisationGrossTotal:
+		return m.OldUtilisationGrossTotal(ctx)
+	case balancesnapshot.FieldUtilisationTotal:
+		return m.OldUtilisationTotal(ctx)
+	case balancesnapshot.FieldComputedAt:
+		return m.OldComputedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown BalanceSnapshot field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BalanceSnapshotMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case balancesnapshot.FieldUserID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
+	case balancesnapshot.FieldPeriod:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPeriod(v)
+		return nil
+	case balancesnapshot.FieldOpeningBalance:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOpeningBalance(v)
+		return nil
+	case balancesnapshot.FieldClosingBalance:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetClosingBalance(v)
+		return nil
+	case balancesnapshot.FieldDepositTotal:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDepositTotal(v)
+		return nil
+	case balancesnapshot.FieldWithdrawTotal:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWithdrawTotal(v)
+		return nil
+	case balancesnapshot.FieldCreditTotal:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreditTotal(v)
+		return nil
+	case balancesnapshot.FieldUtilisationGrossTotal:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUtilisationGrossTotal(v)
+		return nil
+	case balancesnapshot.FieldUtilisationTotal:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUtilisationTotal(v)
+		return nil
+	case balancesnapshot.FieldComputedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetComputedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown BalanceSnapshot field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *BalanceSnapshotMutation) AddedFields() []string {
+	var fields []string
+	if m.adduser_id != nil {
+		fields = append(fields, balancesnapshot.FieldUserID)
+	}
+	if m.addopening_balance != nil {
+		fields = append(fields, balancesnapshot.FieldOpeningBalance)
+	}
+	if m.addclosing_balance != nil {
+		fields = append(fields, balancesnapshot.FieldClosingBalance)
+	}
+	if m.adddeposit_total != nil {
+		fields = append(fields, balancesnapshot.FieldDepositTotal)
+	}
+	if m.addwithdraw_total != nil {
+		fields = append(fields, balancesnapshot.FieldWithdrawTotal)
+	}
+	if m.addcredit_total != nil {
+		fields = append(fields, balancesnapshot.FieldCreditTotal)
+	}
+	if m.addutilisation_gross_total != nil {
+		fields = append(fields, balancesnapshot.FieldUtilisationGrossTotal)
+	}
+	if m.addutilisation_total != nil {
+		fields = append(fields, balancesnapshot.FieldUtilisationTotal)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *BalanceSnapshotMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case balancesnapshot.FieldUserID:
+		return m.AddedUserID()
+	case balancesnapshot.FieldOpeningBalance:
+		return m.AddedOpeningBalance()
+	case balancesnapshot.FieldClosingBalance:
+		return m.AddedClosingBalance()
+	case balancesnapshot.FieldDepositTotal:
+		return m.AddedDepositTotal()
+	case balancesnapshot.FieldWithdrawTotal:
+		return m.AddedWithdrawTotal()
+	case balancesnapshot.FieldCreditTotal:
+		return m.AddedCreditTotal()
+	case balancesnapshot.FieldUtilisationGrossTotal:
+		return m.AddedUtilisationGrossTotal()
+	case balancesnapshot.FieldUtilisationTotal:
+		return m.AddedUtilisationTotal()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BalanceSnapshotMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case balancesnapshot.FieldUserID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddUserID(v)
+		return nil
+	case balancesnapshot.FieldOpeningBalance:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddOpeningBalance(v)
+		return nil
+	case balancesnapshot.FieldClosingBalance:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddClosingBalance(v)
+		return nil
+	case balancesnapshot.FieldDepositTotal:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddDepositTotal(v)
+		return nil
+	case balancesnapshot.FieldWithdrawTotal:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddWithdrawTotal(v)
+		return nil
+	case balancesnapshot.FieldCreditTotal:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCreditTotal(v)
+		return nil
+	case balancesnapshot.FieldUtilisationGrossTotal:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddUtilisationGrossTotal(v)
+		return nil
+	case balancesnapshot.FieldUtilisationTotal:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddUtilisationTotal(v)
+		return nil
+	}
+	return fmt.Errorf("unknown BalanceSnapshot numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *BalanceSnapshotMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *BalanceSnapshotMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *BalanceSnapshotMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown BalanceSnapshot nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *BalanceSnapshotMutation) ResetField(name string) error {
+	switch name {
+	case balancesnapshot.FieldUserID:
+		m.ResetUserID()
+		return nil
+	case balancesnapshot.FieldPeriod:
+		m.ResetPeriod()
+		return nil
+	case balancesnapshot.FieldOpeningBalance:
+		m.ResetOpeningBalance()
+		return nil
+	case balancesnapshot.FieldClosingBalance:
+		m.ResetClosingBalance()
+		return nil
+	case balancesnapshot.FieldDepositTotal:
+		m.ResetDepositTotal()
+		return nil
+	case balancesnapshot.FieldWithdrawTotal:
+		m.ResetWithdrawTotal()
+		return nil
+	case balancesnapshot.FieldCreditTotal:
+		m.ResetCreditTotal()
+		return nil
+	case balancesnapshot.FieldUtilisationGrossTotal:
+		m.ResetUtilisationGrossTotal()
+		return nil
+	case balancesnapshot.FieldUtilisationTotal:
+		m.ResetUtilisationTotal()
+		return nil
+	case balancesnapshot.FieldComputedAt:
+		m.ResetComputedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown BalanceSnapshot field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *BalanceSnapshotMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *BalanceSnapshotMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *BalanceSnapshotMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *BalanceSnapshotMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *BalanceSnapshotMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *BalanceSnapshotMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *BalanceSnapshotMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown BalanceSnapshot unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *BalanceSnapshotMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown BalanceSnapshot edge %s", name)
 }
 
 // BatchImageEventMutation represents an operation that mutates the BatchImageEvent nodes in the graph.

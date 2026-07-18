@@ -93,6 +93,18 @@ func (f AuthIdentityChannelFunc) Mutate(ctx context.Context, m ent.Mutation) (en
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AuthIdentityChannelMutation", m)
 }
 
+// The BalanceSnapshotFunc type is an adapter to allow the use of ordinary
+// function as BalanceSnapshot mutator.
+type BalanceSnapshotFunc func(context.Context, *ent.BalanceSnapshotMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BalanceSnapshotFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.BalanceSnapshotMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.BalanceSnapshotMutation", m)
+}
+
 // The BatchImageEventFunc type is an adapter to allow the use of ordinary
 // function as BatchImageEvent mutator.
 type BatchImageEventFunc func(context.Context, *ent.BatchImageEventMutation) (ent.Value, error)

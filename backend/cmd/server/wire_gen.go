@@ -317,7 +317,10 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	lingjingPollRunner := service.ProvideLingjingPollRunner(lingjingTaskRepository, lingjingGatewayService, accountRepository, billingService, billingCacheService, upstreamCostResolver, usageLogRepository)
 	userPlatformQuotaUsageFlusher := service.ProvideUserPlatformQuotaUsageFlusher(configConfig, billingCache, serviceUserPlatformQuotaRepository, timingWheelService)
 	teamAutoTopupService := service.ProvideTeamAutoTopupService(teamMemberRepository, teamFundRepository, teamActivityLogRepository, leaderLockCache, db)
-	v := provideCleanup(client, redisClient, opsMetricsCollector, opsAggregationService, opsAlertEvaluatorService, opsCleanupService, opsScheduledReportService, opsSystemLogSink, schedulerSnapshotService, accountExpiryService, proxyExpiryService, subscriptionExpiryService, usageCleanupService, idempotencyCleanupService, batchImageCleanupService, batchImageWorkerRuntime, pricingService, emailQueueService, billingCacheService, usageRecordWorkerPool, subscriptionService, openAIGatewayService, scheduledTestRunnerService, backupService, paymentOrderExpiryService, channelMonitorRunner, lingjingPollRunner, userPlatformQuotaUsageFlusher, teamAutoTopupService, upstreamBillingProbeService, auditLogService, promptService)
+	statementRepository := repository.NewStatementRepository(db)
+	balanceSnapshotRepository := repository.NewBalanceSnapshotRepository(client)
+	balanceSnapshotService := service.ProvideBalanceSnapshotService(statementRepository, balanceSnapshotRepository, userRepository, leaderLockCache, db)
+	v := provideCleanup(client, redisClient, opsMetricsCollector, opsAggregationService, opsAlertEvaluatorService, opsCleanupService, opsScheduledReportService, opsSystemLogSink, schedulerSnapshotService, accountExpiryService, proxyExpiryService, subscriptionExpiryService, usageCleanupService, idempotencyCleanupService, batchImageCleanupService, batchImageWorkerRuntime, pricingService, emailQueueService, billingCacheService, usageRecordWorkerPool, subscriptionService, openAIGatewayService, scheduledTestRunnerService, backupService, paymentOrderExpiryService, channelMonitorRunner, lingjingPollRunner, userPlatformQuotaUsageFlusher, teamAutoTopupService, balanceSnapshotService, upstreamBillingProbeService, auditLogService, promptService)
 	application := &Application{
 		Server:      httpServer,
 		PromptAudit: promptService,
@@ -374,6 +377,7 @@ func provideCleanup(
 	lingjingPollRunner *service.LingjingPollRunner,
 	quotaFlusher *service.UserPlatformQuotaUsageFlusher,
 	teamAutoTopup *service.TeamAutoTopupService,
+	balanceSnapshot *service.BalanceSnapshotService,
 	upstreamBillingProbe *service.UpstreamBillingProbeService,
 	auditLog *service.AuditLogService,
 	promptAudit *securityaudit.PromptService,
@@ -553,6 +557,13 @@ func provideCleanup(
 			{"UpstreamBillingProbeService", func() error {
 				if upstreamBillingProbe != nil {
 					upstreamBillingProbe.Stop()
+				}
+				return nil
+			}},
+
+			{"BalanceSnapshotService", func() error {
+				if balanceSnapshot != nil {
+					balanceSnapshot.Stop()
 				}
 				return nil
 			}},

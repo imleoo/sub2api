@@ -562,6 +562,7 @@ var ProviderSet = wire.NewSet(
 	NewTeamFundService,           // zhiguofan fork-only: 企业↔员工余额划转
 	NewTeamUsageStatsProvider,    // zhiguofan fork-only: 报表用量聚合适配器
 	ProvideTeamAutoTopupService,  // zhiguofan fork-only: 共享额度自动补给后台服务
+	ProvideBalanceSnapshotService, // zhiguofan fork-only: 月度对账余额月结快照后台服务
 )
 
 // ProvideUserPlatformQuotaUsageFlusher 创建并启动 UserPlatformQuotaUsageFlusher。
@@ -588,6 +589,15 @@ func ProvideBalanceNotifyService(emailService *EmailService, settingRepo Setting
 func ProvidePaymentService(entClient *dbent.Client, registry *payment.Registry, loadBalancer payment.LoadBalancer, redeemService *RedeemService, subscriptionSvc *SubscriptionService, configService *PaymentConfigService, userRepo UserRepository, groupRepo GroupRepository, affiliateService *AffiliateService, notificationEmailService *NotificationEmailService) *PaymentService {
 	svc := NewPaymentService(entClient, registry, loadBalancer, redeemService, subscriptionSvc, configService, userRepo, groupRepo, affiliateService)
 	svc.SetNotificationEmailService(notificationEmailService)
+	return svc
+}
+
+// ProvideBalanceSnapshotService 创建并启动余额月结快照后台服务。
+// zhiguofan fork-only: 月度对账（Vendor Report）。
+func ProvideBalanceSnapshotService(stmtRepo StatementRepository, snapRepo BalanceSnapshotRepository, userRepo UserRepository, lockCache LeaderLockCache, db *sql.DB) *BalanceSnapshotService {
+	svc := NewBalanceSnapshotService(stmtRepo, snapRepo, userRepo, time.Hour)
+	svc.SetLeaderLock(lockCache, db)
+	svc.Start()
 	return svc
 }
 

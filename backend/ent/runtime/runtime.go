@@ -12,6 +12,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/apikey"
 	"github.com/Wei-Shaw/sub2api/ent/authidentity"
 	"github.com/Wei-Shaw/sub2api/ent/authidentitychannel"
+	"github.com/Wei-Shaw/sub2api/ent/balancesnapshot"
 	"github.com/Wei-Shaw/sub2api/ent/batchimageevent"
 	"github.com/Wei-Shaw/sub2api/ent/batchimageitem"
 	"github.com/Wei-Shaw/sub2api/ent/batchimagejob"
@@ -452,6 +453,46 @@ func init() {
 	authidentitychannelDescMetadata := authidentitychannelFields[6].Descriptor()
 	// authidentitychannel.DefaultMetadata holds the default value on creation for the metadata field.
 	authidentitychannel.DefaultMetadata = authidentitychannelDescMetadata.Default.(func() map[string]interface{})
+	balancesnapshotFields := schema.BalanceSnapshot{}.Fields()
+	_ = balancesnapshotFields
+	// balancesnapshotDescPeriod is the schema descriptor for period field.
+	balancesnapshotDescPeriod := balancesnapshotFields[1].Descriptor()
+	// balancesnapshot.PeriodValidator is a validator for the "period" field. It is called by the builders before save.
+	balancesnapshot.PeriodValidator = balancesnapshotDescPeriod.Validators[0].(func(string) error)
+	// balancesnapshotDescOpeningBalance is the schema descriptor for opening_balance field.
+	balancesnapshotDescOpeningBalance := balancesnapshotFields[2].Descriptor()
+	// balancesnapshot.DefaultOpeningBalance holds the default value on creation for the opening_balance field.
+	balancesnapshot.DefaultOpeningBalance = balancesnapshotDescOpeningBalance.Default.(float64)
+	// balancesnapshotDescClosingBalance is the schema descriptor for closing_balance field.
+	balancesnapshotDescClosingBalance := balancesnapshotFields[3].Descriptor()
+	// balancesnapshot.DefaultClosingBalance holds the default value on creation for the closing_balance field.
+	balancesnapshot.DefaultClosingBalance = balancesnapshotDescClosingBalance.Default.(float64)
+	// balancesnapshotDescDepositTotal is the schema descriptor for deposit_total field.
+	balancesnapshotDescDepositTotal := balancesnapshotFields[4].Descriptor()
+	// balancesnapshot.DefaultDepositTotal holds the default value on creation for the deposit_total field.
+	balancesnapshot.DefaultDepositTotal = balancesnapshotDescDepositTotal.Default.(float64)
+	// balancesnapshotDescWithdrawTotal is the schema descriptor for withdraw_total field.
+	balancesnapshotDescWithdrawTotal := balancesnapshotFields[5].Descriptor()
+	// balancesnapshot.DefaultWithdrawTotal holds the default value on creation for the withdraw_total field.
+	balancesnapshot.DefaultWithdrawTotal = balancesnapshotDescWithdrawTotal.Default.(float64)
+	// balancesnapshotDescCreditTotal is the schema descriptor for credit_total field.
+	balancesnapshotDescCreditTotal := balancesnapshotFields[6].Descriptor()
+	// balancesnapshot.DefaultCreditTotal holds the default value on creation for the credit_total field.
+	balancesnapshot.DefaultCreditTotal = balancesnapshotDescCreditTotal.Default.(float64)
+	// balancesnapshotDescUtilisationGrossTotal is the schema descriptor for utilisation_gross_total field.
+	balancesnapshotDescUtilisationGrossTotal := balancesnapshotFields[7].Descriptor()
+	// balancesnapshot.DefaultUtilisationGrossTotal holds the default value on creation for the utilisation_gross_total field.
+	balancesnapshot.DefaultUtilisationGrossTotal = balancesnapshotDescUtilisationGrossTotal.Default.(float64)
+	// balancesnapshotDescUtilisationTotal is the schema descriptor for utilisation_total field.
+	balancesnapshotDescUtilisationTotal := balancesnapshotFields[8].Descriptor()
+	// balancesnapshot.DefaultUtilisationTotal holds the default value on creation for the utilisation_total field.
+	balancesnapshot.DefaultUtilisationTotal = balancesnapshotDescUtilisationTotal.Default.(float64)
+	// balancesnapshotDescComputedAt is the schema descriptor for computed_at field.
+	balancesnapshotDescComputedAt := balancesnapshotFields[9].Descriptor()
+	// balancesnapshot.DefaultComputedAt holds the default value on creation for the computed_at field.
+	balancesnapshot.DefaultComputedAt = balancesnapshotDescComputedAt.Default.(func() time.Time)
+	// balancesnapshot.UpdateDefaultComputedAt holds the default value on update for the computed_at field.
+	balancesnapshot.UpdateDefaultComputedAt = balancesnapshotDescComputedAt.UpdateDefault.(func() time.Time)
 	batchimageeventFields := schema.BatchImageEvent{}.Fields()
 	_ = batchimageeventFields
 	// batchimageeventDescJobID is the schema descriptor for job_id field.

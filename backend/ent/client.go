@@ -22,6 +22,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/apikey"
 	"github.com/Wei-Shaw/sub2api/ent/authidentity"
 	"github.com/Wei-Shaw/sub2api/ent/authidentitychannel"
+	"github.com/Wei-Shaw/sub2api/ent/balancesnapshot"
 	"github.com/Wei-Shaw/sub2api/ent/batchimageevent"
 	"github.com/Wei-Shaw/sub2api/ent/batchimageitem"
 	"github.com/Wei-Shaw/sub2api/ent/batchimagejob"
@@ -87,6 +88,8 @@ type Client struct {
 	AuthIdentity *AuthIdentityClient
 	// AuthIdentityChannel is the client for interacting with the AuthIdentityChannel builders.
 	AuthIdentityChannel *AuthIdentityChannelClient
+	// BalanceSnapshot is the client for interacting with the BalanceSnapshot builders.
+	BalanceSnapshot *BalanceSnapshotClient
 	// BatchImageEvent is the client for interacting with the BatchImageEvent builders.
 	BatchImageEvent *BatchImageEventClient
 	// BatchImageItem is the client for interacting with the BatchImageItem builders.
@@ -189,6 +192,7 @@ func (c *Client) init() {
 	c.AnnouncementRead = NewAnnouncementReadClient(c.config)
 	c.AuthIdentity = NewAuthIdentityClient(c.config)
 	c.AuthIdentityChannel = NewAuthIdentityChannelClient(c.config)
+	c.BalanceSnapshot = NewBalanceSnapshotClient(c.config)
 	c.BatchImageEvent = NewBatchImageEventClient(c.config)
 	c.BatchImageItem = NewBatchImageItemClient(c.config)
 	c.BatchImageJob = NewBatchImageJobClient(c.config)
@@ -330,6 +334,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		AnnouncementRead:              NewAnnouncementReadClient(cfg),
 		AuthIdentity:                  NewAuthIdentityClient(cfg),
 		AuthIdentityChannel:           NewAuthIdentityChannelClient(cfg),
+		BalanceSnapshot:               NewBalanceSnapshotClient(cfg),
 		BatchImageEvent:               NewBatchImageEventClient(cfg),
 		BatchImageItem:                NewBatchImageItemClient(cfg),
 		BatchImageJob:                 NewBatchImageJobClient(cfg),
@@ -398,6 +403,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		AnnouncementRead:              NewAnnouncementReadClient(cfg),
 		AuthIdentity:                  NewAuthIdentityClient(cfg),
 		AuthIdentityChannel:           NewAuthIdentityChannelClient(cfg),
+		BalanceSnapshot:               NewBalanceSnapshotClient(cfg),
 		BatchImageEvent:               NewBatchImageEventClient(cfg),
 		BatchImageItem:                NewBatchImageItemClient(cfg),
 		BatchImageJob:                 NewBatchImageJobClient(cfg),
@@ -470,10 +476,11 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.APIKey, c.Account, c.AccountGroup, c.Announcement, c.AnnouncementRead,
-		c.AuthIdentity, c.AuthIdentityChannel, c.BatchImageEvent, c.BatchImageItem,
-		c.BatchImageJob, c.ChannelMonitor, c.ChannelMonitorDailyRollup,
-		c.ChannelMonitorHistory, c.ChannelMonitorRequestTemplate, c.Endpoint,
-		c.EnterpriseProfile, c.ErrorPassthroughRule, c.Group, c.IdempotencyRecord,
+		c.AuthIdentity, c.AuthIdentityChannel, c.BalanceSnapshot, c.BatchImageEvent,
+		c.BatchImageItem, c.BatchImageJob, c.ChannelMonitor,
+		c.ChannelMonitorDailyRollup, c.ChannelMonitorHistory,
+		c.ChannelMonitorRequestTemplate, c.Endpoint, c.EnterpriseProfile,
+		c.ErrorPassthroughRule, c.Group, c.IdempotencyRecord,
 		c.IdentityAdoptionDecision, c.LingjingTask, c.ModelPricing, c.PaymentAuditLog,
 		c.PaymentOrder, c.PaymentProviderInstance, c.PendingAuthSession,
 		c.PricingDriftLog, c.PromoCode, c.PromoCodeUsage, c.ProviderPricing, c.Proxy,
@@ -492,10 +499,11 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.APIKey, c.Account, c.AccountGroup, c.Announcement, c.AnnouncementRead,
-		c.AuthIdentity, c.AuthIdentityChannel, c.BatchImageEvent, c.BatchImageItem,
-		c.BatchImageJob, c.ChannelMonitor, c.ChannelMonitorDailyRollup,
-		c.ChannelMonitorHistory, c.ChannelMonitorRequestTemplate, c.Endpoint,
-		c.EnterpriseProfile, c.ErrorPassthroughRule, c.Group, c.IdempotencyRecord,
+		c.AuthIdentity, c.AuthIdentityChannel, c.BalanceSnapshot, c.BatchImageEvent,
+		c.BatchImageItem, c.BatchImageJob, c.ChannelMonitor,
+		c.ChannelMonitorDailyRollup, c.ChannelMonitorHistory,
+		c.ChannelMonitorRequestTemplate, c.Endpoint, c.EnterpriseProfile,
+		c.ErrorPassthroughRule, c.Group, c.IdempotencyRecord,
 		c.IdentityAdoptionDecision, c.LingjingTask, c.ModelPricing, c.PaymentAuditLog,
 		c.PaymentOrder, c.PaymentProviderInstance, c.PendingAuthSession,
 		c.PricingDriftLog, c.PromoCode, c.PromoCodeUsage, c.ProviderPricing, c.Proxy,
@@ -526,6 +534,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.AuthIdentity.mutate(ctx, m)
 	case *AuthIdentityChannelMutation:
 		return c.AuthIdentityChannel.mutate(ctx, m)
+	case *BalanceSnapshotMutation:
+		return c.BalanceSnapshot.mutate(ctx, m)
 	case *BatchImageEventMutation:
 		return c.BatchImageEvent.mutate(ctx, m)
 	case *BatchImageItemMutation:
@@ -1770,6 +1780,139 @@ func (c *AuthIdentityChannelClient) mutate(ctx context.Context, m *AuthIdentityC
 		return (&AuthIdentityChannelDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown AuthIdentityChannel mutation op: %q", m.Op())
+	}
+}
+
+// BalanceSnapshotClient is a client for the BalanceSnapshot schema.
+type BalanceSnapshotClient struct {
+	config
+}
+
+// NewBalanceSnapshotClient returns a client for the BalanceSnapshot from the given config.
+func NewBalanceSnapshotClient(c config) *BalanceSnapshotClient {
+	return &BalanceSnapshotClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `balancesnapshot.Hooks(f(g(h())))`.
+func (c *BalanceSnapshotClient) Use(hooks ...Hook) {
+	c.hooks.BalanceSnapshot = append(c.hooks.BalanceSnapshot, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `balancesnapshot.Intercept(f(g(h())))`.
+func (c *BalanceSnapshotClient) Intercept(interceptors ...Interceptor) {
+	c.inters.BalanceSnapshot = append(c.inters.BalanceSnapshot, interceptors...)
+}
+
+// Create returns a builder for creating a BalanceSnapshot entity.
+func (c *BalanceSnapshotClient) Create() *BalanceSnapshotCreate {
+	mutation := newBalanceSnapshotMutation(c.config, OpCreate)
+	return &BalanceSnapshotCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of BalanceSnapshot entities.
+func (c *BalanceSnapshotClient) CreateBulk(builders ...*BalanceSnapshotCreate) *BalanceSnapshotCreateBulk {
+	return &BalanceSnapshotCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BalanceSnapshotClient) MapCreateBulk(slice any, setFunc func(*BalanceSnapshotCreate, int)) *BalanceSnapshotCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BalanceSnapshotCreateBulk{err: fmt.Errorf("calling to BalanceSnapshotClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BalanceSnapshotCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BalanceSnapshotCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for BalanceSnapshot.
+func (c *BalanceSnapshotClient) Update() *BalanceSnapshotUpdate {
+	mutation := newBalanceSnapshotMutation(c.config, OpUpdate)
+	return &BalanceSnapshotUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BalanceSnapshotClient) UpdateOne(_m *BalanceSnapshot) *BalanceSnapshotUpdateOne {
+	mutation := newBalanceSnapshotMutation(c.config, OpUpdateOne, withBalanceSnapshot(_m))
+	return &BalanceSnapshotUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *BalanceSnapshotClient) UpdateOneID(id int64) *BalanceSnapshotUpdateOne {
+	mutation := newBalanceSnapshotMutation(c.config, OpUpdateOne, withBalanceSnapshotID(id))
+	return &BalanceSnapshotUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for BalanceSnapshot.
+func (c *BalanceSnapshotClient) Delete() *BalanceSnapshotDelete {
+	mutation := newBalanceSnapshotMutation(c.config, OpDelete)
+	return &BalanceSnapshotDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BalanceSnapshotClient) DeleteOne(_m *BalanceSnapshot) *BalanceSnapshotDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *BalanceSnapshotClient) DeleteOneID(id int64) *BalanceSnapshotDeleteOne {
+	builder := c.Delete().Where(balancesnapshot.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &BalanceSnapshotDeleteOne{builder}
+}
+
+// Query returns a query builder for BalanceSnapshot.
+func (c *BalanceSnapshotClient) Query() *BalanceSnapshotQuery {
+	return &BalanceSnapshotQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBalanceSnapshot},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a BalanceSnapshot entity by its id.
+func (c *BalanceSnapshotClient) Get(ctx context.Context, id int64) (*BalanceSnapshot, error) {
+	return c.Query().Where(balancesnapshot.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BalanceSnapshotClient) GetX(ctx context.Context, id int64) *BalanceSnapshot {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *BalanceSnapshotClient) Hooks() []Hook {
+	return c.hooks.BalanceSnapshot
+}
+
+// Interceptors returns the client interceptors.
+func (c *BalanceSnapshotClient) Interceptors() []Interceptor {
+	return c.inters.BalanceSnapshot
+}
+
+func (c *BalanceSnapshotClient) mutate(ctx context.Context, m *BalanceSnapshotMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BalanceSnapshotCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BalanceSnapshotUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BalanceSnapshotUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BalanceSnapshotDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown BalanceSnapshot mutation op: %q", m.Op())
 	}
 }
 
@@ -8222,30 +8365,30 @@ func (c *UserSubscriptionClient) mutate(ctx context.Context, m *UserSubscription
 type (
 	hooks struct {
 		APIKey, Account, AccountGroup, Announcement, AnnouncementRead, AuthIdentity,
-		AuthIdentityChannel, BatchImageEvent, BatchImageItem, BatchImageJob,
-		ChannelMonitor, ChannelMonitorDailyRollup, ChannelMonitorHistory,
-		ChannelMonitorRequestTemplate, Endpoint, EnterpriseProfile,
-		ErrorPassthroughRule, Group, IdempotencyRecord, IdentityAdoptionDecision,
-		LingjingTask, ModelPricing, PaymentAuditLog, PaymentOrder,
-		PaymentProviderInstance, PendingAuthSession, PricingDriftLog, PromoCode,
-		PromoCodeUsage, ProviderPricing, Proxy, RedeemCode, SecuritySecret, Setting,
-		SubscriptionPlan, TLSFingerprintProfile, TeamActivityLog, TeamDepartment,
-		TeamFundTransfer, TeamInvitation, TeamMember, UsageCleanupTask, UsageLog, User,
-		UserAllowedGroup, UserAttributeDefinition, UserAttributeValue,
+		AuthIdentityChannel, BalanceSnapshot, BatchImageEvent, BatchImageItem,
+		BatchImageJob, ChannelMonitor, ChannelMonitorDailyRollup,
+		ChannelMonitorHistory, ChannelMonitorRequestTemplate, Endpoint,
+		EnterpriseProfile, ErrorPassthroughRule, Group, IdempotencyRecord,
+		IdentityAdoptionDecision, LingjingTask, ModelPricing, PaymentAuditLog,
+		PaymentOrder, PaymentProviderInstance, PendingAuthSession, PricingDriftLog,
+		PromoCode, PromoCodeUsage, ProviderPricing, Proxy, RedeemCode, SecuritySecret,
+		Setting, SubscriptionPlan, TLSFingerprintProfile, TeamActivityLog,
+		TeamDepartment, TeamFundTransfer, TeamInvitation, TeamMember, UsageCleanupTask,
+		UsageLog, User, UserAllowedGroup, UserAttributeDefinition, UserAttributeValue,
 		UserPlatformQuota, UserSubscription []ent.Hook
 	}
 	inters struct {
 		APIKey, Account, AccountGroup, Announcement, AnnouncementRead, AuthIdentity,
-		AuthIdentityChannel, BatchImageEvent, BatchImageItem, BatchImageJob,
-		ChannelMonitor, ChannelMonitorDailyRollup, ChannelMonitorHistory,
-		ChannelMonitorRequestTemplate, Endpoint, EnterpriseProfile,
-		ErrorPassthroughRule, Group, IdempotencyRecord, IdentityAdoptionDecision,
-		LingjingTask, ModelPricing, PaymentAuditLog, PaymentOrder,
-		PaymentProviderInstance, PendingAuthSession, PricingDriftLog, PromoCode,
-		PromoCodeUsage, ProviderPricing, Proxy, RedeemCode, SecuritySecret, Setting,
-		SubscriptionPlan, TLSFingerprintProfile, TeamActivityLog, TeamDepartment,
-		TeamFundTransfer, TeamInvitation, TeamMember, UsageCleanupTask, UsageLog, User,
-		UserAllowedGroup, UserAttributeDefinition, UserAttributeValue,
+		AuthIdentityChannel, BalanceSnapshot, BatchImageEvent, BatchImageItem,
+		BatchImageJob, ChannelMonitor, ChannelMonitorDailyRollup,
+		ChannelMonitorHistory, ChannelMonitorRequestTemplate, Endpoint,
+		EnterpriseProfile, ErrorPassthroughRule, Group, IdempotencyRecord,
+		IdentityAdoptionDecision, LingjingTask, ModelPricing, PaymentAuditLog,
+		PaymentOrder, PaymentProviderInstance, PendingAuthSession, PricingDriftLog,
+		PromoCode, PromoCodeUsage, ProviderPricing, Proxy, RedeemCode, SecuritySecret,
+		Setting, SubscriptionPlan, TLSFingerprintProfile, TeamActivityLog,
+		TeamDepartment, TeamFundTransfer, TeamInvitation, TeamMember, UsageCleanupTask,
+		UsageLog, User, UserAllowedGroup, UserAttributeDefinition, UserAttributeValue,
 		UserPlatformQuota, UserSubscription []ent.Interceptor
 	}
 )

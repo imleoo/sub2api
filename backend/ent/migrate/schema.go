@@ -423,6 +423,38 @@ var (
 			},
 		},
 	}
+	// BalanceSnapshotsColumns holds the columns for the "balance_snapshots" table.
+	BalanceSnapshotsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "user_id", Type: field.TypeInt64},
+		{Name: "period", Type: field.TypeString, Size: 7},
+		{Name: "opening_balance", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(20,8)"}},
+		{Name: "closing_balance", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(20,8)"}},
+		{Name: "deposit_total", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(20,8)"}},
+		{Name: "withdraw_total", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(20,8)"}},
+		{Name: "credit_total", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(20,8)"}},
+		{Name: "utilisation_gross_total", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(20,10)"}},
+		{Name: "utilisation_total", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(20,10)"}},
+		{Name: "computed_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+	}
+	// BalanceSnapshotsTable holds the schema information for the "balance_snapshots" table.
+	BalanceSnapshotsTable = &schema.Table{
+		Name:       "balance_snapshots",
+		Columns:    BalanceSnapshotsColumns,
+		PrimaryKey: []*schema.Column{BalanceSnapshotsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "balancesnapshot_user_id_period",
+				Unique:  true,
+				Columns: []*schema.Column{BalanceSnapshotsColumns[1], BalanceSnapshotsColumns[2]},
+			},
+			{
+				Name:    "balancesnapshot_period",
+				Unique:  false,
+				Columns: []*schema.Column{BalanceSnapshotsColumns[2]},
+			},
+		},
+	}
 	// BatchImageEventsColumns holds the columns for the "batch_image_events" table.
 	BatchImageEventsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -2421,6 +2453,7 @@ var (
 		AnnouncementReadsTable,
 		AuthIdentitiesTable,
 		AuthIdentityChannelsTable,
+		BalanceSnapshotsTable,
 		BatchImageEventsTable,
 		BatchImageItemsTable,
 		BatchImageJobsTable,
@@ -2496,6 +2529,9 @@ func init() {
 	AuthIdentityChannelsTable.ForeignKeys[0].RefTable = AuthIdentitiesTable
 	AuthIdentityChannelsTable.Annotation = &entsql.Annotation{
 		Table: "auth_identity_channels",
+	}
+	BalanceSnapshotsTable.Annotation = &entsql.Annotation{
+		Table: "balance_snapshots",
 	}
 	BatchImageEventsTable.Annotation = &entsql.Annotation{
 		Table: "batch_image_events",

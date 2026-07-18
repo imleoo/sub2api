@@ -6,6 +6,24 @@
 
 ---
 
+## 新增 - 2026-07-18 — 月度对账（Vendor Report）数据层（功能 45 PR1/3）
+
+按 Eonreach 供应商对账单模板实现按月对账的数据层（方案见
+`claudedocs/月度对账功能设计方案.md`）。新增 `balance_snapshots` 月结快照表（ent schema +
+migration 183，单用户单月一行、UNIQUE(user_id,period)、无 users 外键台账语义）；
+`StatementRepository` 五表 raw SQL 聚合（充值/退款/赠送/兑换/企业划转/按日消耗 + 反推净变动），
+**Credit 统计排除充值链路兑换码防双算**（充值入账实际走「订单→兑换码→Redeem」链路）；
+`BalanceSnapshotService` 月结后台任务（每月 1 日 00:30 后为上月补算缺口快照，leader lock 多实例
+互斥，`RecomputeForUserMonth` 幂等 upsert），期末余额以 `users.balance` 为锚反推、期初优先取上月
+快照。零改动既有接口（零 test stub 冲击）；Wire 注入 + cleanup 链、`wire_gen_test.go` 补 nil 参。
+单测（月界/反推/幂等/恒等式）+ 集成测试（五表口径/防双算/owner-member 双视角/时区归日）全绿；
+lint 新增代码零问题（存量 51 项债与本次无关，已 stash 对照确认）。
+
+高风险复核：`wire_gen.go` 仅新增 statement/balance_snapshot repository、BalanceSnapshotService
+构造与 provideCleanup 实参/形参/stop 条目，其余注入链未动（`go generate ./cmd/server` 生成）。
+
+---
+
 ## 修复 - 2026-07-17 — 平台费用悬浮层被表格 overflow 裁切
 
 `PlatformUsageBreakdown.vue`（功能 44 复用组件，风险表 🟡 中）在 `DataTable` 单元格内悬浮时被

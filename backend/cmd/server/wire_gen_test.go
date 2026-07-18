@@ -63,6 +63,7 @@ func TestProvideCleanup_WithMinimalDependencies_NoPanic(t *testing.T) {
 		nil, // lingjingPollRunner
 		nil, // quotaFlusher
 		nil, // teamAutoTopupService
+		nil, // balanceSnapshotService（zhiguofan fork-only: 月度对账）
 		nil, // upstreamBillingProbeService
 		nil, // auditLogService
 		nil, // promptAudit
