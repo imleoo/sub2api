@@ -271,7 +271,7 @@
           selectable
           :selected-keys="selectedIds"
           :selection-label="getUserSelectionLabel"
-          :actions-count="7"
+          :actions-count="8"
           :server-side-sort="true"
           default-sort-key="created_at"
           default-sort-order="desc"
@@ -743,6 +743,15 @@
                 {{ t('admin.users.viewStats') }}
               </button>
 
+              <!-- Export Statement（zhiguofan fork-only: 月度对账，功能 45） -->
+              <button
+                @click="handleExportStatement(user); closeActionMenu()"
+                class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
+              >
+                <Icon name="download" size="sm" class="text-gray-400" :stroke-width="2" />
+                {{ t('admin.users.exportStatement') }}
+              </button>
+
               <div class="my-1 border-t border-gray-100 dark:border-dark-700"></div>
 
               <!-- Delete (not for admin) -->
@@ -782,6 +791,45 @@
     <GroupReplaceModal :show="showGroupReplaceModal" :user="groupReplaceUser" :old-group="groupReplaceOldGroup" :all-groups="allGroups" @close="closeGroupReplaceModal" @success="loadUsers" />
     <UserAttributesConfigModal :show="showAttributesModal" @close="handleAttributesModalClose" />
     <UserStatsModal :show="showStatsModal" :user="statsUser" @close="closeStatsModal" />
+
+    <!-- 对账导出选月弹窗（zhiguofan fork-only: 月度对账，功能 45） -->
+    <BaseDialog
+      :show="showStatementModal"
+      :title="t('admin.users.exportStatementTitle', { email: statementUser?.email ?? '' })"
+      width="narrow"
+      @close="showStatementModal = false"
+    >
+      <div class="space-y-4">
+        <div>
+          <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            {{ t('admin.users.exportStatementMonth') }}
+          </label>
+          <select
+            v-model="statementMonth"
+            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:outline-none dark:border-dark-600 dark:bg-dark-800 dark:text-gray-100"
+            data-testid="statement-export-month"
+          >
+            <option v-for="m in statementMonths" :key="m" :value="m">{{ m }}</option>
+          </select>
+        </div>
+        <div class="flex justify-end gap-3">
+          <button
+            class="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-dark-600 dark:text-gray-300 dark:hover:bg-dark-700"
+            @click="showStatementModal = false"
+          >
+            {{ t('common.cancel') }}
+          </button>
+          <button
+            :disabled="statementExporting"
+            class="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+            data-testid="statement-export-confirm"
+            @click="confirmExportStatement"
+          >
+            {{ statementExporting ? t('admin.users.exportStatementExporting') : t('admin.users.exportStatement') }}
+          </button>
+        </div>
+      </div>
+    </BaseDialog>
   </AppLayout>
 </template>
 
@@ -806,6 +854,7 @@ import TablePageLayout from '@/components/layout/TablePageLayout.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
+import BaseDialog from '@/components/common/BaseDialog.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import GroupBadge from '@/components/common/GroupBadge.vue'
 import Select from '@/components/common/Select.vue'
@@ -1837,6 +1886,55 @@ const handleViewStats = (user: AdminUser) => {
 const closeStatsModal = () => {
   showStatsModal.value = false
   statsUser.value = null
+}
+
+// Statement export modal state（zhiguofan fork-only: 月度对账，功能 45）
+const showStatementModal = ref(false)
+const statementUser = ref<AdminUser | null>(null)
+const statementMonth = ref('')
+const statementExporting = ref(false)
+
+// 可选月份：近 12 个月（默认上月，最近在前）
+const statementMonths = computed(() => {
+  const months: string[] = []
+  const cursor = new Date()
+  cursor.setDate(1)
+  for (let i = 0; i < 12; i++) {
+    cursor.setMonth(cursor.getMonth() - 1)
+    const y = cursor.getFullYear()
+    const m = String(cursor.getMonth() + 1).padStart(2, '0')
+    months.push(`${y}-${m}`)
+  }
+  return months
+})
+
+const handleExportStatement = (user: AdminUser) => {
+  statementUser.value = user
+  statementMonth.value = statementMonths.value[0]
+  showStatementModal.value = true
+}
+
+const confirmExportStatement = async () => {
+  if (!statementUser.value || !statementMonth.value) return
+  statementExporting.value = true
+  try {
+    const blob = await adminAPI.users.exportUserStatement(
+      statementUser.value.id,
+      statementMonth.value,
+      Intl.DateTimeFormat().resolvedOptions().timeZone
+    )
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `statement-${statementUser.value.email}-${statementMonth.value}.xlsx`
+    link.click()
+    window.URL.revokeObjectURL(url)
+    showStatementModal.value = false
+  } catch {
+    appStore.showError(t('admin.users.exportStatementFailed'))
+  } finally {
+    statementExporting.value = false
+  }
 }
 
 // Handle deposit from balance history modal

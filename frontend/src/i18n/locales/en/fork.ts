@@ -43,7 +43,42 @@ export default {
     models: "Model Plaza",
     playground: "Playground",
     modelDiscounts: "Model Discounts",
-    team: "Team"
+    team: "Team",
+    statement: "Monthly Statement"
+  },
+  statement: {
+    title: "Monthly Statement",
+    description: "Monthly fund flow and utilisation statement, exportable as Excel (Vendor Report format)",
+    export: "Export Excel",
+    exporting: "Exporting...",
+    notClosed: "Not closed",
+    computed: "Computed",
+    computedNote: "No monthly snapshot for this period; opening/closing balances are computed in real time",
+    openingBalance: "Opening Balance",
+    closingBalance: "Closing Balance",
+    totalIn: "Inflow",
+    totalOut: "Outflow",
+    qty: "Tokens",
+    costBefore: "Before discount",
+    discount: "Discount",
+    loadFailed: "Failed to load statement",
+    exportFailed: "Failed to export statement",
+    identityGapNote: "Note: identity gap {gap} USD — untracked balance adjustments exist (e.g. manual balance edits)",
+    nature: {
+      opening: "Opening balance",
+      deposit: "Deposit",
+      withdraw: "Withdraw/Refund",
+      credit: "Credit",
+      utilisation: "Utilisation",
+      closing: "Closing balance"
+    },
+    columns: {
+      date: "Date",
+      nature: "Nature",
+      amount: "Amount",
+      detail: "Detail",
+      runningTotal: "Balance"
+    }
   },
   auth: {
     errors: {

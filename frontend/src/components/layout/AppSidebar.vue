@@ -734,6 +734,7 @@ function buildSelfNavItems(withDashboard: boolean): NavItem[] {
     { path: '/team/members', label: t('nav.team'), icon: UsersIcon, hideInSimpleMode: true },
     { path: '/batch-image', label: t('nav.batchImage'), icon: BatchImageIcon, hideInSimpleMode: true, featureFlag: flagBatchImageAccess },
     { path: '/usage', label: t('nav.usage'), icon: ChartIcon, hideInSimpleMode: true },
+    { path: '/statement', label: t('nav.statement'), icon: OrderListIcon, hideInSimpleMode: true },
     { path: '/models', label: t('nav.models'), icon: ModelGridIcon, hideInSimpleMode: true },
     { path: '/playground', label: t('nav.playground'), icon: PlaygroundIcon },
     { path: '/available-channels', label: t('nav.availableChannels'), icon: ChannelIcon, hideInSimpleMode: true, featureFlag: flagAvailableChannels },

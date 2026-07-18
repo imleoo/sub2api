@@ -630,6 +630,12 @@ export default {
       failedToDeposit: '充值失败',
       failedToWithdraw: '退款失败',
       useDepositWithdrawButtons: '请使用充值/退款按钮调整余额',
+      // 月度对账导出（zhiguofan fork-only: 功能 45）
+      exportStatement: '对账导出',
+      exportStatementTitle: '导出对账单 — {email}',
+      exportStatementMonth: '选择月份',
+      exportStatementExporting: '导出中...',
+      exportStatementFailed: '导出对账单失败',
       // 余额变动记录
       balanceHistory: '充值记录',
       balanceHistoryTip: '点击查看充值记录',

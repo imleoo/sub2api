@@ -41,7 +41,42 @@ export default {
     models: "模型广场",
     playground: "模型体验",
     modelDiscounts: "模型折扣",
-    team: "团队协作"
+    team: "团队协作",
+    statement: "月度对账"
+  },
+  statement: {
+    title: "月度对账",
+    description: "按月查看资金流水与消耗对账单，可导出 Excel（Vendor Report 格式）",
+    export: "导出 Excel",
+    exporting: "导出中...",
+    notClosed: "未封账",
+    computed: "反算值",
+    computedNote: "该月无月结快照，期初/期末余额为系统实时反算值",
+    openingBalance: "期初余额",
+    closingBalance: "期末余额",
+    totalIn: "本月入账",
+    totalOut: "本月支出",
+    qty: "Token 量",
+    costBefore: "折前",
+    discount: "折扣",
+    loadFailed: "加载对账单失败",
+    exportFailed: "导出对账单失败",
+    identityGapNote: "注意：恒等式差额 {gap} USD，存在未留痕的余额调整（如管理员手工改余额）",
+    nature: {
+      opening: "期初余额",
+      deposit: "充值",
+      withdraw: "提现/退款",
+      credit: "赠送",
+      utilisation: "消耗",
+      closing: "期末余额"
+    },
+    columns: {
+      date: "日期",
+      nature: "类型",
+      amount: "金额",
+      detail: "明细",
+      runningTotal: "余额"
+    }
   },
   auth: {
     errors: {

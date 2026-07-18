@@ -392,6 +392,23 @@ export async function resetPlatformQuotaWindow(
   return data
 }
 
+/**
+ * Export a user's monthly statement (Vendor Report) as xlsx blob.
+ * zhiguofan fork-only: 月度对账（功能 45）
+ * @param month - YYYY-MM
+ */
+export async function exportUserStatement(
+  id: number,
+  month: string,
+  timezone?: string
+): Promise<Blob> {
+  const response = await apiClient.get(`/admin/users/${id}/statement/export`, {
+    params: { month, timezone },
+    responseType: 'blob'
+  })
+  return response.data
+}
+
 export const usersAPI = {
   list,
   getById,
@@ -410,6 +427,7 @@ export const usersAPI = {
   getPlatformQuotas,
   updatePlatformQuotas,
   resetPlatformQuotaWindow,
+  exportUserStatement,
 }
 
 export default usersAPI

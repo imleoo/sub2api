@@ -6,6 +6,23 @@
 
 ---
 
+## 新增 - 2026-07-18 — 月度对账前端页面 + 管理端导出入口 + e2e（功能 45 PR3/3）
+
+功能 45 收尾：用户端新增「月度对账」页 `StatementView.vue`（`/statement` 路由 + 侧边栏项，
+Simple 模式隐藏；月份下拉自动选最近月、汇总卡片、DataTable 明细六种行、未封账/反算值徽标、
+恒等式差额脚注、导出 Excel blob 下载，时区取浏览器 `Intl` 时区）；管理端用户管理「更多」菜单
+新增「对账导出」（BaseDialog 选月弹窗默认上月，actions-count 7→8，`exportUserStatement` blob）。
+i18n：fork.ts 新增 `nav.statement` + 顶层 `statement.*` 模块（zh/en 成对），admin overview.ts
+users 块新增 `exportStatement*` 键。测试：`StatementView.spec.ts` 6 用例 + i18n 守护 spec 全绿，
+typecheck/lint 通过；后端新增 `TestE2EFull_MonthlyStatement`（建用户→当月对账单期初期末=初始
+余额→months→用户/管理端导出 MIME/attachment/-partial→网关真实消费后 utilisation 与期末余额
+联动断言）。
+
+高风险复核：`UsersView.vue` 仅新增菜单项/选月弹窗/导出 handler（actions-count 7→8），既有操作
+项与数据流未动；`router/index.ts`/`AppSidebar.vue`/`fork.ts`/`overview.ts` 均为纯追加。
+
+---
+
 ## 新增 - 2026-07-18 — 月度对账后端 API + Excel 导出（功能 45 PR2/3）
 
 在 PR1 数据层之上落地对账 API：`StatementService` 拼装六种行（期初/充值/提现/赠送/按日消耗/

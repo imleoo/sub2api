@@ -253,6 +253,19 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    // zhiguofan fork-only: 月度对账（功能 45）
+    path: '/statement',
+    name: 'Statement',
+    component: () => import('@/views/user/StatementView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'Monthly Statement',
+      titleKey: 'statement.title',
+      descriptionKey: 'statement.description'
+    }
+  },
+  {
     path: '/redeem',
     name: 'Redeem',
     component: () => import('@/views/user/RedeemView.vue'),

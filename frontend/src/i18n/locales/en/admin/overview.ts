@@ -629,6 +629,12 @@ export default {
       failedToDeposit: 'Failed to deposit',
       failedToWithdraw: 'Failed to withdraw',
       useDepositWithdrawButtons: 'Please use deposit/withdraw buttons to adjust balance',
+      // Monthly statement export (zhiguofan fork-only: feature 45)
+      exportStatement: 'Export Statement',
+      exportStatementTitle: 'Export Statement — {email}',
+      exportStatementMonth: 'Select Month',
+      exportStatementExporting: 'Exporting...',
+      exportStatementFailed: 'Failed to export statement',
       // Balance History
       balanceHistory: 'Recharge History',
       balanceHistoryTip: 'Click to open recharge history',
