@@ -408,44 +408,47 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 
 	// ===== fork 自定义设置持久化（0.1.147 合并覆盖丢失，此处逐字补回；上游同步勿删）=====
 	// 详见 自定义开发功能列表.md 功能 5/6/29/30/31。缺失会导致这些设置只进内存缓存、重启即丢。
-	updates[SettingKeyUITheme] = settings.UITheme
+	//
+	// 空值语义（2026-07-19 线上 currency_mode 被清空后统一收紧）：以下枚举/凭证类字符串
+	// 字段一律「空串 = 未设置 = 保留 DB 原值」，与 secret 字段既有的「非空才覆盖」一致。
+	// 全量 PUT 下显式空值可能来自部署窗口竞态（旧后端 GET 响应无新字段 → 表单空默认值 →
+	// 新后端保存）或旧缓存前端 bundle，任何一次都会把已配置值冲掉；这些字段「清空」没有
+	// 业务意义（换配置直接覆盖新值即可），故统一跳过写入。bool 字段不受影响（false 是
+	// 合法值，字段缺失场景由 handler 层 *bool nil-preserve 保护）。
+	setIfNonEmpty := func(key, value string) {
+		if v := strings.TrimSpace(value); v != "" {
+			updates[key] = v
+		}
+	}
+	setIfNonEmpty(SettingKeyUITheme, settings.UITheme)
 	updates[SettingKeyShowOverseasModels] = strconv.FormatBool(settings.ShowOverseasModels)
 	updates[SettingKeyOpenAIAllowClaudeCodeCodexPlugin] = strconv.FormatBool(settings.OpenAIAllowClaudeCodeCodexPlugin)
-	// 货币显示模式与人民币汇率。currency_mode 空串视为「未设置」而非「清空」：
-	// 系统没有任何合法路径主动清空货币模式，而任何一次表单未回填的全量 PUT
-	// （旧缓存 bundle、加载失败、异常客户端）都会带上空串把已配置模式冲掉，
-	// 触发管理端货币选择弹窗重现。跳过写入以保留 DB 既有配置。
-	if mode := strings.TrimSpace(settings.CurrencyMode); mode != "" {
-		updates[SettingKeyCurrencyMode] = mode
+	// 货币显示模式与人民币汇率（cny_rate 非正数同样视为未设置，防止写入 0 汇率）
+	setIfNonEmpty(SettingKeyCurrencyMode, settings.CurrencyMode)
+	if settings.CNYRate > 0 && !math.IsInf(settings.CNYRate, 0) {
+		updates[SettingKeyCNYRate] = strconv.FormatFloat(settings.CNYRate, 'f', 8, 64)
 	}
-	updates[SettingKeyCNYRate] = strconv.FormatFloat(settings.CNYRate, 'f', 8, 64)
 	// 手机号注册 / 密码登录 / 短信服务商
 	updates[SettingKeyPhoneRegisterEnabled] = strconv.FormatBool(settings.PhoneRegisterEnabled)
 	updates[SettingKeyPasswordLoginEnabled] = strconv.FormatBool(settings.PasswordLoginEnabled)
-	updates[SettingKeySmsFrontend] = settings.SmsProvider
-	// 火山引擎 SMS（secret 类字段沿用「非空才覆盖」write-only 语义）
-	updates[SettingKeyVolcengineAccessKeyID] = settings.VolcengineSmsAccessKeyID
-	updates[SettingKeyVolcengineSmsAccountID] = settings.VolcengineSmsAccountID
-	updates[SettingKeyVolcengineSmsSign] = settings.VolcengineSmsSign
-	updates[SettingKeyVolcengineSmsTemplateID] = settings.VolcengineSmsTemplateID
-	if settings.VolcengineSmsAccessKeySecret != "" {
-		updates[SettingKeyVolcengineAccessKeySecret] = settings.VolcengineSmsAccessKeySecret
-	}
+	setIfNonEmpty(SettingKeySmsFrontend, settings.SmsProvider)
+	// 火山引擎 SMS
+	setIfNonEmpty(SettingKeyVolcengineAccessKeyID, settings.VolcengineSmsAccessKeyID)
+	setIfNonEmpty(SettingKeyVolcengineSmsAccountID, settings.VolcengineSmsAccountID)
+	setIfNonEmpty(SettingKeyVolcengineSmsSign, settings.VolcengineSmsSign)
+	setIfNonEmpty(SettingKeyVolcengineSmsTemplateID, settings.VolcengineSmsTemplateID)
+	setIfNonEmpty(SettingKeyVolcengineAccessKeySecret, settings.VolcengineSmsAccessKeySecret)
 	// 腾讯云 SMS
-	updates[SettingKeyTencentSmsSdkAppID] = settings.TencentSmsSdkAppID
-	updates[SettingKeyTencentSmsSign] = settings.TencentSmsSign
-	updates[SettingKeyTencentSmsTemplateID] = settings.TencentSmsTemplateID
-	updates[SettingKeyTencentSecretID] = settings.TencentSmsSecretID
-	if settings.TencentSmsSecretKey != "" {
-		updates[SettingKeyTencentSecretKey] = settings.TencentSmsSecretKey
-	}
+	setIfNonEmpty(SettingKeyTencentSmsSdkAppID, settings.TencentSmsSdkAppID)
+	setIfNonEmpty(SettingKeyTencentSmsSign, settings.TencentSmsSign)
+	setIfNonEmpty(SettingKeyTencentSmsTemplateID, settings.TencentSmsTemplateID)
+	setIfNonEmpty(SettingKeyTencentSecretID, settings.TencentSmsSecretID)
+	setIfNonEmpty(SettingKeyTencentSecretKey, settings.TencentSmsSecretKey)
 	// 阿里云 SMS
-	updates[SettingKeyAliyunSmsSign] = settings.AliyunSmsSign
-	updates[SettingKeyAliyunSmsTemplateCode] = settings.AliyunSmsTemplateCode
-	updates[SettingKeyAliyunAccessKeyID] = settings.AliyunSmsAccessKeyID
-	if settings.AliyunSmsAccessKeySecret != "" {
-		updates[SettingKeyAliyunAccessKeySecret] = settings.AliyunSmsAccessKeySecret
-	}
+	setIfNonEmpty(SettingKeyAliyunSmsSign, settings.AliyunSmsSign)
+	setIfNonEmpty(SettingKeyAliyunSmsTemplateCode, settings.AliyunSmsTemplateCode)
+	setIfNonEmpty(SettingKeyAliyunAccessKeyID, settings.AliyunSmsAccessKeyID)
+	setIfNonEmpty(SettingKeyAliyunAccessKeySecret, settings.AliyunSmsAccessKeySecret)
 	// 互斥：phone_register 与 email_verify 不能同时启用（放在标准字段写入之后以覆盖生效）
 	if settings.PhoneRegisterEnabled {
 		updates[SettingKeyEmailVerifyEnabled] = "false"

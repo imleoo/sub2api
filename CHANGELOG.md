@@ -6,6 +6,26 @@
 
 ---
 
+## 修复 - 2026-07-19 — fork 设置空值防冲掉全面收紧（currency_mode 同类风险一次修完）
+
+对 currency_mode 被清空的根因做全面审计后系统性收紧。根因：`/admin/settings` 全量 PUT
+下，handler 层 `*string` nil-preserve 只防**字段缺失**，挡不住**显式空值**；空值现实来源
+是部署窗口竞态（页面在旧后端加载，GET 响应无新字段 → 表单空默认值 → 部署后保存到新后端）
+或旧缓存前端 bundle。逐字段审计三层防护（请求 DTO → handler 合并 → service 写库）后，
+同类可被空值冲掉的还有：`cny_rate`（0 值）、`sms_provider`、火山/腾讯/阿里 SMS 全部
+非 secret 配置（共 11 个字段）；`ui_theme` 有 handler 白名单、bool 字段 false 是合法值、
+secret 字段本就「非空才覆盖」。修复：`buildSystemSettingsUpdates` 引入 `setIfNonEmpty`，
+所有枚举/凭证类 fork 字符串字段统一「空串=未设置=保留 DB 原值」（cny_rate 非正数同理），
+在 service 写库层（所有调用方唯一咽喉）生效。语义变化：这些字段不再支持清空为空串
+（本无业务意义，换配置直接覆盖即可）。回归测试重写为全集守护
+`TestSettingService_UpdateSettings_EmptyForkFieldsDoNotWipe` + 非空落库反向用例，
+service/handler 全套 unit 通过。
+
+高风险复核：`setting_update.go` 仅 fork 字段写入块改为 setIfNonEmpty 语义，bool 字段
+与互斥逻辑、上游字段写入均未动。
+
+---
+
 ## 修复 - 2026-07-19 — 定时测试孤儿计划自愈（账号软删后不再每分钟 ERROR 刷屏）
 
 账号使用软删除（SoftDeleteMixin），`scheduled_test_plans.account_id` 的 ON DELETE CASCADE
