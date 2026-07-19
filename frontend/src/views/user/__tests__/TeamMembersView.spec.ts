@@ -16,6 +16,8 @@ const { teamState, authState, teamAPIMock } = vi.hoisted(() => ({
     listMyTeams: vi.fn(),
     inviteMember: vi.fn(),
     listInvitations: vi.fn(),
+    listReceivedInvitations: vi.fn(),
+    acceptInvitation: vi.fn(),
     revokeInvitation: vi.fn(),
     resendInvitation: vi.fn(),
     listMembers: vi.fn(),
@@ -94,6 +96,7 @@ describe('TeamMembersView', () => {
       }
     ])
     teamAPIMock.listInvitations.mockResolvedValue([])
+    teamAPIMock.listReceivedInvitations.mockResolvedValue([])
     teamAPIMock.listDepartments.mockResolvedValue([])
     teamAPIMock.listTransfers.mockResolvedValue({ items: [], total: 0 })
     teamAPIMock.getReport.mockResolvedValue([])
@@ -110,6 +113,33 @@ describe('TeamMembersView', () => {
     expect(teamAPIMock.getReport).toHaveBeenCalledWith(undefined)
     expect(wrapper.text()).toContain('me@example.com')
     expect(wrapper.text()).toContain('admin@example.com')
+  })
+
+  it('shows received invitations and accepts one in-app via its token', async () => {
+    teamAPIMock.listReceivedInvitations.mockResolvedValue([
+      {
+        id: 9,
+        owner_user_id: 5,
+        owner_email: 'boss@example.com',
+        role: 'member',
+        quota_mode: 'allocated',
+        token: 'tok-abc',
+        expires_at: '2099-01-01T00:00:00Z',
+        created_at: '2026-01-01T00:00:00Z'
+      }
+    ])
+    teamAPIMock.acceptInvitation.mockResolvedValue({ owner_user_id: 5, role: 'member' })
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('team.members.receivedFrom')
+    const acceptButton = wrapper.findAll('button').find((b) => b.text() === 'team.members.receivedAccept')
+    expect(acceptButton).toBeDefined()
+    await acceptButton!.trigger('click')
+    await flushPromises()
+
+    expect(teamAPIMock.acceptInvitation).toHaveBeenCalledWith('tok-abc')
+    expect(teamState.loadTeams).toHaveBeenCalled()
   })
 
   it('submits a new invitation from the invitations tab and refreshes the pending list', async () => {

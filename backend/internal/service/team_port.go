@@ -137,6 +137,8 @@ type TeamInvitationRepository interface {
 	FindPendingByID(ctx context.Context, id, ownerUserID int64) (*TeamInvitation, error)
 	FindPendingByOwnerAndEmail(ctx context.Context, ownerUserID int64, invitedEmail string, now time.Time) (*TeamInvitation, error)
 	ListPendingByOwner(ctx context.Context, ownerUserID int64) ([]TeamInvitation, error)
+	// ListPendingByInvitedEmail 列出发给某邮箱、仍在有效期内的 pending 邀请（被邀请人视角）。
+	ListPendingByInvitedEmail(ctx context.Context, invitedEmail string, now time.Time) ([]TeamInvitation, error)
 	MarkAccepted(ctx context.Context, id, acceptedByUserID int64, acceptedAt time.Time) error
 	// Revoke 仅在邀请仍为 pending 且属于该 owner 时生效，返回是否命中。
 	Revoke(ctx context.Context, id, ownerUserID int64) (bool, error)

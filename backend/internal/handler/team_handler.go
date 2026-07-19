@@ -206,6 +206,49 @@ func (h *TeamHandler) ListInvitations(c *gin.Context) {
 	response.Success(c, out)
 }
 
+type teamReceivedInvitationDTO struct {
+	ID              int64    `json:"id"`
+	OwnerUserID     int64    `json:"owner_user_id"`
+	OwnerEmail      string   `json:"owner_email"`
+	Role            string   `json:"role"`
+	QuotaMode       string   `json:"quota_mode"`
+	InitialGrantUSD *float64 `json:"initial_grant_usd,omitempty"`
+	Token           string   `json:"token"`
+	ExpiresAt       string   `json:"expires_at"`
+	CreatedAt       string   `json:"created_at"`
+}
+
+// ListReceivedInvitations 由被邀请人（当前登录用户）调用：列出发给自己邮箱的待处理邀请，
+// 让已注册用户不依赖邀请邮件即可在站内接受（配合 AcceptInvitation 的 token 接口）。
+// GET /user/team/invitations/received
+func (h *TeamHandler) ListReceivedInvitations(c *gin.Context) {
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	invitations, err := h.teamService.ListReceivedInvitations(c.Request.Context(), subject.UserID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	out := make([]teamReceivedInvitationDTO, 0, len(invitations))
+	for _, inv := range invitations {
+		out = append(out, teamReceivedInvitationDTO{
+			ID:              inv.ID,
+			OwnerUserID:     inv.OwnerUserID,
+			OwnerEmail:      inv.OwnerEmail,
+			Role:            inv.Role,
+			QuotaMode:       inv.QuotaMode,
+			InitialGrantUSD: inv.InitialGrantUSD,
+			Token:           inv.Token,
+			ExpiresAt:       inv.ExpiresAt.Format("2006-01-02T15:04:05Z07:00"),
+			CreatedAt:       inv.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		})
+	}
+	response.Success(c, out)
+}
+
 // RevokeInvitation owner 或 admin 可调用：撤销一条待处理邀请。
 // DELETE /user/team/invitations/:id
 func (h *TeamHandler) RevokeInvitation(c *gin.Context) {

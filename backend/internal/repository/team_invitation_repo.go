@@ -134,6 +134,25 @@ func (r *teamInvitationRepository) ListPendingByOwner(ctx context.Context, owner
 	return records, nil
 }
 
+func (r *teamInvitationRepository) ListPendingByInvitedEmail(ctx context.Context, invitedEmail string, now time.Time) ([]service.TeamInvitation, error) {
+	rows, err := r.client.TeamInvitation.Query().
+		Where(
+			teaminvitation.InvitedEmailEQ(invitedEmail),
+			teaminvitation.StatusEQ(domain.TeamInvitationStatusPending),
+			teaminvitation.ExpiresAtGT(now),
+		).
+		Order(teaminvitation.ByCreatedAt()).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	records := make([]service.TeamInvitation, 0, len(rows))
+	for _, inv := range rows {
+		records = append(records, *toServiceTeamInvitation(inv))
+	}
+	return records, nil
+}
+
 func (r *teamInvitationRepository) MarkAccepted(ctx context.Context, id, acceptedByUserID int64, acceptedAt time.Time) error {
 	_, err := r.client.TeamInvitation.UpdateOneID(id).
 		SetStatus(domain.TeamInvitationStatusAccepted).

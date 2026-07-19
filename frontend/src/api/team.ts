@@ -33,6 +33,18 @@ export interface TeamInvitation {
   created_at: string
 }
 
+export interface TeamReceivedInvitation {
+  id: number
+  owner_user_id: number
+  owner_email: string
+  role: string
+  quota_mode: string
+  initial_grant_usd?: number | null
+  token: string
+  expires_at: string
+  created_at: string
+}
+
 export interface InviteMemberRequest {
   email: string
   department_id?: number | null
@@ -110,6 +122,16 @@ export async function inviteMember(req: InviteMemberRequest, ownerUserId?: numbe
 /** List pending invitations for the current enterprise (owner/admin). */
 export async function listInvitations(ownerUserId?: number): Promise<TeamInvitation[]> {
   const { data } = await apiClient.get<TeamInvitation[]>('/team/invitations', { params: ownerParams(ownerUserId) })
+  return data
+}
+
+/**
+ * List pending invitations sent to the current user's email (invitee view).
+ * Lets a registered user see and accept invitations in-app without relying
+ * on the invitation email being delivered.
+ */
+export async function listReceivedInvitations(): Promise<TeamReceivedInvitation[]> {
+  const { data } = await apiClient.get<TeamReceivedInvitation[]>('/team/invitations/received')
   return data
 }
 
@@ -213,6 +235,7 @@ export const teamAPI = {
   listMyTeams,
   inviteMember,
   listInvitations,
+  listReceivedInvitations,
   revokeInvitation,
   resendInvitation,
   acceptInvitation,

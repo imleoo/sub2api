@@ -76,6 +76,7 @@ func RegisterUserRoutes(
 			team.POST("/invitations/accept/:token", h.Team.AcceptInvitation)
 			team.POST("/invitations", h.Team.InviteMember)
 			team.GET("/invitations", h.Team.ListInvitations)
+			team.GET("/invitations/received", h.Team.ListReceivedInvitations)
 			team.POST("/invitations/:id/resend", h.Team.ResendInvitation)
 			team.DELETE("/invitations/:id", h.Team.RevokeInvitation)
 			team.GET("/members", h.Team.ListMembers)

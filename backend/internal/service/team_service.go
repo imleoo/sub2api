@@ -371,6 +371,58 @@ func (s *TeamService) ListInvitations(ctx context.Context, ownerUserID, actorUse
 	return s.teamInvitationRepo.ListPendingByOwner(ctx, ownerUserID)
 }
 
+// TeamReceivedInvitation 是"我收到的邀请"的展示结构体（被邀请人视角）。
+// Token 即邮件链接中的接受凭证——本接口只返回给邮箱匹配的被邀请人本人，
+// 与其收到邀请邮件所获得的信息等价，使已注册用户无需依赖邮件即可站内接受。
+type TeamReceivedInvitation struct {
+	ID              int64
+	OwnerUserID     int64
+	OwnerEmail      string
+	Role            string
+	QuotaMode       string
+	InitialGrantUSD *float64
+	Token           string
+	ExpiresAt       time.Time
+	CreatedAt       time.Time
+}
+
+// ListReceivedInvitations 列出当前登录用户邮箱收到的、仍在有效期内的 pending 邀请。
+// 用于已注册用户在站内直接看到并接受邀请（不依赖邀请邮件送达）。
+func (s *TeamService) ListReceivedInvitations(ctx context.Context, currentUserID int64) ([]TeamReceivedInvitation, error) {
+	currentUser, err := s.userRepo.GetByID(ctx, currentUserID)
+	if err != nil {
+		return nil, err
+	}
+	email := normalizeTeamEmail(currentUser.Email)
+	if email == "" {
+		return []TeamReceivedInvitation{}, nil
+	}
+	invitations, err := s.teamInvitationRepo.ListPendingByInvitedEmail(ctx, email, time.Now())
+	if err != nil {
+		return nil, err
+	}
+	out := make([]TeamReceivedInvitation, 0, len(invitations))
+	for i := range invitations {
+		inv := invitations[i]
+		ownerEmail := ""
+		if owner, err := s.userRepo.GetByID(ctx, inv.OwnerUserID); err == nil && owner != nil {
+			ownerEmail = owner.Email
+		}
+		out = append(out, TeamReceivedInvitation{
+			ID:              inv.ID,
+			OwnerUserID:     inv.OwnerUserID,
+			OwnerEmail:      ownerEmail,
+			Role:            inv.Role,
+			QuotaMode:       inv.QuotaMode,
+			InitialGrantUSD: inv.InitialGrantUSD,
+			Token:           inv.Token,
+			ExpiresAt:       inv.ExpiresAt,
+			CreatedAt:       inv.CreatedAt,
+		})
+	}
+	return out, nil
+}
+
 // RevokeInvitation owner 或 admin 可调用：撤销一条待处理邀请。
 func (s *TeamService) RevokeInvitation(ctx context.Context, ownerUserID, actorUserID, invitationID int64) error {
 	if _, err := authorizeTeamManager(ctx, s.teamMemberRepo, ownerUserID, actorUserID); err != nil {

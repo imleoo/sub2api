@@ -321,6 +321,16 @@ func (r *fakeTeamInvitationRepo) ListPendingByOwner(_ context.Context, ownerUser
 	return out, nil
 }
 
+func (r *fakeTeamInvitationRepo) ListPendingByInvitedEmail(_ context.Context, invitedEmail string, now time.Time) ([]TeamInvitation, error) {
+	var out []TeamInvitation
+	for _, inv := range r.invitations {
+		if inv.InvitedEmail == invitedEmail && inv.Status == TeamInvitationStatusPending && inv.ExpiresAt.After(now) {
+			out = append(out, inv)
+		}
+	}
+	return out, nil
+}
+
 func (r *fakeTeamInvitationRepo) MarkAccepted(_ context.Context, id, acceptedByUserID int64, acceptedAt time.Time) error {
 	for i := range r.invitations {
 		if r.invitations[i].ID == id {
@@ -670,6 +680,53 @@ func TestTeamService_InviteMember_RejectsWhenMemberLimitReached(t *testing.T) {
 }
 
 // --- AcceptInvitation ---
+
+// --- ListReceivedInvitations ---
+
+func TestTeamService_ListReceivedInvitations_ReturnsPendingForMyEmail(t *testing.T) {
+	owner := &User{ID: 1, Email: "owner@example.com"}
+	invitee := &User{ID: 2, Email: "Staff@Example.com"}
+	userRepo := newFakeTeamUserRepo(owner, invitee)
+	invRepo := &fakeTeamInvitationRepo{}
+	svc := newTeamServiceForTestWithEnterprise(userRepo, &fakeTeamMemberRepo{}, invRepo, newFakeEnterpriseProfileRepo(1))
+
+	inv, err := svc.InviteMember(context.Background(), owner.ID, owner.ID, defaultInvite(invitee.Email), testFrontendURL)
+	require.NoError(t, err)
+
+	received, err := svc.ListReceivedInvitations(context.Background(), invitee.ID)
+	require.NoError(t, err)
+	require.Len(t, received, 1)
+	require.Equal(t, inv.ID, received[0].ID)
+	require.Equal(t, owner.ID, received[0].OwnerUserID)
+	require.Equal(t, owner.Email, received[0].OwnerEmail)
+	require.Equal(t, inv.Token, received[0].Token)
+
+	// 用返回的 token 走既有接受流程应当成功。
+	member, err := svc.AcceptInvitation(context.Background(), received[0].Token, invitee.ID)
+	require.NoError(t, err)
+	require.Equal(t, owner.ID, member.OwnerUserID)
+
+	// 接受后不再出现在"我收到的邀请"里。
+	received, err = svc.ListReceivedInvitations(context.Background(), invitee.ID)
+	require.NoError(t, err)
+	require.Empty(t, received)
+}
+
+func TestTeamService_ListReceivedInvitations_ExcludesExpiredAndOthers(t *testing.T) {
+	owner := &User{ID: 1, Email: "owner@example.com"}
+	invitee := &User{ID: 2, Email: "staff@example.com"}
+	userRepo := newFakeTeamUserRepo(owner, invitee)
+	invRepo := &fakeTeamInvitationRepo{}
+	invRepo.invitations = append(invRepo.invitations,
+		TeamInvitation{ID: 101, OwnerUserID: owner.ID, InvitedEmail: "staff@example.com", Token: "expired-token", Status: TeamInvitationStatusPending, ExpiresAt: time.Now().Add(-time.Hour)},
+		TeamInvitation{ID: 102, OwnerUserID: owner.ID, InvitedEmail: "other@example.com", Token: "other-token", Status: TeamInvitationStatusPending, ExpiresAt: time.Now().Add(time.Hour)},
+	)
+	svc := newTeamServiceForTest(userRepo, &fakeTeamMemberRepo{}, invRepo)
+
+	received, err := svc.ListReceivedInvitations(context.Background(), invitee.ID)
+	require.NoError(t, err)
+	require.Empty(t, received)
+}
 
 func TestTeamService_AcceptInvitation_NotFound(t *testing.T) {
 	userRepo := newFakeTeamUserRepo(&User{ID: 1, Email: "owner@example.com"})

@@ -25,6 +25,26 @@
         {{ successMessage }}
       </div>
 
+      <!-- 我收到的邀请：已注册用户不依赖邮件即可站内接受 -->
+      <div v-if="receivedInvitations.length > 0" class="card p-6">
+        <h2 class="text-base font-medium text-gray-900 dark:text-white">{{ t('team.members.receivedTitle') }}</h2>
+        <ul class="mt-4 divide-y divide-gray-100 dark:divide-dark-700">
+          <li v-for="inv in receivedInvitations" :key="inv.id" class="flex flex-wrap items-center justify-between gap-3 py-3">
+            <div>
+              <p class="text-sm font-medium text-gray-900 dark:text-white">
+                {{ t('team.members.receivedFrom', { email: inv.owner_email }) }}
+              </p>
+              <p class="text-xs text-gray-400">
+                {{ roleLabel(inv.role) }} · {{ t('team.members.expiresAt') }}: {{ formatDate(inv.expires_at) }}
+              </p>
+            </div>
+            <button class="btn btn-primary btn-sm" :disabled="acceptingReceivedId === inv.id" @click="handleAcceptReceived(inv)">
+              {{ t('team.members.receivedAccept') }}
+            </button>
+          </li>
+        </ul>
+      </div>
+
       <div class="card overflow-hidden">
         <div class="flex overflow-x-auto border-b border-gray-100 dark:border-dark-700">
           <button
@@ -285,6 +305,7 @@ import { useAuthStore } from '@/stores/auth'
 import {
   teamAPI,
   type TeamInvitation,
+  type TeamReceivedInvitation,
   type TeamMember,
   type TeamDepartment,
   type TeamFundTransfer,
@@ -456,6 +477,35 @@ function loadAll() {
   loadDepartments()
   loadTransfers()
   loadReport()
+  loadReceivedInvitations()
+}
+
+// --- 我收到的邀请（被邀请人视角，站内接受，不依赖邮件送达） ---
+const receivedInvitations = ref<TeamReceivedInvitation[]>([])
+const acceptingReceivedId = ref<number | null>(null)
+
+async function loadReceivedInvitations() {
+  try {
+    receivedInvitations.value = await teamAPI.listReceivedInvitations()
+  } catch {
+    // 静默失败：该卡片是辅助入口，不阻塞主页面
+    receivedInvitations.value = []
+  }
+}
+
+async function handleAcceptReceived(inv: TeamReceivedInvitation) {
+  acceptingReceivedId.value = inv.id
+  try {
+    await teamAPI.acceptInvitation(inv.token)
+    notifySuccess(t('team.members.receivedAcceptSuccess'))
+    await teamStore.loadTeams()
+    loadAll()
+  } catch (err) {
+    notifyError(err)
+    await loadReceivedInvitations()
+  } finally {
+    acceptingReceivedId.value = null
+  }
 }
 
 // --- Invite ---

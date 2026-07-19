@@ -6,6 +6,27 @@
 
 ---
 
+## 新增 - 2026-07-18 — 团队邀请站内接受入口（已注册用户不再依赖邀请邮件）
+
+团队协作此前对已注册用户只有"邮件链接"一条接受路径（SMTP 未配置时 `sendInviteEmail`
+静默跳过，邀请完全无法送达），表现为"只能邀请新成员"。本次给被邀请人加站内入口：
+后端 `TeamInvitationRepository` 新增 `ListPendingByInvitedEmail`（pending + 未过期，
+按邮箱），`TeamService.ListReceivedInvitations` 以当前登录用户邮箱列出收到的邀请
+（含 owner 邮箱与接受 token，token 仅返回给邮箱匹配的本人，与邀请邮件所含信息等价），
+新路由 `GET /api/v1/team/invitations/received`；接受复用既有
+`POST /team/invitations/accept/:token`。前端 `TeamMembersView.vue` 顶部新增
+"我收到的邀请"卡片（有数据才显示，一键接受后刷新 teams 与页面数据），
+`api/team.ts` 新增 `listReceivedInvitations`，zh/en fork.ts 新增 `received*` 文案并
+更新 `inviteHint` 说明。测试：service 2 个新用例（列出+token 接受闭环 / 过期与他人
+邀请排除）、TeamMembersView 新用例（站内接受走 token），unit 套件、typecheck、
+lint 全绿（lint 53 个存量问题与基线一致，无新增）。
+
+高风险复核：`team_service.go`/`team_handler.go`/`team_port.go`/`team_invitation_repo.go`/
+`routes/user.go`/`TeamMembersView.vue`/`api/team.ts`/`fork.ts` 均为纯追加（新方法/新路由/
+新卡片/新文案），既有邀请、接受、成员管理逻辑未改动。
+
+---
+
 ## 新增 - 2026-07-18 — 月度对账前端页面 + 管理端导出入口 + e2e（功能 45 PR3/3）
 
 功能 45 收尾：用户端新增「月度对账」页 `StatementView.vue`（`/statement` 路由 + 侧边栏项，
