@@ -89,6 +89,27 @@ func (h *TeamHandler) ListMyTeams(c *gin.Context) {
 	response.Success(c, out)
 }
 
+// resolveFrontendBaseURL 解析邀请链接的前端基础 URL：优先取系统设置的 frontend_url，
+// 未配置时回退为当前请求的来源（scheme + Host，尊重反代的 X-Forwarded-Proto/Host），
+// 即「系统所在的 URL」。仅当两者都取不到（理论上不可能）才返回空。
+func (h *TeamHandler) resolveFrontendBaseURL(c *gin.Context) string {
+	if v := strings.TrimSpace(h.settingService.GetFrontendURL(c.Request.Context())); v != "" {
+		return v
+	}
+	scheme := "http"
+	if isRequestHTTPS(c) {
+		scheme = "https"
+	}
+	host := strings.TrimSpace(c.Request.Host)
+	if forwardedHost := strings.TrimSpace(c.GetHeader("X-Forwarded-Host")); forwardedHost != "" {
+		host = forwardedHost
+	}
+	if host == "" {
+		return ""
+	}
+	return scheme + "://" + host
+}
+
 // ResendInvitation owner 或 admin 可调用：重新发送待处理邀请邮件。
 // POST /user/team/invitations/:id/resend
 func (h *TeamHandler) ResendInvitation(c *gin.Context) {
@@ -102,7 +123,7 @@ func (h *TeamHandler) ResendInvitation(c *gin.Context) {
 		response.BadRequest(c, "Invalid invitation ID")
 		return
 	}
-	frontendBaseURL := strings.TrimSpace(h.settingService.GetFrontendURL(c.Request.Context()))
+	frontendBaseURL := h.resolveFrontendBaseURL(c)
 	if frontendBaseURL == "" {
 		response.InternalError(c, "frontend URL is not configured")
 		return
@@ -164,7 +185,7 @@ func (h *TeamHandler) InviteMember(c *gin.Context) {
 		return
 	}
 
-	frontendBaseURL := strings.TrimSpace(h.settingService.GetFrontendURL(c.Request.Context()))
+	frontendBaseURL := h.resolveFrontendBaseURL(c)
 	if frontendBaseURL == "" {
 		response.InternalError(c, "frontend URL is not configured")
 		return

@@ -41,3 +41,23 @@ func TestSettingService_UpdateSettings_PersistsForkCustomFields(t *testing.T) {
 	// phone_register 启用时互斥关闭 email_verify（原 fork 逻辑）
 	require.Equal(t, "false", repo.updates[SettingKeyEmailVerifyEnabled])
 }
+
+// TestSettingService_UpdateSettings_EmptyCurrencyModeDoesNotWipe 回归守护。
+//
+// 全量 PUT 语义下，若客户端带上 currency_mode: ""（表单未回填、旧缓存 bundle、异常客户端），
+// 曾会把 DB 已配置的货币模式冲成空串，导致管理端货币选择弹窗重现（线上 2026-07-19 实际发生）。
+// 系统没有合法路径主动清空货币模式，空串必须视为「未设置、保留原值」——即不写入该 key。
+func TestSettingService_UpdateSettings_EmptyCurrencyModeDoesNotWipe(t *testing.T) {
+	repo := &settingUpdateRepoStub{}
+	svc := NewSettingService(repo, &config.Config{})
+
+	err := svc.UpdateSettings(context.Background(), &SystemSettings{
+		CurrencyMode: "  ",
+		CNYRate:      7.2,
+	})
+	require.NoError(t, err)
+
+	require.NotContains(t, repo.updates, SettingKeyCurrencyMode,
+		"currency_mode 为空串时不得写入 DB，否则会清空已配置的货币模式")
+	require.Contains(t, repo.updates, SettingKeyCNYRate)
+}

@@ -411,8 +411,13 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	updates[SettingKeyUITheme] = settings.UITheme
 	updates[SettingKeyShowOverseasModels] = strconv.FormatBool(settings.ShowOverseasModels)
 	updates[SettingKeyOpenAIAllowClaudeCodeCodexPlugin] = strconv.FormatBool(settings.OpenAIAllowClaudeCodeCodexPlugin)
-	// 货币显示模式与人民币汇率
-	updates[SettingKeyCurrencyMode] = strings.TrimSpace(settings.CurrencyMode)
+	// 货币显示模式与人民币汇率。currency_mode 空串视为「未设置」而非「清空」：
+	// 系统没有任何合法路径主动清空货币模式，而任何一次表单未回填的全量 PUT
+	// （旧缓存 bundle、加载失败、异常客户端）都会带上空串把已配置模式冲掉，
+	// 触发管理端货币选择弹窗重现。跳过写入以保留 DB 既有配置。
+	if mode := strings.TrimSpace(settings.CurrencyMode); mode != "" {
+		updates[SettingKeyCurrencyMode] = mode
+	}
 	updates[SettingKeyCNYRate] = strconv.FormatFloat(settings.CNYRate, 'f', 8, 64)
 	// 手机号注册 / 密码登录 / 短信服务商
 	updates[SettingKeyPhoneRegisterEnabled] = strconv.FormatBool(settings.PhoneRegisterEnabled)

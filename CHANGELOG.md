@@ -6,6 +6,25 @@
 
 ---
 
+## 修复 - 2026-07-19 — 货币模式被全量 PUT 空串冲掉 + 邀请成员不再硬依赖 frontend_url
+
+线上两问题：① 保存站点信息后管理端「货币选择」弹窗重现——全量 PUT 语义下客户端带
+`currency_mode: ""`（表单未回填/旧缓存 bundle/异常客户端）会穿透 handler 的 nil-preserve
+把 DB 已配置模式冲成空串（本地 curl 复现确认；字段缺失与正常回路均安全）。系统没有合法
+路径主动清空货币模式，`buildSystemSettingsUpdates` 现对空串跳过写入、保留 DB 原值，
+新增回归测试 `TestSettingService_UpdateSettings_EmptyCurrencyModeDoesNotWipe`。
+② 邀请团队成员/重发邀请在 frontend_url 未配置时直接 500 "frontend URL is not configured"，
+整个邀请功能不可用。`TeamHandler` 新增 `resolveFrontendBaseURL`：设置值优先，未配置时回退
+为当前请求来源（scheme+Host，尊重反代 X-Forwarded-Proto/X-Forwarded-Host，即系统所在 URL），
+新增 `team_handler_frontend_url_test.go` 两用例。unit 套件全绿，本地起服务 curl 验证
+空串 PUT 后 DB 值保留。
+
+高风险复核：`setting_update.go` 仅把 currency_mode 无条件写入改为非空才写（其余 fork 字段
+写入原样保留）；`team_handler.go` 仅替换两处 frontendBaseURL 取值为新 helper，错误分支与
+其余邀请逻辑未动。
+
+---
+
 ## 新增 - 2026-07-18 — 团队邀请站内接受入口（已注册用户不再依赖邀请邮件）
 
 团队协作此前对已注册用户只有"邮件链接"一条接受路径（SMTP 未配置时 `sendInviteEmail`
