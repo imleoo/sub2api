@@ -2043,6 +2043,13 @@ func (s *AccountTestService) sendErrorAndEnd(c *gin.Context, errorMsg string) er
 // RunTestBackground executes an account test in-memory (no real HTTP client),
 // capturing SSE output via httptest.NewRecorder, then parses the result.
 func (s *AccountTestService) RunTestBackground(ctx context.Context, accountID int64, modelID string) (*ScheduledTestResult, error) {
+	// 账号可能已被软删除（scheduled_test_plans 的 ON DELETE CASCADE 只对硬删除生效），
+	// 先行存在性检查并把 ErrAccountNotFound 抛给调用方裁决（runner 据此清理孤儿计划），
+	// 避免走进 SSE 测试路径每次刷一条 ERROR+堆栈。
+	if _, err := s.accountRepo.GetByID(ctx, accountID); err != nil {
+		return nil, err
+	}
+
 	startedAt := time.Now()
 
 	w := httptest.NewRecorder()

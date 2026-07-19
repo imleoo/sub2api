@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
@@ -122,6 +123,16 @@ func (s *ScheduledTestRunnerService) runScheduled() {
 func (s *ScheduledTestRunnerService) runOnePlan(ctx context.Context, plan *ScheduledTestPlan) {
 	result, err := s.accountTestSvc.RunTestBackground(ctx, plan.AccountID, plan.ModelID)
 	if err != nil {
+		if errors.Is(err, ErrAccountNotFound) {
+			// 账号已被软删除：scheduled_test_plans 的 ON DELETE CASCADE 不会触发，
+			// 孤儿计划会每分钟报错刷屏。按 CASCADE 本意直接删除计划自愈（结果随计划级联删除）。
+			if delErr := s.planRepo.Delete(ctx, plan.ID); delErr != nil {
+				logger.LegacyPrintf("service.scheduled_test_runner", "[ScheduledTestRunner] plan=%d orphaned (account=%d deleted) but cleanup failed: %v", plan.ID, plan.AccountID, delErr)
+			} else {
+				logger.LegacyPrintf("service.scheduled_test_runner", "[ScheduledTestRunner] plan=%d removed: account=%d no longer exists", plan.ID, plan.AccountID)
+			}
+			return
+		}
 		logger.LegacyPrintf("service.scheduled_test_runner", "[ScheduledTestRunner] plan=%d RunTestBackground error: %v", plan.ID, err)
 		return
 	}

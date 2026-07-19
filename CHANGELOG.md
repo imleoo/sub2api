@@ -6,6 +6,22 @@
 
 ---
 
+## 修复 - 2026-07-19 — 定时测试孤儿计划自愈（账号软删后不再每分钟 ERROR 刷屏）
+
+账号使用软删除（SoftDeleteMixin），`scheduled_test_plans.account_id` 的 ON DELETE CASCADE
+永不触发；账号删除后遗留的孤儿计划每分钟被调度、每次在 SSE 测试路径刷一条
+"Account test error: Account not found" ERROR+堆栈（线上实录十余条/分钟）。
+`RunTestBackground` 现先做账号存在性检查并把 `ErrAccountNotFound` 抛给调用方；
+`ScheduledTestRunnerService.runOnePlan` 捕获后按 CASCADE 本意删除孤儿计划自愈
+（结果表随计划级联删除），只留一条 removed 日志。新增
+`scheduled_test_runner_orphan_test.go` 两用例，service 全套 unit 通过。
+
+高风险复核：`account_test_service.go` 仅在 RunTestBackground 入口新增存在性预检查；
+`scheduled_test_runner_service.go` 仅在 runOnePlan 错误分支新增 ErrAccountNotFound
+清理逻辑，正常测试执行路径未动。
+
+---
+
 ## 修复 - 2026-07-19 — 货币模式被全量 PUT 空串冲掉 + 邀请成员不再硬依赖 frontend_url
 
 线上两问题：① 保存站点信息后管理端「货币选择」弹窗重现——全量 PUT 语义下客户端带
