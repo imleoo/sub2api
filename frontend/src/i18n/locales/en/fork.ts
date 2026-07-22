@@ -481,8 +481,14 @@ export default {
   },
   team: {
     orgSwitcher: {
+      readonly: "read-only",
       label: "Managing",
       own: "My enterprise"
+    },
+    myOrg: {
+      title: "My organization",
+      myRole: "My role",
+      hint: "You joined this organization as a member: use your own account and API keys, spending deducts from your own balance; quota is granted by the organization admins."
     },
     members: {
       title: "Enterprise members",

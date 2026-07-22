@@ -45,7 +45,31 @@
         </ul>
       </div>
 
-      <div class="card overflow-hidden">
+      <!-- 普通员工只读视图：我在该企业中的信息 -->
+      <div v-if="selectedIsMemberView" class="card p-6">
+        <h2 class="text-base font-medium text-gray-900 dark:text-white">{{ t('team.myOrg.title') }}</h2>
+        <dl class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <dt class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dark-400">{{ t('team.myOrg.myRole') }}</dt>
+            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ myMembershipRow ? roleLabel(myMembershipRow.role) : '—' }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dark-400">{{ t('team.members.department') }}</dt>
+            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ myMembershipRow ? departmentName(myMembershipRow.department_id) : '—' }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dark-400">{{ t('team.members.quotaMode') }}</dt>
+            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ myMembershipRow ? quotaModeLabel(myMembershipRow.quota_mode) : '—' }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dark-400">{{ t('team.members.grantedNet') }}</dt>
+            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ myMembershipRow ? myMembershipRow.granted_net_usd.toFixed(2) : '—' }}</dd>
+          </div>
+        </dl>
+        <p class="mt-4 text-xs text-gray-400">{{ t('team.myOrg.hint') }}</p>
+      </div>
+
+      <div v-else class="card overflow-hidden">
         <div class="flex overflow-x-auto border-b border-gray-100 dark:border-dark-700">
           <button
             v-for="tab in tabs"
@@ -358,11 +382,23 @@ const managementTargets = computed(() => {
   const opts: { ownerUserId: number | undefined; label: string }[] = [
     { ownerUserId: authStore.user?.id, label: t('team.orgSwitcher.own') }
   ]
-  for (const jt of teamStore.manageableJoinedTeams) {
-    opts.push({ ownerUserId: jt.owner_user_id, label: jt.owner_email })
+  for (const jt of teamStore.joinedTeams) {
+    // member 角色的企业也进切换器（只读视图）；admin 保持管理视图
+    const readonly = jt.role !== 'admin'
+    opts.push({
+      ownerUserId: jt.owner_user_id,
+      label: readonly ? `${jt.owner_email} (${t('team.orgSwitcher.readonly')})` : jt.owner_email
+    })
   }
   return opts
 })
+// 当前选中的是否为"我以普通员工身份加入的企业"（只读视图，不渲染管理 Tab）
+const selectedIsMemberView = computed(() => {
+  const jt = teamStore.joinedTeams.find((x) => x.owner_user_id === selectedOwnerId.value)
+  return !!jt && jt.role !== 'admin'
+})
+// 我的企业卡：members（member 视角=owner 行+自己行）里取自己一行
+const myMembershipRow = computed(() => members.value.find((m) => m.user_id === authStore.user?.id))
 const selectedOwnerId = ref<number | undefined>(authStore.user?.id)
 const currentOwnerParam = computed<number | undefined>(() =>
   selectedOwnerId.value === authStore.user?.id ? undefined : selectedOwnerId.value
@@ -477,11 +513,12 @@ function loadAll() {
   errorMessage.value = ''
   successMessage.value = ''
   loadMembers()
-  loadInvitations()
   loadDepartments()
+  loadReceivedInvitations()
+  if (selectedIsMemberView.value) return // 只读视图：管理接口对 member 返回 403，不请求
+  loadInvitations()
   loadTransfers()
   loadReport()
-  loadReceivedInvitations()
 }
 
 // --- 我收到的邀请（被邀请人视角，站内接受，不依赖邮件送达） ---

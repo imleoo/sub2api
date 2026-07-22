@@ -6,6 +6,12 @@
 
 ---
 
+## 新增 - 2026-07-23 — 普通员工只读「我的企业」视图（额度模式/企业净投入此前无处可看）
+
+普通 member 加入企业后，团队页的企业切换器只列可管理（admin）企业，member 的加入企业没有任何入口——员工看不到自己的额度模式、部门与企业净投入（打开团队页只见"自己的空企业"，两列显示 —）。补齐：切换器纳入 member 角色企业（标注"只读"）；选中时渲染只读「我的企业」卡（我的角色/部门/额度模式/企业净投入 + 计费说明），管理 5-Tab 不渲染，`loadAll` 跳过对 member 必 403 的管理接口（邀请/台账/报表）。数据复用 2026-07-23 收紧后的 `ListMembers` member 视角（owner 行+自己行）与成员可读的 `ListDepartments`，后端零改动。i18n 增 `team.myOrg.*` 与 `team.orgSwitcher.readonly`。
+
+---
+
 ## 修复 - 2026-07-23 — 划转台账显示成员与操作人（此前只有裸 user_id 看不出划给谁）
 
 台账接口只返回 `member_user_id`/`operator_user_id` 数字且前端表格没有成员列，管理员无法读出每笔划转的对象。修复：`TeamFundService.ListTransfers` 返回 `TeamFundTransferView`（行内解析成员/操作人 email，账号已删等边缘留空不阻断），DTO 增 `member_email`/`operator_email`；前端台账表新增「成员」「操作人」两列（email 缺失回退 `#id`），i18n 补 `team.transfers.member` 键（operator 键此前已备）。回归断言并入 `TestTeamFundService_ListTransfers_Pagination`。
