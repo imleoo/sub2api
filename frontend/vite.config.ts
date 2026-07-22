@@ -181,7 +181,18 @@ export default defineConfig(({ mode }) => {
       proxy: {
         '/api': {
           target: backendUrl,
-          changeOrigin: true
+          changeOrigin: true,
+          // dev 兜底：后端 resolveFrontendBaseURL 未配置 frontend_url 时回退 X-Forwarded-Host，
+          // 否则邀请邮件等出站链接会拼成后端端口（changeOrigin 已把 Host 改写为 target）。
+          configure: (proxy) => {
+            proxy.on('proxyReq', (proxyReq, req) => {
+              const host = req.headers.host
+              if (host) {
+                proxyReq.setHeader('X-Forwarded-Host', host)
+                proxyReq.setHeader('X-Forwarded-Proto', 'http')
+              }
+            })
+          }
         },
         '/v1': {
           target: backendUrl,

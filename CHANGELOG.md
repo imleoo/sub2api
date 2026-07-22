@@ -6,6 +6,12 @@
 
 ---
 
+## 修复 - 2026-07-22 — dev 环境团队邀请邮件链接端口错误（404）
+
+现象：邀请邮件里的接受链接指向后端端口（如 `:8091/team/invite/accept`），dev 模式后端无 embed 前端，打开即裸 404。根因：系统设置 `frontend_url` 未配置时 `resolveFrontendBaseURL` 回退取请求 Host，而 vite proxy `changeOrigin: true` 已把 Host 改写为后端 target 且不带 `X-Forwarded-Host`，后端误把自己当前端。修复：`vite.config.ts` 的 `/api` 代理透传 `X-Forwarded-Host`（+ `X-Forwarded-Proto: http`），dev 回退即可取到真实前端地址。生产/正式环境仍应在管理后台配置 `frontend_url`（设置值优先级最高）。
+
+---
+
 ## 同步 - 2026-07-22 — 同步上游 0.1.162（fork 1.1.162）
 
 三分支按序完成：`main` fast-forward 至 0.1.162 已推送；`zhiguofan` 合并共解决 **100 个冲突**（27 个 modify/delete 全部保持 fork 删除 + 72 个内容冲突手工归并 + logo.png 接受上游删除）；`feature/maas-refactor` 与 zhiguofan 已对齐（零差异）。
