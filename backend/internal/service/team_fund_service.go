@@ -126,12 +126,48 @@ func (s *TeamFundService) ReclaimFromMember(ctx context.Context, ownerUserID, ac
 	return t, nil
 }
 
-// ListTransfers owner 或 admin 可调用：台账分页。
-func (s *TeamFundService) ListTransfers(ctx context.Context, ownerUserID, actorUserID int64, offset, limit int) ([]TeamFundTransfer, int, error) {
+// TeamFundTransferView 是台账行的展示视图：附带成员/操作人 email（台账需可读地
+// 回答"划给了谁、谁操作的"，裸 user_id 对管理员不可读）。
+type TeamFundTransferView struct {
+	TeamFundTransfer
+	MemberEmail   string
+	OperatorEmail string
+}
+
+// ListTransfers owner 或 admin 可调用：台账分页（行内解析成员/操作人 email，
+// 账号已删除等边缘场景 email 留空、不阻断列表）。
+func (s *TeamFundService) ListTransfers(ctx context.Context, ownerUserID, actorUserID int64, offset, limit int) ([]TeamFundTransferView, int, error) {
 	if _, err := authorizeTeamManager(ctx, s.teamMemberRepo, ownerUserID, actorUserID); err != nil {
 		return nil, 0, err
 	}
-	return s.fundRepo.ListByOwner(ctx, ownerUserID, offset, limit)
+	transfers, total, err := s.fundRepo.ListByOwner(ctx, ownerUserID, offset, limit)
+	if err != nil {
+		return nil, 0, err
+	}
+	emailCache := map[int64]string{}
+	resolveEmail := func(userID int64) string {
+		if userID == 0 {
+			return ""
+		}
+		if email, ok := emailCache[userID]; ok {
+			return email
+		}
+		email := ""
+		if u, err := s.userRepo.GetByID(ctx, userID); err == nil && u != nil {
+			email = u.Email
+		}
+		emailCache[userID] = email
+		return email
+	}
+	views := make([]TeamFundTransferView, 0, len(transfers))
+	for i := range transfers {
+		views = append(views, TeamFundTransferView{
+			TeamFundTransfer: transfers[i],
+			MemberEmail:      resolveEmail(transfers[i].MemberUserID),
+			OperatorEmail:    resolveEmail(transfers[i].OperatorUserID),
+		})
+	}
+	return views, total, nil
 }
 
 // BuildReport owner 或 admin 可调用：成员报表（余额、净投入、近 30 天消费）。

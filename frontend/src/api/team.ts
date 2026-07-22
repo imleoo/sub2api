@@ -72,9 +72,11 @@ export interface TeamDepartment {
 export interface TeamFundTransfer {
   id: number
   member_user_id: number
+  member_email?: string
   direction: 'grant' | 'reclaim' | 'auto_topup'
   amount: number
   operator_user_id: number
+  operator_email?: string
   note: string
   created_at: string
 }

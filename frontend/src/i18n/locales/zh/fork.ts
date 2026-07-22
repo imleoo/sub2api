@@ -558,6 +558,7 @@ export default {
       title: "划转台账",
       empty: "暂无划转记录",
       direction: "类型",
+      member: "成员",
       directionGrant: "划转",
       directionReclaim: "回收",
       directionAutoTopup: "自动补给",

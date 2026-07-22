@@ -189,7 +189,9 @@
           <h2 class="text-base font-medium text-gray-900 dark:text-white">{{ t('team.transfers.title') }}</h2>
           <div class="mt-4">
             <DataTable :columns="transferColumns" :data="transfers" :loading="loadingTransfers" row-key="id" flat>
+              <template #cell-member="{ row }">{{ row.member_email || `#${row.member_user_id}` }}</template>
               <template #cell-direction="{ row }">{{ directionLabel(row.direction) }}</template>
+              <template #cell-operator="{ row }"><span class="text-gray-500 dark:text-dark-300">{{ row.operator_email || `#${row.operator_user_id}` }}</span></template>
               <template #cell-amount="{ row }">{{ row.amount.toFixed(2) }}</template>
               <template #cell-time="{ row }"><span class="text-gray-400">{{ formatDate(row.created_at) }}</span></template>
               <template #cell-note="{ row }"><span class="text-gray-400">{{ row.note }}</span></template>
@@ -336,8 +338,10 @@ const memberColumns = computed<Column[]>(() => [
   { key: 'actions', label: '' }
 ])
 const transferColumns = computed<Column[]>(() => [
+  { key: 'member', label: t('team.transfers.member') },
   { key: 'direction', label: t('team.transfers.direction') },
   { key: 'amount', label: t('team.transfers.amount') },
+  { key: 'operator', label: t('team.transfers.operator') },
   { key: 'time', label: t('team.transfers.time') },
   { key: 'note', label: t('team.transfers.note') }
 ])

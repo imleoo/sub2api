@@ -570,9 +570,11 @@ type transferRequest struct {
 type teamFundTransferDTO struct {
 	ID             int64   `json:"id"`
 	MemberUserID   int64   `json:"member_user_id"`
+	MemberEmail    string  `json:"member_email"`
 	Direction      string  `json:"direction"`
 	Amount         float64 `json:"amount"`
 	OperatorUserID int64   `json:"operator_user_id"`
+	OperatorEmail  string  `json:"operator_email"`
 	Note           string  `json:"note"`
 	CreatedAt      string  `json:"created_at"`
 }
@@ -652,7 +654,7 @@ func (h *TeamHandler) ListTransfers(c *gin.Context) {
 	}
 	out := make([]teamFundTransferDTO, 0, len(transfers))
 	for _, t := range transfers {
-		out = append(out, teamFundTransferDTO{ID: t.ID, MemberUserID: t.MemberUserID, Direction: t.Direction, Amount: t.Amount, OperatorUserID: t.OperatorUserID, Note: t.Note, CreatedAt: t.CreatedAt.Format("2006-01-02T15:04:05Z07:00")})
+		out = append(out, teamFundTransferDTO{ID: t.ID, MemberUserID: t.MemberUserID, MemberEmail: t.MemberEmail, Direction: t.Direction, Amount: t.Amount, OperatorUserID: t.OperatorUserID, OperatorEmail: t.OperatorEmail, Note: t.Note, CreatedAt: t.CreatedAt.Format("2006-01-02T15:04:05Z07:00")})
 	}
 	response.Success(c, gin.H{"items": out, "total": total})
 }

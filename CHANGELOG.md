@@ -6,6 +6,12 @@
 
 ---
 
+## 修复 - 2026-07-23 — 划转台账显示成员与操作人（此前只有裸 user_id 看不出划给谁）
+
+台账接口只返回 `member_user_id`/`operator_user_id` 数字且前端表格没有成员列，管理员无法读出每笔划转的对象。修复：`TeamFundService.ListTransfers` 返回 `TeamFundTransferView`（行内解析成员/操作人 email，账号已删等边缘留空不阻断），DTO 增 `member_email`/`operator_email`；前端台账表新增「成员」「操作人」两列（email 缺失回退 `#id`），i18n 补 `team.transfers.member` 键（operator 键此前已备）。回归断言并入 `TestTeamFundService_ListTransfers_Pagination`。
+
+---
+
 ## 安全 - 2026-07-23 — 团队成员列表对普通 member 收紧（防同事额度互见）
 
 功能 44 的 `GET /user/team/invitations` 等管理接口一直由 `authorizeTeamManager` 拦截 member，但 `GET /user/team/members` 当初有意对任意 active 成员放行，返回全员 `quota_mode`/`granted_net_usd`——member 直调 API（带 `?owner_user_id=`）即可看到所有同事的额度划入数字。收紧：`ListMembers` 按 actor 角色分视图——owner/admin 全量不变；普通 member 仅返回 owner 行 + 自己一行（自己的额度信息仍可见）。前端管理页仅 manager 视角调用该接口，无行为变化。回归测试 `TestTeamService_ListMembers_MemberOnlySeesOwnerAndSelf`（member/admin/owner 三视角）。`ListDepartments` 维持成员可读（部门名单非管理敏感信息，且成员视图需要显示自己部门名）。

@@ -124,6 +124,9 @@ func TestTeamFundService_ListTransfers_Pagination(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 5, total)
 	require.Len(t, page1, 2)
+	// 台账行须带成员/操作人 email（"划给了谁"），账号缺失时留空不阻断。
+	require.Equal(t, member.Email, page1[0].MemberEmail)
+	require.Equal(t, owner.Email, page1[0].OperatorEmail)
 }
 
 // 连续多笔 grant/reclaim 交替执行后，余额与 granted_net 的记账应始终保持不变量

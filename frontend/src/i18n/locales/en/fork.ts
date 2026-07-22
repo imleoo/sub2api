@@ -565,6 +565,7 @@ export default {
       title: "Fund transfer ledger",
       empty: "No transfers yet",
       direction: "Type",
+      member: "Member",
       directionGrant: "Grant",
       directionReclaim: "Reclaim",
       directionAutoTopup: "Auto top-up",
