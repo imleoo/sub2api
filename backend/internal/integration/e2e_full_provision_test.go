@@ -368,7 +368,10 @@ func gwOpenAIChat(gwKey, model, prompt string, maxTokens int) (int, []byte, erro
 	payload := map[string]any{
 		"model":      model,
 		"max_tokens": maxTokens,
-		"messages":   []map[string]any{{"role": "user", "content": prompt}},
+		// gpt-5.x 等推理模型默认 reasoning 会先耗掉上千 token，渠道侧还可能注入大段系统提示，
+		// 不压低推理强度会出现 completion_tokens>0 但 message.content 为空（同 gwGemini 关 thinking 的先例）
+		"reasoning_effort": "low",
+		"messages":         []map[string]any{{"role": "user", "content": prompt}},
 	}
 	body, _ := json.Marshal(payload)
 	return apiCall("POST", "/v1/chat/completions", map[string]string{

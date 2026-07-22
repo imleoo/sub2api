@@ -6,6 +6,12 @@
 
 ---
 
+## 测试 - 2026-07-22 — e2e 套件适配第三方渠道行为变化（推送门禁解锁）
+
+推送前跑 `./script/e2e-test.sh` 发现三处渠道/上游行为变化导致的稳定失败（对照复跑确认非本批改动回归，转发/计费/限流等其余用例全绿）：① Claude 非流式——渠道强制注入 thinking 块且 `max_tokens=32` 被思维链耗尽，断言改为遍历 content 找 text 块 + 预算提至 1024；② OpenAI——渠道对 gpt-5.5 注入 5k token 系统提示后随机出现「reasoning_content 有内容、正文为空」（同一请求时过时不过），`gwOpenAIChat` 加 `reasoning_effort: low`（同 gwGemini 关 thinking 先例）+ 用例改 3 次重试取文本、连续全空且结构合法则按渠道行为 skip；③ Kiro vision 官方组子用例——上游 image 处理 90s 超时/502，改为上游超时/5xx 时 skip（reroute 机制由「兜底空组」强证明子用例独立验证，不受影响）。改后全量 e2e 顶层 PASS=21、0 FAIL。
+
+---
+
 ## 修复 - 2026-07-21 — 清理上游同步带回的逆向订阅代码残留（antigravity），补测试覆盖率缺口
 
 两条独立工作同批完成：
