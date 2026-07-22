@@ -1211,8 +1211,12 @@ func (a *Account) SupportsOpenAIEndpointCapability(capability OpenAIEndpointCapa
 		case OpenAIEndpointCapabilityChatCompletions:
 			return true
 		case OpenAIEndpointCapabilityGrokMediaGeneration:
-			eligible, _ := a.GrokMediaGenerationEligibility()
-			return eligible
+			eligible, reason := a.GrokMediaGenerationEligibility()
+			// Unobserved OAuth accounts remain scheduler candidates only so the
+			// request path can run the billing probe before forwarding. The
+			// forwarding gate itself fails closed if that probe is unavailable or
+			// cannot produce positive paid-entitlement evidence.
+			return eligible || reason == "billing_unobserved"
 		default:
 			return false
 		}
@@ -1255,9 +1259,9 @@ func (a *Account) SupportsOpenAIEndpointCapability(capability OpenAIEndpointCapa
 }
 
 // GrokMediaGenerationEligibility reports whether a Grok account may receive
-// new image/video generation requests. Missing observations preserve legacy
-// routing; operators can fail closed for known-bad accounts with the explicit
-// override. A successful override takes precedence over stale probe data.
+// new image/video generation requests. OAuth media fails closed unless billing
+// observations provide positive paid-entitlement evidence. An explicit
+// operator override takes precedence over probe data.
 func (a *Account) GrokMediaGenerationEligibility() (bool, string) {
 	if a == nil || !a.IsGrok() {
 		return false, "not_grok"

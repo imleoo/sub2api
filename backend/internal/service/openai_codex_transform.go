@@ -667,4 +667,3 @@ func isCodexToolCallItemType(typ string) bool {
 		return false
 	}
 }
-

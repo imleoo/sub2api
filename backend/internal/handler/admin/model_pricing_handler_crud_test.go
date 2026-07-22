@@ -35,7 +35,7 @@ type crudRepoStub struct {
 	seededModels []*service.DBModelPricing
 	seedErr      error
 
-	upsertedMaas []*service.DBModelPricing
+	upsertedMaas  []*service.DBModelPricing
 	upsertMaasErr error
 }
 

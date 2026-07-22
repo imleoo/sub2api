@@ -117,7 +117,6 @@ const (
 type UsageCache struct {
 	windowStatsCache sync.Map // accountID -> *windowStatsCache
 	geminiCache      sync.Map // accountID -> *geminiUsageCache
-	openAIProbeCache sync.Map // accountID -> time.Time
 }
 
 // NewUsageCache 创建 UsageCache 实例

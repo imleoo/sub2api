@@ -6,6 +6,24 @@
 
 ---
 
+## 同步 - 2026-07-22 — 同步上游 0.1.162（fork 1.1.162）
+
+三分支按序完成：`main` fast-forward 至 0.1.162 已推送；`zhiguofan` 合并共解决 **100 个冲突**（27 个 modify/delete 全部保持 fork 删除 + 72 个内容冲突手工归并 + logo.png 接受上游删除）；`feature/maas-refactor` 与 zhiguofan 已对齐（零差异）。
+
+**采纳的上游主要变更**：客户端 IP 请求头可配置化（`trusted_proxies`/`forwarded_client_ip_headers`，config +346 行 + 设置链 + 安全设置 UI/测试）；step-up 2FA 开关化（安全开关默认关）；ops 入口拒绝日志子系统（迁移 183）；auth 缓存失效 outbox（迁移 184）；OpenAI reasoning effort policy（迁移 185，group schema 变更已 `go generate ./ent`）；优雅关停超时不再跳过 Cleanup；调度器修复（LastUsedAt 缓存隔离、配额元数据保留、模型级临时冷却、排除原因统计 `filterStats`）；计费修复（failover 同步缓存计费、hosted image token 并入 /responses、同账号重试防重复计费）；Anthropic 紧凑 SSE 兼容与 message_start null stop_reason；grok 官方 API 修复（count_tokens 本地 tiktoken 估算——引入 `tiktoken-go/tokenizer` 依赖、media 空结果按 failover）；`openai_images_responses.go` 流式管线重写（取上游版）；OpenAI apikey 账号上游计费倍率探测（创建弹窗自动 probe + 批量编辑入口）；账号批量编辑新增 codex_cli_only 系列；订阅到期时间显示到分钟；axios 1.18.1 / golang.org/x/text v0.39.0 安全升级；移动端/暗色/i18n 一批修复（fork 键经 `fork.ts` 深合并无冲突）。
+
+**逆向订阅裁剪（功能 35 口径）**：27 个 fork 已删、上游又改的文件（antigravity/grok OAuth/codex import/quota 链）保持删除；上游新增文件现场裁剪——`ingress_reject.go` 仅保留通用 host/path 分类（合法保留点同 servertiming）、`gateway_model_availability.go` 去 antigravity 混排、`openai_gateway_count_tokens.go` 去 OAuth input_tokens 回退分支、`openai_alpha_search.go` 丢弃 chatgpt.com responses-web-search 回退簇（依赖已删 OAuth 符号且无调用点）、`openai_gateway_chat_completions.go` 拒绝 codex OAuth transform 块、`SettingsView.vue` 删上游 Codex 加固卡片（配套 script 未随行，后端 codex_cli_only 仍可 API 配置）、`EditAccountModal.vue` 拒 Grok OAuth UI、`types/index.ts` 拒 grok/antigravity 配额字段与 `require_oauth_only`/`require_privacy_set`；`golangci-lint unused` 全仓扫描删约 60 个孤儿符号（`openai_images_responses.go` 的 OAuth 图片转发簇 23 个、`gateway_claude_body.go` 伪装路径 session seed 及其自闭环测试、grok quota probe 孤儿等），`setting_parse.go` 顺带清空 if 分支（SA9003）。
+
+**存量回归修复（本次合并顺带发现，均非上游引入）**：① `wire_gen.go` 的 5 处手改 setter（`SetEndpointRepository`×4 + `SetModelRoutingService`×1）在 2026-07-15 `f0ad756f4`（team-collaboration 合入重新 generate）时即已静默丢失——generic 渠道转发的 endpointRepo 自那时起为 nil，本次恢复并复核 4+1 达标；② 管理员「测试连接」的 `PlatformGrok` 分流与 `testGrokAccountConnection` 在 zhiguofan 上已丢失（grok 账号测试落 claude 兜底），按上游恢复分流、函数（quota probe 改内联 payload）及两个测试。
+
+**其它适配**：fork 两个调度开关（`dual_bucket_enabled`/`protocol_bucket_enabled`）注册 viper 默认值（修上游新 env 可达性守卫测试）；`github_release_service.go` UA 恢复 `TokenPanel-Updater`；`docs/PAYMENT*.md` 取上游新费率/域名事实并重套 fork 品牌；迁移 **183 撞号**（上游 `183_ops_ingress_reject_aggregates` 与 fork `183_add_balance_snapshots`）按功能 43 先例共存、字典序均执行；`handler/wire.go` 的 `ProvideOpenAIGatewayHandler` 去 `GrokQuotaService` 参数（类型已删，`grokMediaEligibilityProber` 保持 nil 短路）；`api_contract_test.go` 契约补 `max_reasoning_effort`/`forwarded_client_ip_headers` 字段；上游改 rollback 请求超时/支付说明链接后对应 fork 测试同步适配（3 个 Agent Identity OAuth 向导测试删除——fork 无 OAuth 授权流 UI）。
+
+**验证**：后端 `go build ./...`、`go vet -tags=unit`、`golangci-lint run`（0 issues）、全量 unit 测试全绿；前端 `pnpm typecheck`、`lint:check`、195 文件 / 1281 测试全绿；守护 grep 全过（lingjing 路由组、`getGroupInboundProtocol`、`ProtocolBucketEnabled`、`ApplyUpstreamCostSnapshot`、username 必填、sync-maas、statement/export）；逆向门禁核心关键词非测试代码零命中；workflows 全部仅 `workflow_dispatch:`；VERSION=1.1.162。
+
+高风险复核：风险表 🔴/🟡 登记文件已逐个 diff——`setting_update.go` fork 字段块完整（上游仅插入 IP headers 归一化与 step-up 写入）、`config.go` 两个 fork 开关健在并补注册默认值、`gateway.go` 协议分流/lingjing 路由完整（count_tokens 分流并入上游 `countTokensHandler` 并保留 fork 的 openai 入站 404 门）、`wire_gen.go` 注入链逐行核对（新增 outbox/ingress/imageStorage 链，OAuth handler 链拒绝）、`billing_service.go`/`pricing_service.go`/`usage_log.go`/`usage_log_repo.go`/`admin_compliance.go` 本轮上游未触及、`BulkEditAccountModal.vue` `isMixedPlatform` 防护完整、`SubscriptionPlanCard.vue` 货币符号取上游但删 antigravity model scope 块。
+
+---
+
 ## 测试 - 2026-07-22 — e2e 套件适配第三方渠道行为变化（推送门禁解锁）
 
 推送前跑 `./script/e2e-test.sh` 发现三处渠道/上游行为变化导致的稳定失败（对照复跑确认非本批改动回归，转发/计费/限流等其余用例全绿）：① Claude 非流式——渠道强制注入 thinking 块且 `max_tokens=32` 被思维链耗尽，断言改为遍历 content 找 text 块 + 预算提至 1024；② OpenAI——渠道对 gpt-5.5 注入 5k token 系统提示后随机出现「reasoning_content 有内容、正文为空」（同一请求时过时不过），`gwOpenAIChat` 加 `reasoning_effort: low`（同 gwGemini 关 thinking 先例）+ 用例改 3 次重试取文本、连续全空且结构合法则按渠道行为 skip；③ Kiro vision 官方组子用例——上游 image 处理 90s 超时/502，改为上游超时/5xx 时 skip（reroute 机制由「兜底空组」强证明子用例独立验证，不受影响）。改后全量 e2e 顶层 PASS=21、0 FAIL。

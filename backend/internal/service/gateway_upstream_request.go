@@ -288,31 +288,6 @@ func defaultAPIKeyBetaHeader(body []byte) string {
 	return claude.APIKeyBetaHeader
 }
 
-func mergeAnthropicBeta(required []string, incoming string) string {
-	seen := make(map[string]struct{}, len(required)+8)
-	out := make([]string, 0, len(required)+8)
-
-	add := func(v string) {
-		v = strings.TrimSpace(v)
-		if v == "" {
-			return
-		}
-		if _, ok := seen[v]; ok {
-			return
-		}
-		seen[v] = struct{}{}
-		out = append(out, v)
-	}
-
-	for _, r := range required {
-		add(r)
-	}
-	for _, p := range strings.Split(incoming, ",") {
-		add(p)
-	}
-	return strings.Join(out, ",")
-}
-
 // computeFinalAnthropicBeta 计算发往上游的最终 anthropic-beta header 值。
 //
 // 设计动机：将原本在 buildUpstreamRequest 内联在一起、依赖 req.Header 的

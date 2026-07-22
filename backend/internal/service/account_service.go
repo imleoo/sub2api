@@ -91,6 +91,13 @@ type AccountRepository interface {
 	ListSchedulableByGroupIDAndPlatforms(ctx context.Context, groupID int64, platforms []string) ([]Account, error)
 	ListSchedulableUngroupedByPlatform(ctx context.Context, platform string) ([]Account, error)
 	ListSchedulableUngroupedByPlatforms(ctx context.Context, platforms []string) ([]Account, error)
+	// ListModelAvailabilityCandidates returns accounts that are enabled by
+	// persistent configuration (active + schedulable) for model-support
+	// diagnosis. It deliberately does not filter transient runtime state such
+	// as rate-limit, overload, temporary-unschedulable, or expiry windows.
+	// When groupID is nil, includeGrouped controls whether the query scans all
+	// matching accounts or only accounts without a group binding.
+	ListModelAvailabilityCandidates(ctx context.Context, groupID *int64, platforms []string, includeGrouped bool) ([]Account, error)
 
 	// Phase 5 P5-2: 协议维度调度查询（双桶影子路径）
 	// 按 outbound_protocol 筛选而非 platform，lingjing 不参与。
@@ -146,6 +153,7 @@ type AccountBulkUpdate struct {
 	Schedulable    *bool
 	Credentials    map[string]any
 	Extra          map[string]any
+	ProbeEnabled   *bool
 }
 
 // CreateAccountRequest 创建账号请求

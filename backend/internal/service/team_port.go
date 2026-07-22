@@ -24,17 +24,17 @@ type TeamMember struct {
 
 // TeamInvitation 是企业邀请记录的 service 层传输结构体，与 ent.TeamInvitation 解耦。
 type TeamInvitation struct {
-	ID              int64
-	OwnerUserID     int64
-	InvitedEmail    string
-	Token           string
-	Status          string
-	ExpiresAt       time.Time
-	LastSentAt      time.Time
-	DepartmentID    *int64
-	Role            string
-	QuotaMode       string
-	InitialGrantUSD *float64
+	ID               int64
+	OwnerUserID      int64
+	InvitedEmail     string
+	Token            string
+	Status           string
+	ExpiresAt        time.Time
+	LastSentAt       time.Time
+	DepartmentID     *int64
+	Role             string
+	QuotaMode        string
+	InitialGrantUSD  *float64
 	AcceptedByUserID *int64
 	AcceptedAt       *time.Time
 	CreatedAt        time.Time

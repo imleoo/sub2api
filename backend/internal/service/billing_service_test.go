@@ -340,8 +340,8 @@ func TestComputeTokenBreakdown_GptImage2ImageEditIssue4386(t *testing.T) {
 
 	cost := svc.computeTokenBreakdown(pricing, tokens, 1.0, "", false)
 
-	wantTextInput := float64(19) * 5e-6    // 0.000095
-	wantImageInput := float64(352) * 8e-6  // 0.002816
+	wantTextInput := float64(19) * 5e-6     // 0.000095
+	wantImageInput := float64(352) * 8e-6   // 0.002816
 	wantImageOutput := float64(439) * 30e-6 // 0.013170
 	require.InDelta(t, wantTextInput, cost.InputCost, 1e-15, "InputCost 仅含文本输入")
 	require.InDelta(t, wantImageInput, cost.ImageInputCost, 1e-15, "图片输入按 $8/1M 独立计费")
@@ -626,7 +626,6 @@ func TestCalculateCostWithLongContext_PropagatesError(t *testing.T) {
 // fork 功能 26（定价 SSOT）+ 功能 34（绝对不内置厂商价）取消了 billing_service 的
 // fallbackPrices 静态价表：grok 模型价格须由运营写入 model_pricings（sync-maas 或手工），
 // 未定价时 GetModelPricing fail-closed（返回 ErrModelUnpriced，不会静默按 0 计费）。
-
 
 func TestCalculateCost_SupportsCacheBreakdown(t *testing.T) {
 	in, out := 3e-6, 15e-6

@@ -39,17 +39,6 @@ type openAIRecordUsageBillingRepoStub struct {
 	lastCtxErr error
 }
 
-type openAIRecordUsageAccountRepoStub struct {
-	AccountRepository
-	account *Account
-	calls   int
-}
-
-func (s *openAIRecordUsageAccountRepoStub) GetByID(_ context.Context, _ int64) (*Account, error) {
-	s.calls++
-	return s.account, nil
-}
-
 func (s *openAIRecordUsageBillingRepoStub) Apply(ctx context.Context, cmd *UsageBillingCommand) (*UsageBillingApplyResult, error) {
 	s.calls++
 	s.lastCmd = cmd

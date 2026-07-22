@@ -240,7 +240,7 @@ func TestAdvancedSchedulerSharesProbeBudgetWithFallbackDBRechecks(t *testing.T) 
 	require.NoError(t, err)
 	require.Nil(t, selection)
 	selection, _, _, _, err = scheduler.finishLoadBalanceSelectionFallback(
-		context.Background(), req, openAIAccountLoadSelectionAttempt{selectionOrder: selectionOrder}, budget,
+		context.Background(), req, openAIAccountLoadSelectionAttempt{selectionOrder: selectionOrder}, budget, openAISelectionFilterStats{},
 	)
 
 	require.Error(t, err)
@@ -486,7 +486,6 @@ func TestOpenAILegacyUpstreamRateOrderRequiresComparableRates(t *testing.T) {
 	require.Negative(t, distinct.compare(&Account{ID: 1}, &Account{ID: 2}))
 	require.Negative(t, distinct.compare(&Account{ID: 2}, &Account{ID: 3}))
 }
-
 
 func TestOpenAIModelsSelectionIgnoresTokenCostSignal(t *testing.T) {
 	resetOpenAIAdvancedSchedulerSettingCacheForTest()

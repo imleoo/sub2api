@@ -34,12 +34,12 @@ func TestE2EFull_ConcurrentQuotaOvershoot(t *testing.T) {
 
 	const n = 6
 	var (
-		wg        sync.WaitGroup
-		mu        sync.Mutex
-		success   int
-		blocked   int
+		wg         sync.WaitGroup
+		mu         sync.Mutex
+		success    int
+		blocked    int
 		upstreamNA bool
-		other     int
+		other      int
 	)
 	wg.Add(n)
 	for i := 0; i < n; i++ {

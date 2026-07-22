@@ -89,9 +89,6 @@ const openAICodexUserAgentCacheTTL = 60 * time.Second
 const openAICodexUserAgentErrorTTL = 5 * time.Second
 const openAICodexUserAgentDBTimeout = 5 * time.Second
 
-const codexRestrictionPolicyCacheTTL = 60 * time.Second
-const codexRestrictionPolicyDBTimeout = 5 * time.Second
-
 // cachedCyberSessionBlockRuntime cyber 会话屏蔽开关+TTL 进程内缓存（60s TTL）。
 // GetCyberSessionBlockRuntime 在网关请求热路径上被调用，避免每次访问 DB。
 type cachedCyberSessionBlockRuntime struct {
@@ -213,67 +210,6 @@ func (s *SettingService) GetOpenAICodexUserAgent(ctx context.Context) string {
 		return ua
 	}
 	return fallback
-}
-
-var legacyClaudeCodeCodexWhitelistEntry = openai.AllowedClientEntry{
-	Originator: "Claude Code",
-	UAContains: []string{"Claude Code/"},
-}
-
-func codexClientEntriesContain(entries []openai.AllowedClientEntry, want openai.AllowedClientEntry) bool {
-	wantOriginator := strings.TrimSpace(want.Originator)
-	if wantOriginator == "" {
-		return false
-	}
-	wantMarkers := normalizedCodexClientMarkers(want.UAContains)
-	if len(wantMarkers) == 0 {
-		return false
-	}
-	for _, entry := range entries {
-		if !strings.EqualFold(strings.TrimSpace(entry.Originator), wantOriginator) {
-			continue
-		}
-		gotMarkers := normalizedCodexClientMarkers(entry.UAContains)
-		if len(gotMarkers) != len(wantMarkers) {
-			continue
-		}
-		matched := true
-		for marker := range wantMarkers {
-			if _, ok := gotMarkers[marker]; !ok {
-				matched = false
-				break
-			}
-		}
-		if matched {
-			return true
-		}
-	}
-	return false
-}
-
-func normalizedCodexClientMarkers(markers []string) map[string]struct{} {
-	normalized := make(map[string]struct{}, len(markers))
-	for _, marker := range markers {
-		marker = strings.TrimSpace(marker)
-		if marker == "" {
-			continue
-		}
-		normalized[strings.ToLower(marker)] = struct{}{}
-	}
-	return normalized
-}
-
-// loadCodexClientEntries 读取并解析 []openai.AllowedClientEntry JSON 设置；缺失/空/非法 → nil（安全忽略）。
-func (s *SettingService) loadCodexClientEntries(ctx context.Context, key string) []openai.AllowedClientEntry {
-	v, err := s.settingRepo.GetValue(ctx, key)
-	if err != nil || strings.TrimSpace(v) == "" {
-		return nil
-	}
-	var entries []openai.AllowedClientEntry
-	if json.Unmarshal([]byte(v), &entries) != nil {
-		return nil
-	}
-	return entries
 }
 
 // ValidateCodexClientEntriesJSON 校验 codex_cli_only 名单 JSON 配置（黑名单语义）：

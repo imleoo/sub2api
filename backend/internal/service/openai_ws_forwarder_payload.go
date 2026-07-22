@@ -89,6 +89,11 @@ func (s *OpenAIGatewayService) buildOpenAIWSHeaders(
 				headers.Add("x-codex-beta-features", value)
 			}
 		}
+		for _, name := range [...]string{"x-codex-window-id", "x-codex-installation-id"} {
+			if value := c.Request.Header.Get(name); strings.TrimSpace(value) != "" {
+				headers.Set(name, value)
+			}
+		}
 	}
 	if sessionResolution.SessionID != "" {
 		headers.Set("session_id", sessionResolution.SessionID)
@@ -173,16 +178,6 @@ func setOpenAIWSTurnMetadata(payload map[string]any, turnMetadata string) {
 			openAIWSTurnMetadataHeader: metadata,
 		}
 	}
-}
-
-func (s *OpenAIGatewayService) isOpenAIWSStoreRecoveryAllowed(account *Account) bool {
-	if account != nil && account.IsOpenAIWSAllowStoreRecoveryEnabled() {
-		return true
-	}
-	if s != nil && s.cfg != nil && s.cfg.Gateway.OpenAIWS.AllowStoreRecovery {
-		return true
-	}
-	return false
 }
 
 func (s *OpenAIGatewayService) isOpenAIWSStoreDisabledInRequest(reqBody map[string]any, account *Account) bool {

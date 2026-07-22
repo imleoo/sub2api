@@ -39,7 +39,7 @@
         <!-- Logo + Name -->
         <div class="flex items-center gap-2.5">
           <div class="h-7 w-7 overflow-hidden rounded-lg shadow-sm ring-1 ring-gray-200/50 dark:ring-dark-700/50">
-            <img :src="siteLogo || '/logo.png'" alt="Logo" class="h-full w-full object-contain" />
+            <img :src="siteLogo || '/logo.svg'" alt="Logo" class="h-full w-full object-contain" />
           </div>
           <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ siteName }}</span>
         </div>

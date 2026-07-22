@@ -379,6 +379,8 @@ func TestAPIContracts(t *testing.T) {
 						"allow_messages_dispatch": false,
 						"fallback_group_id": null,
 						"fallback_group_id_on_invalid_request": null,
+						"max_reasoning_effort": "",
+						"reasoning_effort_mappings": null,
 						"rpm_limit": 0,
 						"created_at": "2025-01-02T03:04:05Z",
 						"updated_at": "2025-01-02T03:04:05Z"
@@ -706,7 +708,8 @@ func TestAPIContracts(t *testing.T) {
 						"frontend_url": "",
 						"totp_enabled": false,
 						"totp_encryption_key_configured": false,
-						"session_binding_enabled": true,
+						"session_binding_enabled": false,
+						"step_up_enabled": false,
 						"audit_log_retention_days": 180,
 						"login_agreement_enabled": false,
 						"login_agreement_mode": "modal",
@@ -790,6 +793,7 @@ func TestAPIContracts(t *testing.T) {
 						"site_subtitle": "Subtitle",
 						"api_base_url": "https://api.example.com",
 					"api_key_acl_trust_forwarded_ip": false,
+					"forwarded_client_ip_headers": [],
 					"contact_info": "support",
 					"currency_mode": "",
 					"doc_url": "https://docs.example.com",
@@ -1034,7 +1038,8 @@ func TestAPIContracts(t *testing.T) {
 						"invitation_code_enabled": false,
 						"totp_enabled": false,
 						"totp_encryption_key_configured": false,
-						"session_binding_enabled": true,
+						"session_binding_enabled": false,
+						"step_up_enabled": false,
 						"audit_log_retention_days": 180,
 						"login_agreement_enabled": false,
 						"login_agreement_mode": "modal",
@@ -1114,6 +1119,7 @@ func TestAPIContracts(t *testing.T) {
 					"site_subtitle": "管理企业多个大模型资源，精细化管理每个用户和模型账单。",
 					"api_base_url": "",
 					"api_key_acl_trust_forwarded_ip": false,
+					"forwarded_client_ip_headers": [],
 					"contact_info": "",
 					"currency_mode": "",
 					"doc_url": "",
@@ -1911,6 +1917,10 @@ func (s *stubAccountRepo) ListSchedulableByGroupIDAndOutboundProtocol(ctx contex
 }
 
 func (s *stubAccountRepo) ListSchedulableUngroupedByOutboundProtocol(ctx context.Context, protocol string) ([]service.Account, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (s *stubAccountRepo) ListModelAvailabilityCandidates(ctx context.Context, groupID *int64, platforms []string, includeGrouped bool) ([]service.Account, error) {
 	return nil, errors.New("not implemented")
 }
 

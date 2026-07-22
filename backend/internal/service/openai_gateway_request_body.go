@@ -234,23 +234,6 @@ func normalizeOpenAICodexCompactReasoningEffort(body []byte, effectiveModel stri
 	return normalized, true, nil
 }
 
-func resolveOpenAICompactSessionID(c *gin.Context) string {
-	if c != nil {
-		if sessionID := strings.TrimSpace(c.GetHeader("session_id")); sessionID != "" {
-			return sessionID
-		}
-		if conversationID := strings.TrimSpace(c.GetHeader("conversation_id")); conversationID != "" {
-			return conversationID
-		}
-		if seed, ok := c.Get(openAICompactSessionSeedKey); ok {
-			if seedStr, ok := seed.(string); ok && strings.TrimSpace(seedStr) != "" {
-				return strings.TrimSpace(seedStr)
-			}
-		}
-	}
-	return uuid.NewString()
-}
-
 func openAIResponsesRequestPathSuffix(c *gin.Context) string {
 	if c == nil || c.Request == nil || c.Request.URL == nil {
 		return ""
@@ -550,25 +533,6 @@ func deleteOpenAIRequestMapPath(reqBody map[string]any, path string) {
 func extractOpenAIRequestMetaFromBody(body []byte) (model string, stream bool, promptCacheKey string) {
 	view := newOpenAIRequestView(body)
 	return view.Model, view.Stream, view.PromptCacheKey
-}
-
-func detectOpenAIPassthroughInstructionsRejectReason(reqModel string, body []byte) string {
-	model := strings.ToLower(strings.TrimSpace(reqModel))
-	if !strings.Contains(model, "codex") {
-		return ""
-	}
-
-	instructions := gjson.GetBytes(body, "instructions")
-	if !instructions.Exists() {
-		return "instructions_missing"
-	}
-	if instructions.Type != gjson.String {
-		return "instructions_not_string"
-	}
-	if strings.TrimSpace(instructions.String()) == "" {
-		return "instructions_empty"
-	}
-	return ""
 }
 
 // extractOpenAIReasoningEffortFromBody 按优先级传入模型候选（如 upstreamModel,

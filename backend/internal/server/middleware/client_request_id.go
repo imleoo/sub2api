@@ -25,14 +25,19 @@ func ClientRequestID() gin.HandlerFunc {
 		}
 
 		if v, _ := c.Request.Context().Value(ctxkey.ClientRequestID).(string); strings.TrimSpace(v) != "" {
-			id := strings.TrimSpace(v)
-			c.Header(clientRequestIDHeader, id)
+			var valid bool
+			v, valid = normalizeCorrelationID(v)
+			if !valid {
+				v = uuid.New().String()
+			}
+			c.Header(clientRequestIDHeader, v)
 			billID := strings.TrimSpace(c.GetHeader(billRequestIDHeader))
 			if billID == "" || len(billID) > 64 {
-				billID = id
+				billID = v
 			}
 			c.Header(billRequestIDHeader, billID)
-			ctx := context.WithValue(c.Request.Context(), ctxkey.BillRequestID, billID)
+			ctx := context.WithValue(c.Request.Context(), ctxkey.ClientRequestID, v)
+			ctx = context.WithValue(ctx, ctxkey.BillRequestID, billID)
 			c.Request = c.Request.WithContext(ctx)
 			c.Next()
 			return

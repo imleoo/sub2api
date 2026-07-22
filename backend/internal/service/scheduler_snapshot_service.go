@@ -977,7 +977,7 @@ func (s *SchedulerSnapshotService) setRebuildSnapshot(
 		return err
 	}
 	if queries.remaining[key] > 1 {
-		// 必须保存 writeAccounts 实际接受的有序 ID，不能从原账号切片重新推导；
+		// 必须保存实际成功编码并写入的有序 ID，不能从原账号切片重新推导；
 		// 否则不可编码账号会只出现在后续桶中，破坏两个快照的成员一致性。
 		// 返回切片由当前批次独占，直接接管可避免 10k 账号场景再次复制。
 		queries.snapshotAccountIDs[key] = accountIDs
@@ -1598,38 +1598,6 @@ func (s *SchedulerSnapshotService) fullRebuildInterval() time.Duration {
 		return 0
 	}
 	return time.Duration(sec) * time.Second
-}
-
-func (s *SchedulerSnapshotService) defaultBuckets(ctx context.Context) ([]SchedulerBucket, error) {
-	buckets := make([]SchedulerBucket, 0)
-	platforms := []string{PlatformAnthropic, PlatformGemini, PlatformOpenAI, PlatformLingjing, PlatformGrok}
-	for _, platform := range platforms {
-		buckets = append(buckets, SchedulerBucket{GroupID: 0, Platform: platform, Mode: SchedulerModeSingle})
-		buckets = append(buckets, SchedulerBucket{GroupID: 0, Platform: platform, Mode: SchedulerModeForced})
-		if platform == PlatformAnthropic || platform == PlatformGemini {
-			buckets = append(buckets, SchedulerBucket{GroupID: 0, Platform: platform, Mode: SchedulerModeMixed})
-		}
-	}
-
-	if s.isRunModeSimple() || s.groupRepo == nil {
-		return dedupeBuckets(buckets), nil
-	}
-
-	groups, err := s.groupRepo.ListActive(ctx)
-	if err != nil {
-		return dedupeBuckets(buckets), nil
-	}
-	for _, group := range groups {
-		if group.Platform == "" {
-			continue
-		}
-		buckets = append(buckets, SchedulerBucket{GroupID: group.ID, Platform: group.Platform, Mode: SchedulerModeSingle})
-		buckets = append(buckets, SchedulerBucket{GroupID: group.ID, Platform: group.Platform, Mode: SchedulerModeForced})
-		if group.Platform == PlatformAnthropic || group.Platform == PlatformGemini {
-			buckets = append(buckets, SchedulerBucket{GroupID: group.ID, Platform: group.Platform, Mode: SchedulerModeMixed})
-		}
-	}
-	return dedupeBuckets(buckets), nil
 }
 
 func dedupeBuckets(in []SchedulerBucket) []SchedulerBucket {

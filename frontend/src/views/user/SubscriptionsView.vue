@@ -250,7 +250,7 @@ import subscriptionsAPI from '@/api/subscriptions'
 import type { UserSubscription } from '@/types'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import Icon from '@/components/icons/Icon.vue'
-import { formatDateOnly, formatUSD } from '@/utils/format'
+import { formatDateTimeToMinute, formatUSD } from '@/utils/format'
 import { hasPeakRate, formatPeakRateWindow, serverTimezoneLabel } from '@/utils/peak-rate'
 import { platformBorderClass, platformBadgeClass, platformButtonClass, platformLabel } from '@/utils/platformColors'
 import { getRemainingDurationParts, isOneTimeDailyQuota, type RemainingDurationParts } from '@/utils/subscriptionQuota'
@@ -315,7 +315,7 @@ function formatExpirationDate(expiresAt: string): string {
     return t('userSubscriptions.status.expired')
   }
 
-  const dateStr = formatDateOnly(expires)
+  const dateStr = formatDateTimeToMinute(expires)
 
   if (days === 0) {
     return `${dateStr} (${t('common.today')})`

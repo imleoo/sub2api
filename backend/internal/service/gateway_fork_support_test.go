@@ -123,4 +123,3 @@ func TestCalculateVideoCost_DifferentDurations_ScaleLinearly(t *testing.T) {
 	ten := svc.calculateVideoCost(context.Background(), &ForwardResult{VideoSeconds: 10}, apiKey, "wanjie-video", 1.0)
 	require.InDelta(t, five.ActualCost*2, ten.ActualCost, 1e-9)
 }
-

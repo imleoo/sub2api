@@ -511,6 +511,11 @@ export interface OpenAIMessagesDispatchModelConfig {
   exact_model_mappings?: Record<string, string>
 }
 
+export interface ReasoningEffortMapping {
+  from: string
+  to: string
+}
+
 export interface Group {
   id: number
   name: string
@@ -518,6 +523,8 @@ export interface Group {
   platform: GroupPlatform
   rate_multiplier: number
   rpm_limit?: number // Group-level RPM cap (0 = unlimited); overrides user-level rpm_limit when set
+  max_reasoning_effort?: string // OpenAI/Codex reasoning ceiling; empty means unlimited
+  reasoning_effort_mappings?: ReasoningEffortMapping[]
   is_exclusive: boolean
   status: 'active' | 'inactive'
   subscription_type: SubscriptionType
@@ -685,6 +692,8 @@ export interface CreateGroupRequest {
   model_routing?: Record<string, number[]> | null
   model_routing_enabled?: boolean
   rpm_limit?: number
+  max_reasoning_effort?: string
+  reasoning_effort_mappings?: ReasoningEffortMapping[]
   // 从指定分组复制账号
   copy_accounts_from_group_ids?: number[]
 }
@@ -730,6 +739,8 @@ export interface UpdateGroupRequest {
   model_routing?: Record<string, number[]> | null
   model_routing_enabled?: boolean
   rpm_limit?: number
+  max_reasoning_effort?: string
+  reasoning_effort_mappings?: ReasoningEffortMapping[]
   copy_accounts_from_group_ids?: number[]
 }
 
@@ -1154,6 +1165,7 @@ export interface CreateAccountRequest {
   group_ids?: number[]
   expires_at?: number | null
   auto_pause_on_expired?: boolean
+  upstream_billing_probe_enabled?: boolean
   confirm_mixed_channel_risk?: boolean
   endpoints?: AccountEndpointInput[] // platform=generic 专用
 }

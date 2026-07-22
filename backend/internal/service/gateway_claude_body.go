@@ -8,10 +8,8 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"strconv"
 	"strings"
 
-	"github.com/Wei-Shaw/sub2api/internal/pkg/anthropicfp"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
@@ -48,33 +46,6 @@ func deleteJSONPathBytes(body []byte, path string) ([]byte, bool) {
 		return body, false
 	}
 	return next, true
-}
-
-// buildStableSessionSeed 为伪装路径合成的 metadata.user_id session_id 生成"会话级稳定"种子。
-//
-// 真实 Claude Code 的 session_id 是进程级随机 UUID，在一段会话内跨请求保持不变。无状态代理
-// 无法恢复该值，这里用"会话内不变的锚点"近似：账号 ID + 客户端区分因子 + 首条 user 消息文本。
-// 对话在尾部追加 messages 时这三者都不变，因此 generateSessionUUID(seed) 跨轮稳定。
-//
-// 注意：粘性路由键 GenerateSessionHash 按设计逐轮变化（见其测试），本函数与之独立、互不影响。
-// accountID 恒存在，故 seed 永不为空 —— 输出始终是确定性 UUID，而非随机值。
-func buildStableSessionSeed(accountID int64, clientDiscriminator, firstUserText string) string {
-	var b strings.Builder
-	_, _ = b.WriteString(strconv.FormatInt(accountID, 10))
-	_, _ = b.WriteString("::")
-	_, _ = b.WriteString(clientDiscriminator)
-	_, _ = b.WriteString("::")
-	_, _ = b.WriteString(firstUserText)
-	return b.String()
-}
-
-// sessionContextDiscriminator 把请求上下文（客户端 IP / 归一化 UA / API Key ID）拼成
-// 一个跨客户端的区分因子，避免不同用户的相同首条消息派生出相同 session_id。
-func sessionContextDiscriminator(sc *SessionContext) string {
-	if sc == nil {
-		return ""
-	}
-	return sc.ClientIP + ":" + NormalizeSessionUserAgent(sc.UserAgent) + ":" + strconv.FormatInt(sc.APIKeyID, 10)
 }
 
 // GenerateSessionUUID creates a deterministic UUID4 from a seed string.
@@ -326,25 +297,4 @@ func forceEphemeralCacheControlTTL(body []byte, ttl string) []byte {
 // 该账号类型随订阅逆向移除后恒为 false。
 func (s *GatewayService) shouldInjectAnthropicCacheTTL1h(_ context.Context, _ *Account) bool {
 	return false
-}
-
-// shouldNormalizeClientDateline 历史上仅对 Anthropic OAuth/SetupToken 账号生效，
-// 该账号类型随订阅逆向移除后恒为 false。
-func (s *GatewayService) shouldNormalizeClientDateline(_ context.Context, _ *Account) bool {
-	return false
-}
-
-// normalizeClientDatelineIfEnabled applies dateline normalization to body when
-// the switch is on and the account qualifies. Returns (nextBody, true) only
-// when the body actually changed; otherwise returns (nil, false) so callers
-// can skip the writeback.
-func (s *GatewayService) normalizeClientDatelineIfEnabled(ctx context.Context, account *Account, body []byte) ([]byte, bool) {
-	if !s.shouldNormalizeClientDateline(ctx, account) {
-		return nil, false
-	}
-	next, _, changed := anthropicfp.NormalizeDateline(body)
-	if !changed {
-		return nil, false
-	}
-	return next, true
 }

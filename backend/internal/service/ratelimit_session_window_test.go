@@ -149,6 +149,9 @@ func (m *sessionWindowMockRepo) ListSchedulableByGroupIDAndOutboundProtocol(cont
 func (m *sessionWindowMockRepo) ListSchedulableUngroupedByOutboundProtocol(context.Context, string) ([]Account, error) {
 	panic("unexpected")
 }
+func (m *sessionWindowMockRepo) ListModelAvailabilityCandidates(context.Context, *int64, []string, bool) ([]Account, error) {
+	panic("unexpected")
+}
 func (m *sessionWindowMockRepo) SetRateLimited(context.Context, int64, time.Time) error {
 	panic("unexpected")
 }
