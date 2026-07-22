@@ -6,800 +6,303 @@
 
 ---
 
+## 修复 - 2026-07-21 — 清理上游同步带回的逆向订阅代码残留（antigravity），补测试覆盖率缺口
+
+两条独立工作同批完成：
+
+**测试覆盖率缺口补齐**：后端 billing/repository/handler/service 层（视频计费公式、model_pricing 定价 repo、lingjing 27 条模型映射表、gateway session seed/cache-control 裁剪、CSP 白名单解析、汇率/合规门控、手机短信、月结服务）与前端登录注册页/设置页短信联动/对账导出/MaaS 同步表单等 0% 覆盖点，新增约 25 个测试文件、200+ 用例，纯新增测试无生产逻辑变更。`codex review` 复审发现并修复一处真实数据竞争（`balance_snapshot_runonce_test.go` 轮询计数器改 `atomic.Int64`）。
+
+**逆向订阅代码残留清理（三轮）**——根因均为功能 35 删除 Claude Code/Codex/Gemini CLI/Antigravity 全部 OAuth 订阅逆向后，一次上游同步局部带回/遗留的死代码：
+
+- **第一轮（antigravity 专属残留）**：`credentialsBuilder.ts` 的 `applyAntigravityProjectID`/`ANTIGRAVITY_PROJECT_ID_CREDENTIAL_KEY`；`accounts.ts` 的 `getAntigravityDefaultModelMapping`（对应后端路由已不存在）；`setting_service_update_test.go` 从未实例化的孤儿桩 `settingAntigravityUARepoStub`；i18n `{zh,en}/admin/{accounts,overview,settings}.ts`、`dashboard.ts`、`landing.ts` 里几十条 Antigravity OAuth 向导/API Key 连接/GCP Project ID/UA 版本文案（渲染路径已随功能 35 删除）。
+- **第二轮（同根因 OAuth 死代码，不含 antigravity 字样）**：`admin/accounts.ts` 整个 `oauth: {...}` 授权向导对象（Claude 根级 + openai/grok/gemini 嵌套子块，约 220 行/语言，零调用方）；"Re-Auth Modal" 整段标签组（`claudeCodeAccount`/`openaiAccount`/`geminiAccount`/`grokAccount`/`reAuthorizeAccount`/`inputMethod`/`reAuthorizedSuccess`）；顶层 `oauthType`/`setupToken` 与 `accounts.platforms.*`/`accounts.types.*`（徽标改用 `PlatformTypeBadge.vue` 硬编码 switch 后失去消费方，仅 `types.responsesApi` 仍在用予以保留）；`GroupsView.*.spec.ts` fixture 里的 `require_oauth_only`/`require_privacy_set`（migration 161 已删）/`mcp_xml_inject` 孤儿字段。
+- **第三轮（`golangci-lint --enable-only unused` 全仓扫描补漏，人工 grep 抓不到）**：`gateway_upstream_request.go` 的 `applyClaudeCodeMimicHeaders` + `applyClaudeOAuthHeaderDefaults` + `mergeAnthropicBetaDropping`（连带清理失效的 `google/uuid` 导入）；`openai_gateway_count_tokens.go` 整条 OAuth 本地 tiktoken 估算兜底链（9 函数 + 3 常量共 264 行，`go mod tidy` 连带裁掉 `tiktoken-go/tokenizer` + `dlclark/regexp2/v2` 两个不再被引用的依赖）；`openai_oauth_passthrough_test.go` 的孤儿桩 `passthroughErrReadCloser`（该文件测试早已改名 `*_APIKeyPassthrough_*` 仍是活的，未误删）。
+
+均逐条核实（git blame 溯源、grep 动态 key 拼接、读消费组件源码、golangci-lint unused 交叉验证）后删除。**合法保留点**（核实仍在用）：`servertiming` 通用 host 分类、`admin_account.go` 复制账号遗留字段丢弃名单、`admin.groups.platforms.antigravity`/`accounts.upstream.baseUrlHint` 兼容存量数据的 key。防复发：`script/pre_push_check.sh` 新增**检查 5**——扫描推送范围新增行命中 `PlatformAntigravity`/`AccountTypeOAuth`/`AccountTypeSetupToken`/裸词 `antigravity` 时要求交互确认。
+
+高风险复核：本次改动的 fork 登记文件仅涉及测试新增（无生产逻辑变更）；i18n 大范围删除后 typecheck/lint:check/全量 vitest（186 文件/1235 用例）重跑无回归（含 zh/en key 对齐的 `localesMessageCompile.spec.ts`）；检查 5 已用合成 diff 验证匹配/排除逻辑；后端 build/vet/全量 unit 通过，`golangci-lint unused` 复扫 oauth/antigravity 清零；go.mod/go.sum 仅移除无引用间接依赖。
+
+**codex review 复核发现并修复 2 处**：① `NormalizePhone`（`auth_phone.go`）只查长度与首字符、不查其余字符是否为数字，`"1380000000a"` 会被误判合法——已改 `^1\d{10}$` 正则校验并把对应用例改回断言拒绝；② 检查 5 的 grep 少 `-i`，全大写标识符（如 `ANTIGRAVITY_DEFAULT_URL`）会绕过门禁——已改 `grep -iE` 真正大小写不敏感。
+
+---
+
 ## 修复 - 2026-07-19 — fork 设置空值防冲掉全面收紧（currency_mode 同类风险一次修完）
 
-对 currency_mode 被清空的根因做全面审计后系统性收紧。根因：`/admin/settings` 全量 PUT
-下，handler 层 `*string` nil-preserve 只防**字段缺失**，挡不住**显式空值**；空值现实来源
-是部署窗口竞态（页面在旧后端加载，GET 响应无新字段 → 表单空默认值 → 部署后保存到新后端）
-或旧缓存前端 bundle。逐字段审计三层防护（请求 DTO → handler 合并 → service 写库）后，
-同类可被空值冲掉的还有：`cny_rate`（0 值）、`sms_provider`、火山/腾讯/阿里 SMS 全部
-非 secret 配置（共 11 个字段）；`ui_theme` 有 handler 白名单、bool 字段 false 是合法值、
-secret 字段本就「非空才覆盖」。修复：`buildSystemSettingsUpdates` 引入 `setIfNonEmpty`，
-所有枚举/凭证类 fork 字符串字段统一「空串=未设置=保留 DB 原值」（cny_rate 非正数同理），
-在 service 写库层（所有调用方唯一咽喉）生效。语义变化：这些字段不再支持清空为空串
-（本无业务意义，换配置直接覆盖即可）。回归测试重写为全集守护
-`TestSettingService_UpdateSettings_EmptyForkFieldsDoNotWipe` + 非空落库反向用例，
-service/handler 全套 unit 通过。
+根因：`/admin/settings` 全量 PUT 下 handler 的 `*string` nil-preserve 只防字段缺失、挡不住显式空值（来源：部署窗口竞态或旧缓存前端 bundle）。逐字段审计三层防护后，同类可被空值冲掉的还有 `cny_rate`（0 值）、`sms_provider`、三家 SMS 全部非 secret 配置（共 11 字段）。修复：`buildSystemSettingsUpdates` 引入 `setIfNonEmpty`，所有枚举/凭证类 fork 字符串字段统一「空串=未设置=保留 DB 原值」（cny_rate 非正数同理），在 service 写库层唯一咽喉生效。语义变化：这些字段不再支持清空为空串（无业务意义）。回归测试重写为全集守护 `TestSettingService_UpdateSettings_EmptyForkFieldsDoNotWipe` + 非空落库反向用例。
 
-高风险复核：`setting_update.go` 仅 fork 字段写入块改为 setIfNonEmpty 语义，bool 字段
-与互斥逻辑、上游字段写入均未动。
+高风险复核：`setting_update.go` 仅 fork 字段写入块改为 setIfNonEmpty 语义，bool 字段与互斥逻辑、上游字段写入均未动。
 
 ---
 
 ## 修复 - 2026-07-19 — 定时测试孤儿计划自愈（账号软删后不再每分钟 ERROR 刷屏）
 
-账号使用软删除（SoftDeleteMixin），`scheduled_test_plans.account_id` 的 ON DELETE CASCADE
-永不触发；账号删除后遗留的孤儿计划每分钟被调度、每次在 SSE 测试路径刷一条
-"Account test error: Account not found" ERROR+堆栈（线上实录十余条/分钟）。
-`RunTestBackground` 现先做账号存在性检查并把 `ErrAccountNotFound` 抛给调用方；
-`ScheduledTestRunnerService.runOnePlan` 捕获后按 CASCADE 本意删除孤儿计划自愈
-（结果表随计划级联删除），只留一条 removed 日志。新增
-`scheduled_test_runner_orphan_test.go` 两用例，service 全套 unit 通过。
+账号软删（SoftDeleteMixin）使 `scheduled_test_plans.account_id` 的 ON DELETE CASCADE 永不触发，孤儿计划每分钟刷 "Account test error: Account not found" ERROR+堆栈。修复：`RunTestBackground` 先做账号存在性检查抛 `ErrAccountNotFound`；`ScheduledTestRunnerService.runOnePlan` 捕获后按 CASCADE 本意删除孤儿计划自愈，只留一条 removed 日志。新增 `scheduled_test_runner_orphan_test.go` 两用例。
 
-高风险复核：`account_test_service.go` 仅在 RunTestBackground 入口新增存在性预检查；
-`scheduled_test_runner_service.go` 仅在 runOnePlan 错误分支新增 ErrAccountNotFound
-清理逻辑，正常测试执行路径未动。
+高风险复核：`account_test_service.go` 仅入口新增存在性预检查；`scheduled_test_runner_service.go` 仅错误分支新增清理逻辑，正常测试路径未动。
 
 ---
 
 ## 修复 - 2026-07-19 — 货币模式被全量 PUT 空串冲掉 + 邀请成员不再硬依赖 frontend_url
 
-线上两问题：① 保存站点信息后管理端「货币选择」弹窗重现——全量 PUT 语义下客户端带
-`currency_mode: ""`（表单未回填/旧缓存 bundle/异常客户端）会穿透 handler 的 nil-preserve
-把 DB 已配置模式冲成空串（本地 curl 复现确认；字段缺失与正常回路均安全）。系统没有合法
-路径主动清空货币模式，`buildSystemSettingsUpdates` 现对空串跳过写入、保留 DB 原值，
-新增回归测试 `TestSettingService_UpdateSettings_EmptyCurrencyModeDoesNotWipe`。
-② 邀请团队成员/重发邀请在 frontend_url 未配置时直接 500 "frontend URL is not configured"，
-整个邀请功能不可用。`TeamHandler` 新增 `resolveFrontendBaseURL`：设置值优先，未配置时回退
-为当前请求来源（scheme+Host，尊重反代 X-Forwarded-Proto/X-Forwarded-Host，即系统所在 URL），
-新增 `team_handler_frontend_url_test.go` 两用例。unit 套件全绿，本地起服务 curl 验证
-空串 PUT 后 DB 值保留。
+① 客户端带 `currency_mode: ""` 的全量 PUT 会穿透 nil-preserve 把 DB 已配置模式冲成空串（本地 curl 复现）；系统无合法路径主动清空货币模式，`buildSystemSettingsUpdates` 现对空串跳过写入，回归测试 `TestSettingService_UpdateSettings_EmptyCurrencyModeDoesNotWipe`。② 邀请成员在 frontend_url 未配置时 500——`TeamHandler` 新增 `resolveFrontendBaseURL`：设置值优先，未配置回退请求来源（尊重 X-Forwarded-Proto/Host），`team_handler_frontend_url_test.go` 两用例。
 
-高风险复核：`setting_update.go` 仅把 currency_mode 无条件写入改为非空才写（其余 fork 字段
-写入原样保留）；`team_handler.go` 仅替换两处 frontendBaseURL 取值为新 helper，错误分支与
-其余邀请逻辑未动。
+高风险复核：`setting_update.go` 仅 currency_mode 改非空才写；`team_handler.go` 仅替换两处取值为新 helper，其余邀请逻辑未动。
 
 ---
 
 ## 新增 - 2026-07-18 — 团队邀请站内接受入口（已注册用户不再依赖邀请邮件）
 
-团队协作此前对已注册用户只有"邮件链接"一条接受路径（SMTP 未配置时 `sendInviteEmail`
-静默跳过，邀请完全无法送达），表现为"只能邀请新成员"。本次给被邀请人加站内入口：
-后端 `TeamInvitationRepository` 新增 `ListPendingByInvitedEmail`（pending + 未过期，
-按邮箱），`TeamService.ListReceivedInvitations` 以当前登录用户邮箱列出收到的邀请
-（含 owner 邮箱与接受 token，token 仅返回给邮箱匹配的本人，与邀请邮件所含信息等价），
-新路由 `GET /api/v1/team/invitations/received`；接受复用既有
-`POST /team/invitations/accept/:token`。前端 `TeamMembersView.vue` 顶部新增
-"我收到的邀请"卡片（有数据才显示，一键接受后刷新 teams 与页面数据），
-`api/team.ts` 新增 `listReceivedInvitations`，zh/en fork.ts 新增 `received*` 文案并
-更新 `inviteHint` 说明。测试：service 2 个新用例（列出+token 接受闭环 / 过期与他人
-邀请排除）、TeamMembersView 新用例（站内接受走 token），unit 套件、typecheck、
-lint 全绿（lint 53 个存量问题与基线一致，无新增）。
+SMTP 未配置时邀请邮件静默不发，已注册用户无法收到邀请。新增站内通道：`TeamInvitationRepository.ListPendingByInvitedEmail`、`TeamService.ListReceivedInvitations`（按当前登录邮箱返回 pending 未过期邀请，token 仅返回给邮箱匹配本人）、路由 `GET /api/v1/team/invitations/received`；接受复用既有 token 接口。前端 `TeamMembersView.vue` 顶部「我收到的邀请」卡片（有数据才显示）、`api/team.ts` 新增方法、fork.ts 新增 `received*` 文案。测试：service 2 用例 + 视图 1 用例，unit/typecheck/lint 全绿。
 
-高风险复核：`team_service.go`/`team_handler.go`/`team_port.go`/`team_invitation_repo.go`/
-`routes/user.go`/`TeamMembersView.vue`/`api/team.ts`/`fork.ts` 均为纯追加（新方法/新路由/
-新卡片/新文案），既有邀请、接受、成员管理逻辑未改动。
+高风险复核：`team_service.go`/`team_handler.go`/`team_port.go`/`team_invitation_repo.go`/`routes/user.go`/`TeamMembersView.vue`/`api/team.ts`/`fork.ts` 均为纯追加，既有邀请/接受/成员管理逻辑未改动。
 
 ---
 
 ## 新增 - 2026-07-18 — 月度对账前端页面 + 管理端导出入口 + e2e（功能 45 PR3/3）
 
-功能 45 收尾：用户端新增「月度对账」页 `StatementView.vue`（`/statement` 路由 + 侧边栏项，
-Simple 模式隐藏；月份下拉自动选最近月、汇总卡片、DataTable 明细六种行、未封账/反算值徽标、
-恒等式差额脚注、导出 Excel blob 下载，时区取浏览器 `Intl` 时区）；管理端用户管理「更多」菜单
-新增「对账导出」（BaseDialog 选月弹窗默认上月，actions-count 7→8，`exportUserStatement` blob）。
-i18n：fork.ts 新增 `nav.statement` + 顶层 `statement.*` 模块（zh/en 成对），admin overview.ts
-users 块新增 `exportStatement*` 键。测试：`StatementView.spec.ts` 6 用例 + i18n 守护 spec 全绿，
-typecheck/lint 通过；后端新增 `TestE2EFull_MonthlyStatement`（建用户→当月对账单期初期末=初始
-余额→months→用户/管理端导出 MIME/attachment/-partial→网关真实消费后 utilisation 与期末余额
-联动断言）。
+用户端 `StatementView.vue`（`/statement` 路由 + 侧边栏项，Simple 模式隐藏；月份下拉/汇总卡片/明细六种行/未封账徽标/恒等式差额脚注/Excel blob 导出，时区取浏览器 Intl）；管理端 `UsersView.vue`「更多」菜单「对账导出」（BaseDialog 选月默认上月，actions-count 7→8，`exportUserStatement`）。i18n：fork.ts `nav.statement` + `statement.*`，overview.ts `exportStatement*`。测试：`StatementView.spec.ts` 6 用例 + i18n 守护全绿；后端 `TestE2EFull_MonthlyStatement` 全链路断言（期初期末锚点/导出 MIME/-partial/真实消费后 utilisation 联动）。
 
-高风险复核：`UsersView.vue` 仅新增菜单项/选月弹窗/导出 handler（actions-count 7→8），既有操作
-项与数据流未动；`router/index.ts`/`AppSidebar.vue`/`fork.ts`/`overview.ts` 均为纯追加。
+高风险复核：`UsersView.vue` 仅新增菜单项/弹窗/handler（actions-count 7→8），既有操作与数据流未动；`router/index.ts`/`AppSidebar.vue`/`fork.ts`/`overview.ts` 均为纯追加。
 
 ---
 
 ## 新增 - 2026-07-18 — 月度对账后端 API + Excel 导出（功能 45 PR2/3）
 
-在 PR1 数据层之上落地对账 API：`StatementService` 拼装六种行（期初/充值/提现/赠送/按日消耗/
-期末，含 Qty/等效单价/折扣率反算、逐行滚动余额、恒等式 gap），已封账月快照优先、当月与缺失月
-实时反推（`source: snapshot|computed`，当月 `closed=false`）。新增 `pkg/statement` 共享 DTO 与
-`pkg/xlsxreport`（首次引入 excelize v2.11）逐格复刻 Eonreach 模板（标题/Period/双行表头/活公式
-`E*F`、`G*(1-H)`、`C+I`、期末 SUM），未封账月文件名带 `-partial`。路由：用户端
-`GET /api/v1/usage/statement{,/months,/export}`（挂 usage 组，静态段优先于 `/:id`）；管理端
-`GET /api/v1/admin/users/:id/statement/export`（`SetStatementService` setter 注入，不改
-`NewUserHandler` 签名，导出方法在独立 fork 文件 `user_statement_handler.go`）。
-单测：service（快照优先/反推/当月/gap/非法入参/月份列表）+ xlsxreport（读回断言单元格与公式）+
-handler（401/400/导出头/-partial/静态段不落入 `/:id`）全绿；全量 unit 套件回归通过。
+`StatementService` 拼装六种行（Qty/等效单价/折扣率反算、滚动余额、恒等式 gap），已封账月快照优先、当月与缺失月实时反推（`source: snapshot|computed`）。新增 `pkg/statement` 共享 DTO 与 `pkg/xlsxreport`（首次引入 excelize v2.11）逐格复刻 Eonreach 模板（活公式 `E*F`/`G*(1-H)`/`C+I`/期末 SUM），未封账月文件名带 `-partial`。路由：用户端 `GET /api/v1/usage/statement{,/months,/export}`（静态段先于 `/:id`）；管理端 `GET /api/v1/admin/users/:id/statement/export`（`SetStatementService` setter 注入，导出方法在独立 fork 文件 `user_statement_handler.go`）。单测（service/xlsxreport/handler）+ 全量 unit 回归通过。
 
-高风险复核：`wire_gen.go` 本次新增 statementService/statementHandler 构造与
-`ProvideAdminHandlers`/`ProvideHandlers` 实参（`go generate ./cmd/server` 生成）；
-`routes/user.go`/`routes/admin.go` 仅追加 statement 路由行，既有路由未动。
+高风险复核：`wire_gen.go` 本次新增 statementService/statementHandler 构造与 `ProvideAdminHandlers`/`ProvideHandlers` 实参（`go generate` 生成）；`routes/user.go`/`routes/admin.go` 仅追加 statement 路由行。
 
 ---
 
 ## 新增 - 2026-07-18 — 月度对账（Vendor Report）数据层（功能 45 PR1/3）
 
-按 Eonreach 供应商对账单模板实现按月对账的数据层（方案见
-`claudedocs/月度对账功能设计方案.md`）。新增 `balance_snapshots` 月结快照表（ent schema +
-migration 183，单用户单月一行、UNIQUE(user_id,period)、无 users 外键台账语义）；
-`StatementRepository` 五表 raw SQL 聚合（充值/退款/赠送/兑换/企业划转/按日消耗 + 反推净变动），
-**Credit 统计排除充值链路兑换码防双算**（充值入账实际走「订单→兑换码→Redeem」链路）；
-`BalanceSnapshotService` 月结后台任务（每月 1 日 00:30 后为上月补算缺口快照，leader lock 多实例
-互斥，`RecomputeForUserMonth` 幂等 upsert），期末余额以 `users.balance` 为锚反推、期初优先取上月
-快照。零改动既有接口（零 test stub 冲击）；Wire 注入 + cleanup 链、`wire_gen_test.go` 补 nil 参。
-单测（月界/反推/幂等/恒等式）+ 集成测试（五表口径/防双算/owner-member 双视角/时区归日）全绿；
-lint 新增代码零问题（存量 51 项债与本次无关，已 stash 对照确认）。
+方案见 `claudedocs/月度对账功能设计方案.md`。新增 `balance_snapshots` 月结快照表（ent schema + migration 183，UNIQUE(user_id,period)、无 users 外键台账语义）；`StatementRepository` 五表 raw SQL 聚合（充值/退款/赠送/兑换/企业划转/按日消耗 + 反推净变动），**Credit 统计排除充值链路兑换码防双算**（充值入账走「订单→兑换码→Redeem」链路）；`BalanceSnapshotService` 月结后台任务（每月 1 日 00:30 后补算上月缺口，leader lock，`RecomputeForUserMonth` 幂等 upsert），期末以 `users.balance` 为锚反推。零改动既有接口（零 stub 冲击）。单测（月界/反推/幂等/恒等式）+ 集成测试（五表口径/防双算/双视角/时区归日）全绿。
 
-高风险复核：`wire_gen.go` 仅新增 statement/balance_snapshot repository、BalanceSnapshotService
-构造与 provideCleanup 实参/形参/stop 条目，其余注入链未动（`go generate ./cmd/server` 生成）。
+高风险复核：`wire_gen.go` 仅新增 statement/balance_snapshot repository、BalanceSnapshotService 构造与 provideCleanup 实参/形参/stop 条目，其余注入链未动。
 
 ---
 
 ## 修复 - 2026-07-17 — 平台费用悬浮层被表格 overflow 裁切
 
-`PlatformUsageBreakdown.vue`（功能 44 复用组件，风险表 🟡 中）在 `DataTable` 单元格内悬浮时被
-祖先 `.table-wrapper`（`overflow-x/y:auto`）裁掉顶部/侧边。原来靠绝对定位 + `align` prop 只改弹出
-方向，无法逃出滚动容器的裁剪。改为复用全站既有做法（同 `UsageTable.vue`）：弹层 `Teleport` 到
-`body` + `position:fixed` + `getBoundingClientRect` 定位，脱离 overflow 容器；`align` 语义保留
-（`left` 向左展开、默认 `right` 向右）。一处改动同修团队成员报表与后台用户管理两个引用点；组件
-在 `TeamMembersView.spec.ts` 中为 stub，不受影响。typecheck + lint 通过。
+`PlatformUsageBreakdown.vue` 在 `DataTable` 单元格内悬浮时被祖先 `.table-wrapper`（overflow:auto）裁切。改为复用全站既有做法（同 `UsageTable.vue`）：弹层 `Teleport` 到 `body` + `position:fixed` + `getBoundingClientRect` 定位；`align` 语义保留。同修团队成员报表与后台用户管理两个引用点。
 
-高风险复核：`PlatformUsageBreakdown.vue` 仅改 tooltip 定位机制（绝对定位→Teleport+fixed），
-props 契约（`today/total/byPlatform/align`）、`sortedBreakdown`「其他」行聚合、文案与显示内容均
-未变；两个引用点 `TeamMembersView.vue`/`UsersView.vue` 无需改动。
+高风险复核：仅改 tooltip 定位机制（绝对定位→Teleport+fixed），props 契约、「其他」行聚合、文案均未变；两个引用点无需改动。
 
 ---
 
 ## 修复 - 2026-07-17 — 团队协作页移动端适配（迁移共享 DataTable）
 
-`TeamMembersView.vue`（企业成员管理，功能 44）此前三个裸 `<table>`（成员 6 列 + 每行 6 个
-操作按钮 / 流水 / 报表）在窄屏横向撑破页面。改为复用全站共享的 `DataTable` 组件（内置
-`matchMedia('min-width:768px')` 桌面表↔移动卡片切换，与使用记录/用户/账号等页一致）：桌面端
-仍渲染表格，移动端每行自动降级为 `label:value` 卡片、操作按钮落在卡片底部独立区块。新增
-`memberColumns`/`transferColumns`/`reportColumns` 列定义 + `#cell-*` 插槽承接原单元格内容
-（含 `UserStatsModal` 使用统计、划拨/回收/额度/部门/角色/移除按钮、`PlatformUsageBreakdown`）；
-Tab 栏加 `overflow-x-auto` 防 5 Tab 溢出。移动端 390px 浏览器实测三 Tab 均正常卡片化。
+`TeamMembersView.vue` 三个裸 `<table>` 在窄屏横向撑破页面，改为复用全站共享 `DataTable`（内置桌面表↔移动卡片切换）：新增 `memberColumns`/`transferColumns`/`reportColumns` 列定义 + `#cell-*` 插槽承接原单元格内容；Tab 栏加 `overflow-x-auto`。移动端 390px 实测三 Tab 均正常卡片化。
 
-高风险复核：`TeamMembersView.vue` 仅视图层重构（表格→共享 DataTable 组件 + 列定义/插槽），
-业务逻辑/接口/数据流（teamStore、各 handler 调用、对话框）均未改动；功能 44 后端零影响。
-typecheck + lint 通过；`TeamMembersView.spec.ts`(4) + `team.spec.ts`(5) + `TeamInviteAcceptView.spec.ts`(3) 全绿。
+高风险复核：仅视图层重构（表格→DataTable + 列定义/插槽），业务逻辑/接口/数据流未改动；typecheck + lint + 相关 vitest（4+5+3）全绿。
 
 ---
 
 ## [1.1.160] - 2026-07-17 — 同步上游 0.1.160（OpenAI 兼容 prompt 审计）
 
-同步上游 25 提交（0.1.158→0.1.160）。主体为**新功能：OpenAI 兼容 prompt 审计**
-（`internal/securityaudit/` 后端 + `frontend/src/features/prompt-audit/` 前端，Qwen3Guard
-异步复核/同步阻断，事件全量提示词入库仅管理员可查），附带 grok media 修复、image_gen 被动
-namespace 显式意图检查（#4476）、backup S3 step-up TOTP。VERSION → 1.1.160。
+同步 25 提交（0.1.158→0.1.160）。主体为新功能 **OpenAI 兼容 prompt 审计**（`internal/securityaudit/` + `frontend/src/features/prompt-audit/`，Qwen3Guard 异步复核/同步阻断），附带 grok media 修复、image_gen 显式意图检查（#4476）、backup S3 step-up TOTP。VERSION → 1.1.160。
 
-15 个冲突文件 + auto-merge 后遗症的 fork 适配要点：
-- `cmd/server/wire.go`：Application 保留 fork `SQLDB` + 并入上游 `PromptAudit`
-- `handler/wire.go`：`ProvideGatewayHandler` 去 antigravity 参、补 fork `bridgeRegistry`；
-  BatchImage 用上游 `ProvideBatchImageHandler` + 保留 fork Team/Enterprise 注入
-- `gateway_handler.go`：结构体保留 fork `bridgeRegistry` + 并入 `securityAuditCoordinator`，
-  不引入上游 `antigravityGatewayService`（功能 35 已删 antigravity）
-- `openai_gateway_handler.go`：生图能力路由复用已升级为显式意图的 `imageIntent`（采纳 #4476）
-- `service/account.go`：保留上游 `GrokMediaEligibleExtraKey`；`GrokMediaGenerationEligibility`
-  按 fork 世界化简（无 OAuth/billing 快照，除显式 override 外一律 eligible）；弃 codex-PAT auth
-- `securityaudit/prompt_module.go`：补 `PromptAdminService` 显式 `wire.Bind`，供离线重生成 wire_gen
-- `wire_gen.go`：用 `go run wire` 从已解决 injector 重新生成（权威），fork 注入全保留、
-  securityaudit 正确接线、无 OAuth/antigravity 残留
-- 改/删冲突保持 fork 删除：`grok_quota_service.go`、`xai/billing.go` 及相关 OAuth/billing 测试
-- `docker-compose.yml` 保留 fork tokenpanel 品牌；pnpm-lock 去重 `@intlify/message-compiler`
+15 个冲突文件的 fork 适配要点：`cmd/server/wire.go` 保留 fork `SQLDB` + 并入 `PromptAudit`；`handler/wire.go` 的 `ProvideGatewayHandler` 去 antigravity 参、补 fork `bridgeRegistry`，保留 Team/Enterprise 注入；`gateway_handler.go` 保留 `bridgeRegistry` + 并入 `securityAuditCoordinator`、不引入 `antigravityGatewayService`；`openai_gateway_handler.go` 采纳 #4476 `imageIntent`；`service/account.go` 保留 `GrokMediaEligibleExtraKey`、`GrokMediaGenerationEligibility` 按 fork 无-OAuth/billing 世界化简（仅 override）、弃 codex-PAT auth；`securityaudit/prompt_module.go` 补 `PromptAdminService` 显式 `wire.Bind`（供离线重生成）；`wire_gen.go` 用 `go run wire` 权威重生成；改/删冲突保持 fork 删除 `grok_quota_service.go`/`xai/billing.go` 及相关 OAuth/billing 测试；docker-compose 保留 tokenpanel 品牌。
 
-高风险复核：本次同步逐个人工核对了 `wire.go`/`wire_gen.go`/`handler/wire.go`/`gateway_handler.go`/
-`openai_gateway_handler.go`/`service/account.go`/`admin_account.go`/`routes/admin.go` 等登记 fork
-文件的合并结果，确认 fork 注入链（lingjing/provider-pricing/model-pricing/team/enterprise/bridgeRegistry）
-与逆向清理（antigravity/grok-OAuth/codex-PAT 已删）均未被上游静默吞回；wire 从 injector 权威重生成。
+高风险复核：逐个核对 `wire.go`/`wire_gen.go`/`handler/wire.go`/`gateway_handler.go`/`openai_gateway_handler.go`/`service/account.go`/`admin_account.go`/`routes/admin.go` 等登记文件合并结果，fork 注入链（lingjing/provider-pricing/model-pricing/team/enterprise/bridgeRegistry）与逆向清理均未被吞回。
 
-验证：后端 `go build ./...` + 单元测试全过（service/repository/server/handler/securityaudit）；
-前端 typecheck + 58 测试（含 prompt-audit）+ lint + `--frozen-lockfile` 全过；本地起服务 +
-浏览器 E2E 实操：v1.1.160 登录、仪表盘、**提示词审计**（事件/配置、运行态 DB·Redis ok、Qwen3Guard
-策略）、**模型折扣**（90 条 + MaaS 同步 + lingjing 模型）均正常。
+验证：后端 build + 单测全过（含 securityaudit）；前端 typecheck + 58 测试 + lint + `--frozen-lockfile` 全过；浏览器 E2E 实操：提示词审计（DB·Redis ok、Qwen3Guard 策略）、模型折扣（90 条 + MaaS 同步 + lingjing）均正常。
 
 ---
 
 ## 工具 - 2026-07-17 — pre-push 门禁检查 3 扩到全部登记 fork 文件
 
-`script/pre_push_check.sh` 检查 3 的复核范围从"仅 🔴 高风险文件"扩大到 `自定义开发功能列表.md`
-风险表登记的**全部 fork 文件（🔴 高 / 🟡 中 / 🟢 低 三档）**——本次推送范围改动其中任意文件即
-逐个打印 diff + 要求「高风险复核：」书面留痕 + `/dev/tty` 交互确认。同时修复提取/匹配两处问题：
-(1) 文档用 `path/{a,b,c}.go` brace 记法登记同类文件，原匹配不展开 brace 会漏判且刷 `invalid repeat`
-正则错误——改为 `set -f` 关闭 glob 后 bash eval 展开 brace（复用检查 2 手法，带安全字符集过滤防注入）；
-(2) 原逐文件×逐 pattern 嵌套循环在大同步（如 360 文件 × 159 pattern）会超时——改为并成一个正则集
-对改动清单一次 `grep -Ef`，实测 1s 内完成。CLAUDE.md 门禁章节同步更新。
+检查 3 复核范围从「仅 🔴 高」扩大到风险表登记的**全部 fork 文件（🔴/🟡/🟢 三档）**。同时修复两处：(1) 文档 `{a,b,c}.go` brace 记法原匹配不展开会漏判——改 bash eval 展开（带安全字符集过滤）；(2) 逐文件×逐 pattern 嵌套循环在大同步会超时——改为正则集一次 `grep -Ef`，实测 1s 内。
 
 ---
 
 ## 工具 - 2026-07-17 — pre-push 门禁新增高风险文件复核 + e2e 强制
 
-`script/pre_push_check.sh` 在原有两项（CHANGELOG 必更、功能列表一致性）基础上新增两项，
-针对"上游合并静默吞掉 fork 代码块"（已出现 ≥3 次）与"合并后未跑 e2e 直接推送"两类隐患：
-
-- **检查 3 — 🔴 高风险文件逐个复核**：自动从 `自定义开发功能列表.md`「🔴 高」行文件列
-  提取受保护文件（含 `.github/workflows/*.yml` 等 glob 与 `setting_public.go` 等裸文件名，
-  实测提取 25 个 pattern）。本次推送范围改动其中任意文件时，钩子逐个打印其 diff，并要求
-  两重留痕才放行：(a) `CHANGELOG.md`/功能列表在本范围内新增一行以「高风险复核：」开头的
-  书面结论；(b) 交互终端（`/dev/tty`）y/N 二次确认。GUI 客户端无 tty 时命中即阻塞，需命令行推送。
-- **检查 4 — e2e 全量强制**：范围内有实质源码改动（`.go/.ts/.vue`，排除测试）时，内联运行
-  `./script/e2e-test.sh`（需本地 `script/e2e.env` 真实上游凭证），未通过则阻塞；若检查 1–3
-  已失败则跳过（fail-fast）。
-
-绕过口径不变：`git push --no-verify` 或 `PREPUSH_SKIP=1 git push` 跳过全部四项。CLAUDE.md
-「推送前门禁」章节同步更新。
+`script/pre_push_check.sh` 在原两项（CHANGELOG 必更、功能列表一致性）上新增：**检查 3** 高风险文件逐个复核（打印 diff + 「高风险复核：」书面留痕 + `/dev/tty` y/N 确认，GUI 客户端无 tty 命中即阻塞）；**检查 4** 有实质源码改动时内联跑 `./script/e2e-test.sh`，检查 1-3 失败则跳过（fail-fast）。绕过口径不变（`--no-verify`/`PREPUSH_SKIP=1`）。
 
 ---
 
 ## 同步上游 - 2026-07-17 — 合并 100 个上游 commit（版本 → 1.1.158）
 
-`git merge upstream/main` 合并 100 个上游提交（41 个 merge PR），覆盖后端
-`internal/service`、`internal/repository`、`internal/handler`、`ent/`（含 schema 与生成代码）
-及前端账号/管理组件，新增迁移 178~182。主要合法上游新功能：
+合并 100 提交（41 个 merge PR），新增迁移 178~182。主要采纳的上游新功能：管理面操作审计日志（#4418，migration 180，append-only + 2FA 清空）；管理员 Step-up 二次验证（#4429，`middleware/step_up.go`/`session_binding.go`/`TotpStepUpDialog.vue`）；异步图片任务 + S3 对象存储（#4406，migration 179，`image_task_*`/`image_storage*`/`s3_client.go`，`usage_logs` 拆 `image_input_tokens`/`image_input_cost`）；图片输入 token 独立单价（#4396，migration 178 渠道级 + 182 目录级）；上游账号费率探测 / Key 账单信息（#4385/#4108/#4387）；分组/渠道一键复制（#4434/#4427，migration 181）；用户批量限额编辑（#4425，`BulkEditUserModal.vue`）；其余 Grok/Codex 兼容修复与零散 bugfix。
 
-- **管理面操作审计日志**（PR #4418，migration `180_audit_logs.sql`）：append-only 记录管理面
-  变更类请求/敏感读取/认证事件，新增 `audit_log_handler.go`/`audit_log_repo.go`/
-  `audit_log_service.go`/`middleware/audit_log.go` + 前端 `AuditLogView.vue`。仅支持带 2FA
-  验证的全量清空，不提供单条删除。
-- **管理员二次验证（Step-up）**（PR #4429）：敏感操作前要求 2FA 重新确认，新增
-  `middleware/step_up.go`、`service/session_binding.go`（含 `middleware/session_binding.go`）、
-  前端 `TotpStepUpDialog.vue`/`useStepUp.ts`。
-- **异步图片任务 + 对象存储**（PR #4406，为 #4381 的 revert-and-redo，migration
-  `179_usage_log_image_input_tokens.sql`）：图片编辑/图生图请求转为异步任务落 S3，新增
-  `image_task_handler.go`/`service/image_task.go`/`service/image_storage.go`/
-  `repository/image_task_store.go`/`repository/image_storage_s3.go`/`repository/s3_client.go`，
-  文档 `docs/ASYNC_IMAGE_TASKS.md`；`usage_logs` 拆分 `image_input_tokens`/`image_input_cost`
-  独立计费口径。
-- **图片输入 token 独立单价**（PR #4396，migration `178_channel_image_input_price.sql` 渠道级 +
-  `182_model_pricing_image_input_price.sql` 目录级）：`gpt-image-2` 等模型 image_tokens 按独立
-  单价计费，未配置时回退文本 input_price。
-- **上游账号费率探测 / Key 账单信息**（PR #4385 `feat/upstream-billing-probe`、#4108
-  `feat/key-billing-info`、#4387 `feat/upstream-rate-scheduling`）：新增
-  `account_upstream_billing_probe.go`（+test）、`gateway_key_billing.go`（+test）、
-  `service/upstream_billing_probe.go`，前端 `UpstreamBillingRateCell.vue`。
-- **分组/渠道一键复制**（PR #4434 `feat/group-one-click-copy`、#4427
-  `feat/channel-monitor-one-click-copy`，migration `181_group_duplicate_operation_id.sql`）：
-  新增 `service/admin_group_duplicate.go`，`groups` 表加 `duplicate_operation_id` 用于幂等恢复。
-- **用户批量限额编辑**（PR #4425 `agent/admin-users-batch-limits`）：新增前端
-  `BulkEditUserModal.vue`。
-- 其余为 Grok/Codex 兼容性修复（WSv2 模板、alpha-search 调度、function-tool 缓存等）、Stripe
-  懒加载修复（`StripePopupView.vue`）等零散 bugfix。
+高风险复核：同步范围（`6be4b0cd6..HEAD`）命中的 **9 个 🔴 高文件逐个核对全部通过**——`billing_service.go`（无 applyDiscount/fallbackPrices 回归，tier_pricing 未触碰）、`pricing_service.go`（catalog/aliasIdx 在位）、`ent/schema/model_pricing.go`、`wire_gen.go`（手改 setter ×4/×1 在位、注入链完整）、`routes/admin.go`、`routes/gateway.go`、`config.go`（两 flag 在位）、`setting_update.go`（fork 字段块完整 + 回归测试在位）、`router/index.ts`。功能 35 无生产代码重引入（`IsOpenAIOAuth()` 恒 false，grok/openai oauth 文件未重现，仅剩 GroupsView spec 4 处 mock 惰性字段）。扩展核对：命中的 **13 个 🟡 中文件同样逐个通过**（`gateway_handler.go` 4 处删除是 `writeModelsList` 加 Grok 的签名重构、保留 generic 空列表语义；`openai_gateway_service.go` 16 处删除全为 gofmt 重对齐；`scheduler_snapshot_service.go` 平台列表被追加 `PlatformGrok` 但 `PlatformLingjing` 保留）。🟢 低 0 命中；新增 30 个源码文件全部来自 upstream/main（无漏登记）；未删除任何非测试源码文件。即触碰的全部 22 个登记文件无一被静默覆盖。
 
-高风险复核：已对本次同步范围（`6be4b0cd6..HEAD`）命中的 9 个 🔴 高风险文件逐个核对 diff，全部通过、
-无 fork 逻辑被上游静默覆盖——`billing_service.go`（无 `applyDiscount`/`fallbackPrices` 回归，catalog 路径 +
-`CalculateSeedanceVideoCost` 走 tier_pricing 未被触碰）、`pricing_service.go`（`catalog`/`aliasIdx` 在位，
-无 `pricingData/discounts/customPrices` 回归）、`ent/schema/model_pricing.go`（`pricing_unit` 四值 +
-`tier_pricing` 在位）、`cmd/server/wire_gen.go`（手改 setter `SetEndpointRepository`×4 / `SetModelRoutingService`×1
-在位，lingjing/provider-pricing/team-enterprise 注入链完整，无 `-` 删除）、`routes/admin.go`（`provider-pricings` +
-`sync-from-upstream`/`sync-maas` 在位，旧 `model-discounts` 未回流）、`routes/gateway.go`（`getGroupInboundProtocol`
-+ lingjing images/video 路由在位）、`config.go`（`ProtocolBucketEnabled`/`GenericRuntimeEnabled` 两字段在位）、
-`setting_update.go`（`buildSystemSettingsUpdates` 尾部 fork 字段块 currency_mode/ui_theme/phone_register/CNY/SMS
-完整，回归测试 `setting_fork_fields_persist_test.go` 在位）、`frontend/src/router/index.ts`（`/models` +
-`model-discounts`→重定向 在位）。功能 35（OAuth/逆向剥离）无生产代码重新引入：`Account.IsOpenAIOAuth()` 恒
-`false`，`grok_oauth_service.go`/`grok_quota_fetcher.go`/`admin/{grok,openai}_oauth_handler.go` 均未重现，仅剩
-`GroupsView.{columnSettings,duplicate}.spec.ts` 4 处测试 mock 惰性字段残留（无运行时逆向逻辑）。
-
-扩展核对（覆盖 🔴 高之外的其余登记文件与增删盲区）：本次同步范围还改动了功能列表登记的
-**13 个 🟡 中风险文件**，逐个核对全部通过、fork 逻辑完整——handler/routes 组
-（`setting_handler.go`/`user_handler.go`/`gateway_handler.go`/`routes/auth.go`/`routes/user.go`：
-fork 设置字段/短信路由/功能 37 选号重路由区/enterprise-team 路由均在，`gateway_handler.go` 4 处删除
-是 `writeModelsList` 加 Grok 支持的签名重构、保留 generic 空列表语义）、service/repo 组
-（两个 `model_pricing_repository.go`/`domain_constants.go`/`openai_gateway_service.go`/
-`scheduler_snapshot_service.go`/`settings_view.go`：maas/tier_pricing/visible_only、fork 设置常量、
-功能 25 lingjing/endpoint 装配、`ProtocolBucketEnabled` 分支均在，`openai_gateway_service.go` 16 处
-删除全为 gofmt 重对齐，`scheduler_snapshot_service.go` 平台列表被上游追加 `PlatformGrok` 但
-`PlatformLingjing` 保留=安全扩容）、前端组（`types/index.ts` fork 平台枚举无 antigravity/oauth 回归、
-`SettingsView.vue` 手机注册/短信/主题/货币配置区完整，删除仅为无关排版）。**🟢 低风险 0 命中**。
-增删盲区亦已排查：本次新增的 30 个源码文件全部来自 upstream/main（无漏登记的 fork 独有新文件），
-本次范围**未删除任何非测试源码文件**（无误删 fork 保留文件）。即同步触碰的全部 22 个登记 fork 文件
-（9 🔴 + 13 🟡）均已逐个核对，无一处被上游静默覆盖。
-
-e2e 验证：`./script/e2e-test.sh` 全功能自包含套件（`TestE2EFull`）通过，覆盖网关多平台转发/流式/
-count_tokens、计费扣减、配额/余额/限流拦截、API Key 生命周期、admin 账号/分组 CRUD、Kiro vision
-reroute 等。过程中修复一处与本次合并无关的既存 e2e 测试脆弱性：`TestE2EFull_AdminAccountGroupCRUD`
-原用无过滤的 `/api/v1/admin/groups?page_size=100` 断言新建分组出现在列表，但本地 e2e DB 跨历次运行
-累积分组（默认排序 `sort_order ASC, id ASC`，新组 id 最大排最后），累积数超单页即漏；改为用 `search`
-按唯一名字精确过滤（走 `NameContainsFold`），不依赖分组总数。另 `TestE2EFull_KiroVisionReroute` 的
-vision 子测试走真实上游处理 image，耗时贴近 90s 客户端超时线，偶发 `context deadline exceeded`，重跑
-即过——属上游延迟抖动，非代码缺陷。
+e2e：`./script/e2e-test.sh` 全套通过。顺带修复既存 e2e 脆弱性：`TestE2EFull_AdminAccountGroupCRUD` 改用 `search` 按唯一名精确过滤（原无过滤分页断言在本地累积分组超单页时漏判）。`TestE2EFull_KiroVisionReroute` 偶发 90s 超时属上游延迟抖动，重跑即过。
 
 ---
 
 ## 同步上游 - 2026-07-15 — 合并 214 个上游 commit（版本 → 1.1.156）
 
-`git merge upstream/main` 合并 214 个上游提交，71 处内容冲突 + 44 处 delete/modify 冲突，覆盖
-后端 `internal/service`、`internal/repository`、`internal/handler`、`ent/`（含 schema 与生成代码）
-及前端账号管理组件。按功能 35 口径重新剥离上游重新引入的订阅逆向代码：删除 `grok_credential_failure.go`
-（Grok OAuth 凭证失败切换/风暴限流）、`grok_quota_fetcher.go`（CLI 计费探测）、
-`openai_images_oauth_*`（ChatGPT-web OAuth 图片转发）、`openai_codex_transform.go` 内的
-`applyCodexOAuthTransform`、`grok_import_probe.go`（`ProvideAccountHandler` 及 Grok 主动探测）等
-整块 OAuth 专属代码，并将残留调用点（`IsGrokOAuth`/`getRequestCredential`/
-`ShouldStopOpenAIOAuth429Failover` 等）钝化为恒定安全默认值而非逐个改调用点。`pkg/xai/oauth.go`
-裁剪为仅保留 apikey URL 构建工具，删除 PKCE OAuth 授权流程与 CLI 计费探测。
+71 处内容冲突 + 44 处 delete/modify 冲突。按功能 35 口径重新剥离上游重引入的订阅逆向：删除 `grok_credential_failure.go`、`grok_quota_fetcher.go`、`openai_images_oauth_*`、`openai_codex_transform.go` 内 `applyCodexOAuthTransform`、`grok_import_probe.go` 等整块 OAuth 代码，残留调用点（`IsGrokOAuth`/`getRequestCredential`/`ShouldStopOpenAIOAuth429Failover` 等）钝化为恒定安全默认值；`pkg/xai/oauth.go` 裁剪为仅 apikey URL 构建。保留的合法上游新功能：账号复制（`DuplicateAccount`）、`SchedulerCache` P5-5 双桶比较统计、`long_context_billing_applied` 计费字段、`UpstreamFailoverError` 扩展字段。
 
-合并保留的合法上游新功能：账号复制（`DuplicateAccount`）、`SchedulerCache` P5-5 双桶比较统计
-（`GetDualBucketStats` 等 3 方法）、`long_context_billing_applied` 计费字段、`UpstreamFailoverError`
-扩展字段。
+顺带修复既存缺陷：`account_stats_pricing_test.go` 测试夹具未映射 `LongContextInputThreshold`/`*Multiplier` 导致长上下文倍率断言恒退化。
 
-顺带修复一处与本次合并无关的既存缺陷：`account_stats_pricing_test.go` 的
-`newTestBillingServiceWithPrices` 测试夹具未将 `LongContextInputThreshold`/`*Multiplier` 映射进
-`DBModelPricing.catalog`，导致长上下文倍率断言恒定退化为不生效（`TestTryModelFilePricing_AppliesLongContextPricing`）。
-
-已知未解决问题（详见 `自定义开发功能列表.md` 功能 44 后续跟进）：`TestSchedulerRebuildBatchKeepsMixedAndDifferentKeysIndependent`
-与 `TestSchedulerRebuildBatchDoesNotCacheMixedOrHistoricalQueries` 两个调度器批量查询去重测试失败，
-`internal/service/scheduler_snapshot_service.go` 的 `rebuildPreparedBucketTasks`/
-`schedulerAccountQueryCache` 在 mixed/historical 模式下的账号查询计数与预期不符（single/forced 未去重、
-mixed 模式查询次数为 0），初步判断为生产逻辑问题而非测试夹具问题，尚未定位根因，未做修复。
+已知未解决（详见功能列表功能 44 后续跟进）：`TestSchedulerRebuildBatch*` 两个调度器批量查询去重测试失败（mixed/historical 模式查询计数与预期不符），初判生产逻辑问题，未定位根因。
 
 ---
 
 ## 新功能 - 2026-07-15 — 企业组织与额度分配（Team 协作 v2）
 
-新增功能 44（详见 `自定义开发功能列表.md` 功能 44、方案文档
-`claudedocs/企业账号多管理员共享额度与Key方案.md`）：用户注册后补充企业信息自助升级为企业客户，
-邀请员工加入企业（可指定一级部门、角色、额度模式与初始额度）；员工保留独立账号并**自行管理自己的
-API Key**；企业通过**真实余额划转**给员工分配额度（`allocated` 手动划转 / `shared` 后台自动补给到
-目标水位），全部划转进 `team_fund_transfers` 台账；三档角色 `owner`（隐式超管）/`admin`（部门、
-邀请、划转回收、报表，可设多个）/`member`。
-
-计费模型采用「真实划转余额」：员工 Key 的 owner 就是员工本人，消费扣员工自己的余额，**网关热路径/
-api_keys/usage_logs 零改动**（`DeductBalance` 为原子自减，与划转事务的双行 FOR UPDATE 固定锁序
-并发安全）。回收上限 = min(企业净投入 granted_net_usd, 员工当前余额)。
-
-后端：新表 `enterprise_profiles`/`team_departments`/`team_fund_transfers` + `team_members`/
-`team_invitations` 加列（部门/额度模式/自动补给水位/净投入）；`TeamFundService` 原子划转、
-`TeamAutoTopupService` 后台补给（`tryAcquireSingletonLeaderLock` 多实例互斥）、企业升级与部门
-CRUD、成员报表（复用 `GetBatchUserUsageStats`）。保留 v1 的邀请 token/邮件/60s 重发限流/行锁
-接受/成员上限 50/活动审计。
-
-本次同时**废弃回退 v1「共享控制面」模式**（同分支未推送的中间态）：删除 `middleware.TeamContext`
-（X-Team-Id 上下文切换）及 ~26 处 handler 的 `GetResourceOwnerID` 接入点（回退 `subject.UserID`）、
-前端 TeamSwitcher/TeamContextBanner/请求头注入。废弃原因：共管同一批 Key 不符合企业管理要求。
+新增功能 44（完整描述见 `自定义开发功能列表.md` 功能 44、方案 `claudedocs/企业账号多管理员共享额度与Key方案.md`）：自助升级企业、按部门邀请、员工自管 Key、真实余额划转（allocated 手动 / shared 自动补给）+ `team_fund_transfers` 台账，三档角色 owner/admin/member。计费模型「真实划转余额」：消费扣员工自己余额，网关热路径/api_keys/usage_logs 零改动。新表 `enterprise_profiles`/`team_departments`/`team_fund_transfers` + `team_members`/`team_invitations` 加列；`TeamFundService` 原子划转（双行 FOR UPDATE 固定锁序）、`TeamAutoTopupService` 后台补给（leader lock）。同批**废弃回退 v1「共享控制面」**（未推送中间态）：删除 `middleware.TeamContext` 及 ~26 处 `GetResourceOwnerID` 接入点、前端 TeamSwitcher/请求头注入——共管同一批 Key 不符合企业管理要求。
 
 ---
 
 ## 清理 - 2026-07-14 — 删除 credentialsBuilder.ts 的 plan_type 孤儿函数
 
-2026-07-13 文档审计曾决定保留 `frontend/src/components/account/credentialsBuilder.ts` 里
-0.1.153 合并后已无生产调用的 `buildPlanTypeOptions`/`applyPlanType`/`readPlanType`/
-`planTypeDisplayLabel`（+`PlanTypeOption` 接口），理由是"以后可能恢复 UI 入口"。复核后
-决定：确认无调用即应删除，而非保留死代码等待假设性的未来需求。已删除这 4 个函数、接口，
-以及 `credentialsBuilder.spec.ts` 里对应的 20 条单测；`自定义开发功能列表.md` 风险表移除
-相应行。typecheck/lint/vitest（33 条剩余用例）均通过。
+推翻 07-13 审计「保留待未来恢复」的决定：确认无生产调用即应删除。删 `buildPlanTypeOptions`/`applyPlanType`/`readPlanType`/`planTypeDisplayLabel` + `PlanTypeOption` 接口及对应 20 条单测；功能列表风险表移除相应行。typecheck/lint/vitest 通过。
 
 ---
 
 ## 文档审计 - 2026-07-13 — 0.1.130~0.1.153 全区间代码-文档一致性深度审计
 
-对 141 个 fork 独有提交（0.1.130 至 0.1.153）做函数级审计，核对每处改动是否已被
-`自定义开发功能列表.md`/CLAUDE.md 准确记录。发现并修复 5 处缺口：
-
-- **新增功能 42**：`admin_compliance.go::GetAdminComplianceStatus` 硬编码 `Required: false`
-  （`6170de3f7` 永久禁用管理员部署合规承诺门控），此前全文档零记录。
-- **新增功能 43**：渠道级图片输入定价 `image_input_price`（`1a1e4c241`，migration
-  `162_add_channel_image_input_price.sql` + `channel_handler.go`/`channel_repo_pricing.go`），
-  此前全文档零记录。
-- 风险表补 `setting_update.go`/`setting_public.go` 高危行：0.1.147 合并（`7c9e09d29`）曾
-  静默删除 fork 设置字段写入（后于 `07af185e3` 修复），这是"合并静默丢弃 fork 代码块"模式
-  第 3 次出现，CLAUDE.md 已知陷阱同步补一条通用提醒。
-- `model_pricing_handler.go` 风险表行补充 `for_whitelist` 参数说明（`42332c0fc` 新增，此前遗漏）。
-- CLAUDE.md"批量修改账号导致模型映射丢失"陷阱更新为"已于 2026-06-18（`bd0bf3c44`）自动防护"，
-  避免继续按过时的手工规避方法操作。
-- `frontend/src/components/account/credentialsBuilder.ts` 的 `buildPlanTypeOptions`/
-  `applyPlanType`/`readPlanType` 三个函数（0.1.153 合并剥离 `EditAccountModal.vue` 调用点后
-  已无生产调用）**决定保留**：补充文件内说明注释 + 功能列表风险表行，记录保留原因（后端
-  plan_type 调度语义未变，只是暂无 UI 入口，恢复只需重新接入这三个函数）。
-
-**审计范围说明**：本次审计聚焦"新功能/字段是否被记录""已声明的删除/裁剪是否属实"两类问题，
-未对所有 upstream 合并进来的第三方 PR 逐行走查（那部分本就不属于 fork 差异记录范围）。
+对 141 个 fork 独有提交做函数级审计，修复 5 处缺口：新增功能 42（`admin_compliance.go` 合规门控禁用，`6170de3f7`，此前零记录）；新增功能 43（渠道级 `image_input_price`，`1a1e4c241` + migration 162，此前零记录）；风险表补 `setting_update.go`/`setting_public.go` 高危行（0.1.147 静默删除 fork 字段块事件，模式第 3 次出现，CLAUDE.md 同步补陷阱）；`model_pricing_handler.go` 行补 `for_whitelist` 说明（`42332c0fc`）；CLAUDE.md 批量改账号陷阱更新为已自动防护（`bd0bf3c44`）。审计聚焦「新功能是否被记录、已声明删除是否属实」，未逐行走查上游第三方 PR。
 
 ---
 
 ## [1.1.153] - 2026-07-13 — 同步上游 0.1.153（45 提交：Grok 官方 API 增强 + apicompat/性能修复）
 
-**规模**：上游 45 提交、101 文件（+4480/-221）。无 ent schema 变更；新迁移仅
-`174_add_usage_logs_api_key_latest_ip_index_notx.sql`（IP 查询索引，与 0.1.152 的 174 重号，
-runner 按文件名字典序为 fork 既知常态）。
+**规模**：45 提交、101 文件（+4480/-221）；新迁移仅 `174_add_usage_logs_api_key_latest_ip_index_notx.sql`（与 0.1.152 的 174 重号，字典序常态）。
 
-### 采纳（fork 口径裁剪后）
-- **Grok 官方 API 增强**：第三方 base URL 支持（`bc5d6ecb4`）、apikey 上游模型同步
-  （`b0441ca5a`，`buildGrokUpstreamModelsRequest`，仅取 grok case、antigravity case 不引入）、
-  video edits/extensions 路由与 handler（`909b96edd`，`/videos/edits`、`/videos/extensions`）、
-  `GetGrokMediaBaseURL` 裁剪版（fork 无 OAuth 订阅代理分流，media 与文本同源）+ 路由注册测试。
-- **openai-ws ingress 生命周期修复**（`c8cfc9363`）：v2 池上限改为 `min(并发, 硬上限8)`，
-  fork 断言随实现对齐（20→8）。
-- **apicompat 三修复**：流式 max_tokens→incomplete、content_filter→finish_reason、Read 工具
-  参数实时流式；alpha search 前端 bypass（`b0fa2b352`）；静态资源 Cache-Control；
-  keys 最新 IP 查询索引化；DataTable 滚动抖动修复；池模式重试次数对 Anthropic/Gemini/generic 生效。
-- **调度缓存异常时间修复**（`fe184f8c3`）、i18n zh 缺失键补齐、用量窗口本地日期分页。
-- `.gitignore` 采纳 deploy/tests 白名单；**拒绝**上游忽略 `CLAUDE.md`/`.claude`（fork 入库规则文件）。
+**采纳（fork 口径裁剪）**：Grok 第三方 base URL（`bc5d6ecb4`）、apikey 上游模型同步（`b0441ca5a`，仅 grok case）、video edits/extensions（`909b96edd`）、`GetGrokMediaBaseURL` 裁剪版；openai-ws 池上限 `min(并发, 8)`（`c8cfc9363`，fork 断言 20→8）；apicompat 三修复（max_tokens→incomplete、content_filter、Read 工具实时流式）；alpha search 前端 bypass（`b0fa2b352`）；静态资源 Cache-Control；IP 查询索引化；调度缓存异常时间修复（`fe184f8c3`）等。`.gitignore` 采纳 deploy/tests 白名单，**拒绝**上游忽略 `CLAUDE.md`/`.claude`。
 
-### 不引入（功能 35 口径）
-- OpenAI OAuth plan_type 手动覆盖（`c56a64fab`，仅 OAuth 有调度语义）：EditAccountModal 的
-  planType Select/回填/持久化整链剥离；Codex plan-gated 模型冷却的 OAuth 分支
-  （`5aeb03018`，`isOpenAIOAuthAccount` fork 无此符号）及其 3 个测试；
-  `isOpenAICodexPlanGatedModelError` 纯函数保留（含测试，无 OAuth 依赖）。
-- Grok OAuth media 官方 API 分流（`bb7341673`）与 `GetGrokBaseURL` OAuth 信任校验、
-  `isOfficialGrok*BaseURL`/`GetGrokAccessToken`/`GetGrokRefreshToken`；相关 OAuth 测试
-  （base_url_test 4 个、grok media OAuth 1 个、account_test_service_openai_test 上游新增
-  10 个 OAuth 路径测试）不引入；grok 模型同步拒绝测试改 `AccountTypeUpstream` 保留。
-- failover Antigravity 延迟测试 6 个、upstream_models antigravity 分支/测试、README 上游
-  Grok OAuth 文档段与部署段（fork README 精简策略）；deploy/README 保留 TokenPanel 品牌
-  （采纳 Apple-silicon Mac 描述）。
+**不引入（功能 35 口径）**：OpenAI OAuth plan_type 手动覆盖（`c56a64fab`，EditAccountModal planType 整链剥离）；Codex plan-gated 冷却 OAuth 分支（`5aeb03018`）及 3 个测试（`isOpenAICodexPlanGatedModelError` 纯函数保留）；Grok OAuth media 分流（`bb7341673`）与 `GetGrokAccessToken` 等 OAuth 符号及 15 个 OAuth 路径测试；failover Antigravity 测试 6 个、upstream_models antigravity 分支；README 上游 Grok OAuth 文档段。
 
-### 验证
-后端 `go build ./...` + `go vet -tags=unit ./internal/...` + 全量 `go test -tags=unit ./...`
-全过；前端 typecheck + lint + 关键 vitest 全过；workflows 保持 dispatch-only；功能 35 门禁
-rg 清零；VERSION `1.1.153`。
+**验证**：后端 build/vet/全量 unit 全过；前端 typecheck/lint/关键 vitest 全过；workflows dispatch-only；功能 35 门禁 rg 清零；VERSION 1.1.153。
 
 ---
 
 ## [1.1.152] - 2026-07-13 — 同步上游 0.1.152（40 提交：Grok xAI API key + alpha/search 按次计费）
 
-**规模**：上游 40 提交、120 文件（+6381/-393）。主题集中：Grok 平台大改（xAI API key 账号、
-OAuth 路由加固、被动配额展示）、Codex alpha/search 网页搜索按次计费、compact keepalive
-writer 修复、no-account 错误按平台分类。
+**规模**：40 提交、120 文件（+6381/-393）。
 
-### 采纳的上游功能（fork 口径裁剪后）
-- **Grok 官方 xAI API key 账号**（`d9e466ad3`）：创建/编辑弹窗 grok 平台入口（fork 无
-  OAuth/APIKey 选择区，切到 grok 直接 `accountCategory='apikey'` + 默认
-  `https://api.x.ai/v1`）；`DeriveUpstreamEndpoint` 的 `PlatformGrok` 并入 OpenAI case；
-  `UseKeyModal` Grok CLI/OpenCode 配置 tab（剔除 antigravity tab，补回 `grokModels` 表）。
-- **grok 前端平台链补全**（fork 此前前端无 grok 平台入口，本次采纳 apikey UI 时一并补齐）：
-  `GroupPlatform`/`AccountPlatform` 类型加 `'grok'`；`platformColors.ts` 全部 12 张映射表 +
-  `isPlatform`/`platformLabel` 加 grok（zinc 系，同上游）；`PlatformIcon` 加 grok svg；
-  `CreateAccountModal` 平台选择器加 Grok 按钮；`GroupsView` 平台/筛选选项加 Grok；
-  后端 group dto `oneof` 白名单补 `grok`（否则创建 grok 组 400）；`UseKeyModal` 补回
-  `grokModels` 模型表（OpenCode 配置生成）。
-- **Codex alpha/search 按次计费**（`7cbb36f27`）：`/v1/alpha/search` 路由三处 +
-  `AlphaSearch` handler + `CalculateWebSearchCost`（分组单价 `group.web_search_price_per_call`
-  × 倍率，默认 $0.01/次）+ 迁移 174 + GroupsView 单价配置。service 侧裁剪 OAuth 分支
-  （仅官方 APIKey 上游 `api.openai.com` 或账号 base_url），删除 chatgpt codex 上游常量。
-- **Grok 429→rate-limit 持久化**（`1dedb2097`）：`handleGrokAccountUpstreamError` 按
-  Retry-After/配额窗口 reset 持久化限流（`SetRateLimited[IfLater]`），官方 API 被动配额头
-  照常记录（去掉上游的 OAuth-only 守卫）；上游新增 429 系列测试改 `AccountTypeAPIKey` 保留。
-- **Grok prompt cache identity**（`42f3c2283` 裁剪）：租户隔离 `prompt_cache_key`
-  （apiKeyID+model+seed 哈希，替换客户端原值防跨租户串缓存）+ Chat 的 `X-Grok-Conv-Id`
-  头路由；Free-tier 工具注入参数恒 `false`（仅 OAuth 免费档需要）。
-- **no-account 错误分类**（`8a22dc734`）：`classifyOpenAICompatibleNoAccountErrorFromGin`
-  按平台区分 model_not_found（404）与容量受限（503），responses/chat/messages 六处采纳。
-- **QuotaPlatform 记账**：`OpenAIRecordUsageInput.QuotaPlatform` 字段 + 四处 handler 构造补传。
-- **compact keepalive/remote_compaction_v2 修复**、gpt-5.6 测试对齐、`http_upstream` 重试等
-  非冲突改动整体采纳。
+**采纳（fork 口径裁剪）**：
+- **Grok 官方 xAI API key 账号**（`d9e466ad3`）：创建/编辑弹窗 grok 入口（无 OAuth 选择区，直接 `accountCategory='apikey'` + 默认 `https://api.x.ai/v1`）；`DeriveUpstreamEndpoint` 的 grok 并入 OpenAI case；`UseKeyModal` Grok CLI/OpenCode tab（剔除 antigravity tab）。
+- **grok 前端平台链补全**（fork 此前无 grok 前端入口，一并补齐）：类型加 `'grok'`、`platformColors.ts` 12 张映射表、`PlatformIcon` svg、`CreateAccountModal`/`GroupsView` 选项、后端 group dto `oneof` 补 `grok`（否则建组 400）、`UseKeyModal` 补回 `grokModels`。
+- **Codex alpha/search 按次计费**（`7cbb36f27`）：`/v1/alpha/search` 路由 + `AlphaSearch` handler + `CalculateWebSearchCost`（组单价×倍率，默认 $0.01/次）+ 迁移 174 + GroupsView 配置；service 侧裁剪 OAuth 分支。
+- **Grok 429→rate-limit 持久化**（`1dedb2097`）：按 Retry-After/配额窗口 reset 持久化限流，去掉 OAuth-only 守卫；429 测试改 `AccountTypeAPIKey` 保留。
+- **Grok prompt cache identity**（`42f3c2283` 裁剪）：租户隔离 `prompt_cache_key` + `X-Grok-Conv-Id` 头路由；Free-tier 工具注入恒 `false`。
+- **no-account 错误分类**（`8a22dc734`）：按平台区分 404/503，六处采纳；`QuotaPlatform` 记账字段；compact keepalive、gpt-5.6 对齐等非冲突改动整体采纳。
 
-### 继续删除的逆向链（功能 35 口径）
-- grok OAuth 整链再删：`grok_oauth_service{,_test}.go`、`grok_quota_service{,_test}.go`、
-  `grok_oauth_handler_test.go`、`account_test_service_grok_test.go`、前端 `useGrokOAuth.ts{,spec}`；
-  `openai_gateway_grok_chat_bridge{,_test}.go`（OAuth cacheable-chat 桥，fork chat 直转 raw；
-  共享常量 `grokChatRawEndpoint` 移入 `openai_gateway_chat_completions_raw.go`）。
-- Codex 逆向不回流：`openai_codex_transform.go` 的 `filterCodexInput`/`ensureCodexReasoningInclude`
-  等保持删除 + 上游新测试 `openai_codex_message_item_id_test.go` 不引入；`CodexModels`
-  路由不引入；messages.go 三处 `AccountTypeOAuth` 身份恢复/快照块保持删除。
-- README 不引入上游 "Grok / xAI Support"（OAuth 配置为主）文档段。
-- 上游 OAuth 专属测试删除或改 `AccountTypeAPIKey`/`AccountTypeUpstream`
-  （endpoint_test、alpha_search_test、base_url_test、gpt56/compat/ws/oauth_passthrough 等）。
-- 上游 `TestGetModelPricing_GrokCatalogFallbacks` 删除（断言 grok 内置兜底价——fork 无
-  `fallbackPrices`，未定价 fail-closed 是档案化政策）；三个 grok 转发测试的
-  web_search/x_search 注入断言改为「不注入」（Free-tier 工具注入恒关）。
-- `openAICompatibleRequestPlatform` 采纳上游 grok 分支（grok 组的 no-account 错误
-  按 grok 平台分类，此前 fork stub 恒 openai）。
+**继续删除的逆向链**：grok OAuth 整链（`grok_oauth_service`/`grok_quota_service`/`useGrokOAuth.ts` 及各自测试）、`openai_gateway_grok_chat_bridge`（共享常量 `grokChatRawEndpoint` 移入 `openai_gateway_chat_completions_raw.go`）；Codex 逆向不回流（`filterCodexInput` 等保持删除、`CodexModels` 路由不引入）；上游 OAuth 专属测试删除或改 apikey/upstream 类型；`TestGetModelPricing_GrokCatalogFallbacks` 删除（fork 无 fallbackPrices、fail-closed 是政策）；三个 grok 转发测试的工具注入断言改「不注入」。
 
-### 回归修复（0.1.151 合并遗留）
-- **接回 grok Responses 分流**：`openai_gateway_forward.go` 的
-  `if account.Platform == PlatformGrok → forwardGrokResponses` 在 0.1.151 合并提交
-  `b181ba0c3` 中被误删（实现留存成死代码），本次取上游侧恢复，与 fork 的 apikey-only
-  守卫配合（grok apikey Responses 直连 xAI `/v1/responses`）。
+**回归修复（0.1.151 遗留）**：接回 grok Responses 分流——`openai_gateway_forward.go` 的 `PlatformGrok → forwardGrokResponses` 在 `b181ba0c3` 被误删成死代码，本次恢复并加入口级守护测试 `TestForwardEntryRoutesGrokPlatformToXAIResponses`（反证验证：删分流→请求错落 api.openai.com→测试红）。
 
-### ent 重新生成
-上游 group schema 新列 `web_search_price_per_call` + account `quota_dimension` 与 fork
-schema（已删 `mcp_xml_inject`/`require_oauth_only`/`require_privacy_set`）合并后，恢复
-fork 生成码为基线重跑 `go generate ./ent`（entc load 需 ent 包先可编译），fork 实体
-（LingjingTask/Endpoint/ModelPricing/ProviderPricing）与上游新列共存。
+**ent 重新生成**：上游 group 新列 `web_search_price_per_call` + account `quota_dimension` 与 fork schema 合并后以 fork 生成码为基线重跑 `go generate ./ent`。
 
-### 验证
-E2E（`./script/e2e-test.sh`，真实上游）19 过 / 2 失败——两个失败（`ClaudeToolUse` 工具名被
-渠道改写为 `Compat*` 哈希名、`ClaudeThinking` 渠道 400 拒绝空 tools+thinking 形状）经
-merge 前代码对照复跑**逐字复现**，确认为 openclaw 渠道近期行为变化，非本次合并回归；
-grok 分流回归修复以入口级守护测试闭环验证（`TestForwardEntryRoutesGrokPlatformToXAIResponses`，
-反证：临时删分流→请求错落 api.openai.com→测试红）。
-后端 `go build ./...` + `go vet -tags=unit ./internal/...` + 门禁单测
-（service/repository/server/handler）全过；前端 typecheck + lint:check + 关键 vitest
-（含改造后的 grok spec）全过；fork 守护点（provider-pricings/sync-maas 路由、wire 注入链、
-计费 catalog 无 fallbackPrices、`ProtocolBucketEnabled`/`GenericRuntimeEnabled`、
-protocol.go、usage_log 9 列、user.phone、tier_pricing、workflows dispatch-only、
-功能 35 门禁 rg 清零）全部完好；VERSION `1.1.152`。
+**验证**：E2E 19 过/2 失败——两失败（`ClaudeToolUse` 工具名被渠道改写、`ClaudeThinking` 渠道 400）经 merge 前代码复跑逐字复现，确认为 openclaw 渠道行为变化非本次回归；后端 build/vet/门禁单测全过；前端 typecheck/lint/关键 vitest 全过；fork 守护点全部完好；VERSION 1.1.152。
 
 ---
 
 ## [1.1.151] - 2026-07-11 — 同步上游 0.1.151（61 提交，无破坏性重构）
 
-### 附带修复：fork 自定义设置持久化回归（历史 0.1.147 合并遗留）
+### 附带修复：fork 自定义设置持久化回归（0.1.147 合并遗留）
 
-同步过程中发现「货币显示模式向导每次进后台都弹、保存不生效」。根因经 git 定位为**上一次**
-0.1.147 同步的合并提交 `7c9e09d29` 静默删除了 `buildSystemSettingsUpdates`（写入）与
-`GetPublicSettings`（公开读取）尾部的整段 fork 自定义字段块（merge commit 内删除，`git log -S`
-不可见）。受影响字段：`currency_mode`/`cny_rate`/`ui_theme`/`show_overseas_models`/
-`phone_register_enabled`/`password_login_enabled` 及三家短信（火山/腾讯/阿里）配置——这些设置
-此前只写进内存缓存、重启即丢。`currency_mode` 因无 seed 默认值 + 有强制向导弹窗，成为首个暴露点。
+「货币向导每次进后台都弹、保存不生效」根因：上次 0.1.147 合并提交 `7c9e09d29` **静默删除**了 `buildSystemSettingsUpdates`（写入）与 `GetPublicSettings`（公开读取）尾部整段 fork 字段块（merge commit 内删除，`git log -S` 不可见），受影响 `currency_mode`/`cny_rate`/`ui_theme`/`show_overseas_models`/`phone_register_enabled`/`password_login_enabled` 及三家短信配置——只写内存缓存、重启即丢。修复：
 
-- `backend/internal/service/setting_update.go`：`buildSystemSettingsUpdates` return 前逐字补回
-  22 个 fork 字段的 `updates[SettingKey*]` 写入 + phone/email 互斥逻辑（从 `7c9e09d29^` 恢复）。
-- `backend/internal/service/setting_public.go`：`GetPublicSettings` keys 白名单 + 返回字面量补回
-  6 个 fork 公开字段（含 `cny_rate` 默认 6.8 解析）。
-- 新增回归守护测试 `setting_fork_fields_persist_test.go`：断言 `UpdateSettings` 落库含全部 fork 字段，防下次上游合并再次覆盖。
-- `frontend/src/components/admin/CurrencySetupModal.vue`：改为**全量提交**（先 `getSettings()` 拉完整当前设置，仅覆盖 `currency_mode`/`cny_rate` 后整体 PUT）。此前它只发 `{currency_mode, cny_rate}` 到全量 `PUT /admin/settings`，而后端 `site_name`/`site_logo`/`api_base_url`/`contact_info` 等**值类型字段无 nil-check 回落**，部分更新会把它们写空——货币向导每次弹时用户点确认即连带破坏站点设置。此为持久化回归暴露的次生 bug。
-- **系统筛查(避免头痛医头)**：对「部分更新写空字段」做了三维度完整排查——①触发侧:全前端仅 `CurrencySetupModal` 与 `SetupWizardView` 两处部分 `updateSettings` 调用(`SettingsView` 是全量,安全),两处均已改全量提交;②受害侧:`UpdateSettingsRequest` 有 **110 个值类型字段**(站点/SMTP/Turnstile/LinuxDo/钉钉/微信 OAuth 全套)无 nil-check 回落,任何部分更新都会写空;③读取侧:`GetPublicSettings`(已修)覆盖了复用它的 `GetPublicSettingsForInjection`(SSR 首屏注入),`GetAllSettings` 走 `parseSettings` 全量读,均完整。
-- `frontend/src/views/setup/SetupWizardView.vue`：安装向导的货币设置改全量提交(`install` 后 `getSettings()` + 覆盖 currency),此前部分提交会写空 install 刚初始化的站点/SMTP 等设置。
-- `frontend/src/api/admin/settings.ts`：`updateSettings` JSDoc 补强警告(必须全量、部分提交会写空 110+ 值类型字段),防未来再引入部分更新。
+- `setting_update.go` 补回 22 个 fork 字段写入 + phone/email 互斥（从 `7c9e09d29^` 恢复）；`setting_public.go` 补回 6 个公开字段；新增回归守护 `setting_fork_fields_persist_test.go`。
+- **次生 bug**：`CurrencySetupModal.vue` 原来只发 `{currency_mode, cny_rate}` 到全量 PUT，而后端 **110 个值类型字段无 nil-check 回落**，部分更新会把站点/SMTP/OAuth 全套设置写空。系统筛查（触发/受害/读取三维度）确认全前端仅 `CurrencySetupModal` 与 `SetupWizardView` 两处部分提交，均改为「先 `getSettings()` 拉全量、仅覆盖目标字段后整体 PUT」；`api/admin/settings.ts` 的 `updateSettings` JSDoc 补强警告防再犯。
 
-**规模**：上游 61 提交、123 文件（+6819/-606）。上游内容集中在 OpenAI/Codex/apicompat
-bugfix（tool_search、namespace 摊平撞名拒绝、Codex MCP 工具桥、GPT-5.6 计费/缓存计价、
-setup-token 后台刷新）、compact/SSE 加固、usage/i18n 修正。无结构性重构。
+### 同步与冲突解决（21 个文本冲突）
 
-### 冲突解决（21 个文本冲突 + 若干 auto-merge 语义冲突）
-- **计费 SSOT 保留**：`pricing_service.go`/`billing_service.go` 删除上游重新引入的
-  `fallbackPrices`/`initFallbackPricing`/`matchOpenAIModel`/`openAIGPT5*FallbackPricing`
-  静态兜底（功能 26/34 计费走 catalog，不得内置厂商价）；仅采上游 `LongContext` 字段处理
-  与 GPT-5.6 长上下文 legacy 判定（`usesOpenAILegacyLongContextPricing`，归一同用
-  `normalizeKnownOpenAICodexModel`，无语义回退）。
-- **OAuth 逆向链保持删除**（功能 35）：`token_refresher.go`/`_test.go`（modify/delete 保删）、
-  `account_repo.go` 的 `ListOAuthRefreshCandidates`、`openai_gateway_{forward,passthrough,
-  messages}.go`/`openai_ws_forwarder_payload.go`/`account_{test,usage}_service.go` 中所有
-  `AccountTypeOAuth` 分支（`enforceCodexIdentityHeaders`/`overrideBrowserUserAgent`/
-  `applyCodexOAuthTransform` 等 fork 无符号）全部剥离。生产代码 `AccountTypeOAuth` 残留 0。
-- **保留上游新功能**：用户级 Fast/Flex 策略（`user_ids`，前端 `settings.ts` scope 去 `oauth`
-  留 `user_ids`）、`stripOpenAIImageGenerationToolsFromRawPayload`（补 `encoding/json` import）、
-  grok 被动配额快照、GPT-5.6 别名/max 变体展示。
-- **spark 影子账号功能不引入**（fork 从未有）：删除 `TestMigration154*`（`154_account_spark_shadow.sql`
-  上游有、fork 无）；migration 编号重复为 fork 历史常态（runner 按文件名字典序），非本次问题。
-- **测试收敛**：删除 OAuth 专属测试（compact 降级 / responses effort / oauth 模型路由等）；
-  账号仅作 setup 的通用测试改 `AccountTypeAPIKey`；`pricing_service_test.go` 恢复 fork 版本
-  （上游新增全是 `pricingData` 字段/fallback 用例）；`UseKeyModal` 删 antigravity fable 用例。
+上游内容集中在 OpenAI/Codex/apicompat bugfix、compact/SSE 加固（61 提交、123 文件）。要点：计费 SSOT 保留（删上游重引入的 `fallbackPrices`/`initFallbackPricing`/`matchOpenAIModel` 等静态兜底，仅采 `LongContext` 字段与 GPT-5.6 legacy 长上下文判定）；OAuth 逆向链保持删除（`token_refresher`、`ListOAuthRefreshCandidates`、全部 `AccountTypeOAuth` 分支剥离，生产代码残留 0）；保留上游用户级 Fast/Flex 策略、`stripOpenAIImageGenerationToolsFromRawPayload`、grok 被动配额快照、GPT-5.6 别名展示；spark 影子账号不引入（迁移 154 上游有 fork 无，编号重复为字典序常态）；OAuth 专属测试删除、通用测试改 `AccountTypeAPIKey`。
 
 ### 验证
-全量后端 `go test -tags=unit ./...` 全过；前端 typecheck + lint + 关键 vitest 全过；
-fork 守护点（lingjing 路由、协议分流、`ProtocolBucketEnabled`、上游成本快照、provider-pricings、
-`/models`）完好；`.github/workflows/*.yml` 触发器均为 `workflow_dispatch`；`go generate ./ent` 无 diff。
+
+全量后端 unit 全过；前端 typecheck/lint/关键 vitest 全过；fork 守护点完好；workflows dispatch-only；`go generate ./ent` 无 diff。
 
 ---
 
 ## [1.1.147] - 2026-07-10 — 同步上游 0.1.147（147 提交）+ Grok 官方 API 保留 + 逆向链再清理
 
-**规模**：上游 147 提交、410 文件；上游把 fork 重度改造的三个巨型文件做了「纯移动拆分」
-（`usage_log_repo.go` 4701→212 行拆 6 文件、`setting_handler.go` 3957→468 拆 5 文件、
-`admin_service.go` 4409→642 拆 5 文件，另拆 `gateway_service.go`/`openai_gateway_service.go`），
-fork 语义须逐函数重新落位。
+**规模**：147 提交、410 文件；上游把 fork 重度改造的巨型文件做「纯移动拆分」（`usage_log_repo.go` 4701→212 拆 6 文件、`setting_handler.go` 3957→468 拆 5、`admin_service.go` 4409→642 拆 5，另拆 `gateway_service.go`/`openai_gateway_service.go`），fork 语义须逐函数重新落位。
 
-### 合并方法（可复用）
-以 `merge-base` 单体为 base、fork 单体为 ours、上游拆分文件为 theirs，逐个顶层函数做三方归并：
-上游纯移动 → 直接采 fork 版；双方都改 → `git merge-file` 三方合并。共自动归并 64 个函数、
-人工仲裁 3 处（`RecordUsage` 双段并存、两处 SSE `response.failed` 净化取上游）。
+**合并方法（可复用）**：以 merge-base 单体为 base、fork 单体为 ours、上游拆分文件为 theirs，逐顶层函数三方归并——上游纯移动直接采 fork 版，双方都改用 `git merge-file`。自动归并 64 函数、人工仲裁 3 处（`RecordUsage` 双段并存、两处 SSE `response.failed` 净化取上游）。
 
-### 决策：保留 Grok 官方 API、删除 Grok 订阅逆向
-- **保留**：`api.x.ai` 官方链路 —— `openai_gateway_grok.go`（守卫由 `AccountTypeOAuth` 改为
-  `AccountTypeAPIKey`）、`grok_media.go` 生图/生视频、`pkg/xai` 的 URL/模型/配额头解析、
-  被动配额快照（`grok_quota_snapshot` Extra 键，apikey 账号同样写入）、WS→HTTP 桥、
-  `isOpenAIAccount()` 纳入 grok（复用 openai 运行时封锁/冷却）、迁移 157/158/170/171/172。
-- **删除**：`grok_oauth_service/handler/client`、`grok_token_provider/refresher`、
-  `grok_quota_service`（主动探测）、`pkg/xai/oauth.go`、前端 `useGrokOAuth.ts`/`api/admin/grok.ts`/
-  `GrokQuotaProbeCell.vue`。
-- **计费口径**：grok 价格不内置（遵循功能 26 SSOT + 功能 34「绝对不内置厂商价」），
-  须由运营写入 `model_pricings`（`sync-maas` 或手工）；未定价时 fail-closed 而非按 0 计费。
-  上游的 `TestGetModelPricing_Grok45OfficialFallback` 因此移除。
+**决策：保留 Grok 官方 API、删除 Grok 订阅逆向**——保留 `api.x.ai` 官方链路（`openai_gateway_grok.go` 守卫改 `AccountTypeAPIKey`、`grok_media.go`、`pkg/xai` URL/模型/配额头解析、被动配额快照、WS→HTTP 桥、`isOpenAIAccount()` 纳入 grok、迁移 157/158/170/171/172）；删除 `grok_oauth_service/handler/client`、`grok_token_provider/refresher`、`grok_quota_service`、`pkg/xai/oauth.go`、前端 `useGrokOAuth.ts` 等。计费口径：grok 价格不内置（功能 26/34），未定价 fail-closed，上游 `TestGetModelPricing_Grok45OfficialFallback` 移除。
 
-### 逆向链再清理（功能 35）
-上游重新引入的整套订阅逆向已再次删除：antigravity 平台（`setting_*` 的 UA/fallback 设置、
-`DefaultAntigravityModelMapping`、调度/网关分支）、Claude Code 拟态（`gateway_claude_oauth_body.go`
-按符号拆分——非逆向工具迁入新建的 `gateway_claude_body.go`，OAuth 拟态整段丢弃）、
-codex CLI 限制策略（`CodexRestrictionPolicy`/白名单/指纹信号/`/v1/models` 的 codex manifest 分支）、
-spark 影子账号（`ListShadowsByParent`/`parentHealthyForShadow` 守卫、迁移 154/154a 未引入）、
-`ListOAuthRefreshCandidates`（含 `type='oauth'` 死查询）。
+**逆向链再清理（功能 35）**：antigravity 平台（UA/fallback 设置、`DefaultAntigravityModelMapping`、调度/网关分支）、Claude Code 拟态（`gateway_claude_oauth_body.go` 按符号拆分——非逆向工具迁入新建 `gateway_claude_body.go`，OAuth 拟态整段丢弃）、codex CLI 限制策略（`CodexRestrictionPolicy`/manifest 分支）、spark 影子账号、`ListOAuthRefreshCandidates`。**运行时地雷修复**：上游 `ListCRSAccountIDs` SQL 带 `parent_account_id IS NULL` 谓词而 fork 库无此列（spark 迁移未引入）会直接 SQL 报错，已移除该谓词。
 
-**运行时地雷修复**：上游新代码 `ListCRSAccountIDs` 的 SQL 带 `parent_account_id IS NULL` 谓词，
-而 fork 库无此列（spark 迁移未引入）→ 会直接 SQL 报错。已移除该谓词。
+**合并后修复**：① `/v1/messages/count_tokens` 对 OpenAI 分组的桥接被漏接（上游新增桥接文件，但 `routes/gateway.go` 保留了 fork 旧「openai 一律 404」门，两个新文件成零引用死代码）——已接回：openai 平台走桥，grok/generic 仍 404；② `script/e2e-test.sh` 补 `-count=1`（外部 HTTP 服务测试会命中 go test 缓存假绿）。
 
-### 合并后修复（回答「本系统是否支持 count_tokens」时发现）
-- **`/v1/messages/count_tokens` 对 OpenAI 分组的桥接被漏接**：上游 0.1.147 新增了
-  `handler/openai_gateway_count_tokens.go` + `service/openai_gateway_count_tokens.go`
-  （桥到官方 `POST /v1/responses/input_tokens`），但合并时 `routes/gateway.go` 保留了 fork 旧的
-  「openai 入站一律 404」门 → 两个新文件成为零引用死代码（编译器不报错）。已接回：
-  `platform == openai` 走桥接，其它 openai 协议入站（grok/generic）仍 404，anthropic 入站直转上游。
-- **`script/e2e-test.sh` 缺 `-count=1`**：e2e 打的是外部 HTTP 服务，改服务端代码不会让 `go test`
-  缓存失效，重跑会拿上一轮旧结果（假绿）。已补 `-count=1`。
+**采纳的上游修复**：`response.failed` 错误透传（不再硬编码 502）、上下文超限不触发 failover、流式 usage 漏计费修复、鉴权绕过修复、site_name/logo/doc_url XSS sanitize、Go 1.26.5、批量生图、用户 Token 排行、SSE 扫描器封装（openai 侧不再复用 fork 64K buffer 池，可接受收敛；gateway_* 仍复用）。
 
-### 采纳的上游修复
-- `/v1/messages` 与 OpenAI 流式的 `response.failed` 错误透传规则（不再硬编码 502）
-- **上下文超限不再触发 failover**（换账号无用，直接回写客户端错误）
-- 流式 usage 漏计费修复（客户端断开后继续合并 usage）
-- 鉴权绕过修复、`site_name`/`site_logo`/`doc_url` 的 XSS sanitize、Go 工具链 1.26.5（stdlib 漏洞）
-- 批量生图（batch image）整功能、用户 Token 排行、管理员用户角色、版本徽章在线回退
-- SSE 扫描器封装 `newUpstreamSSEScanner`（openai 侧不再复用 fork 的 64K buffer 池，属可接受收敛；
-  gateway_* 路径仍复用池）
+**fork 语义补回**（合并期间发现）：`PublicSettingsInjectionPayload` 缺 6 个 fork 公开字段；`setting_parse.go` 丢失全部 fork 设置解析与品牌默认值；`imagesHandler` 漏 lingjing 分流（功能 12）；`rawChatCompletionsURL` 补 generic 分支（功能 25）；`openai_gateway_messages.go`/`openai_ws_http_bridge.go` grok 请求构建；`GroupsView.vue` `formatUsd` 委托 `formatUSD`、`AppHeader.vue` 补人民币口径（功能 5）。
 
-### fork 语义修复（合并期间发现并补回）
-- `PublicSettingsInjectionPayload` 缺 6 个 fork 公开字段（`ui_theme`/`currency_mode`/`cny_rate`/
-  `show_overseas_models`/`phone_register_enabled`/`password_login_enabled`）
-- `setting_parse.go` 丢失全部 fork 设置解析（UI 主题、货币/汇率、手机号注册、密码登录开关、
-  短信三家凭证）与品牌默认值（`site_name`/`site_subtitle` 被上游 `Sub2API` 覆盖）
-- `imagesHandler` 漏了 lingjing 生图分流（功能 12）
-- `rawChatCompletionsURL` 补 generic 端点分支（功能 25）
-- `openai_gateway_messages.go` / `openai_ws_http_bridge.go` 的 grok 请求构建分支
-- `GroupsView.vue` 的 `formatUsd` 改为委托 `formatUSD`（保住人民币模式，功能 5）
-- `AppHeader.vue` 的 `formatHeaderMoney` 补人民币口径
+**迁移**：上游 159-172 与 fork 159/160/161/162 数字重复但文件名不同，runner 按文件名主键排序无需重编号；恢复被误删的 `157_user_platform_quotas_add_grok.sql`（否则注册写 grok 配额违反 CHECK → 事务 abort）与 `158_enable_grok_media_generation_groups.sql`。
 
-### 迁移
-上游 `159-172` 与 fork `159/160/161/162` 数字前缀重复但**文件名不同**；迁移运行器以 filename 为主键
-且按文件名排序，上游自身也存在同号文件，故**无需重编号**。恢复了被误删的 `157_user_platform_quotas_add_grok.sql`
-（不恢复会导致自助注册写 grok 默认配额时违反 CHECK → 事务 abort）与 `158_enable_grok_media_generation_groups.sql`。
+**i18n 结构迁移**：上游拆单体语言包为模块目录，fork 276/278 个自定义键提取到 `locales/{zh,en}/fork.ts` + `forkMerge.ts` 深合并覆盖（功能 41），后续同步不再冲突。
 
-### i18n 结构迁移
-上游把单体 `locales/{zh,en}.ts` 拆成模块目录。fork 的 276/278 个自定义键提取到
-`locales/{zh,en}/fork.ts`，由新增的 `locales/forkMerge.ts` 深合并覆盖上游模块，
-后续上游同步不再与语言包冲突。
+**验证**：build/vet 零错误；后端单测全 ok；前端 typecheck/lint 通过、vitest 148 文件 945 用例全绿；fork 守护（`SetEndpointRepository`=4、`SetModelRoutingService`=1、lingjing 路由、协议分流、两 flag、bill_request_id、sync-maas、双桶、Playground）均在；workflows dispatch-only；逆向门禁非测试代码 0。**待办**：本次未跑真实凭证 e2e；grok 定价需运营写入后方可计费。
 
-### 验证
-- `go build ./...` / `go vet -tags=unit ./internal/...` 零错误
-- 后端单测：service / repository / server / handler(+admin,dto,quotaview) 全部 `ok`
-- 前端：`typecheck` / `lint:check` 通过，`vitest` 148 文件 945 用例全绿
-- fork 守护：`SetEndpointRepository`=4、`SetModelRoutingService`=1、lingjing 视频路由、
-  协议分流、`ProtocolBucketEnabled`、`GenericRuntimeEnabled`、`bill_request_id` 全链路、
-  `sync-maas`、双桶看板、Playground 路由均在；workflows 全部仅 `workflow_dispatch:`
-- 逆向门禁：`PlatformAntigravity` / `AccountTypeOAuth` / `AccountTypeSetupToken` / `IsOAuth()` /
-  `CodexModels` 在非测试代码中均为 0
-
-> **待办**：E2E（`./script/e2e-test.sh`）需真实上游凭证，尚未在本次合并中执行；
-> grok 模型定价需运营写入 `model_pricings` 后方可计费。
+---
 
 ## [未发布] - 2026-07-09 — 二轮排查：handler 层 generic 回退残留（功能 25）
 
-第一轮把 generic 模型口径在 service 层收敛后，handler 层还剩三处 generic 回退残留，本次补齐：
-
-- **`/v1/models` 默认回退对 generic 返回 claude 列表**（`gateway_handler.go` `Models()`）：generic 分组无可路由模型时（如标准模式下 supported_models 全未定价），回退分支落进最后的 else 返回 `claude.DefaultModels`——整页模型全调不通，纯误导。修复：`PlatformGeneric` 返回空列表。
-- **raw 口径丢弃 `openEndpoint` 标志**（`gateway_service.go` `GetAvailableModels` simple 路径）：`ids, _ :=` 忽略「空白名单 endpoint = 支持全部」语义，这类账号在 `/v1/models` 一个模型都列不出来（再叠加上一条回退 claude 列表）。修复：openEndpoint 时用已启用 catalog 兜底（与 `routableFromAccounts` 同语义；catalog 不可用时维持原状）。
-- **`defaultModelIDsForPlatform` 对 generic 落 claude 默认**（`gateway_handler.go`，自定义模型列表分支的 fallback 源）：与 admin 侧 `defaultModelsListCandidateIDs` 刚改的「generic 无内置默认」口径相反。修复：`PlatformGeneric` 返回 nil（实际输出行为不变——generic 勾选模型与 claude 默认交集本就为空）。
-
-新增测试：`TestGetAvailableModels_SimpleModeOpenEndpointFallsBackToEnabledCatalog`（service）、`TestGatewayModels_GenericGroupFallsBackToEmptyList`（handler）。
-
-门禁：后端 build + `-tags=unit`（service/handler/server）全通过。
+三处补齐：① `gateway_handler.go::Models()` generic 分组无可路由模型时误回退 `claude.DefaultModels`（整页调不通纯误导）→ 返回空列表；② `gateway_service.go::GetAvailableModels` simple 路径 `ids, _ :=` 丢弃 `openEndpoint` 标志（空白名单=支持全部的账号一个模型都列不出）→ openEndpoint 时用已启用 catalog 兜底；③ `defaultModelIDsForPlatform` 对 generic 落 claude 默认 → 返回 nil（与 admin 侧同口径）。新增两测试；build + unit 全过。
 
 ---
 
 ## [未发布] - 2026-07-09 — 遗漏排查补漏（功能 25 · generic 模型来源一致性）
 
-对 generic 模型链做全面排查，补两处遗漏：
-
-- **分组自定义模型列表候选漏 generic**（`admin_service.go` `GetGroupModelsListCandidates`，`GET /groups/:id/models-list-candidates`）：此前只读 `acc.GetModelMapping()`、且对 generic 分组错误 seed claude 默认模型。修复：走唯一口径 `genericEndpointModelIDs` 补上 endpoint `supported_models`；`defaultModelsListCandidateIDs` 对 `PlatformGeneric` 返回 nil（无内置默认）。为此 `NewAdminService` 新增 `endpointRepo` 构造参数（wire + api_contract_test 同步）。
-- **新组件 `GenericEndpointModelsField.vue` 无测试**：补 `GenericEndpointModelsField.spec.ts`（拉取填充清单 / 勾选 emit / 全选清空 / 手动输入拆分去重 / base_url 空校验，5 用例），满足前端 80% 覆盖率门槛。
-
-排查确认**无遗漏**的路径：user `/api/v1/models`（`usage_handler.ListModels` 走 `ModelRoutingService.RoutableModelInfos`，已统一口径）、gemini `/v1beta/models`（直接代理上游）、`toUserSupportedModels`（渠道定价，非本链）。
-
-门禁：后端 build+vet+`-tags=unit`（service/server/handler）、前端 typecheck+lint+组件 vitest、fork 守护全通过。
+① `admin_service.go::GetGroupModelsListCandidates` 漏 generic endpoint `supported_models` 且错误 seed claude 默认 → 改走唯一口径 `genericEndpointModelIDs`，`defaultModelsListCandidateIDs` 对 generic 返回 nil；`NewAdminService` 新增 `endpointRepo` 构造参数（wire + api_contract_test 同步）。② 补 `GenericEndpointModelsField.spec.ts`（5 用例）满足 80% 覆盖率。排查确认其余路径（user `/api/v1/models`、gemini `/v1beta/models`、`toUserSupportedModels`）无遗漏。
 
 ---
 
 ## [未发布] - 2026-07-09 — 修复含 generic 账号分组的 /v1/models 漏算（功能 25）
 
-- **现象**：模型体验广场选含通用渠道账号的分组 key 时，可选模型不是该分组能路由的列表（回退到默认/自定义列表）。
-- **根因**：网关 `/v1/models` 走 `GatewayService.GetAvailableModels`，它只从 `acc.GetModelMapping()`（credentials.model_mapping）收集模型；generic 账号的模型在 endpoint `supported_models` 上、不在 model_mapping，被完全漏算 → 无账号有 mapping 时返回 nil → handler 回退默认列表。这是独立于 `ModelRoutingService`（广场/后台已统一）的旧实现残留漂移。
-- **修复**：`GetAvailableModels` 收集环节对 generic 账号补上 endpoint `supported_models`（复用 `s.endpointRepo`），与 `routableFromAccounts` 同口径；账号级别名映射（model_mapping）继续并入。
-- **防漂移收敛（两层）**：
-  1. **派生层**：generic 账号「暴露哪些模型」的逻辑此前在 `routableFromAccounts`、`GetAvailableModels`、`genericEndpointSupportsModel` 三处各写一份（本 bug 正是其中一处漏写）。抽出**唯一口径** `genericEndpointModelIDs(ctx, repo, account) → (ids, openEndpoint)`，三处共用。
-  2. **口径层（模式感知）**：`GetAvailableModels` 按运行模式分口径——**标准模式**委托 `ModelRoutingService.routableFromAccounts`，与模型广场**收敛**（含 catalog 交集，只列已启用=真能调的模型）；**simple 模式**用 raw 口径（计费关闭，未定价 supported_models 也可调，便于定价前在 Playground 试模型）。依据：标准模式下计费对未定价模型 fail-closed（`billing_service.go` `ErrModelUnpriced`），列出未定价模型反而误导。为此给 `GatewayService` 注入 `ModelRoutingService`（`SetModelRoutingService` setter + wire）。
-- **验证**：新增 `TestGetAvailableModels_GenericIncludesEndpointSupportedModels`（raw 口径）、`TestGetAvailableModels_ModeAwareCatalogIntersection`（标准→catalog 交集只留已启用 / simple→raw 全出）；端到端标准模式分组（账号全启用）`/v1/models` 行为不变（79→79），未定价模型在标准模式被滤（单测覆盖）。
+**根因**：`GetAvailableModels` 只从 `credentials.model_mapping` 收集模型，generic 账号的模型在 endpoint `supported_models` 上被完全漏算 → 回退默认列表。**修复 + 防漂移收敛两层**：① 派生层——generic「暴露哪些模型」原在三处各写一份，抽出唯一口径 `genericEndpointModelIDs(ctx, repo, account) → (ids, openEndpoint)` 三处共用；② 口径层——`GetAvailableModels` 按运行模式分口径：标准模式委托 `ModelRoutingService.routableFromAccounts`（与广场收敛，只列已启用；依据：标准模式计费对未定价 fail-closed，列出未定价反误导），simple 模式 raw（计费关闭，便于定价前试模型）。为此 `GatewayService` 注入 `SetModelRoutingService` setter + wire。新增两测试；标准模式行为不变（79→79）。
 
 ---
 
 ## [未发布] - 2026-07-08 — generic 端点：模型勾选子集 + 别名映射（功能 25 增强）
 
-补齐通用渠道「拉回模型列表后没得选、也没有别名映射」的缺口。
-
-### ① 拉取后可勾选子集（前端）
-- 新增共享组件 `GenericEndpointModelsField.vue`：端点 `supported_models` 由「逗号分隔 textarea」改为**带搜索 + 全选/清空的复选清单**（拉取结果 ∪ 已选），保留折叠的手动输入兜底。`CreateAccountModal`/`EditAccountModal` 均接入，旧的 `fetchGenericEndpointModels`/`parseGenericSupportedModels` 孤儿代码已清。
-- 「拉取模型」不再自动全并入列表，改为填充可勾选清单，由运营 curate 暴露子集。
-
-### ② 模型别名映射（复用账号级 `model_mapping`，不改 schema）
-- **路由**：`model_routing_service.go` 的 generic 分支折入 `model_mapping`，别名（目标命中已启用 catalog）以别名 ID 进入可路由集、上广场，与 `supported_models` 并存。
-- **eligibility 修复**：generic 账号一旦配置 `model_mapping`，`Account.IsModelSupported` 会转为「仅认映射内模型」，从而误挡其余 `supported_models` 的直连请求。新增纯增量 helper `genericEndpointSupportsModel`（仅 generic、OR 在 `IsModelSupported` 之后），在 3 个准入点（`openai_account_scheduler`、`gateway_service.isModelSupportedByAccountWithContext`、`gemini_messages_compat_service`）补回 `supported_models` 直连放行。openai 网关侧 `isOpenAIAccountEligibleForRequest` 因 generic 早返回不受影响，无需改。网关转发时 `account.GetMappedModel` 已把别名改回上游名。
-- **前端**：`CreateAccountModal`/`EditAccountModal` 的 generic 段新增别名映射编辑器（`别名 → 上游模型` 行编辑），保存写入 `credentials.model_mapping`、加载回填。
-- **测试**：新增 `TestRoutableModelInfos_GenericFoldsSupportedModelsAndMapping`、`TestGenericEndpointSupportsModel_EligibilityFallback`（覆盖路由折入 + eligibility 单调放宽 + 非 generic 不受影响）。
-
-门禁：后端 build+vet+`-tags=unit`（service+handler）通过、fork 12 守护 ALL PASSED；前端 typecheck+lint+账号模态/i18n vitest 93 通过。
+① 新增共享组件 `GenericEndpointModelsField.vue`：端点 `supported_models` 从逗号 textarea 改为带搜索/全选/清空的复选清单（拉取结果 ∪ 已选）+ 折叠手动输入兜底，Create/Edit 两模态接入，旧孤儿代码清理。② 别名映射复用账号级 `model_mapping`（不改 schema）：`model_routing_service.go` generic 分支折入映射（别名进可路由集上广场）；修复 eligibility——配了 mapping 后 `IsModelSupported` 会误挡其余 supported_models 直连，新增纯增量 helper `genericEndpointSupportsModel`（仅 generic、OR 在其后）在 3 个准入点补回放行（openai 侧因 generic 早返回不受影响）；前端两模态加别名映射行编辑器。新增 `TestRoutableModelInfos_GenericFoldsSupportedModelsAndMapping`/`TestGenericEndpointSupportsModel_EligibilityFallback`。门禁全过。
 
 ---
 
 ## [未发布] - 2026-07-08 — 模型折扣：Provider 显式筛选时展示全部同步模型（功能 26）
 
-- **问题**：折扣页用「从上游同步」拉进新 provider（如 NVIDIA）的模型后，这些 `unpriced`/未启用记录已落库，但折扣列表默认按「广场可路由」口径过滤，未被账号路由的新模型永远不显示 → 无法补价+启用（与账号白名单选择器同一鸡生蛋）。
-- **修复**：`model_pricing_handler.go` List 在 `provider` 显式设置时跳过广场 `VisibleOnly` 过滤，展示该 provider 下全部同步模型（含未定价）。**默认视图（无 provider 筛选）仍保持广场口径不变**。前端无改动（Provider 下拉本就传 `provider` 参数）。
-- **验证**：`provider=NVIDIA` 返回 121（含 unpriced）；无 provider 默认视图 total 不受影响；handler 单测通过。
+新 provider（如 NVIDIA）同步后因未被账号路由，在广场口径下永不可见 → 无法补价+启用（鸡生蛋）。`model_pricing_handler.go::List` 在 `provider` 显式设置时跳过 `VisibleOnly` 过滤（默认视图口径不变，前端无改动）。验证：`provider=NVIDIA` 返回 121 含 unpriced；handler 单测通过。
 
 ---
 
 ## [未发布] - 2026-07-08 — 修复 generic 渠道 endpointRepo 未装配（功能 25 回归）
 
-- **根因**：0.1.146 同步时 `go generate ./cmd/server` 重生成 `wire_gen.go`，把 4 处手动 setter 注入 `SetEndpointRepository(endpointRepository)` 全部丢失（wire 只生成构造器注入，setter 是 fork 手改点）。导致 `gatewayService`/`openAIGatewayService`/`geminiMessagesCompatService`/`accountTestService` 的 `endpointRepo` 恒为 nil。
-- **现象**：测试通用渠道账号报 `Endpoint repository is not configured`（`account_test_service.go:212`）；generic 运行时转发同样失效。
-- **修复**：按历史写法（cf1702b08）在 `wire_gen.go` 无条件补回 4 处 `SetEndpointRepository(endpointRepository)`。
-- **验证**：generic 账号测试 SSE 已跑通端点匹配 + 上游探测（返回上游 HTTP 状态而非装配错误）；后端 build+vet 通过、fork 12 守护 ALL PASSED。
-- **合并注意**：每次上游同步跑完 `go generate ./cmd/server` 后，必须 `grep -c '\.SetEndpointRepository(' cmd/server/wire_gen.go` 确认为 **4**。已记入 [`自定义开发功能列表.md`](自定义开发功能列表.md) 功能 25 合并注意。
+**根因**：0.1.146 同步跑 `go generate ./cmd/server` 把 4 处手动 setter `SetEndpointRepository(endpointRepository)` 全部丢失（wire 只生成构造器注入），`endpointRepo` 恒 nil——通用渠道账号测试报 `Endpoint repository is not configured`、generic 转发失效。按历史写法（cf1702b08）补回 4 处。**合并注意**：每次 generate 后必须 `grep -c '\.SetEndpointRepository(' cmd/server/wire_gen.go` 确认为 4——已记入功能列表功能 25 合并注意。
 
 ---
 
 ## [未发布] - 2026-07-08 — Playground（功能 38）bug 修复
 
-代码 review 后修复 3 个 bug：
-- **中文输入法回车误发送**：`PlaygroundView.vue` 输入框 `onKeydown` 增加 `!e.isComposing` 判断，输入法确认候选词的 Enter 不再触发发送。
-- **「停止」无法中止生图**：`imageGenerate`/`imageEdit` 增加 `AbortSignal` 参数，`sendImage` 接入 `abortController`；停止时真正中断请求（避免继续计费），中断时移除空的助手气泡而非报错。
-- **上传预览/文件顺序竞态**：`onFilePick` 改为顺序异步读取，文件与预览成对追加，保证 `uploadFiles[i]` 与 `attachmentPreviews[i]` 对应（此前多张大图并发读取可能错位）。
-
-补充的可用性改进：
-- **新对话入口**：对话态右上角加「＋ 新对话」按钮（`clearConversation`，流式中先中断再清空），此前只能刷新页面重置。
-- **静默失败反馈**：`useAsEditInput`/`onFilePick` 达 4 张上限、`loadModels` 拉取失败均改为 toast 提示（此前静默）。
-- **助手回复一键复制**：`MessageBubble` 流式结束后显示「复制」按钮（`navigator.clipboard`，不可用时静默）。
-- 说明：回复仍以纯文本 `<pre>` 渲染（安全取舍，避免 Markdown 富文本的 XSS 面），未改。
-
-门禁：前端 typecheck 0 错误、lint 0、playground 相关 vitest 25/25 通过。
+修 3 个 bug：中文输入法回车误发送（`!e.isComposing`）；「停止」无法中止生图（`imageGenerate`/`imageEdit` 接入 `AbortSignal`，中断时移除空气泡）；上传预览/文件顺序竞态（改顺序异步读取成对追加）。可用性改进：「＋ 新对话」按钮、上限/拉取失败 toast、助手回复一键复制；回复仍纯文本 `<pre>` 渲染（防 XSS 取舍）。typecheck/lint 0 错误、playground vitest 25/25。
 
 ---
 
 ## [1.1.146] - 2026-07-07 — 同步上游 0.1.146
 
-同步上游 `0.1.145 → 0.1.146`（47 提交），冲突与逆向残留已按 fork 口径回炉。门禁：后端 build+vet+`-tags=unit`、前端 typecheck+lint+894 测试、fork 守护 ALL PASSED、E2E 21/21。
+同步 47 提交。门禁：后端 build/vet/unit、前端 typecheck/lint/894 测试、fork 守护 ALL PASSED、E2E 21/21。
 
-### 采纳的上游合法新功能
-- **apikey 账号请求头覆写**（`account_header_override.go`）：保留 `ApplyHeaderOverrides` 装配点（网关转发 + 账号测试），剥离其 OAuth-header 分支。后端支持，前端配置 UI 暂未移植（fork 账号模态保持简化版）。
-- 入站端点归一化 + `responses/compact` 端点区分（`endpoint.go`）。
-- Redis SCAN 清理架构优化。
-- 新增 OpenAI 模型 `gpt-5.6-sol/terra/luna`、非 -v1 OpenAI 模型 URL 支持。
-- `ProvideAPIKeyService` 新增 `concurrencyService` 参数（`wire_gen.go` 经 `go generate` 重装，保全全部 fork 注入链）。
-
-### 逆向回炉（保持 fork 已删状态）
-- 保持删除 `grok_media.go`、`openai_gateway_count_tokens.go`、`openai_client_restriction_detector_test.go`。
-- `billing_service.go` 拒绝上游重引入的 `fallbackPrices`、`pricing_service.go` 拒绝 `pricingData`/`matchOpenAIModel` —— 取 fork catalog(SSOT) 版。
-- `openai_gateway_service.go` 的 codex 版本门控 403 文案回退为 fork 硬编码（上游 `CodexClientRestrictionMessage` 依赖已删的 min/max codex 版本门控）。
-- 测试清理：`endpoint_test`/`account_header_override_test`/`openai_gateway_record_usage_test`/`openai_gateway_service_codex_cli_only_test` 中 antigravity/grok/OAuth/版本门控 的 fixture 与用例。
-- 账号 3 模态（Create/Edit/Bulk）与 `GroupsView.vue` 取 fork 版，剥离 antigravity/OAuth UI。
-
-### 货币
-- 保住 1.1.145 修复的 `OrderTable`/`PaymentQRDialog` 货币口径；`PaymentStatusPanel.vue` 采纳上游支付重构。
-
-### 测试
-- **新增 `TestE2EFull_BillRequestIDWriteback`**（功能 27 显式断言）：真实网关请求验证 `Bill-Request-ID` 三种回写行为（下游合法值原样回写 / 缺失回退 X-Client-Request-ID / 超 64 字符回退），新增 `apiCallH` 助手返回响应头。
+- **采纳**：apikey 账号请求头覆写（`account_header_override.go`，保留 `ApplyHeaderOverrides` 装配点、剥离 OAuth-header 分支，前端配置 UI 暂未移植）；入站端点归一化 + responses/compact 区分；Redis SCAN 优化；gpt-5.6 系列新模型；`ProvideAPIKeyService` 新增 `concurrencyService` 参（wire 重装保全 fork 注入链）。
+- **逆向回炉**：保持删除 `grok_media.go`/`openai_gateway_count_tokens.go` 等；`billing_service.go`/`pricing_service.go` 拒绝上游重引入 `fallbackPrices`/`pricingData`，取 fork catalog 版；codex 版本门控 403 文案回退 fork 硬编码；测试 fixture 清理 antigravity/grok/OAuth；账号 3 模态与 `GroupsView.vue` 取 fork 版。
+- **货币**：保住 1.1.145 的 `OrderTable`/`PaymentQRDialog` 口径；`PaymentStatusPanel.vue` 采纳上游支付重构。
+- **测试**：新增 `TestE2EFull_BillRequestIDWriteback`（功能 27 显式断言三种回写行为）。
 
 ---
 
 ## [1.1.145] - 2026-07-06 — 同步上游 0.1.145 回炉
 
-上游 `0.1.145` 的原始合并处于「未清理·不编译」状态（199 处编译/类型错误）。本次对 merge 带回的上游逆向代码重新套用逆向清理口径，恢复到可编译 + 全门禁通过。
+上游 0.1.145 原始合并处于「未清理·不编译」状态（199 处编译/类型错误），重新套用逆向清理口径恢复全门禁通过。
 
-### 后端逆向回炉
-- 删除上游复活的纯逆向文件：`account_codex_import`、`antigravity_token_refresher`、`token_refresh_service`（含各自测试）。
-- 三方合并文件外科清理：`model_rate_limit`/`account`/`ratelimit_service`/`setting_service`/`admin_service` 剥离 antigravity/grok/OAuth 死符号，保留 Fable 限流、OpenAI 高级调度器设置等上游新功能。
-- `account_usage_service`：删逆向主动抓取（tls scraping / Antigravity / Grok / ClaudeUsageResponse），保留 Fable 被动用量路径。
-- `openai_account_scheduler`：采纳上游加权高级调度器，剥离 compatible-platform/privacy/shadow/OAuth订阅 依赖。
-- `gateway_handler`/`openai_gateway_handler`/`setting_handler` 清理 antigravity/grok/Codex/ClaudeOAuthSystemPrompt。
-
-### 前端逆向回炉
-- `useModelWhitelist.ts`：删 antigravity/grok 模型与预设，恢复被坏合并丢失的 fork 12 lingjing(灵境) 白名单定义。
-- `api/admin/accounts.ts`：删 Codex 逆向 API（importCodexSession/createOpenAICodexPAT）。
-- `AccountUsageCell.vue`/`EditAccountModal.vue`：恢复 fork 清理版（连同 `*.spec.ts`）。
-
-### 货币修复（payment）
-- `OrderTable.vue`/`PaymentQRDialog.vue`：修复共享订单表/支付弹窗货币口径——paid/pay_amount 按订单货币、credited(入账余额)恒 USD（对齐 `AdminOrderTable` 正确实现，修复 USD 订单被误显示为 ¥）。
-- `UsageView.spec.ts`：CSV 导出测试期望对齐 fork 组件的货币标注口径。
-
-### 守护
-- `script/check_fork12_guards.sh`：ForcePlatform 规则预期 3→1（antigravity 路由已于逆向清理 P2 移除）。
+- **后端**：删除上游复活的纯逆向文件（`account_codex_import`/`antigravity_token_refresher`/`token_refresh_service` 含测试）；`model_rate_limit`/`account`/`ratelimit_service`/`setting_service`/`admin_service` 外科剥离 antigravity/grok/OAuth 死符号（保留 Fable 限流、OpenAI 高级调度器等上游新功能）；`account_usage_service` 删逆向主动抓取保留 Fable 被动路径；`openai_account_scheduler` 采纳加权调度器、剥离 shadow/OAuth 依赖；三个 handler 清理 antigravity/grok/Codex 符号。
+- **前端**：`useModelWhitelist.ts` 删 antigravity/grok 预设、恢复被坏合并丢失的 lingjing 白名单；`api/admin/accounts.ts` 删 Codex 逆向 API；`AccountUsageCell.vue`/`EditAccountModal.vue` 恢复 fork 清理版。
+- **货币修复**：`OrderTable.vue`/`PaymentQRDialog.vue` 修复共享订单表/支付弹窗口径（paid/pay_amount 按订单货币、credited 恒 USD，修 USD 订单误显 ¥）；`UsageView.spec.ts` CSV 期望对齐。
+- **守护**：`script/check_fork12_guards.sh` ForcePlatform 规则预期 3→1。
 
 ---
 
-## 开发流程
+## 附注
 
-- **推送前门禁（pre-push hook）**：`script/pre_push_check.sh` 在每次 `git push` 前检查本次推送范围——①有实质源码改动时 `CHANGELOG.md` 必须已更新；②新增的 fork 独有源码文件（`.go/.ts/.vue`，排除测试/生成/上游已有）必须已在 `自定义开发功能列表.md` 记录。不满足则阻塞推送。安装：`./script/install_git_hooks.sh`（克隆后运行一次）；绕过：`git push --no-verify` 或 `PREPUSH_SKIP=1 git push`。
-
-## 架构说明
-
-- fork 移除了 OAuth 账号类型（`AccountTypeOAuth`/`AccountTypeSetupToken`），`IsOpenAIOAuth`/`IsAnthropicOAuthOrSetupToken` 恒为 `false`。上游每次同步都会重新引入 codex/grok/antigravity/oauth，合并后须按逆向清理口径剥离。
-- 同步流程与高风险文件清单见 [`自定义开发功能列表.md`](自定义开发功能列表.md)；合并后验证跑 `script/check_fork12_guards.sh` + `script/e2e-test.sh`。
-- E2E 用持久化 dev_local 库，`e2e-*` 命名的测试数据会累积；当分组数超过 `page_size=100` 时 `AdminAccountGroupCRUD` 会误报，清理 `e2e-*` 测试数据即可。
+- 推送前门禁（5 项检查）、开发命令、架构说明见 [`CLAUDE.md`](CLAUDE.md)；fork 功能与高风险文件见 [`自定义开发功能列表.md`](自定义开发功能列表.md)。
+- fork 已移除 OAuth 账号类型（`IsOpenAIOAuth` 等恒 false），上游每次同步都会重新引入 codex/grok/antigravity/oauth，合并后须按功能 35 口径剥离。
+- E2E 用持久化 dev_local 库，`e2e-*` 测试数据会累积；分组数超 `page_size=100` 时 `AdminAccountGroupCRUD` 可能误报，清理 `e2e-*` 数据即可。
