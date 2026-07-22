@@ -132,13 +132,21 @@ pnpm test:run / pnpm test:coverage          # 测试 / 覆盖率
 ### 批量修改账号导致模型映射丢失（已自动防护）
 混选多平台账号批量修改曾导致模型白名单/映射被跨平台覆盖（API 报 `Service temporarily unavailable`）。`bd0bf3c44` 起 `BulkEditAccountModal.vue` 的 `isMixedPlatform` 已自动禁用模型限制写入，配回归测试 `TestE2EFull_BatchEditModelMappingRepro`。仅当该组件重构导致 `isMixedPlatform` 失效才会复发。
 
-### 上游合并静默丢弃 fork 专属代码块（已出现 3 次）
-合并后编译/测试全过，但 fork 独有字段/分支运行时悄悄失效（常见于上游「纯移动/拆分重构」PR，`git log -S` 也难发现）。案例：① workflows 触发器被覆盖；② 批量改账号丢映射；③ 0.1.147 静默删掉 `setting_update.go::buildSystemSettingsUpdates` 尾部 fork 字段写入（`currency_mode` 等重启即丢，`07af185e3` 修复 + 回归测试 `setting_fork_fields_persist_test.go`）。
-**应对**：同步上游后除跑测试外，对功能列表风险表 🔴 高文件逐个人工 diff，不要只信编译和测试全绿（pre-push 检查 3 会强制这一步）。
+### fork 专属代码块被静默丢弃（已出现 5 次，触发者不止上游合并）
+编译/测试全过，但 fork 独有字段/分支运行时悄悄失效（`git log -S` 也难发现）。案例：① workflows 触发器被覆盖；② 批量改账号丢映射；③ 0.1.147 静默删掉 `setting_update.go::buildSystemSettingsUpdates` 尾部 fork 字段写入（`currency_mode` 等重启即丢，`07af185e3` 修复 + 回归测试 `setting_fork_fields_persist_test.go`）；④ **本地功能分支合入也会触发**——2026-07-15 team-collaboration 合入时重跑 wire generate，`wire_gen.go` 的 5 处手改 setter（`SetEndpointRepository`×4 + `SetModelRoutingService`×1）全部丢失，generic 转发的 endpointRepo 恒 nil **带病运行一周**，直到 1.1.162 同步做 grep 复核才发现；⑤ 管理员「测试连接」的 `PlatformGrok` 分流在某次同步中丢失（grok 账号测试落 claude 兜底），1.1.162 按上游恢复。
+**应对**：同步上游后除跑测试外，对功能列表风险表 🔴 高文件逐个人工 diff，不要只信编译和测试全绿（pre-push 检查 3 会强制这一步）；**任何触碰 `wire_gen.go` 的提交**（不限于同步）后必须 `grep -c '\.SetEndpointRepository('` = 4、`grep -c '\.SetModelRoutingService('` = 1；条目 ④⑤ 证明这类丢失可长期潜伏，值得为关键注入点补「装配存在性」单测而非只靠 grep 纪律。
 
 ### 上游合并静默带回「逆向订阅代码」残留（2026-07-21 实测）
 与上一条相反方向：上游同步把功能 35 已删的 antigravity/OAuth 逆向代码**局部带回**（孤立辅助代码，编译/lint/测试全无告警）。2026-07-21 清理了三轮（antigravity 专属残留 → 同根因 OAuth 死代码 → `golangci-lint --enable-only unused` 补漏的后端孤儿函数簇），完整清单见 `CHANGELOG.md` 2026-07-21 段。
 **应对**：`script/pre_push_check.sh` 检查 5 已自动扫描推送新增行的逆向关键词并要求人工确认。**合法保留点**（门禁不拦）：`servertiming` host 分类、`admin_account.go` 遗留字段丢弃表、`admin.groups.platforms.antigravity`/`accounts.upstream.baseUrlHint` 兼容存量数据的 key。此外命中即大概率是再次带回，按 `claudedocs/逆向清理_执行报告_v6.md` 重新删除。
+
+### unused 报告 ≠ 死代码：删除前先判断是「孤儿」还是「断线」（2026-07-22 实测）
+`golangci-lint unused` 报告的函数有两种截然不同的成因：**孤儿**（逆向清理后的真死代码，应删）与**断线**（功能是活的、只是调用点被静默丢弃，应恢复调用点——见上一条案例 ⑤：`testGrokAccountConnection` 被报 unused，真相是 `TestAccountConnection` 里的 grok 分流丢了）。机械批量删除会把断线误杀成永久失能。另一个盲区：**「函数 + 测试自闭环」**——死函数被自己的专属测试引用着，旧版 unused 不报、人工 grep 会误以为"有测试在用"（案例：`buildStableSessionSeed` 伪装路径 seed 及其 `_session_test.go` 互相掩护潜伏多轮清理）。
+**应对**：每个 unused 符号删除前先问「这函数在 fork 语义下**该不该有**生产调用点」——该有 → 对照上游找回调用点；不该有 → 连同其专属测试一起删（只删函数留测试会编译失败，只删测试留函数会再次潜伏）。
+
+### 集成测试（-tags=integration）长期不跑会积累坏例
+合并最低验证清单与推送门禁都不含 `go test -tags=integration ./...`，坏测试可长期潜伏：1.1.162 补跑时暴露 zhiguofan 存量坏 fixture（`filter_by_type` 两个 apikey 账号却期望过滤后剩 1——当年剥离 OAuth 时机械替换 fixture 类型所致）。
+**应对**：每次同步上游后至少补跑一次全量 integration（需本机 Docker，testcontainers 起 PG+Redis，约 3-5 分钟）。注意**管道退出码假象**：`go test ... | tail`/`| grep` 的退出码是管道末端命令的，会把 FAIL 掩盖成 exit 0——要么 `set -o pipefail`，要么直接看输出里的 `FAIL` 行。
 
 ### pnpm-lock.yaml 未同步
 CI 用 `--frozen-lockfile`，lock 不同步即失败。解决：`cd frontend && pnpm install && git add pnpm-lock.yaml`
