@@ -1,8 +1,9 @@
+import { defineComponent } from 'vue'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import ModelPricingsView from '../ModelPricingsView.vue'
-import { listModelPricings, listModelPricingProviders } from '@/api/admin/modelPricings'
+import { createModelPricing, listModelPricings, listModelPricingProviders, syncModelPricingsFromMaas } from '@/api/admin/modelPricings'
 
 vi.mock('vue-i18n', async importOriginal => ({
   ...(await importOriginal<typeof import('vue-i18n')>()),
@@ -32,6 +33,8 @@ vi.mock('@/api/admin/modelPricings', () => ({
 
 const mockedListModelPricings = vi.mocked(listModelPricings)
 const mockedListModelPricingProviders = vi.mocked(listModelPricingProviders)
+const mockedCreateModelPricing = vi.mocked(createModelPricing)
+const mockedSyncModelPricingsFromMaas = vi.mocked(syncModelPricingsFromMaas)
 
 function mountView() {
   return mount(ModelPricingsView, {
@@ -41,6 +44,33 @@ function mountView() {
         TablePageLayout: { template: '<div><slot name="filters" /><slot name="table" /><slot name="pagination" /></div>' },
         Pagination: true,
         BaseDialog: true,
+        ConfirmDialog: true,
+        Icon: true,
+        Select: {
+          props: ['modelValue', 'options'],
+          emits: ['change', 'update:modelValue'],
+          template: '<select :value="modelValue" @change="$emit(\'change\')"><option v-for="o in options" :key="o.value" :value="o.value">{{ o.label }}</option></select>',
+        },
+      },
+    },
+  })
+}
+
+// BaseDialog 在 mountView() 里被整体 stub 掉（不渲染插槽内容），无法用来交互表单。
+// 这里单独渲染一个「show 时渲染默认插槽 + footer 插槽」的轻量 stub，供表单交互类用例使用。
+const BaseDialogStub = defineComponent({
+  props: { show: { type: Boolean, default: false } },
+  template: '<div v-if="show"><slot /><slot name="footer" /></div>',
+})
+
+function mountViewWithDialogs() {
+  return mount(ModelPricingsView, {
+    global: {
+      stubs: {
+        AppLayout: { template: '<div><slot /></div>' },
+        TablePageLayout: { template: '<div><slot name="filters" /><slot name="table" /><slot name="pagination" /></div>' },
+        Pagination: true,
+        BaseDialog: BaseDialogStub,
         ConfirmDialog: true,
         Icon: true,
         Select: {
@@ -112,3 +142,87 @@ describe('ModelPricingsView', () => {
     // 异常行（orphan-model）排在正常行（normal-model）之前
     expect(html.indexOf('orphan-model')).toBeLessThan(html.indexOf('normal-model'))
   })
+
+it('create form: pricing_unit=image_generation shows output_cost_per_image field, auto-links mode, and blanks token-unit fields on submit', async () => {
+  mockedListModelPricings.mockResolvedValue({
+    data: { items: [], total: 0, page: 1, page_size: 20 },
+  } as never)
+  mockedListModelPricingProviders.mockResolvedValue({ data: { providers: [] } } as never)
+  mockedCreateModelPricing.mockResolvedValue({ data: {} } as never)
+
+  const wrapper = mountViewWithDialogs()
+  await flushPromises()
+
+  const openCreateBtn = wrapper.findAll('button').find(b => b.text().includes('添加自定义模型'))
+  expect(openCreateBtn).toBeTruthy()
+  await openCreateBtn!.trigger('click')
+
+  // token 计价单位是默认值，此时按张计价字段不应渲染
+  expect(wrapper.find('input[placeholder="例: 0.3"]').exists()).toBe(false)
+
+  await wrapper.find('input[placeholder="例: my-custom-model"]').setValue('my-image-model')
+
+  const imageUnitRadio = wrapper.find('input[type="radio"][value="image_generation"]')
+  expect(imageUnitRadio.exists()).toBe(true)
+  await imageUnitRadio.setValue()
+
+  // 切到「图片（按张）」后：字段联动展示 + mode 自动切为 image_generation
+  const priceInput = wrapper.find('input[placeholder="例: 0.3"]')
+  expect(priceInput.exists()).toBe(true)
+  await priceInput.setValue('0.5')
+
+  await wrapper.find('form#create-pricing-form').trigger('submit')
+  await flushPromises()
+
+  expect(mockedCreateModelPricing).toHaveBeenCalledTimes(1)
+  const payload = mockedCreateModelPricing.mock.calls[0][0]
+  expect(payload).toMatchObject({
+    model_id: 'my-image-model',
+    pricing_unit: 'image_generation',
+    mode: 'image_generation',
+    output_cost_per_image: 0.5,
+    // 按张计价不应带出上游 per-token 占位字段，避免计费口径混入 token 价格
+    input_cost_per_token: null,
+    custom_input_cost: null,
+    output_cost_per_token: null,
+  })
+})
+
+it('MaaS sync modal posts to the unified sync-maas endpoint (not the legacy per-provider endpoints)', async () => {
+  mockedListModelPricings.mockResolvedValue({
+    data: { items: [], total: 0, page: 1, page_size: 20 },
+  } as never)
+  mockedListModelPricingProviders.mockResolvedValue({ data: { providers: [] } } as never)
+  mockedSyncModelPricingsFromMaas.mockResolvedValue({
+    data: { message: 'ok', total: 3, source: 'wanjie', mode: 'live' },
+  } as never)
+
+  const wrapper = mountViewWithDialogs()
+  await flushPromises()
+
+  const openMaasBtn = wrapper.findAll('button').find(b => b.text().includes('同步 MaaS 定价'))
+  expect(openMaasBtn).toBeTruthy()
+  await openMaasBtn!.trigger('click')
+
+  const sourceInput = wrapper.find('input[placeholder*="wanjie / doubao"]')
+  expect(sourceInput.exists()).toBe(true)
+  await sourceInput.setValue('wanjie')
+
+  const urlInput = wrapper.find('input[type="url"]')
+  await urlInput.setValue('https://fangzhou.wanjiedata.com/maas/model/myModelList')
+  const tokenInput = wrapper.find('input[type="password"]')
+  await tokenInput.setValue('test-token')
+
+  await wrapper.find('form#maas-sync-form').trigger('submit')
+  await flushPromises()
+
+  // 走统一的 sync-maas 接口，且不触发「从上游导入」等其它同步入口
+  expect(mockedSyncModelPricingsFromMaas).toHaveBeenCalledTimes(1)
+  expect(mockedSyncModelPricingsFromMaas).toHaveBeenCalledWith(
+    expect.objectContaining({
+      source: 'wanjie',
+      url: 'https://fangzhou.wanjiedata.com/maas/model/myModelList',
+      access_token: 'test-token',
+    }),
+  )
+})

@@ -100,7 +100,6 @@ export default {
       soon: '即将推出',
       claude: 'Claude',
       gemini: 'Gemini',
-      antigravity: 'Antigravity',
       more: '更多'
     },
     // CTA 区块

@@ -625,16 +625,6 @@ export async function importData(payload: {
   return data
 }
 
-/**
- * Get Antigravity default model mapping from backend
- * @returns Default model mapping (from -> to)
- */
-export async function getAntigravityDefaultModelMapping(): Promise<Record<string, string>> {
-  const { data } = await apiClient.get<Record<string, string>>(
-    '/admin/accounts/antigravity/default-model-mapping'
-  )
-  return data
-}
 
 /**
  * Refresh OpenAI token using refresh token

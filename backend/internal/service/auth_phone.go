@@ -11,6 +11,7 @@ import (
 )
 
 var phoneRegexp = regexp.MustCompile(`^\+[1-9]\d{6,14}$`)
+var mainlandPhoneRegexp = regexp.MustCompile(`^1\d{10}$`)
 
 // NormalizePhone 将手机号归一化为 E.164 格式。
 // 目前仅支持中国大陆号码（11 位纯数字 → +86 前缀），已带 + 号的原样返回。
@@ -25,8 +26,8 @@ func NormalizePhone(phone string) (string, error) {
 		}
 		return phone, nil
 	}
-	// 中国大陆：11 位 1 开头
-	if len(phone) == 11 && strings.HasPrefix(phone, "1") {
+	// 中国大陆：11 位纯数字，1 开头
+	if mainlandPhoneRegexp.MatchString(phone) {
 		return "+86" + phone, nil
 	}
 	return "", ErrInvalidPhoneNumber

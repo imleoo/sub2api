@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# pre_push_check.sh —— 推送前门禁：CHANGELOG 更新 + 自定义功能列表一致性 + 高风险复核 + e2e
+# pre_push_check.sh —— 推送前门禁：CHANGELOG 更新 + 自定义功能列表一致性 + 高风险复核 +
+#                       逆向订阅代码复活检测 + e2e
 #
 # 目的：每次 push 前检查「本次推送范围」（默认 origin/<当前分支>..HEAD）内：
 #   1. CHANGELOG.md 是否已随实质性代码改动更新；
@@ -8,16 +9,24 @@
 #      三档全部，非仅 🔴）——命中则强制逐个打印 diff，并要求「交互终端 y/N 确认」+
 #      「CHANGELOG/功能列表书面留痕（一行以『高风险复核：』开头的结论）」双重留痕，
 #      防止上游合并静默覆盖 fork 逻辑；
+#   5. 本次范围新增的行是否含「逆向订阅代码」关键词（PlatformAntigravity /
+#      AccountTypeOAuth / AccountTypeSetupToken / 裸词 antigravity，大小写不敏感）——
+#      功能 35 已彻底删除该整链，但上游仍完整保留 Antigravity/OAuth 订阅逆向，同步
+#      上游会静默带回来（2026-07-21 实测：一次 0.x 同步就带回 credentialsBuilder.ts
+#      两个孤儿函数 + 前端 i18n 语言包几十条 Antigravity OAuth/API Key/GCP Project ID
+#      文案 + 一个孤儿后端测试 stub，全部无生产调用方，测试/lint 均未告警，只能靠人工
+#      发现）。命中则打印新增行 + 要求交互终端 y/N 确认（同检查 3 的双重留痕机制，只是
+#      判断对象是「本次新增的行」而非「登记文件」，避免对已确认合法的历史用法误报）；
 #   4. 若范围内有实质源码改动，钩子内联跑一次 ./script/e2e-test.sh（全量 e2e，
 #      需要本地 script/e2e.env 真实上游凭证），未通过则阻塞推送。
 #
-# 注意：命中检查 3/4 时本钩子可能耗时数分钟，且检查 3 需要交互终端（读 /dev/tty），
+# 注意：命中检查 3/4/5 时本钩子可能耗时数分钟，且检查 3/5 需要交互终端（读 /dev/tty），
 # 非交互环境（如 CI、无 tty 的自动化脚本）会直接失败，只能 git push --no-verify 绕过。
 #
 # 用法：
 #   手动：  ./script/pre_push_check.sh
 #   钩子：  由 .git/hooks/pre-push 调用（自动传入远端 sha 精确界定推送范围）
-#   绕过：  git push --no-verify  或  PREPUSH_SKIP=1 git push（四项检查全部跳过）
+#   绕过：  git push --no-verify  或  PREPUSH_SKIP=1 git push（全部检查跳过）
 #
 # 退出码：0=通过；1=有阻塞项。
 set -euo pipefail
@@ -229,6 +238,51 @@ if [ -n "$HIT_FILES" ]; then
     esac
   else
     echo "❌ 命中登记 fork 文件但当前无交互终端（/dev/tty 不可用，如 GUI 客户端/CI）。"
+    echo "   请改用命令行 git push 完成人工确认，或 git push --no-verify 绕过全部门禁。"
+    FAIL=1
+  fi
+fi
+
+# ── 检查 5：本次新增行是否带回「逆向订阅代码」（antigravity/OAuth 订阅逆向整链）──
+# 背景：功能 35 已彻底删除 antigravity 整平台 + OAuth/SetupToken 订阅逆向，但上游
+# （Wei-Shaw/sub2api）仍完整保留该能力，同步上游必带回来。历史上只能靠人工在合并后
+# 手动跑 `rg antigravity backend/internal frontend/src` 核对，容易忘记——2026-07-21
+# 就实测过一次遗漏：残留了两个孤儿 credential 构建函数、一个孤儿后端测试 stub、以及
+# 前端 i18n 语言包里几十条 Antigravity OAuth/API Key/GCP Project ID 相关文案，全部
+# 编译通过、lint 无告警、测试全绿，只有人工逐行读代码才发现。
+# 本检查只看「本次推送范围新增的行」（+ 开头，排除 +++ 文件头），命中裸词 antigravity
+# 或 PlatformAntigravity/AccountTypeOAuth/AccountTypeSetupToken 时打印新增行并要求
+# 交互确认——不是全仓库扫描，避免对已确认合法的历史用法（如 servertiming 通用 host
+# 分类、admin_account.go 遗留字段丢弃表、i18n 里 admin.groups.platforms.antigravity
+# 这类为兼容存量数据保留的 fallback key）反复误报。
+AG_PATTERN='PlatformAntigravity|AccountTypeOAuth|AccountTypeSetupToken|antigravity'
+AG_HITS=""
+if [ -n "$CHANGED" ]; then
+  AG_HITS=$(git diff "${RANGE}" -- backend/internal frontend/src 2>/dev/null \
+    | grep -E '^\+[^+]' \
+    | grep -iE "$AG_PATTERN" || true)
+fi
+
+if [ -n "$AG_HITS" ]; then
+  echo ""
+  echo "🔎 本次推送范围新增行命中「逆向订阅代码」关键词（antigravity/OAuth 订阅逆向）："
+  printf '%s\n' "$AG_HITS" | sed 's/^/     /'
+  echo "   ── 请确认这是合法的历史兼容用法（如 fallback 展示旧数据、通用 host 分类），"
+  echo "      而不是上游合并静默带回了 antigravity 平台或 OAuth/SetupToken 订阅逆向 ──"
+  echo ""
+  if [ -r /dev/tty ] && [ -w /dev/tty ]; then
+    printf '❓ 已确认以上新增行不是逆向订阅代码复活？[y/N] ' > /dev/tty
+    read -r AG_ANS < /dev/tty || AG_ANS=""
+    case "$AG_ANS" in
+      y|Y|yes|YES|Yes)
+        echo "✅ 逆向订阅代码复活检测已确认" ;;
+      *)
+        echo "❌ 未确认（回答非 y），阻塞推送。若确认是复活的 antigravity/OAuth 代码，"
+        echo "   请按 逆向清理_执行报告_v6.md 重新删除后再推送。"
+        FAIL=1 ;;
+    esac
+  else
+    echo "❌ 命中逆向订阅代码关键词但当前无交互终端（/dev/tty 不可用，如 GUI 客户端/CI）。"
     echo "   请改用命令行 git push 完成人工确认，或 git push --no-verify 绕过全部门禁。"
     FAIL=1
   fi

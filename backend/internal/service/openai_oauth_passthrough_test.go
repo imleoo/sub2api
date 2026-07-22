@@ -35,10 +35,6 @@ type httpUpstreamRecorder struct {
 	err       error
 }
 
-type passthroughErrReadCloser struct {
-	err error
-}
-
 type passthroughCloseTrackingReadCloser struct {
 	io.Reader
 	closed bool
@@ -46,17 +42,6 @@ type passthroughCloseTrackingReadCloser struct {
 
 func (r *passthroughCloseTrackingReadCloser) Close() error {
 	r.closed = true
-	return nil
-}
-
-func (r passthroughErrReadCloser) Read(_ []byte) (int, error) {
-	if r.err != nil {
-		return 0, r.err
-	}
-	return 0, io.ErrUnexpectedEOF
-}
-
-func (r passthroughErrReadCloser) Close() error {
 	return nil
 }
 

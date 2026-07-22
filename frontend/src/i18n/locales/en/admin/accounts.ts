@@ -87,8 +87,6 @@ export default {
       allStatus: 'All Status',
       allGroups: 'All Groups',
       ungroupedGroup: 'Ungrouped',
-      oauthType: 'OAuth',
-      setupToken: 'Setup Token',
       apiKey: 'API Key',
       // Schedulable toggle
       schedulable: 'Schedulable',
@@ -97,30 +95,9 @@ export default {
       schedulableDisabled: 'Scheduling disabled',
       failedToToggleSchedulable: 'Failed to toggle scheduling status',
       groupCountTotal: '{count} groups total',
-      platforms: {
-        anthropic: 'Anthropic',
-        claude: 'Claude',
-        openai: 'OpenAI',
-        gemini: 'Gemini',
-        antigravity: 'Antigravity',
-        grok: 'Grok',
-      },
       types: {
-        oauth: 'OAuth',
-        chatgptOauth: 'ChatGPT OAuth',
-        responsesApi: 'Responses API',
-        googleOauth: 'Google OAuth',
-        codeAssist: 'Code Assist',
-        antigravityOauth: 'Antigravity OAuth',
-        grokOauth: 'Grok OAuth',
-        antigravityApikey: 'Connect via Base URL + API Key',
-        upstream: 'Upstream',
-        upstreamDesc: 'Connect via Base URL + API Key'
+        responsesApi: 'Responses API'
       },
-      antigravityProjectIdLabel: 'GCP Project ID (optional)',
-      antigravityProjectIdPlaceholder: 'your-gcp-project-id',
-      antigravityProjectIdHint:
-        'Antigravity standard-tier accounts that do not receive an automatic project_id need a user-owned GCP project.',
       status: {
         active: 'Active',
         inactive: 'Inactive',
@@ -203,8 +180,6 @@ export default {
       privacyTrainingOff: 'Training data sharing disabled',
       privacyCfBlocked: 'Blocked by Cloudflare, training may still be on',
       privacyFailed: 'Failed to disable training',
-      privacyAntigravitySet: 'Telemetry and marketing emails disabled',
-      privacyAntigravityFailed: 'Privacy setting failed',
       setPrivacy: 'Set Privacy',
       subscriptionAbnormal: 'Abnormal',
       subscriptionExpires: 'Expires',
@@ -734,10 +709,6 @@ export default {
       expiresAt: 'Expires At',
       expiresAtHint: 'Leave empty for no expiration',
       higherPriorityFirst: 'Lower value means higher priority',
-      mixedScheduling: 'Use in /v1/messages',
-      mixedSchedulingHint: 'Enable to participate in Anthropic/Gemini group scheduling',
-      mixedSchedulingTooltip:
-        '!! WARNING !! Antigravity Claude and Anthropic Claude cannot be used in the same context. If you have both Anthropic and Antigravity accounts, enabling this option will cause frequent 400 errors. When enabled, please use the group feature to isolate Antigravity accounts from Anthropic accounts. Make sure you understand this before enabling!!',
       aiCreditsBalance: 'AI Credits',
       allowOverages: 'Allow Overages (AI Credits)',
       allowOveragesTooltip:
@@ -784,257 +755,7 @@ export default {
         pleaseEnterBaseUrl: 'Please enter upstream Base URL',
         pleaseEnterApiKey: 'Please enter upstream API Key'
       },
-      // OAuth flow
-      oauth: {
-        title: 'Claude Account Authorization',
-        authMethod: 'Authorization Method',
-        manualAuth: 'Manual Authorization',
-        cookieAutoAuth: 'Cookie Auto-Auth',
-        cookieAutoAuthDesc:
-          'Use claude.ai sessionKey to automatically complete OAuth authorization without manually opening browser.',
-        sessionKey: 'sessionKey',
-        keysCount: '{count} keys',
-        batchCreateAccounts: 'Will batch create {count} accounts',
-        sessionKeyPlaceholder:
-          'One sessionKey per line, e.g.:\nsk-ant-sid01-xxxxx...\nsk-ant-sid01-yyyyy...',
-        sessionKeyPlaceholderSingle: 'sk-ant-sid01-xxxxx...',
-        howToGetSessionKey: 'How to get sessionKey',
-        step1: 'Login to claude.ai in your browser',
-        step2: 'Press F12 to open Developer Tools',
-        step3: 'Go to Application tab',
-        step4: 'Find Cookies → https://claude.ai',
-        step5: 'Find the row with key sessionKey',
-        step6: 'Copy the Value',
-        sessionKeyFormat: 'sessionKey usually starts with sk-ant-sid01-',
-        startAutoAuth: 'Start Auto-Auth',
-        authorizing: 'Authorizing...',
-        followSteps: 'Follow these steps to authorize your Claude account:',
-        step1GenerateUrl: 'Click the button below to generate the authorization URL',
-        generateAuthUrl: 'Generate Auth URL',
-        generating: 'Generating...',
-        regenerate: 'Regenerate',
-        step2OpenUrl: 'Open the URL in your browser and complete authorization',
-        openUrlDesc:
-          'Open the authorization URL in a new tab, log in to your Claude account and authorize.',
-        proxyWarning:
-          'Note: If you configured a proxy, make sure your browser uses the same proxy to access the authorization page.',
-        step3EnterCode: 'Enter the Authorization Code',
-        authCodeDesc:
-          'After authorization is complete, the page will display an Authorization Code. Copy and paste it below:',
-        authCode: 'Authorization Code',
-        authCodePlaceholder: 'Paste the Authorization Code from Claude page...',
-        authCodeHint: 'Paste the Authorization Code copied from the Claude page',
-        completeAuth: 'Complete Authorization',
-        verifying: 'Verifying...',
-        pleaseEnterSessionKey: 'Please enter at least one valid sessionKey',
-        authFailed: 'Authorization failed',
-        cookieAuthFailed: 'Cookie authorization failed',
-        keyAuthFailed: 'Key {index}: {error}',
-        successCreated: 'Successfully created {count} account(s)',
-        batchSuccess: 'Successfully created {count} account(s)',
-        batchPartialSuccess: 'Partial success: {success} succeeded, {failed} failed',
-        batchFailed: 'Batch creation failed',
-        // OpenAI specific
-        openai: {
-          title: 'OpenAI Account Authorization',
-          followSteps: 'Follow these steps to complete OpenAI account authorization:',
-          step1GenerateUrl: 'Click the button below to generate the authorization URL',
-          generateAuthUrl: 'Generate Auth URL',
-          step2OpenUrl: 'Open the URL in your browser and complete authorization',
-          openUrlDesc:
-            'Open the authorization URL in a new tab, log in to your OpenAI account and authorize.',
-          importantNotice:
-            'Important: The page may take a while to load after authorization. Please wait patiently. When the browser address bar changes to http://localhost..., the authorization is complete.',
-          step3EnterCode: 'Enter Authorization URL or Code',
-          authCodeDesc:
-            'After authorization is complete, when the page URL becomes http://localhost:xxx/auth/callback?code=...:',
-          authCode: 'Authorization URL or Code',
-          authCodePlaceholder:
-            'Option 1: Copy the complete URL\n(http://localhost:xxx/auth/callback?code=...)\nOption 2: Copy only the code parameter value',
-          authCodeHint:
-            'You can copy the entire URL or just the code parameter value, the system will auto-detect',
-          failedToGenerateUrl: 'Failed to generate OpenAI auth URL',
-          failedToExchangeCode: 'Failed to exchange OpenAI auth code',
-          failedToValidateRT: 'Failed to validate refresh token',
-          errors: {
-            OPENAI_OAUTH_PROXY_REQUIRED:
-              'No proxy is configured and this server could not reach OpenAI directly, so the OpenAI OAuth request failed. Select a proxy that can access OpenAI and retry; if the authorization code has expired, regenerate the authorization URL.'
-          },
-          // Refresh Token auth
-          refreshTokenAuth: 'Manual RT Input',
-          refreshTokenDesc: 'Enter your existing OpenAI Refresh Token(s). Supports batch input (one per line). The system will automatically validate and create accounts.',
-          refreshTokenPlaceholder: 'Paste your OpenAI Refresh Token...\nSupports multiple, one per line',
-          mobileRefreshTokenAuth: 'Manual Mobile RT Input',
-          accessTokenAuth: 'Manual AT Input',
-          codexSessionAuth: 'Codex OAuth auth.json / AT Import',
-          codexSessionDesc: 'Paste a Codex OAuth auth.json or an accessToken. Accounts use the step 1 settings.',
-          codexSessionInputLabel: 'Codex OAuth auth.json or accessToken',
-          codexSessionPlaceholder: 'Multiple lines supported, one token or auth.json object per line',
-          codexSessionHint: 'OAuth session/access-token imports retain their existing expiration behavior.',
-          codexSessionImportAndCreate: 'Import & Create Account',
-          codexSessionEmpty: 'Please enter a Codex auth.json or accessToken',
-          codexSessionImportFailed: 'Failed to import Codex account',
-          codexSessionImportSuccess: 'Import completed: created {created}, updated {updated}, skipped {skipped}',
-          codexSessionImportPartial: 'Partial success: created {created}, updated {updated}, skipped {skipped}, failed {failed}',
-          agentIdentityAuth: 'Agent Identity auth.json',
-          agentIdentityDesc: 'Import a Codex Agent Identity auth.json. No OAuth access or refresh token is stored.',
-          agentIdentityInputLabel: 'Agent Identity auth.json',
-          agentIdentityPlaceholder: 'Paste one Agent Identity auth.json object',
-          agentIdentityHint: 'The file must use auth_mode=agentIdentity. Upstream requests are signed dynamically.',
-          agentIdentityInvalid: 'Use a Codex auth.json with auth_mode=agentIdentity.',
-          codexPatAuth: 'Codex Personal Access Token',
-          codexPatDesc: 'Enter a Codex at- personal access token. The system validates it with OpenAI whoami before creating the account.',
-          codexPatInputLabel: 'Codex PAT',
-          codexPatPlaceholder: 'at-...',
-          codexPatHint: 'This is a separate auth mode. It does not save refresh_token or write an OAuth access_token expiration.',
-          codexPatImportAndCreate: 'Validate & Create Codex PAT Account',
-          codexPatEmpty: 'Please enter a Codex personal access token',
-          codexPatImportFailed: 'Failed to create Codex PAT account',
-          sessionTokenAuth: 'Manual ST Input',
-          sessionTokenDesc: 'Enter your existing Session Token(s). Supports batch input (one per line). The system will automatically validate and create accounts.',
-          sessionTokenPlaceholder: 'Paste your Session Token...\nSupports multiple, one per line',
-          sessionTokenRawLabel: 'Raw Input',
-          sessionTokenRawPlaceholder: 'Paste /api/auth/session raw payload or Session Token...',
-          sessionTokenRawHint: 'You can paste full JSON. The system will auto-parse ST and AT.',
-          openSessionUrl: 'Open Fetch URL',
-          copySessionUrl: 'Copy URL',
-          sessionUrlHint: 'This URL usually returns AT. If sessionToken is absent, copy __Secure-next-auth.session-token from browser cookies as ST.',
-          parsedSessionTokensLabel: 'Parsed ST',
-          parsedSessionTokensEmpty: 'No ST parsed. Please check your input.',
-          parsedAccessTokensLabel: 'Parsed AT',
-          validating: 'Validating...',
-          validateAndCreate: 'Validate & Create Account',
-          pleaseEnterRefreshToken: 'Please enter Refresh Token',
-          pleaseEnterSessionToken: 'Please enter Session Token'
-        },
-        grok: {
-          title: 'Grok Account Authorization',
-          followSteps: 'Follow these steps to authorize your xAI/Grok account:',
-          step1GenerateUrl: 'Generate the xAI authorization URL',
-          generateAuthUrl: 'Generate Auth URL',
-          step2OpenUrl: 'Open the URL in your browser and complete authorization',
-          openUrlDesc: 'Open the authorization URL in a new tab, sign in to xAI, and authorize API access.',
-          importantNotice: 'When the browser reaches the local callback URL, copy the full URL or the code query parameter back here.',
-          step3EnterCode: 'Enter Authorization URL or Code',
-          authCodeDesc: 'After authorization, paste the callback URL, query string, or authorization code:',
-          authCode: 'Authorization URL or Code',
-          authCodePlaceholder: 'Paste the full callback URL, ?code=... query string, or code value',
-          authCodeHint: 'Full callback URLs, query strings, and bare codes are accepted.',
-          refreshTokenAuth: 'Manual RT Input',
-          refreshTokenDesc: 'Enter existing xAI refresh token(s). Supports batch input, one per line.',
-          refreshTokenPlaceholder: 'Paste your xAI refresh token...\nSupports multiple, one per line',
-          ssoCookieAuth: 'SSO Cookie Import',
-          ssoCookieDesc: 'Paste one Grok Web SSO key per line. The server will complete the xAI Device Flow and convert them into Grok Build OAuth credentials.',
-          ssoCookieLabel: 'Grok Web SSO Key',
-          ssoCookiePlaceholder: 'One SSO key per line\nSupports multiple, one per line',
-          ssoCookieHint: 'One SSO key per line. Multiple keys are imported with 3-way concurrency; expect about 90 seconds per batch. Use a matching-region proxy if needed.',
-          convertingSSO: 'Converting...',
-          convertSSOAndCreate: 'Convert & Create Account',
-          validating: 'Validating...',
-          validateAndCreate: 'Validate & Create Account',
-          pleaseEnterRefreshToken: 'Please enter Refresh Token',
-          failedToGenerateUrl: 'Failed to generate Grok auth URL',
-          missingExchangeParams: 'Missing authorization code, state, or OAuth session',
-          failedToExchangeCode: 'Failed to exchange Grok authorization code',
-          failedToValidateRT: 'Failed to validate Grok refresh token',
-          failedToConvertSSO: 'Failed to convert Grok SSO cookie',
-          errors: {
-            GROK_OAUTH_SESSION_NOT_FOUND:
-              'Grok OAuth session was not found or has expired. Generate a new auth URL and paste the newest callback URL.',
-            GROK_OAUTH_INVALID_STATE:
-              'Grok OAuth state does not match this session. Paste the callback URL from the same generated auth link.',
-            GROK_OAUTH_STATE_REQUIRED:
-              'The callback URL is missing the OAuth state. Paste the full callback URL, not only the code.',
-            GROK_OAUTH_CODE_REQUIRED:
-              'The Grok authorization code is missing. Paste the full callback URL, query string, or code value.',
-            GROK_OAUTH_NO_REFRESH_TOKEN:
-              'The Grok response did not include a refresh token. Generate a new auth URL and approve offline access again.',
-            GROK_OAUTH_PROXY_NOT_AVAILABLE:
-              'Grok OAuth proxy lookup is unavailable. Check the selected proxy and retry.',
-            GROK_OAUTH_PROXY_NOT_FOUND:
-              'The selected proxy could not be found. Choose an available proxy and retry.'
-          },
-          oauthOnlyHint: 'Initial Grok support is OAuth subscription-backed Responses API text and reasoning traffic only.'
-        },
-        // Gemini specific
-	        gemini: {
-	          title: 'Gemini Account Authorization',
-	          followSteps: 'Follow these steps to authorize your Gemini account:',
-	          step1GenerateUrl: 'Generate the authorization URL',
-	          generateAuthUrl: 'Generate Auth URL',
-	          projectIdLabel: 'Project ID (optional)',
-	          projectIdPlaceholder: 'e.g. my-gcp-project or cloud-ai-companion-xxxxx',
-	          projectIdHint:
-	            'Leave empty to auto-detect after code exchange. If auto-detection fails, fill it in and re-generate the auth URL to try again.',
-	          howToGetProjectId: 'How to get',
-	          step2OpenUrl: 'Open the URL in your browser and complete authorization',
-	          openUrlDesc:
-	            'Open the authorization URL in a new tab, log in to your Google account and authorize.',
-	          step3EnterCode: 'Enter Authorization URL or Code',
-	          authCodeDesc:
-	            'After authorization, copy the callback URL (recommended) or just the code and paste it below.',
-	          authCode: 'Callback URL or Code',
-	          authCodePlaceholder:
-	            'Option 1 (recommended): Paste the callback URL\nOption 2: Paste only the code value',
-	          authCodeHint: 'The system will auto-extract code/state from the URL.',
-          redirectUri: 'Redirect URI',
-          redirectUriHint:
-            'This must be configured in your Google OAuth client and must match exactly.',
-          confirmRedirectUri:
-            'I have configured this Redirect URI in the Google OAuth client (must match exactly)',
-	          invalidRedirectUri: 'Redirect URI must be a valid http(s) URL',
-	          redirectUriNotConfirmed: 'Please confirm the Redirect URI is configured correctly',
-	          missingRedirectUri: 'Missing redirect URI',
-	          failedToGenerateUrl: 'Failed to generate Gemini auth URL',
-	          missingExchangeParams: 'Missing auth code, session ID, or state',
-	          failedToExchangeCode: 'Failed to exchange Gemini auth code',
-	          missingProjectId: 'GCP Project ID retrieval failed: Your Google account is not linked to an active GCP project. Please activate GCP and bind a credit card in Google Cloud Console, or manually enter the Project ID during authorization.',
-	          modelPassthrough: 'Gemini Model Passthrough',
-	          modelPassthroughDesc:
-	            'All model requests are forwarded directly to the Gemini API without model restrictions or mappings.',
-	          stateWarningTitle: 'Note',
-	          stateWarningDesc: 'Recommended: paste the full callback URL (includes code & state).',
-	          oauthTypeLabel: 'OAuth Type',
-          needsProjectId: 'Built-in OAuth (Code Assist)',
-          needsProjectIdDesc: 'Requires GCP project and Project ID',
-          noProjectIdNeeded: 'Custom OAuth (AI Studio)',
-          noProjectIdNeededDesc: 'Requires admin-configured OAuth client',
-	          aiStudioNotConfiguredShort: 'Not configured',
-	          aiStudioNotConfiguredTip:
-	            'AI Studio OAuth is not configured: set GEMINI_OAUTH_CLIENT_ID / GEMINI_OAUTH_CLIENT_SECRET and add Redirect URI: http://localhost:1455/auth/callback (Consent screen scopes must include https://www.googleapis.com/auth/generative-language.retriever)',
-	          aiStudioNotConfigured:
-	            'AI Studio OAuth is not configured: set GEMINI_OAUTH_CLIENT_ID / GEMINI_OAUTH_CLIENT_SECRET and add Redirect URI: http://localhost:1455/auth/callback'
-	        },
-        // Antigravity specific
-        antigravity: {
-          title: 'Antigravity Account Authorization',
-          followSteps: 'Follow these steps to authorize your Antigravity account:',
-          step1GenerateUrl: 'Generate the authorization URL',
-          generateAuthUrl: 'Generate Auth URL',
-          step2OpenUrl: 'Open the URL in your browser and complete authorization',
-          openUrlDesc: 'Open the authorization URL in a new tab, log in to your Google account and authorize.',
-          importantNotice:
-            'Important: The page may take a while to load after authorization. Please wait patiently. When the browser address bar shows http://localhost..., authorization is complete.',
-          step3EnterCode: 'Enter Authorization URL or Code',
-          authCodeDesc:
-            'After authorization, when the page URL becomes http://localhost:xxx/auth/callback?code=...:',
-          authCode: 'Authorization URL or Code',
-          authCodePlaceholder:
-            'Option 1: Copy the complete URL\n(http://localhost:xxx/auth/callback?code=...)\nOption 2: Copy only the code parameter value',
-                    authCodeHint: 'You can copy the entire URL or just the code parameter value, the system will auto-detect',
-                    failedToGenerateUrl: 'Failed to generate Antigravity auth URL',
-                    missingExchangeParams: 'Missing code, session ID, or state',
-                    failedToExchangeCode: 'Failed to exchange Antigravity auth code',
-                    // Refresh Token auth
-                    refreshTokenAuth: 'Manual RT',
-                    refreshTokenDesc: 'Enter your existing Antigravity Refresh Token. Supports batch input (one per line). The system will automatically validate and create accounts.',
-                    refreshTokenPlaceholder: 'Paste your Antigravity Refresh Token...\nSupports multiple tokens, one per line',
-                    validating: 'Validating...',
-                    validateAndCreate: 'Validate & Create',
-                    pleaseEnterRefreshToken: 'Please enter Refresh Token',
-                    failedToValidateRT: 'Failed to validate Refresh Token'
-                  }
-                },      // Gemini specific (platform-wide)
+      // Gemini specific (platform-wide)
       gemini: {
         helpButton: 'Help',
         helpDialog: {
@@ -1180,15 +901,6 @@ export default {
           now: 'now'
         }
       },
-      // Re-Auth Modal
-      reAuthorizeAccount: 'Re-Authorize Account',
-      claudeCodeAccount: 'Claude Code Account',
-      openaiAccount: 'OpenAI Account',
-      geminiAccount: 'Gemini Account',
-      antigravityAccount: 'Antigravity Account',
-      grokAccount: 'Grok Account',
-      inputMethod: 'Input Method',
-      reAuthorizedSuccess: 'Account re-authorized successfully',
       // Test Modal
       testAccountConnection: 'Test Account Connection',
       account: 'Account',
@@ -1307,8 +1019,6 @@ export default {
         personal: 'Personal',
         unlimited: 'Unlimited'
       },
-      ineligibleWarning:
-        'This account is not eligible for Antigravity, but API forwarding still works. Use at your own risk.',
       forbidden: 'Forbidden',
       forbiddenValidation: 'Verification Required',
       forbiddenViolation: 'Violation Ban',

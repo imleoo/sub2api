@@ -11,7 +11,6 @@ import (
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/claude"
 	"github.com/Wei-Shaw/sub2api/internal/util/urlvalidator"
-	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
 
 	"github.com/gin-gonic/gin"
@@ -289,23 +288,6 @@ func defaultAPIKeyBetaHeader(body []byte) string {
 	return claude.APIKeyBetaHeader
 }
 
-func applyClaudeOAuthHeaderDefaults(req *http.Request) {
-	if req == nil {
-		return
-	}
-	if getHeaderRaw(req.Header, "Accept") == "" {
-		setHeaderRaw(req.Header, "Accept", "application/json")
-	}
-	for key, value := range claude.DefaultHeaders {
-		if value == "" {
-			continue
-		}
-		if getHeaderRaw(req.Header, key) == "" {
-			setHeaderRaw(req.Header, resolveWireCasing(key), value)
-		}
-	}
-}
-
 func mergeAnthropicBeta(required []string, incoming string) string {
 	seen := make(map[string]struct{}, len(required)+8)
 	out := make([]string, 0, len(required)+8)
@@ -327,25 +309,6 @@ func mergeAnthropicBeta(required []string, incoming string) string {
 	}
 	for _, p := range strings.Split(incoming, ",") {
 		add(p)
-	}
-	return strings.Join(out, ",")
-}
-
-func mergeAnthropicBetaDropping(required []string, incoming string, drop map[string]struct{}) string {
-	merged := mergeAnthropicBeta(required, incoming)
-	if merged == "" || len(drop) == 0 {
-		return merged
-	}
-	out := make([]string, 0, 8)
-	for _, p := range strings.Split(merged, ",") {
-		p = strings.TrimSpace(p)
-		if p == "" {
-			continue
-		}
-		if _, ok := drop[p]; ok {
-			continue
-		}
-		out = append(out, p)
 	}
 	return strings.Join(out, ",")
 }
@@ -688,35 +651,6 @@ func buildBetaTokenSet(tokens []string) map[string]struct{} {
 }
 
 var defaultDroppedBetasSet = buildBetaTokenSet(claude.DroppedBetas)
-
-// applyClaudeCodeMimicHeaders forces "Claude Code-like" request headers.
-// This mirrors opencode-anthropic-auth behavior: do not trust downstream
-// headers when using Claude Code-scoped OAuth credentials.
-func applyClaudeCodeMimicHeaders(req *http.Request, isStream bool) {
-	if req == nil {
-		return
-	}
-	// Start with the standard defaults (fill missing).
-	applyClaudeOAuthHeaderDefaults(req)
-	// Then force key headers to match Claude Code fingerprint regardless of what the client sent.
-	// 使用 resolveWireCasing 确保 key 与真实 wire format 一致（如 "x-app" 而非 "X-App"）
-	for key, value := range claude.DefaultHeaders {
-		if value == "" {
-			continue
-		}
-		setHeaderRaw(req.Header, resolveWireCasing(key), value)
-	}
-	// Real Claude CLI uses Accept: application/json (even for streaming).
-	setHeaderRaw(req.Header, "Accept", "application/json")
-	if isStream {
-		setHeaderRaw(req.Header, "x-stainless-helper-method", "stream")
-	}
-	// Real Claude CLI 每个请求都会生成一个新的 UUID 放在 x-client-request-id。
-	// 上游会以此作为会话/请求指纹的一部分，缺失或重复都可能触发第三方判定。
-	if getHeaderRaw(req.Header, "x-client-request-id") == "" {
-		setHeaderRaw(req.Header, "x-client-request-id", uuid.NewString())
-	}
-}
 
 func truncateForLog(b []byte, maxBytes int) string {
 	if maxBytes <= 0 {

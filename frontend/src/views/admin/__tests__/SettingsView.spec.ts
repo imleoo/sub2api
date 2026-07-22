@@ -1254,3 +1254,160 @@ describe("admin SettingsView platform quota matrix", () => {
     expect(quotas["anthropic"]?.["daily"]).toBe(null);
   });
 });
+
+describe("admin SettingsView phone registration / SMS provider / password login", () => {
+  beforeEach(() => {
+    getSettings.mockReset();
+    updateSettings.mockReset();
+    getWebSearchEmulationConfig.mockReset();
+    updateWebSearchEmulationConfig.mockReset();
+    getAdminApiKey.mockReset();
+    getOverloadCooldownSettings.mockReset();
+    getRateLimit429CooldownSettings.mockReset();
+    updateRateLimit429CooldownSettings.mockReset();
+    getStreamTimeoutSettings.mockReset();
+    getRectifierSettings.mockReset();
+    getBetaPolicySettings.mockReset();
+    getGroups.mockReset();
+    listProxies.mockReset();
+    getProviders.mockReset();
+    updateProvider.mockReset();
+    createProvider.mockReset();
+    deleteProvider.mockReset();
+    fetchPublicSettings.mockReset();
+    adminSettingsFetch.mockReset();
+    showError.mockReset();
+    showSuccess.mockReset();
+
+    getSettings.mockResolvedValue({ ...baseSettingsResponse });
+    updateSettings.mockImplementation(async (payload) => ({
+      ...baseSettingsResponse,
+      ...payload,
+    }));
+    getWebSearchEmulationConfig.mockResolvedValue({ enabled: false, providers: [] });
+    updateWebSearchEmulationConfig.mockResolvedValue({ enabled: false, providers: [] });
+    getAdminApiKey.mockResolvedValue({ exists: false, masked_key: "" });
+    getOverloadCooldownSettings.mockResolvedValue({ enabled: true, cooldown_minutes: 10 });
+    getRateLimit429CooldownSettings.mockResolvedValue({ enabled: true, cooldown_seconds: 5 });
+    updateRateLimit429CooldownSettings.mockImplementation(async (payload) => payload);
+    getStreamTimeoutSettings.mockResolvedValue({
+      enabled: true,
+      action: "temp_unsched",
+      temp_unsched_minutes: 5,
+      threshold_count: 3,
+      threshold_window_minutes: 10,
+    });
+    getRectifierSettings.mockResolvedValue({
+      enabled: true,
+      thinking_signature_enabled: true,
+      thinking_budget_enabled: true,
+      apikey_signature_enabled: false,
+      apikey_signature_patterns: [],
+    });
+    getBetaPolicySettings.mockResolvedValue({ rules: [] });
+    getGroups.mockResolvedValue([]);
+    listProxies.mockResolvedValue({ items: [] });
+    getProviders.mockResolvedValue({ data: [] });
+    fetchPublicSettings.mockResolvedValue(undefined);
+    adminSettingsFetch.mockResolvedValue(undefined);
+  });
+
+  // Toggle 组件在页面上没有专属 data-testid，通过其相邻 label 文案定位对应的 toggle-stub input
+  function findToggleByLabel(
+    wrapper: ReturnType<typeof mountView>,
+    labelText: string,
+  ) {
+    const label = wrapper
+      .findAll("label")
+      .find((l) => l.text() === labelText);
+    expect(label, `label "${labelText}" not found`).toBeDefined();
+    const outerRow = label!.element.parentElement!.parentElement as HTMLElement;
+    const toggleEl = outerRow.querySelector("input.toggle-stub");
+    expect(toggleEl, `toggle for "${labelText}" not found`).not.toBeNull();
+    const toggleWrapper = wrapper
+      .findAll("input.toggle-stub")
+      .find((w) => w.element === toggleEl);
+    expect(toggleWrapper).toBeDefined();
+    return toggleWrapper!;
+  }
+
+  it("开启手机注册后，短信服务商三选一切换时对应凭证输入组联动显隐正确", async () => {
+    const wrapper = mountView();
+    await flushPromises();
+    await openSecurityTab(wrapper);
+
+    // 关闭前：SMS 服务商卡片不渲染
+    expect(wrapper.text()).not.toContain("admin.settings.sms.title");
+
+    const phoneToggle = findToggleByLabel(
+      wrapper,
+      "admin.settings.sms.phoneRegisterEnabled",
+    );
+    await phoneToggle.setValue(true);
+
+    // 开启后：SMS 卡片出现，默认服务商 volcengine 的专属字段可见
+    expect(wrapper.text()).toContain("admin.settings.sms.title");
+    expect(wrapper.text()).toContain("admin.settings.sms.smsAccountID");
+    expect(wrapper.text()).not.toContain("admin.settings.sms.tencentSecretID");
+    expect(wrapper.text()).not.toContain("admin.settings.sms.aliyunTemplateCode");
+
+    // 切到腾讯云：腾讯专属字段可见，火山/阿里字段隐藏
+    const tencentTabButton = wrapper
+      .findAll("button")
+      .find((b) => b.text() === "admin.settings.sms.providerTencent");
+    expect(tencentTabButton).toBeDefined();
+    await tencentTabButton!.trigger("click");
+
+    expect(wrapper.text()).toContain("admin.settings.sms.tencentSecretID");
+    expect(wrapper.text()).not.toContain("admin.settings.sms.smsAccountID");
+    expect(wrapper.text()).not.toContain("admin.settings.sms.aliyunTemplateCode");
+
+    // 切到阿里云：阿里专属字段可见，腾讯/火山字段隐藏
+    const aliyunTabButton = wrapper
+      .findAll("button")
+      .find((b) => b.text() === "admin.settings.sms.providerAliyun");
+    expect(aliyunTabButton).toBeDefined();
+    await aliyunTabButton!.trigger("click");
+
+    expect(wrapper.text()).toContain("admin.settings.sms.aliyunTemplateCode");
+    expect(wrapper.text()).not.toContain("admin.settings.sms.tencentSecretID");
+    expect(wrapper.text()).not.toContain("admin.settings.sms.smsAccountID");
+
+    // 关闭手机注册开关后，SMS 卡片重新隐藏（无论当前选中哪个服务商）
+    await phoneToggle.setValue(false);
+    expect(wrapper.text()).not.toContain("admin.settings.sms.title");
+  });
+
+  it("关闭密码登录开关后表单提交路径与展示状态正确", async () => {
+    getSettings.mockResolvedValue({
+      ...baseSettingsResponse,
+      password_login_enabled: true,
+    });
+
+    const wrapper = mountView();
+    await flushPromises();
+    await openSecurityTab(wrapper);
+
+    const passwordLoginToggle = findToggleByLabel(
+      wrapper,
+      "admin.settings.sms.passwordLoginEnabled",
+    );
+    expect((passwordLoginToggle.element as HTMLInputElement).checked).toBe(true);
+
+    await passwordLoginToggle.setValue(false);
+    expect((passwordLoginToggle.element as HTMLInputElement).checked).toBe(false);
+
+    await wrapper.find("form").trigger("submit.prevent");
+    await flushPromises();
+
+    expect(updateSettings).toHaveBeenCalledTimes(1);
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        password_login_enabled: false,
+      }),
+    );
+
+    // 关闭后 toggle 状态在提交完成后仍保持为 false，不会被响应回填重新打开
+    expect((passwordLoginToggle.element as HTMLInputElement).checked).toBe(false);
+  });
+});

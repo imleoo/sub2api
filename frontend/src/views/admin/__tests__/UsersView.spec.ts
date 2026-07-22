@@ -9,13 +9,15 @@ const {
   getAllGroups,
   getBatchUsersUsage,
   listEnabledDefinitions,
-  getBatchUserAttributes
+  getBatchUserAttributes,
+  exportUserStatement
 } = vi.hoisted(() => ({
   listUsers: vi.fn(),
   getAllGroups: vi.fn(),
   getBatchUsersUsage: vi.fn(),
   listEnabledDefinitions: vi.fn(),
-  getBatchUserAttributes: vi.fn()
+  getBatchUserAttributes: vi.fn(),
+  exportUserStatement: vi.fn()
 }))
 
 vi.mock('@/api/admin', () => ({
@@ -23,7 +25,8 @@ vi.mock('@/api/admin', () => ({
     users: {
       list: listUsers,
       toggleStatus: vi.fn(),
-      delete: vi.fn()
+      delete: vi.fn(),
+      exportUserStatement
     },
     groups: {
       getAll: getAllGroups
@@ -108,6 +111,19 @@ const PaginationStub = {
   template: '<button data-test="next-page" @click="$emit(\'update:page\', 2)">next</button>'
 }
 
+const ActionsDataTableStub = {
+  props: ['columns', 'data', 'selectedKeys', 'actionsCount'],
+  emits: ['sort', 'update:selectedKeys'],
+  template: `
+    <div>
+      <div data-test="actions-count">{{ actionsCount }}</div>
+      <div v-for="row in data" :key="row.id">
+        <slot name="cell-actions" :row="row" />
+      </div>
+    </div>
+  `
+}
+
 const BulkEditUserModalStub = {
   props: ['show', 'selectedIds'],
   emits: ['close', 'success'],
@@ -129,6 +145,7 @@ describe('admin UsersView', () => {
     getBatchUsersUsage.mockReset()
     listEnabledDefinitions.mockReset()
     getBatchUserAttributes.mockReset()
+    exportUserStatement.mockReset()
 
     listUsers.mockResolvedValue({
       items: [createAdminUser()],
@@ -368,5 +385,75 @@ describe('admin UsersView', () => {
     expect(wrapper.get('[data-test="row-order"]').text()).toBe('refreshed-page-two@example.com')
     expect(wrapper.find('[data-test="bulk-edit-limits"]').exists()).toBe(false)
     expect(wrapper.get('[data-test="selected-keys"]').text()).toBe('')
+  })
+
+  // zhiguofan fork-only: 月度对账导出（功能 45），风险表标注 handleExportStatement/confirmExportStatement +
+  // actions-count="8" 为上游合并事故高发点，须锁定"更多"菜单项数量与导出参数。
+  it('keeps 8 row actions and exports the selected month via the statement dialog', async () => {
+    window.URL.createObjectURL = vi.fn(() => 'blob:mock-url')
+    window.URL.revokeObjectURL = vi.fn()
+    const anchorClickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    exportUserStatement.mockResolvedValue(new Blob(['ok']))
+
+    const wrapper = mount(UsersView, {
+      global: {
+        stubs: {
+          AppLayout: { template: '<div><slot /></div>' },
+          TablePageLayout: {
+            template: '<div><slot name="filters" /><slot name="table" /><slot name="pagination" /></div>'
+          },
+          DataTable: ActionsDataTableStub,
+          Pagination: true,
+          ConfirmDialog: true,
+          EmptyState: true,
+          GroupBadge: true,
+          Select: true,
+          UserAttributesConfigModal: true,
+          UserConcurrencyCell: true,
+          UserCreateModal: true,
+          UserEditModal: true,
+          BulkEditUserModal: BulkEditUserModalStub,
+          UserPlatformQuotaModal: true,
+          UserApiKeysModal: true,
+          UserAllowedGroupsModal: true,
+          UserBalanceModal: true,
+          UserBalanceHistoryModal: true,
+          GroupReplaceModal: true,
+          Icon: true
+          // 注意：这里刻意不 stub Teleport，因为对账导出菜单/弹窗都依赖真实 Teleport 到 document.body
+        }
+      }
+    })
+
+    await flushPromises()
+
+    expect(wrapper.get('[data-test="actions-count"]').text()).toBe('8')
+
+    await wrapper.get('.action-menu-trigger').trigger('click')
+    await flushPromises()
+
+    const exportButton = Array.from(document.body.querySelectorAll('button')).find(
+      (btn) => btn.textContent?.trim() === 'admin.users.exportStatement'
+    )
+    expect(exportButton).toBeTruthy()
+    exportButton!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await flushPromises()
+
+    const monthSelect = document.body.querySelector('[data-testid="statement-export-month"]') as HTMLSelectElement | null
+    expect(monthSelect).toBeTruthy()
+    expect(monthSelect!.value).toMatch(/^\d{4}-\d{2}$/)
+
+    const confirmButton = document.body.querySelector(
+      '[data-testid="statement-export-confirm"]'
+    ) as HTMLButtonElement | null
+    expect(confirmButton).toBeTruthy()
+    confirmButton!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await flushPromises()
+    await flushPromises()
+
+    expect(exportUserStatement).toHaveBeenCalledWith(42, monthSelect!.value, expect.any(String))
+    expect(anchorClickSpy).toHaveBeenCalled()
+
+    anchorClickSpy.mockRestore()
   })
 })

@@ -100,7 +100,6 @@ export default {
       soon: 'Soon',
       claude: 'Claude',
       gemini: 'Gemini',
-      antigravity: 'Antigravity',
       more: 'More'
     },
     // CTA section
