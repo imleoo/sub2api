@@ -1032,6 +1032,39 @@ func TestTeamService_ListMembers_IncludesImplicitOwnerAndActiveMembers(t *testin
 	require.Equal(t, member.Email, views[1].Email)
 }
 
+func TestTeamService_ListMembers_MemberOnlySeesOwnerAndSelf(t *testing.T) {
+	owner := &User{ID: 1, Email: "owner@example.com"}
+	admin := &User{ID: 2, Email: "admin@example.com"}
+	member1 := &User{ID: 3, Email: "m1@example.com"}
+	member2 := &User{ID: 4, Email: "m2@example.com"}
+	userRepo := newFakeTeamUserRepo(owner, admin, member1, member2)
+	memberRepo := &fakeTeamMemberRepo{}
+	_, err := memberRepo.Create(context.Background(), owner.ID, admin.ID, domain.TeamMemberRoleAdmin)
+	require.NoError(t, err)
+	_, err = memberRepo.Create(context.Background(), owner.ID, member1.ID, domain.TeamMemberRoleMember)
+	require.NoError(t, err)
+	_, err = memberRepo.Create(context.Background(), owner.ID, member2.ID, domain.TeamMemberRoleMember)
+	require.NoError(t, err)
+	svc := newTeamServiceForTest(userRepo, memberRepo, &fakeTeamInvitationRepo{})
+
+	// member 视角：只见 owner 行 + 自己一行，看不到 admin 与其他 member（含其额度信息）。
+	views, err := svc.ListMembers(context.Background(), owner.ID, member1.ID)
+	require.NoError(t, err)
+	require.Len(t, views, 2)
+	require.Equal(t, "owner", views[0].Role)
+	require.Equal(t, member1.ID, views[1].UserID)
+
+	// admin 视角：全量（owner + 3 名成员）。
+	views, err = svc.ListMembers(context.Background(), owner.ID, admin.ID)
+	require.NoError(t, err)
+	require.Len(t, views, 4)
+
+	// owner 视角：全量。
+	views, err = svc.ListMembers(context.Background(), owner.ID, owner.ID)
+	require.NoError(t, err)
+	require.Len(t, views, 4)
+}
+
 func TestTeamService_ListMyTeams_IncludesPersonalAndMemberships(t *testing.T) {
 	owner := &User{ID: 1, Email: "owner@example.com"}
 	member := &User{ID: 2, Email: "member@example.com", Balance: 50}

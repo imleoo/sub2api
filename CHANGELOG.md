@@ -6,6 +6,12 @@
 
 ---
 
+## 安全 - 2026-07-23 — 团队成员列表对普通 member 收紧（防同事额度互见）
+
+功能 44 的 `GET /user/team/invitations` 等管理接口一直由 `authorizeTeamManager` 拦截 member，但 `GET /user/team/members` 当初有意对任意 active 成员放行，返回全员 `quota_mode`/`granted_net_usd`——member 直调 API（带 `?owner_user_id=`）即可看到所有同事的额度划入数字。收紧：`ListMembers` 按 actor 角色分视图——owner/admin 全量不变；普通 member 仅返回 owner 行 + 自己一行（自己的额度信息仍可见）。前端管理页仅 manager 视角调用该接口，无行为变化。回归测试 `TestTeamService_ListMembers_MemberOnlySeesOwnerAndSelf`（member/admin/owner 三视角）。`ListDepartments` 维持成员可读（部门名单非管理敏感信息，且成员视图需要显示自己部门名）。
+
+---
+
 ## 修复 - 2026-07-22 — dev 环境团队邀请邮件链接端口错误（404）
 
 现象：邀请邮件里的接受链接指向后端端口（如 `:8091/team/invite/accept`），dev 模式后端无 embed 前端，打开即裸 404。根因：系统设置 `frontend_url` 未配置时 `resolveFrontendBaseURL` 回退取请求 Host，而 vite proxy `changeOrigin: true` 已把 Host 改写为后端 target 且不带 `X-Forwarded-Host`，后端误把自己当前端。修复：`vite.config.ts` 的 `/api` 代理透传 `X-Forwarded-Host`（+ `X-Forwarded-Proto: http`），dev 回退即可取到真实前端地址。生产/正式环境仍应在管理后台配置 `frontend_url`（设置值优先级最高）。

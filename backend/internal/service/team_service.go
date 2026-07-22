@@ -504,9 +504,12 @@ func (s *TeamService) AcceptInvitation(ctx context.Context, token string, curren
 	return member, nil
 }
 
-// ListMembers 列出企业成员（owner 隐式一行 + active 成员），owner 本人或其活跃成员均可调用。
+// ListMembers 列出企业成员（owner 隐式一行 + active 成员）。
+// owner/admin 见全量；普通 member 仅见 owner 行与自己一行——他人的额度模式与
+// GrantedNetUSD 属管理信息，成员之间不得互见（2026-07-23 收紧，防直调 API 泄露）。
 func (s *TeamService) ListMembers(ctx context.Context, ownerUserID, actorUserID int64) ([]TeamMemberView, error) {
-	if actorUserID != ownerUserID {
+	managerView := actorUserID == ownerUserID
+	if !managerView {
 		active, err := s.teamMemberRepo.FindActive(ctx, ownerUserID, actorUserID)
 		if err != nil {
 			return nil, err
@@ -514,6 +517,7 @@ func (s *TeamService) ListMembers(ctx context.Context, ownerUserID, actorUserID 
 		if active == nil {
 			return nil, ErrInsufficientPerms
 		}
+		managerView = active.Role == domain.TeamMemberRoleAdmin
 	}
 
 	owner, err := s.userRepo.GetByID(ctx, ownerUserID)
@@ -528,6 +532,9 @@ func (s *TeamService) ListMembers(ctx context.Context, ownerUserID, actorUserID 
 	}
 	for i := range members {
 		m := members[i]
+		if !managerView && m.MemberUserID != actorUserID {
+			continue // member 视角：不返回其他成员的行
+		}
 		u, err := s.userRepo.GetByID(ctx, m.MemberUserID)
 		if err != nil {
 			continue // 成员账号已被删除等边缘场景：跳过展示，不阻断整体列表
