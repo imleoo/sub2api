@@ -6,6 +6,12 @@
 
 ---
 
+## 修复 - 2026-07-23 — 加入的企业显示企业名称而非 owner 邮箱
+
+切换器与只读「我的企业」卡此前显示 owner 邮箱（如 admin@sub2api.local），应显示企业名称。`ListMyTeams` 为加入的企业行附带 `company_name`（查 `enterprise_profiles`，档案缺失回退邮箱），DTO/前端类型同步；只读卡新增「企业」一格。
+
+---
+
 ## 修复 - 2026-07-23 — 团队页对未升级企业的用户不再显示空管理面
 
 功能 44 定义「`enterprise_profiles` 行存在才是企业」，但团队页对任何用户都渲染「我的企业」5-Tab 管理面（升级入口只在个人资料页），未升级用户看到空管理面会误以为自己已有企业。实测账号 imleoo@gmail.com：无企业档案、名下 0 成员、同时是他人企业的普通 member，页面却同时呈现"自己的企业管理面 + 加入的企业"。修复：团队页进入时加载 `GET /user/enterprise/profile`，own 视角未升级时渲染 `EnterpriseUpgradeCard`（升级引导/表单，复用个人资料页组件，新增可选 `upgraded` 事件供父级刷新）替代管理 Tab，`loadAll` 同步跳过无意义的管理请求；升级成功后原地切换为管理面。后端零改动（`InviteMember` 的 `requireEnterprise` 门本就保证未升级用户不可能有成员，数据自洽）。

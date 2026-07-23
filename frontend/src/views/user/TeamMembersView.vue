@@ -48,7 +48,11 @@
       <!-- 普通员工只读视图：我在该企业中的信息 -->
       <div v-if="selectedIsMemberView" class="card p-6">
         <h2 class="text-base font-medium text-gray-900 dark:text-white">{{ t('team.myOrg.title') }}</h2>
-        <dl class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <dl class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div>
+            <dt class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dark-400">{{ t('team.myOrg.org') }}</dt>
+            <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ selectedJoinedTeamName }}</dd>
+          </div>
           <div>
             <dt class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dark-400">{{ t('team.myOrg.myRole') }}</dt>
             <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ myMembershipRow ? roleLabel(myMembershipRow.role) : '—' }}</dd>
@@ -388,11 +392,13 @@ const managementTargets = computed(() => {
     { ownerUserId: authStore.user?.id, label: t('team.orgSwitcher.own') }
   ]
   for (const jt of teamStore.joinedTeams) {
-    // member 角色的企业也进切换器（只读视图）；admin 保持管理视图
+    // member 角色的企业也进切换器（只读视图）；admin 保持管理视图。
+    // 展示企业名称（company_name），档案缺失时回退 owner 邮箱。
     const readonly = jt.role !== 'admin'
+    const name = jt.company_name || jt.owner_email
     opts.push({
       ownerUserId: jt.owner_user_id,
-      label: readonly ? `${jt.owner_email} (${t('team.orgSwitcher.readonly')})` : jt.owner_email
+      label: readonly ? `${name} (${t('team.orgSwitcher.readonly')})` : name
     })
   }
   return opts
@@ -421,6 +427,11 @@ async function handleUpgraded() {
 const selectedIsMemberView = computed(() => {
   const jt = teamStore.joinedTeams.find((x) => x.owner_user_id === selectedOwnerId.value)
   return !!jt && jt.role !== 'admin'
+})
+// 选中的加入企业展示名（企业名称，回退 owner 邮箱）
+const selectedJoinedTeamName = computed(() => {
+  const jt = teamStore.joinedTeams.find((x) => x.owner_user_id === selectedOwnerId.value)
+  return jt ? jt.company_name || jt.owner_email : '—'
 })
 // 我的企业卡：members（member 视角=owner 行+自己行）里取自己一行
 const myMembershipRow = computed(() => members.value.find((m) => m.user_id === authStore.user?.id))

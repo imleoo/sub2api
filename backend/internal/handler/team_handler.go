@@ -63,6 +63,7 @@ func resolveTeamOwnerID(c *gin.Context, selfUserID int64) int64 {
 type teamSummaryDTO struct {
 	OwnerUserID   int64   `json:"owner_user_id"`
 	OwnerEmail    string  `json:"owner_email"`
+	CompanyName   string  `json:"company_name,omitempty"`
 	IsPersonal    bool    `json:"is_personal"`
 	Role          string  `json:"role"`
 	Balance       float64 `json:"balance"`
@@ -84,7 +85,7 @@ func (h *TeamHandler) ListMyTeams(c *gin.Context) {
 	}
 	out := make([]teamSummaryDTO, 0, len(teams))
 	for _, t := range teams {
-		out = append(out, teamSummaryDTO{OwnerUserID: t.OwnerUserID, OwnerEmail: t.OwnerEmail, IsPersonal: t.IsPersonal, Role: t.Role, Balance: t.Balance, FrozenBalance: t.FrozenBalance})
+		out = append(out, teamSummaryDTO{OwnerUserID: t.OwnerUserID, OwnerEmail: t.OwnerEmail, CompanyName: t.CompanyName, IsPersonal: t.IsPersonal, Role: t.Role, Balance: t.Balance, FrozenBalance: t.FrozenBalance})
 	}
 	response.Success(c, out)
 }

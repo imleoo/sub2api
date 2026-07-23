@@ -480,6 +480,7 @@ export default {
     },
     myOrg: {
       title: "我的企业",
+      org: "企业",
       myRole: "我的角色",
       hint: "你以普通员工身份加入该企业：使用自己的账号与 API Key，消费从自己余额扣减；额度由企业管理员划转。"
     },

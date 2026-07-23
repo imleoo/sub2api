@@ -487,6 +487,7 @@ export default {
     },
     myOrg: {
       title: "My organization",
+      org: "Organization",
       myRole: "My role",
       hint: "You joined this organization as a member: use your own account and API keys, spending deducts from your own balance; quota is granted by the organization admins."
     },

@@ -15,6 +15,7 @@ import type { AccountUsageStatsResponse } from '@/types'
 export interface TeamSummary {
   owner_user_id: number
   owner_email: string
+  company_name?: string
   is_personal: boolean
   role: string
   balance: number

@@ -65,6 +65,7 @@ type TeamMemberView struct {
 type TeamSummary struct {
 	OwnerUserID   int64
 	OwnerEmail    string
+	CompanyName   string // 企业名称（enterprise_profiles.company_name；个人行/档案缺失时为空）
 	IsPersonal    bool
 	Role          string
 	Balance       float64
@@ -694,7 +695,13 @@ func (s *TeamService) ListMyTeams(ctx context.Context, currentUserID int64) ([]T
 		if err != nil {
 			continue
 		}
-		summaries = append(summaries, TeamSummary{OwnerUserID: owner.ID, OwnerEmail: owner.Email, IsPersonal: false, Role: m.Role})
+		companyName := ""
+		if s.enterpriseRepo != nil {
+			if profile, err := s.enterpriseRepo.GetByUserID(ctx, owner.ID); err == nil && profile != nil {
+				companyName = profile.CompanyName
+			}
+		}
+		summaries = append(summaries, TeamSummary{OwnerUserID: owner.ID, OwnerEmail: owner.Email, CompanyName: companyName, IsPersonal: false, Role: m.Role})
 	}
 	return summaries, nil
 }
