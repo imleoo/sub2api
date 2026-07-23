@@ -591,6 +591,7 @@ export default {
   },
   enterprise: {
     upgrade: {
+      memberBlocked: "你已是 {orgs} 的员工，员工账号无需升级为企业客户；如需自建企业，请先退出所在企业。",
       title: "升级为企业客户",
       description: "补充企业信息即可升级，之后可邀请员工加入并分配额度",
       companyNameLabel: "企业名称",

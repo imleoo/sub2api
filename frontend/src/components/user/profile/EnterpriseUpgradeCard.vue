@@ -34,6 +34,11 @@
         </router-link>
       </div>
 
+      <!-- Already a member of someone else's org: upgrading is not offered -->
+      <div v-else-if="isMemberOfOtherOrg" class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-300">
+        {{ t('enterprise.upgrade.memberBlocked', { orgs: joinedOrgNames }) }}
+      </div>
+
       <!-- Not yet an enterprise account: upgrade form -->
       <form v-else @submit.prevent="handleUpgrade" class="space-y-4">
         <div>
@@ -61,16 +66,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { enterpriseAPI, type EnterpriseProfile } from '@/api/enterprise'
 import { extractApiErrorMessage } from '@/utils/apiError'
+import { useTeamStore } from '@/stores/team'
 
 const emit = defineEmits<{ (e: 'upgraded'): void }>()
 
 const { t } = useI18n()
 const appStore = useAppStore()
+
+const teamStore = useTeamStore()
+// 已是他人企业员工（任意角色）：员工与企业主身份互斥，不提供升级入口（后端同有门）。
+const isMemberOfOtherOrg = computed(() => teamStore.joinedTeams.length > 0)
+const joinedOrgNames = computed(() =>
+  teamStore.joinedTeams.map((jt) => jt.company_name || jt.owner_email).join('\u3001')
+)
 
 const loading = ref(true)
 const submitting = ref(false)
@@ -107,5 +120,12 @@ async function handleUpgrade() {
   }
 }
 
-onMounted(loadProfile)
+onMounted(() => {
+  loadProfile()
+  if (!teamStore.loaded) {
+    teamStore.loadTeams().catch(() => {
+      // 静默：加载失败按非员工处理，后端升级门仍会拦截
+    })
+  }
+})
 </script>

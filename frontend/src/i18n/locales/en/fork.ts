@@ -598,6 +598,7 @@ export default {
   },
   enterprise: {
     upgrade: {
+      memberBlocked: "You are already a member of {orgs}. Member accounts do not need an enterprise upgrade; leave the organization first if you want to create your own.",
       title: "Upgrade to an enterprise account",
       description: "Fill in your company info to upgrade instantly, then invite employees and allocate quota",
       companyNameLabel: "Company name",

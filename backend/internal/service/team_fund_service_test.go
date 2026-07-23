@@ -179,7 +179,7 @@ func TestTeamDepartmentService_Delete_NotFound(t *testing.T) {
 
 func TestEnterpriseService_Upgrade_RejectsDuplicate(t *testing.T) {
 	repo := newFakeEnterpriseProfileRepo()
-	svc := NewEnterpriseService(repo, nil)
+	svc := NewEnterpriseService(repo, nil, nil)
 
 	_, err := svc.Upgrade(context.Background(), 1, EnterpriseUpgradeInput{CompanyName: "Acme"})
 	require.NoError(t, err)
@@ -190,7 +190,7 @@ func TestEnterpriseService_Upgrade_RejectsDuplicate(t *testing.T) {
 
 func TestEnterpriseService_Upgrade_RejectsEmptyCompanyName(t *testing.T) {
 	repo := newFakeEnterpriseProfileRepo()
-	svc := NewEnterpriseService(repo, nil)
+	svc := NewEnterpriseService(repo, nil, nil)
 
 	_, err := svc.Upgrade(context.Background(), 1, EnterpriseUpgradeInput{CompanyName: "  "})
 	require.Error(t, err)
@@ -198,9 +198,20 @@ func TestEnterpriseService_Upgrade_RejectsEmptyCompanyName(t *testing.T) {
 
 func TestEnterpriseService_GetProfile_NilForNonEnterprise(t *testing.T) {
 	repo := newFakeEnterpriseProfileRepo()
-	svc := NewEnterpriseService(repo, nil)
+	svc := NewEnterpriseService(repo, nil, nil)
 
 	p, err := svc.GetProfile(context.Background(), 1)
 	require.NoError(t, err)
 	require.Nil(t, p)
+}
+
+func TestEnterpriseService_Upgrade_RejectsExistingTeamMember(t *testing.T) {
+	memberRepo, _, owner, member := newFundTestSetup(1000, 0)
+	_ = owner
+	repo := newFakeEnterpriseProfileRepo()
+	svc := NewEnterpriseService(repo, nil, memberRepo)
+
+	// member 已是 owner 企业的员工：不允许再自助升级为企业客户。
+	_, err := svc.Upgrade(context.Background(), member.ID, EnterpriseUpgradeInput{CompanyName: "X"})
+	require.ErrorIs(t, err, ErrEnterpriseMemberCannotUpgrade)
 }

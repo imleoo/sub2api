@@ -299,7 +299,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	teamUsageStatsProvider := service.NewTeamUsageStatsProvider(dashboardService)
 	teamFundService := service.NewTeamFundService(teamFundRepository, teamMemberRepository, userRepository, teamActivityLogRepository, teamUsageStatsProvider)
 	teamHandler := handler.NewTeamHandler(teamService, teamDepartmentService, teamFundService, accountUsageService, settingService)
-	enterpriseService := service.NewEnterpriseService(enterpriseProfileRepository, teamActivityLogRepository)
+	enterpriseService := service.NewEnterpriseService(enterpriseProfileRepository, teamActivityLogRepository, teamMemberRepository)
 	enterpriseHandler := handler.NewEnterpriseHandler(enterpriseService)
 	statementHandler := handler.NewStatementHandler(statementService)
 	idempotencyCoordinator := service.ProvideIdempotencyCoordinator(idempotencyRepository, configConfig)

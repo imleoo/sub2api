@@ -19,14 +19,19 @@ type EnterpriseUpgradeInput struct {
 }
 
 // EnterpriseService 提供企业客户资料管理能力。
+// ErrEnterpriseMemberCannotUpgrade：已是他人企业员工的账号不可再自助升级为企业客户
+// （员工与企业主是互斥身份；如需自建企业请先退出所有企业）。
+var ErrEnterpriseMemberCannotUpgrade = infraerrors.Forbidden("ENTERPRISE_MEMBER_CANNOT_UPGRADE", "you are already a member of an enterprise; leave it before upgrading")
+
 type EnterpriseService struct {
 	enterpriseRepo EnterpriseProfileRepository
 	activityRepo   TeamActivityLogRepository
+	teamMemberRepo TeamMemberRepository // 升级门：已是他人企业员工则拒绝升级（可为 nil，测试桩场景跳过）
 }
 
 // NewEnterpriseService 创建 EnterpriseService 实例。
-func NewEnterpriseService(enterpriseRepo EnterpriseProfileRepository, activityRepo TeamActivityLogRepository) *EnterpriseService {
-	return &EnterpriseService{enterpriseRepo: enterpriseRepo, activityRepo: activityRepo}
+func NewEnterpriseService(enterpriseRepo EnterpriseProfileRepository, activityRepo TeamActivityLogRepository, teamMemberRepo TeamMemberRepository) *EnterpriseService {
+	return &EnterpriseService{enterpriseRepo: enterpriseRepo, activityRepo: activityRepo, teamMemberRepo: teamMemberRepo}
 }
 
 // Upgrade 自助升级为企业客户：写入企业资料，重复升级返回 ErrEnterpriseAlreadyUpgraded。
@@ -37,6 +42,15 @@ func (s *EnterpriseService) Upgrade(ctx context.Context, userID int64, in Enterp
 	}
 	if len(companyName) > 200 {
 		return nil, infraerrors.BadRequest("INVALID_COMPANY_NAME", "company name is too long")
+	}
+	if s.teamMemberRepo != nil {
+		memberships, err := s.teamMemberRepo.ListActiveByMember(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		if len(memberships) > 0 {
+			return nil, ErrEnterpriseMemberCannotUpgrade
+		}
 	}
 	profile, err := s.enterpriseRepo.Create(ctx, userID,
 		companyName,

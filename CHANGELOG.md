@@ -6,6 +6,12 @@
 
 ---
 
+## 修复 - 2026-07-23 — 已是企业员工的账号不再提供「升级为企业客户」入口
+
+员工与企业主是互斥身份：已加入他人企业的账号（任意角色）不应再自助开企业。双层收敛——后端 `EnterpriseService.Upgrade` 加门（`ListActiveByMember` 非空返回 `ENTERPRISE_MEMBER_CANNOT_UPGRADE`，`NewEnterpriseService` 增 `teamMemberRepo` 参数、wire 同步）；前端 `EnterpriseUpgradeCard`（个人资料页与团队页共用）对已加入企业的用户显示提示（含所在企业名，引导先退出再自建）替代升级表单。回归测试 `TestEnterpriseService_Upgrade_RejectsExistingTeamMember`。
+
+---
+
 ## 修复 - 2026-07-23 — 加入的企业显示企业名称而非 owner 邮箱
 
 切换器与只读「我的企业」卡此前显示 owner 邮箱（如 admin@sub2api.local），应显示企业名称。`ListMyTeams` 为加入的企业行附带 `company_name`（查 `enterprise_profiles`，档案缺失回退邮箱），DTO/前端类型同步；只读卡新增「企业」一格。
