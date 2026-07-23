@@ -423,6 +423,16 @@ async function handleUpgraded() {
   await loadMyEnterpriseProfile()
   loadAll()
 }
+// 默认视角：未升级企业但已加入企业的员工，默认选中第一个加入的企业（而非空的"我的企业"）。
+// 仅在用户尚未手动切换（仍停留在初始 own）时生效。
+function applyDefaultTarget() {
+  if (!enterpriseProfileLoaded.value || !teamStore.loaded) return
+  if (selectedOwnerId.value !== authStore.user?.id) return
+  if (!myEnterpriseProfile.value && teamStore.joinedTeams.length > 0) {
+    selectedOwnerId.value = teamStore.joinedTeams[0].owner_user_id
+    loadAll()
+  }
+}
 // 当前选中的是否为"我以普通员工身份加入的企业"（只读视图，不渲染管理 Tab）
 const selectedIsMemberView = computed(() => {
   const jt = teamStore.joinedTeams.find((x) => x.owner_user_id === selectedOwnerId.value)
@@ -814,12 +824,16 @@ function fetchMemberUsageStats(userId: number, days: number) {
 }
 
 onMounted(() => {
-  loadMyEnterpriseProfile()
+  loadMyEnterpriseProfile().then(applyDefaultTarget)
   selectedOwnerId.value = authStore.user?.id
   if (!teamStore.loaded) {
-    teamStore.loadTeams().then(loadAll)
+    teamStore.loadTeams().then(() => {
+      loadAll()
+      applyDefaultTarget()
+    })
   } else {
     loadAll()
+    applyDefaultTarget()
   }
 })
 

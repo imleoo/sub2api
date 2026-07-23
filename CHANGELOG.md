@@ -6,6 +6,12 @@
 
 ---
 
+## 修复 - 2026-07-23 — 员工账号进团队页默认选中加入的企业
+
+未升级企业但已加入企业的员工，此前打开团队页默认停留在「我的企业」（只见升级提示），需手动切换才能看到自己所在企业。现在企业档案与团队列表加载完成后，自动默认选中第一个加入的企业（用户手动切换过则不干预）。
+
+---
+
 ## 修复 - 2026-07-23 — 已是企业员工的账号不再提供「升级为企业客户」入口
 
 员工与企业主是互斥身份：已加入他人企业的账号（任意角色）不应再自助开企业。双层收敛——后端 `EnterpriseService.Upgrade` 加门（`ListActiveByMember` 非空返回 `ENTERPRISE_MEMBER_CANNOT_UPGRADE`，`NewEnterpriseService` 增 `teamMemberRepo` 参数、wire 同步）；前端 `EnterpriseUpgradeCard`（个人资料页与团队页共用）对已加入企业的用户显示提示（含所在企业名，引导先退出再自建）替代升级表单。回归测试 `TestEnterpriseService_Upgrade_RejectsExistingTeamMember`。
