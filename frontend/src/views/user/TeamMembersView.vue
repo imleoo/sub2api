@@ -69,6 +69,9 @@
         <p class="mt-4 text-xs text-gray-400">{{ t('team.myOrg.hint') }}</p>
       </div>
 
+      <!-- own 视角且未升级企业：升级引导（不显示空管理面，避免"看似已有企业"误导） -->
+      <EnterpriseUpgradeCard v-else-if="ownViewNotEnterprise" @upgraded="handleUpgraded" />
+
       <div v-else class="card overflow-hidden">
         <div class="flex overflow-x-auto border-b border-gray-100 dark:border-dark-700">
           <button
@@ -327,6 +330,8 @@ import UserStatsModal from '@/components/admin/user/UserStatsModal.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import type { Column } from '@/components/common/types'
 import { useTeamStore } from '@/stores/team'
+import * as enterpriseAPI from '@/api/enterprise'
+import EnterpriseUpgradeCard from '@/components/user/profile/EnterpriseUpgradeCard.vue'
 import { useAuthStore } from '@/stores/auth'
 import {
   teamAPI,
@@ -392,6 +397,26 @@ const managementTargets = computed(() => {
   }
   return opts
 })
+// 我自己的企业档案：null=未升级企业客户（own 视角显示升级引导而非空管理面）
+const myEnterpriseProfile = ref<Awaited<ReturnType<typeof enterpriseAPI.getProfile>>>(null)
+const enterpriseProfileLoaded = ref(false)
+async function loadMyEnterpriseProfile() {
+  try {
+    myEnterpriseProfile.value = await enterpriseAPI.getProfile()
+  } catch {
+    myEnterpriseProfile.value = null
+  } finally {
+    enterpriseProfileLoaded.value = true
+  }
+}
+// own 视角且尚未升级企业：显示升级引导卡（enterprise_profiles 行存在才是企业，功能 44 定义）
+const ownViewNotEnterprise = computed(
+  () => selectedOwnerId.value === authStore.user?.id && enterpriseProfileLoaded.value && !myEnterpriseProfile.value
+)
+async function handleUpgraded() {
+  await loadMyEnterpriseProfile()
+  loadAll()
+}
 // 当前选中的是否为"我以普通员工身份加入的企业"（只读视图，不渲染管理 Tab）
 const selectedIsMemberView = computed(() => {
   const jt = teamStore.joinedTeams.find((x) => x.owner_user_id === selectedOwnerId.value)
@@ -516,6 +541,7 @@ function loadAll() {
   loadDepartments()
   loadReceivedInvitations()
   if (selectedIsMemberView.value) return // 只读视图：管理接口对 member 返回 403，不请求
+  if (ownViewNotEnterprise.value) return // 未升级企业：own 视角显示升级引导，无管理数据可载
   loadInvitations()
   loadTransfers()
   loadReport()
@@ -777,6 +803,7 @@ function fetchMemberUsageStats(userId: number, days: number) {
 }
 
 onMounted(() => {
+  loadMyEnterpriseProfile()
   selectedOwnerId.value = authStore.user?.id
   if (!teamStore.loaded) {
     teamStore.loadTeams().then(loadAll)

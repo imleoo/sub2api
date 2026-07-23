@@ -67,6 +67,8 @@ import { useAppStore } from '@/stores/app'
 import { enterpriseAPI, type EnterpriseProfile } from '@/api/enterprise'
 import { extractApiErrorMessage } from '@/utils/apiError'
 
+const emit = defineEmits<{ (e: 'upgraded'): void }>()
+
 const { t } = useI18n()
 const appStore = useAppStore()
 
@@ -97,6 +99,7 @@ async function handleUpgrade() {
       industry: form.value.industry.trim()
     })
     appStore.showSuccess(t('enterprise.upgrade.success'))
+    emit('upgraded')
   } catch (err: unknown) {
     appStore.showError(extractApiErrorMessage(err, t('common.error')))
   } finally {
