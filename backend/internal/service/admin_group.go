@@ -15,6 +15,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/openai"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/xai"
 )
 
 // Group management implementations
@@ -87,7 +88,11 @@ func (s *adminServiceImpl) GetGroupModelsListCandidates(ctx context.Context, id 
 		candidates = append(candidates, model)
 	}
 	for _, acc := range accounts {
-		if acc.Platform != platform {
+		if platform == PlatformComposite {
+			if !isConcreteRequestPlatform(acc.Platform) {
+				continue
+			}
+		} else if acc.Platform != platform {
 			continue
 		}
 		// 功能 25：generic 账号的模型在 endpoint supported_models 上（不在 model_mapping），
@@ -105,6 +110,134 @@ func (s *adminServiceImpl) GetGroupModelsListCandidates(ctx context.Context, id 
 	return candidates, nil
 }
 
+func (s *adminServiceImpl) ListCompositeRoutes(ctx context.Context, groupID int64) ([]CompositeModelRoute, error) {
+	if err := s.requireCompositeGroup(ctx, groupID); err != nil {
+		return nil, err
+	}
+	if s.compositeRouteRepo == nil {
+		return nil, fmt.Errorf("composite route repository is not configured")
+	}
+	return s.compositeRouteRepo.ListByGroup(ctx, groupID, true)
+}
+
+func (s *adminServiceImpl) CreateCompositeRoute(ctx context.Context, groupID int64, input CompositeRouteInput) (*CompositeModelRoute, error) {
+	if err := s.requireCompositeGroup(ctx, groupID); err != nil {
+		return nil, err
+	}
+	if s.compositeRouteRepo == nil {
+		return nil, fmt.Errorf("composite route repository is not configured")
+	}
+	route, err := compositeRouteFromInput(groupID, input)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.compositeRouteRepo.Create(ctx, route); err != nil {
+		return nil, err
+	}
+	return route, nil
+}
+
+func (s *adminServiceImpl) UpdateCompositeRoute(ctx context.Context, groupID, routeID int64, input CompositeRouteInput) (*CompositeModelRoute, error) {
+	if err := s.requireCompositeGroup(ctx, groupID); err != nil {
+		return nil, err
+	}
+	if s.compositeRouteRepo == nil {
+		return nil, fmt.Errorf("composite route repository is not configured")
+	}
+	if ok, err := s.compositeRouteBelongsToGroup(ctx, groupID, routeID); err != nil {
+		return nil, err
+	} else if !ok {
+		return nil, ErrCompositeRouteNotFound
+	}
+	route, err := compositeRouteFromInput(groupID, input)
+	if err != nil {
+		return nil, err
+	}
+	route.ID = routeID
+	if err := s.compositeRouteRepo.Update(ctx, route); err != nil {
+		return nil, err
+	}
+	return route, nil
+}
+
+func (s *adminServiceImpl) DeleteCompositeRoute(ctx context.Context, groupID, routeID int64) error {
+	if err := s.requireCompositeGroup(ctx, groupID); err != nil {
+		return err
+	}
+	if s.compositeRouteRepo == nil {
+		return fmt.Errorf("composite route repository is not configured")
+	}
+	if ok, err := s.compositeRouteBelongsToGroup(ctx, groupID, routeID); err != nil {
+		return err
+	} else if !ok {
+		return ErrCompositeRouteNotFound
+	}
+	return s.compositeRouteRepo.Delete(ctx, routeID)
+}
+
+func (s *adminServiceImpl) PreviewCompositeRoute(ctx context.Context, groupID int64, input CompositeRoutePreviewRequest) (*CompositeRouteDecision, error) {
+	if err := s.requireCompositeGroup(ctx, groupID); err != nil {
+		return nil, err
+	}
+	resolver := s.compositeResolver
+	if resolver == nil {
+		resolver = NewCompositeRouteResolver(s.compositeRouteRepo)
+	}
+	decision, err := resolver.Resolve(ctx, groupID, input.Model, input.Endpoint)
+	if err != nil {
+		return nil, err
+	}
+	return &decision, nil
+}
+
+func (s *adminServiceImpl) requireCompositeGroup(ctx context.Context, groupID int64) error {
+	group, err := s.groupRepo.GetByIDLite(ctx, groupID)
+	if err != nil {
+		return err
+	}
+	if group.Platform != PlatformComposite {
+		return fmt.Errorf("group %d is not a composite group", groupID)
+	}
+	return nil
+}
+
+func (s *adminServiceImpl) compositeRouteBelongsToGroup(ctx context.Context, groupID, routeID int64) (bool, error) {
+	routes, err := s.compositeRouteRepo.ListByGroup(ctx, groupID, true)
+	if err != nil {
+		return false, err
+	}
+	for i := range routes {
+		if routes[i].ID == routeID {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func compositeRouteFromInput(groupID int64, input CompositeRouteInput) (*CompositeModelRoute, error) {
+	input = normalizeCompositeRouteInput(input)
+	if input.PublicModel == "" {
+		return nil, fmt.Errorf("public_model is required")
+	}
+	if !isConcreteRequestPlatform(input.TargetPlatform) {
+		return nil, fmt.Errorf("target_platform must be a concrete provider")
+	}
+	if input.Priority == 0 {
+		input.Priority = 100
+	}
+	return &CompositeModelRoute{
+		GroupID:        groupID,
+		PublicModel:    input.PublicModel,
+		MatchType:      input.MatchType,
+		TargetPlatform: input.TargetPlatform,
+		UpstreamModel:  input.UpstreamModel,
+		Endpoint:       input.Endpoint,
+		Priority:       input.Priority,
+		Enabled:        input.Enabled,
+		Notes:          input.Notes,
+	}, nil
+}
+
 func defaultModelsListCandidateIDs(platform string) []string {
 	switch platform {
 	case PlatformGeneric:
@@ -118,6 +251,10 @@ func defaultModelsListCandidateIDs(platform string) []string {
 			ids = append(ids, model.ID)
 		}
 		return ids
+	case PlatformGrok:
+		return xai.DefaultModelIDs()
+	case PlatformComposite:
+		return compositeDefaultModelsListCandidateIDs()
 	default:
 		ids := make([]string, 0, len(claude.DefaultModels))
 		for _, model := range claude.DefaultModels {
@@ -125,6 +262,35 @@ func defaultModelsListCandidateIDs(platform string) []string {
 		}
 		return ids
 	}
+}
+
+func defaultAllowImageGenerationForPlatform(platform string) bool {
+	// Grok image and video generation routes share the legacy image-generation gate.
+	// Older clients send the false zero value, so Grok groups must default enabled.
+	return platform == PlatformGrok
+}
+
+func compositeDefaultModelsListCandidateIDs() []string {
+	seen := make(map[string]struct{})
+	ids := make([]string, 0)
+	// fork 裁剪：不含 antigravity（逆向已删）
+	for _, platform := range []string{PlatformAnthropic, PlatformGemini, PlatformOpenAI, PlatformGrok} {
+		for _, id := range defaultModelsListCandidateIDs(platform) {
+			if _, ok := seen[id]; ok {
+				continue
+			}
+			seen[id] = struct{}{}
+			ids = append(ids, id)
+		}
+	}
+	return ids
+}
+
+func canCopyAccountsFromGroupPlatform(targetPlatform, sourcePlatform string) bool {
+	if targetPlatform == PlatformComposite {
+		return sourcePlatform == PlatformComposite || isConcreteRequestPlatform(sourcePlatform)
+	}
+	return sourcePlatform == targetPlatform
 }
 
 func (s *adminServiceImpl) CreateGroup(ctx context.Context, input *CreateGroupInput) (*Group, error) {
@@ -224,7 +390,7 @@ func (s *adminServiceImpl) CreateGroup(ctx context.Context, input *CreateGroupIn
 		}
 	}
 
-	allowImageGeneration := input.AllowImageGeneration
+	allowImageGeneration := input.AllowImageGeneration || defaultAllowImageGenerationForPlatform(platform)
 	allowBatchImageGeneration := input.AllowBatchImageGeneration && allowImageGeneration && platform == PlatformGemini
 
 	// 如果指定了复制账号的源分组，先获取账号 ID 列表
@@ -246,7 +412,7 @@ func (s *adminServiceImpl) CreateGroup(ctx context.Context, input *CreateGroupIn
 			if err != nil {
 				return nil, fmt.Errorf("source group %d not found: %w", srcGroupID, err)
 			}
-			if srcGroup.Platform != platform {
+			if !canCopyAccountsFromGroupPlatform(platform, srcGroup.Platform) {
 				return nil, fmt.Errorf("source group %d platform mismatch: expected %s, got %s", srcGroupID, platform, srcGroup.Platform)
 			}
 		}
@@ -635,7 +801,7 @@ func (s *adminServiceImpl) UpdateGroup(ctx context.Context, id int64, input *Upd
 			if err != nil {
 				return nil, fmt.Errorf("source group %d not found: %w", srcGroupID, err)
 			}
-			if srcGroup.Platform != group.Platform {
+			if !canCopyAccountsFromGroupPlatform(group.Platform, srcGroup.Platform) {
 				return nil, fmt.Errorf("source group %d platform mismatch: expected %s, got %s", srcGroupID, group.Platform, srcGroup.Platform)
 			}
 		}

@@ -115,6 +115,11 @@ func TestExtractUpstreamModelIDs(t *testing.T) {
 			body: `[{"id":"z-model"},{"name":"models/a-model"}]`,
 			want: []string{"a-model", "z-model"},
 		},
+		{
+			name: "standard id wins over provider-specific model field",
+			body: `{"data":[{"id":"canonical-id","model":"display-model"}]}`,
+			want: []string{"canonical-id"},
+		},
 	}
 
 	for _, tt := range tests {
@@ -127,6 +132,14 @@ func TestExtractUpstreamModelIDs(t *testing.T) {
 			require.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestExtractGrokUpstreamModelIDs(t *testing.T) {
+	t.Parallel()
+
+	models, err := extractGrokUpstreamModelIDs([]byte(`{"data":[{"id":"display-id","model":"grok-4.5"},{"modelId":"grok-build-0.1"},{"model_id":"grok-composer-2.5-fast"},{"name":"Grok Meta Display Name","_meta":{"model":"grok-meta"}},{"name":"grok-name"},{"id":"grok-safe","_meta":"not-an-object"}]}`))
+	require.NoError(t, err)
+	require.Equal(t, []string{"grok-4.5", "grok-build-0.1", "grok-composer-2.5-fast", "grok-meta", "grok-name", "grok-safe"}, models)
 }
 
 func TestBuildUpstreamModelsRequestsForAPIKeyAccounts(t *testing.T) {

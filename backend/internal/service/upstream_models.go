@@ -111,7 +111,11 @@ func (s *AccountTestService) FetchUpstreamSupportedModels(ctx context.Context, a
 		)
 	}
 
-	models, err := extractUpstreamModelIDs(body)
+	extractModels := extractUpstreamModelIDs
+	if account.IsGrok() {
+		extractModels = extractGrokUpstreamModelIDs
+	}
+	models, err := extractModels(body)
 	if err != nil {
 		return nil, newUpstreamModelSyncUpstreamError("Upstream model list response was not valid JSON", err)
 	}
@@ -403,12 +407,32 @@ func buildGeminiModelsURL(base string) string {
 }
 
 type upstreamModelEntry struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	OwnedBy string `json:"owned_by"`
+	ID           string          `json:"id"`
+	Model        string          `json:"model"`
+	ModelID      string          `json:"modelId"`
+	ModelIDSnake string          `json:"model_id"`
+	Name         string          `json:"name"`
+	OwnedBy      string          `json:"owned_by"` // fork 功能 24：newapi 兼容
+	Meta         json.RawMessage `json:"_meta"`
+}
+
+type upstreamModelEntryMetadata struct {
+	ID           string `json:"id"`
+	Model        string `json:"model"`
+	ModelID      string `json:"modelId"`
+	ModelIDSnake string `json:"model_id"`
+	Name         string `json:"name"`
 }
 
 func extractUpstreamModelIDs(body []byte) ([]string, error) {
+	return extractUpstreamModelIDsWithSelector(body, upstreamModelEntryID)
+}
+
+func extractGrokUpstreamModelIDs(body []byte) ([]string, error) {
+	return extractUpstreamModelIDsWithSelector(body, grokUpstreamModelEntryID)
+}
+
+func extractUpstreamModelIDsWithSelector(body []byte, selectID func(upstreamModelEntry) string) ([]string, error) {
 	var response struct {
 		Data   []upstreamModelEntry `json:"data"`
 		Models []upstreamModelEntry `json:"models"`
@@ -421,24 +445,24 @@ func extractUpstreamModelIDs(body []byte) ([]string, error) {
 
 		models := make([]string, 0, len(arrayResponse))
 		for _, entry := range arrayResponse {
-			models = append(models, upstreamModelEntryID(entry))
+			models = append(models, selectID(entry))
 		}
 		return dedupeAndSortModelIDs(models), nil
 	}
 
 	models := make([]string, 0, len(response.Data)+len(response.Models))
 	for _, entry := range response.Data {
-		models = append(models, upstreamModelEntryID(entry))
+		models = append(models, selectID(entry))
 	}
 	for _, entry := range response.Models {
-		models = append(models, upstreamModelEntryID(entry))
+		models = append(models, selectID(entry))
 	}
 
 	if len(models) == 0 {
 		var arrayResponse []upstreamModelEntry
 		if err := json.Unmarshal(body, &arrayResponse); err == nil {
 			for _, entry := range arrayResponse {
-				models = append(models, upstreamModelEntryID(entry))
+				models = append(models, selectID(entry))
 			}
 		}
 	}
@@ -452,6 +476,37 @@ func upstreamModelEntryID(entry upstreamModelEntry) string {
 		modelID = strings.TrimSpace(entry.Name)
 	}
 	return strings.TrimPrefix(modelID, "models/")
+}
+
+func grokUpstreamModelEntryID(entry upstreamModelEntry) string {
+	candidates := []string{
+		entry.Model,
+		entry.ModelID,
+		entry.ModelIDSnake,
+		entry.ID,
+	}
+	if len(entry.Meta) > 0 {
+		var meta upstreamModelEntryMetadata
+		if err := json.Unmarshal(entry.Meta, &meta); err == nil {
+			candidates = append(candidates,
+				meta.Model,
+				meta.ModelID,
+				meta.ModelIDSnake,
+				meta.ID,
+				meta.Name,
+			)
+		}
+	}
+	// `name` is a display label in the Grok catalog, so keep it as the final
+	// compatibility fallback rather than preferring it over protocol model IDs.
+	candidates = append(candidates, entry.Name)
+	for _, candidate := range candidates {
+		modelID := strings.TrimSpace(candidate)
+		if modelID != "" {
+			return strings.TrimPrefix(modelID, "models/")
+		}
+	}
+	return ""
 }
 
 func dedupeAndSortModelIDs(models []string) []string {

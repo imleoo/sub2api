@@ -28,6 +28,9 @@ const (
 	// 此类账号不绑定特定 AI 平台，通过 Endpoint 实体携带 base_url/outbound_protocol 路由，
 	// 不参与双桶影子比较（与 lingjing 相同处理）。
 	PlatformGeneric = "generic"
+	// PlatformComposite 组合分组元平台（上游 0.1.164 composite groups）：
+	// 按模型路由到具体平台；fork 具体平台集不含 antigravity（逆向已删）。
+	PlatformComposite = "composite"
 )
 
 // Team collaboration constants (zhiguofan fork-only: 企业组织与额度分配 v2)

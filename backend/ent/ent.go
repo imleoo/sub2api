@@ -27,6 +27,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/channelmonitordailyrollup"
 	"github.com/Wei-Shaw/sub2api/ent/channelmonitorhistory"
 	"github.com/Wei-Shaw/sub2api/ent/channelmonitorrequesttemplate"
+	"github.com/Wei-Shaw/sub2api/ent/compositemodelroute"
 	"github.com/Wei-Shaw/sub2api/ent/endpoint"
 	"github.com/Wei-Shaw/sub2api/ent/enterpriseprofile"
 	"github.com/Wei-Shaw/sub2api/ent/errorpassthroughrule"
@@ -137,6 +138,7 @@ func checkColumn(t, c string) error {
 			channelmonitordailyrollup.Table:     channelmonitordailyrollup.ValidColumn,
 			channelmonitorhistory.Table:         channelmonitorhistory.ValidColumn,
 			channelmonitorrequesttemplate.Table: channelmonitorrequesttemplate.ValidColumn,
+			compositemodelroute.Table:           compositemodelroute.ValidColumn,
 			endpoint.Table:                      endpoint.ValidColumn,
 			enterpriseprofile.Table:             enterpriseprofile.ValidColumn,
 			errorpassthroughrule.Table:          errorpassthroughrule.ValidColumn,

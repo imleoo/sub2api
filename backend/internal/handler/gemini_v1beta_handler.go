@@ -38,8 +38,8 @@ func (h *GatewayHandler) GeminiV1BetaListModels(c *gin.Context) {
 		googleError(c, http.StatusUnauthorized, "Invalid API key")
 		return
 	}
-	// 检查平台：要求 gemini 分组
-	if apiKey.Group == nil || apiKey.Group.Platform != service.PlatformGemini {
+	// 检查平台：要求 gemini 分组（composite 分组经中间件解析出 gemini 目标平台后放行）
+	if effectiveAPIKeyPlatform(c, apiKey) != service.PlatformGemini {
 		googleError(c, http.StatusBadRequest, "API key group platform is not gemini")
 		return
 	}
@@ -71,8 +71,8 @@ func (h *GatewayHandler) GeminiV1BetaGetModel(c *gin.Context) {
 		googleError(c, http.StatusUnauthorized, "Invalid API key")
 		return
 	}
-	// 检查平台：要求 gemini 分组
-	if apiKey.Group == nil || apiKey.Group.Platform != service.PlatformGemini {
+	// 检查平台：要求 gemini 分组（composite 分组经中间件解析出 gemini 目标平台后放行）
+	if effectiveAPIKeyPlatform(c, apiKey) != service.PlatformGemini {
 		googleError(c, http.StatusBadRequest, "API key group platform is not gemini")
 		return
 	}
@@ -81,6 +81,9 @@ func (h *GatewayHandler) GeminiV1BetaGetModel(c *gin.Context) {
 	if modelName == "" {
 		googleError(c, http.StatusBadRequest, "Missing model in URL")
 		return
+	}
+	if resolvedModel, ok := service.ResolvedUpstreamModelFromContext(c.Request.Context()); ok && strings.TrimSpace(resolvedModel) != "" {
+		modelName = strings.TrimSpace(resolvedModel)
 	}
 
 	account, err := h.geminiCompatService.SelectAccountForAIStudioEndpoints(c.Request.Context(), apiKey.GroupID)
@@ -126,7 +129,7 @@ func (h *GatewayHandler) GeminiV1BetaModels(c *gin.Context) {
 
 	// 检查平台：优先使用强制平台（中间件已设置 request.Context），否则要求 gemini 分组
 	if !middleware.HasForcePlatform(c) {
-		if apiKey.Group == nil || apiKey.Group.Platform != service.PlatformGemini {
+		if effectiveAPIKeyPlatform(c, apiKey) != service.PlatformGemini {
 			googleError(c, http.StatusBadRequest, "API key group platform is not gemini")
 			return
 		}
@@ -136,6 +139,9 @@ func (h *GatewayHandler) GeminiV1BetaModels(c *gin.Context) {
 	if err != nil {
 		googleError(c, http.StatusNotFound, err.Error())
 		return
+	}
+	if resolvedModel, ok := service.ResolvedUpstreamModelFromContext(c.Request.Context()); ok && strings.TrimSpace(resolvedModel) != "" {
+		modelName = strings.TrimSpace(resolvedModel)
 	}
 
 	stream := action == "streamGenerateContent"
@@ -524,7 +530,7 @@ func (h *GatewayHandler) GeminiV1BetaModels(c *gin.Context) {
 				LongContextMultiplier: 2.0,    // 超出部分双倍计费
 				ForceCacheBilling:     forceCacheBilling,
 				APIKeyService:         h.apiKeyService,
-				ChannelUsageFields:    channelMapping.ToUsageFields(reqModel, result.UpstreamModel),
+				ChannelUsageFields:    clientRequestedUsageFields(c, channelMapping, reqModel, result.UpstreamModel),
 				InboundProtocol:       domain.ProtocolGeminiV1Beta,
 			}); err != nil {
 				logger.L().With(

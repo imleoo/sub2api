@@ -6,6 +6,42 @@
 
 ---
 
+## [1.1.164] - 2026-07-24 — 同步上游 0.1.164（composite groups 采纳裁剪 / ollama 整链不采纳 / codex 导入删除）
+
+同步上游 `0.1.162 → 0.1.164`（51 个提交），本次为逆向回流量最重的一次同步（上游 diff 新增行 42 处命中逆向关键词）。三项决策（leoobai 拍板）：**composite groups 采纳并裁剪 antigravity / ollama cloud usage 整链不采纳 / codex session 导入删除**。
+
+### 采纳的上游功能
+
+- **Composite Groups（组合分组，#3581）**：`composite` 元平台按模型路由到具体平台。新 ent 表 `composite_model_route`（迁移 `172_composite_model_routes.sql`，与 fork 自有 172 重号共存为既知常态）、`CompositeRouteResolver`、`compositeTargetPlatformMiddleware` 缝入全部网关路由、`compositeBillableModel`/`billableModelWithFallback` 计费兜底、管理端 composite 路由 CRUD + `GroupsView.vue` 编辑 UI。**fork 裁剪**：所有具体平台列表去掉 antigravity（`gateway_handler.go::defaultModelIDsForPlatform`/`compositeAvailableModels`、`composite_platform.go::isConcreteRequestPlatform`、`channel_service.go::matchingPlatforms`、`admin_group.go::compositeDefaultModelsListCandidateIDs`、`GroupsView.vue::compositeRoutePlatformOptions`、group_handler oneof 校验），composite 具体平台集 = anthropic/openai/gemini/grok。
+- **OpenAI 代理断流熔断**（`openai_proxy_stream_circuit.go` + config `gateway.openai_proxy_stream_circuit.*` 3 字段）：Responses SSE 断流按共享代理隔离；fork 中对 apikey 账号同样生效（测试 fixture 由 OAuth 改 apikey）。
+- **支付宝手机端 precreate deep link**（迁移 `186_alipay_mobile_precreate_deep_link.sql`、`alipayDeepLink.ts`）+ 套餐列表币种/时间戳修复。
+- **grok 官方 API 修复**：402 冷却（`grok_upstream_errors.go`，fixture 改 apikey）、Codex client tools 协议往返（`apicompat/responses_client_tools.go`、`openai_gateway_grok_tool_protocol.go`）、grok 媒体路由。
+- 其余：`186_group_auth_cache_image_generation.sql`、模型限流恢复时间进位、使用记录模型筛选口径、渠道定价模型名归一化、grok 分组默认放开图像生成（`defaultAllowImageGenerationForPlatform`）。
+
+### 不采纳 / 删除（逆向订阅，功能 35 口径）
+
+- **Ollama Cloud 用量整链删除**：该功能用存储的 ollama.com 浏览器 session 抓取 settings 页解析用量（订阅逆向侧写）。删除后端 handler/repo/service 9 文件 + `account_repo.go`/`proxy_repo.go`/`crs_sync_service.go`/`admin_account.go`/dto 的编织段（`account_repo.go` 整文件还原 fork 版）+ 路由 5 条 + 审计条目 + `SettingKeyOllamaCloudUsageSettings`；前端组件 2 + spec 3 + `accounts.ts` API 7 函数 + `SettingsView.vue` 设置卡 + types 块 + i18n 键块。保留：ollama.com 作为普通 base_url 的 apikey 直连测试（正规 API）、`ModelIcon.vue` ollama 模型图标、i18n 中说明 Authorization Bearer 的文案。
+- **Codex session 导入删除**：`account_codex_import.go`（+test）导入 Codex CLI auth session 创建 OAuth 账号，git rm。
+- **grok OAuth 链继续删除**：`openai_gateway_grok_chat_bridge.go`（Responses 桥，服务 grok OAuth 逆向；fork 官方 API 原生直转决策不变）保持删除；`buildGrokUpstreamModelsRequest` 还原 fork apikey-only 版；grok OAuth 模型同步测试 2 个 + helper 删除。
+- **spark shadow（OpenAI OAuth 影子账号）守卫不采纳**：`admin_account.go` 的 spark 守卫块、`openai_gateway_scheduling.go` 的 `parentHealthyForShadow` 检查、相关测试（fork `IsCredentialShadow` 恒 false）。
+- **OAuth 透传 input 规范化不采纳**：`normalizeOpenAIPassthroughOAuthBody`（OAuth 透传路径已删）。
+- 测试逆向 fixture 全部裁剪或改 apikey：`gateway_handler_warmup_intercept_unit_test.go`/`openai_gateway_credential_failover_loop_test.go`/`openai_passthrough_normalization_test.go` 保持删除；`PlanEditDialog.spec.ts` 死字段 `require_oauth_only`/`mcp_xml_inject` 移除。
+
+### 合并要点（fork 完整性）
+
+- `wire_gen.go`：以 fork 注入链为基线融合 `compositeRouteResolver`（NewGatewayService +1 参、NewAdminService +2 参、ProvideRouter +1 参）；**5 处手改 setter 复核通过**（`SetEndpointRepository`×4、`SetModelRoutingService`×1）。
+- `routes/gateway.go`：`compositeTarget` 中间件与 fork 协议分流（`getGroupInboundProtocol`/`isOpenAIInbound`）、lingjing 路由共存，守护 grep 全过。
+- `setting_handler{,_update}.go`：fork 字段块（CurrencyMode/UITheme/手机注册/短信/密码登录）逐行核对完整。
+- 断线修复 2 处（unused 甄别为断线非孤儿）：Messages dispatch gate 换 `allowOpenAICompatibleMessagesDispatch`（grok 恒放行）、`CreateGroup` 接回 `defaultAllowImageGenerationForPlatform`。
+- 计费测试按 fork SSOT 口径改造：`gateway_usage_billing_fallback_test.go` 用 catalog fixture 取代上游"内置回退价"前提；fork 家族模糊不吃 `all/claude` 别名（比上游更收敛，别名统一回退具体模型）。
+- 上游把 `AccountUsageCell.vue` 与 grok chat bridge 等 fork 已删区域重写的部分按 fork 版保留。
+
+高风险复核：功能列表风险表 🔴/🟡 登记文件已逐个人工处理（本段所列），`grep -c '\.SetEndpointRepository('`=4、`grep -c '\.SetModelRoutingService('`=1，逆向门禁仅剩既知合法保留点（servertiming/ingress_reject path 分类、overview 存量数据平台标签、fork 注释与回归测试）。
+
+验证：`go build ./...` ✅、`go vet ./...` ✅、`go test -tags=unit ./...` 全绿 ✅、`golangci-lint run` 0 issues ✅、前端 `typecheck`/`lint:check` ✅、`vitest` 197 文件 1306 用例全过（TeamMembersView 5 个 unhandled error 为合并前既有问题，与本次无关）、`go test -tags=integration` 见本段提交说明。
+
+---
+
 ## 修复 - 2026-07-23 — 仪表盘「按平台拆分」双美元符号
 
 `UserDashboardStats.vue` 平台卡片两处模板在 `formatCost()` 前又硬编码 `$`，而该函数自带货币前缀（USD `$` / CNY `¥`），显示为 `$$179.0950`（人民币模式下会更错成 `$¥`）。删去模板硬编码前缀；同文件 `formatUsd()` 为纯数字格式化，其配套的 `$` 保留。

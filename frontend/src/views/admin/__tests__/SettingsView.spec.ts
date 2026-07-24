@@ -45,6 +45,8 @@ const {
     interval_minutes: 30,
   }),
   updateUpstreamBillingProbeSettings: vi.fn().mockImplementation(async (payload) => payload),
+
+
   getGroups: vi.fn(),
   listProxies: vi.fn(),
   getProviders: vi.fn(),
@@ -906,6 +908,7 @@ describe("admin SettingsView payment visible method controls", () => {
     });
     expect(showSuccess).toHaveBeenCalledWith("上游倍率自动探测设置已保存");
   });
+
 
   it("places and explains rate controls for both scheduling modes", async () => {
     const wrapper = mountView();
