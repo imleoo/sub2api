@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/Wei-Shaw/sub2api/internal/pkg/tlsfingerprint"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 	coderws "github.com/coder/websocket"
 	"github.com/stretchr/testify/require"
@@ -26,6 +27,12 @@ type compositeWSHTTPUpstream struct{ service.HTTPUpstream }
 
 func (*compositeWSHTTPUpstream) Do(req *http.Request, _ string, _ int64, _ int) (*http.Response, error) {
 	return http.DefaultClient.Do(req)
+}
+
+// DoWithTLS 委托 Do：主转发链路默认走带指纹通道（nil profile 内部落回 Do），
+// 测试桩必须对两条路径保持一致行为。
+func (u *compositeWSHTTPUpstream) DoWithTLS(req *http.Request, proxyURL string, accountID int64, accountConcurrency int, _ *tlsfingerprint.Profile) (*http.Response, error) {
+	return u.Do(req, proxyURL, accountID, accountConcurrency)
 }
 
 func compositeWSResolver(platform, endpoint, upstream string) *service.CompositeRouteResolver {

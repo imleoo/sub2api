@@ -2496,6 +2496,24 @@ func (a *Account) IsTLSFingerprintEnabled() bool {
 	return false
 }
 
+// IsOpenAITLSFingerprintDisabled 检查 OpenAI OAuth-like 账号是否显式退出
+// 出站 TLS 指纹伪装。OpenAI Codex 出站默认启用 rustls 指纹（网关级开关控制），
+// 该字段提供账号级 opt-out，回退到 Go 默认 TLS。
+func (a *Account) IsOpenAITLSFingerprintDisabled() bool {
+	if a == nil || !a.IsOpenAIOAuthLike() {
+		return false
+	}
+	if a.Extra == nil {
+		return false
+	}
+	if v, ok := a.Extra["disable_tls_fingerprint"]; ok {
+		if disabled, ok := v.(bool); ok {
+			return disabled
+		}
+	}
+	return false
+}
+
 // GetTLSFingerprintProfileID 获取账号绑定的 TLS 指纹模板 ID
 // 返回 0 表示未绑定（使用内置默认 profile）
 func (a *Account) GetTLSFingerprintProfileID() int64 {

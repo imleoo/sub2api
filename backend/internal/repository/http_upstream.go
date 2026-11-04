@@ -103,6 +103,7 @@ const (
 	upstreamProtocolModeOpenAIH1         = "openai_h1"
 	upstreamProtocolModeOpenAIH2         = "openai_h2"
 	upstreamProtocolModeOpenAIH1Fallback = "openai_h1_fallback"
+	upstreamProtocolModeOpenAIH2TLS      = "openai_h2_tls"
 	upstreamProtocolModeGrok             = "grok"
 )
 
@@ -282,11 +283,13 @@ func (s *httpUpstreamService) DoWithTLS(req *http.Request, proxyURL string, acco
 	client = httpClientWithGrokAccessDeniedFallback(client)
 	resp, err := doUpstreamRequest(client, req)
 	if err != nil {
+		s.recordOpenAIHTTP2Failure(upstreamProfile, entry.protocolMode, entry.proxyKey, err)
 		atomic.AddInt64(&entry.inFlight, -1)
 		atomic.StoreInt64(&entry.lastUsed, time.Now().UnixNano())
 		slog.Debug("tls_fingerprint_request_failed", "account_id", accountID, "error", err)
 		return nil, err
 	}
+	s.recordOpenAIHTTP2Success(upstreamProfile, entry.protocolMode, entry.proxyKey)
 
 	resp.Body = wrapTrackedBody(resp.Body, func() {
 		atomic.AddInt64(&entry.inFlight, -1)
@@ -561,9 +564,12 @@ func (s *httpUpstreamService) getClientEntryWithTLS(proxyURL string, accountID i
 	}
 	settings := s.resolvePoolSettings(isolation, accountConcurrency)
 	settings = s.applyProfilePoolSettings(settings, upstreamProfile)
-	// TLS 指纹客户端使用独立的缓存键，加 "tls:" 前缀
-	cacheKey := "tls:" + buildCacheKey(isolation, proxyKey, accountID, upstreamProtocolModeDefault)
-	poolKey := buildPoolKey(settings, upstreamProtocolModeDefault) + ":tls"
+	// TLS 协议模式：OpenAI 上游在 openai_http2 启用且 profile ALPN 含 h2 时走 TLS+H2
+	protocolMode := s.resolveTLSProtocolMode(profile, upstreamProfile, proxyKey, parsedProxy)
+	// TLS 指纹客户端使用独立的缓存键，加 "tls:" 前缀并携带协议模式，
+	// 确保 TLS-h2 / TLS-h1 / 普通客户端互不串缓存
+	cacheKey := "tls:" + buildCacheKey(isolation, proxyKey, accountID, protocolMode)
+	poolKey := buildPoolKey(settings, protocolMode) + ":tls"
 
 	now := time.Now()
 	nowUnix := now.UnixNano()
@@ -613,8 +619,8 @@ func (s *httpUpstreamService) getClientEntryWithTLS(proxyURL string, accountID i
 	}
 
 	// 创建带 TLS 指纹的 Transport
-	slog.Debug("tls_fingerprint_creating_new_client", "account_id", accountID, "cache_key", cacheKey, "proxy", proxyKey)
-	transport, err := buildUpstreamTransportWithTLSFingerprint(settings, parsedProxy, profile)
+	slog.Debug("tls_fingerprint_creating_new_client", "account_id", accountID, "cache_key", cacheKey, "proxy", proxyKey, "protocol_mode", protocolMode)
+	transport, err := buildUpstreamTransportWithTLSFingerprint(settings, parsedProxy, profile, protocolMode)
 	if err != nil {
 		s.mu.Unlock()
 		return nil, fmt.Errorf("build TLS fingerprint transport: %w", err)
@@ -626,9 +632,10 @@ func (s *httpUpstreamService) getClientEntryWithTLS(proxyURL string, accountID i
 	}
 
 	entry := &upstreamClientEntry{
-		client:   client,
-		proxyKey: proxyKey,
-		poolKey:  poolKey,
+		client:       client,
+		proxyKey:     proxyKey,
+		poolKey:      poolKey,
+		protocolMode: protocolMode,
 	}
 	atomic.StoreInt64(&entry.lastUsed, nowUnix)
 	if markInFlight {
@@ -1086,6 +1093,43 @@ func (s *httpUpstreamService) resolveProtocolMode(profile service.HTTPUpstreamPr
 	return upstreamProtocolModeOpenAIH2
 }
 
+// profileHasH2ALPN 判断 TLS 指纹 profile 的 ALPN 是否包含 h2。
+// ALPN 为空时默认仅 http/1.1，不支持 H2。
+func profileHasH2ALPN(profile *tlsfingerprint.Profile) bool {
+	if profile == nil {
+		return false
+	}
+	for _, proto := range profile.ALPNProtocols {
+		if proto == "h2" {
+			return true
+		}
+	}
+	return false
+}
+
+// resolveTLSProtocolMode 为 TLS 指纹客户端选择协议模式，与 resolveProtocolMode 对偶：
+// 仅 OpenAI 上游且 openai_http2 启用、profile ALPN 含 h2 时走 TLS+H2（openai_h2_tls）；
+// 其余场景（其他上游、H2 未启用、H1-only profile、HTTP 代理 H2 兼容熔断激活）一律
+// 回退 default（TLS + HTTP/1.1）。
+func (s *httpUpstreamService) resolveTLSProtocolMode(profile *tlsfingerprint.Profile, upstreamProfile service.HTTPUpstreamProfile, proxyKey string, parsedProxy *url.URL) string {
+	if upstreamProfile != service.HTTPUpstreamProfileOpenAI {
+		return upstreamProtocolModeDefault
+	}
+	settings := s.resolveOpenAIHTTP2Settings()
+	if !settings.enabled || !profileHasH2ALPN(profile) {
+		return upstreamProtocolModeDefault
+	}
+	if parsedProxy != nil {
+		scheme := strings.ToLower(parsedProxy.Scheme)
+		if scheme == "http" || scheme == "https" {
+			if settings.allowProxyFallbackToHTTP1 && s.isOpenAIHTTP2FallbackActive(proxyKey) {
+				return upstreamProtocolModeDefault
+			}
+		}
+	}
+	return upstreamProtocolModeOpenAIH2TLS
+}
+
 func (s *httpUpstreamService) isOpenAIHTTP2FallbackActive(proxyKey string) bool {
 	raw, ok := s.openAIHTTP2Fallbacks.Load(proxyKey)
 	if !ok {
@@ -1170,8 +1214,14 @@ func isUpstreamTimeoutError(err error) bool {
 	return false
 }
 
+// isOpenAIHTTP2ProtocolMode 判断协议模式是否属于 OpenAI HTTP/2 通道
+// （普通 Go TLS 或 utls 指纹通道），两者共用同一套 per-proxyKey 回退熔断状态机。
+func isOpenAIHTTP2ProtocolMode(protocolMode string) bool {
+	return protocolMode == upstreamProtocolModeOpenAIH2 || protocolMode == upstreamProtocolModeOpenAIH2TLS
+}
+
 func (s *httpUpstreamService) recordOpenAIHTTP2Failure(profile service.HTTPUpstreamProfile, protocolMode, proxyKey string, err error) {
-	if profile != service.HTTPUpstreamProfileOpenAI || protocolMode != upstreamProtocolModeOpenAIH2 {
+	if profile != service.HTTPUpstreamProfileOpenAI || !isOpenAIHTTP2ProtocolMode(protocolMode) {
 		return
 	}
 	settings := s.resolveOpenAIHTTP2Settings()
@@ -1191,7 +1241,7 @@ func (s *httpUpstreamService) recordOpenAIHTTP2Failure(profile service.HTTPUpstr
 }
 
 func (s *httpUpstreamService) recordOpenAIHTTP2Success(profile service.HTTPUpstreamProfile, protocolMode, proxyKey string) {
-	if profile != service.HTTPUpstreamProfileOpenAI || protocolMode != upstreamProtocolModeOpenAIH2 {
+	if profile != service.HTTPUpstreamProfileOpenAI || !isOpenAIHTTP2ProtocolMode(protocolMode) {
 		return
 	}
 	if !isHTTPProxyKey(proxyKey) {
@@ -1430,22 +1480,85 @@ func enableHTTP2KeepAlive(transport *http.Transport, protocolMode string) (*http
 }
 
 // buildUpstreamTransportWithTLSFingerprint 构建带 TLS 指纹伪装的 Transport
-// 使用 utls 库模拟 Claude CLI 的 TLS 指纹
+// 使用 utls 库模拟客户端 TLS 指纹
 //
 // 参数:
 //   - settings: 连接池配置
 //   - proxyURL: 代理 URL（nil 表示直连）
 //   - profile: TLS 指纹配置
+//   - protocolMode: 协议模式（default=TLS+H1；openai_h2_tls=TLS+H2）
 //
 // 返回:
-//   - *http.Transport: 配置好的 Transport 实例
+//   - http.RoundTripper: 配置好的 Transport 实例（H2 模式返回 *http2.Transport）
 //   - error: 配置错误
 //
 // 代理类型处理:
 //   - nil/空: 直连，使用 TLSFingerprintDialer
 //   - http/https: HTTP 代理，使用 HTTPProxyDialer（CONNECT 隧道 + utls 握手）
 //   - socks5: SOCKS5 代理，使用 SOCKS5ProxyDialer（SOCKS5 隧道 + utls 握手）
-func buildUpstreamTransportWithTLSFingerprint(settings poolSettings, proxyURL *url.URL, profile *tlsfingerprint.Profile) (*http.Transport, error) {
+func buildUpstreamTransportWithTLSFingerprint(settings poolSettings, proxyURL *url.URL, profile *tlsfingerprint.Profile, protocolMode string) (http.RoundTripper, error) {
+	// H1 模式必须把 ALPN 覆写为仅 http/1.1：否则 utls 会协商出 h2，
+	// 而 http.Transport 只能按 HTTP/1.1 发帧，协议层指纹自相矛盾。
+	if protocolMode != upstreamProtocolModeOpenAIH2TLS {
+		profile = tlsfingerprint.ProfileForHTTP1Only(profile)
+	}
+
+	// 根据代理类型选择合适的 TLS 指纹 Dialer
+	var dialTLSContext func(ctx context.Context, network, addr string) (net.Conn, error)
+	switch {
+	case proxyURL == nil:
+		// 直连：使用 TLSFingerprintDialer
+		slog.Debug("tls_fingerprint_transport_direct")
+		dialTLSContext = tlsfingerprint.NewDialer(profile, nil).DialTLSContext
+	default:
+		scheme := strings.ToLower(proxyURL.Scheme)
+		switch scheme {
+		case "socks5", "socks5h":
+			// SOCKS5 代理：使用 SOCKS5ProxyDialer
+			slog.Debug("tls_fingerprint_transport_socks5", "proxy", proxyURL.Host)
+			dialTLSContext = tlsfingerprint.NewSOCKS5ProxyDialer(profile, proxyURL).DialTLSContext
+		case "https":
+			// The fingerprint dialer emits a plaintext CONNECT preface and cannot
+			// establish TLS to an HTTPS proxy. Keep proxy routing via net/http.
+			return buildUpstreamTransport(settings, proxyURL, upstreamProtocolModeDefault)
+		case "http":
+			// HTTP/HTTPS 代理：使用 HTTPProxyDialer（CONNECT 隧道）
+			slog.Debug("tls_fingerprint_transport_http_connect", "proxy", proxyURL.Host)
+			dialTLSContext = tlsfingerprint.NewHTTPProxyDialer(profile, proxyURL).DialTLSContext
+		default:
+			// 未知代理类型，回退到普通代理配置（无 TLS 指纹）
+			slog.Debug("tls_fingerprint_transport_unknown_scheme_fallback", "scheme", scheme)
+			transport := &http.Transport{
+				MaxIdleConns:          settings.maxIdleConns,
+				MaxIdleConnsPerHost:   settings.maxIdleConnsPerHost,
+				MaxConnsPerHost:       settings.maxConnsPerHost,
+				IdleConnTimeout:       settings.idleConnTimeout,
+				ResponseHeaderTimeout: settings.responseHeaderTimeout,
+				ForceAttemptHTTP2:     false,
+			}
+			if err := proxyutil.ConfigureTransportProxy(transport, proxyURL); err != nil {
+				return nil, err
+			}
+			return transport, nil
+		}
+	}
+
+	if protocolMode == upstreamProtocolModeOpenAIH2TLS {
+		// TLS + HTTP/2：必须用独立 http2.Transport（net/http 的 TLSNextProto 升级
+		// 钩子对 *tls.Conn 做硬断言，utls.UConn 会失败，无法走 ConfigureTransports）。
+		// ReadIdleTimeout/PingTimeout 对齐 openai_h2 的 keepalive 策略。
+		// http2.Transport.DialTLSContext 比 http.Transport 多一个 *tls.Config 参数，
+		// utls 侧自持握手配置，此处直接丢弃。
+		slog.Debug("tls_fingerprint_transport_h2")
+		return &http2.Transport{
+			DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
+				return dialTLSContext(ctx, network, addr)
+			},
+			ReadIdleTimeout: openAIHTTP2ReadIdleTimeout,
+			PingTimeout:     openAIHTTP2PingTimeout,
+		}, nil
+	}
+
 	transport := &http.Transport{
 		MaxIdleConns:          settings.maxIdleConns,
 		MaxIdleConnsPerHost:   settings.maxIdleConnsPerHost,
@@ -1455,39 +1568,7 @@ func buildUpstreamTransportWithTLSFingerprint(settings poolSettings, proxyURL *u
 		// 禁用默认的 TLS，我们使用自定义的 DialTLSContext
 		ForceAttemptHTTP2: false,
 	}
-
-	// 根据代理类型选择合适的 TLS 指纹 Dialer
-	if proxyURL == nil {
-		// 直连：使用 TLSFingerprintDialer
-		slog.Debug("tls_fingerprint_transport_direct")
-		dialer := tlsfingerprint.NewDialer(profile, nil)
-		transport.DialTLSContext = dialer.DialTLSContext
-	} else {
-		scheme := strings.ToLower(proxyURL.Scheme)
-		switch scheme {
-		case "socks5", "socks5h":
-			// SOCKS5 代理：使用 SOCKS5ProxyDialer
-			slog.Debug("tls_fingerprint_transport_socks5", "proxy", proxyURL.Host)
-			socks5Dialer := tlsfingerprint.NewSOCKS5ProxyDialer(profile, proxyURL)
-			transport.DialTLSContext = socks5Dialer.DialTLSContext
-		case "https":
-			// The fingerprint dialer emits a plaintext CONNECT preface and cannot
-			// establish TLS to an HTTPS proxy. Keep proxy routing via net/http.
-			return buildUpstreamTransport(settings, proxyURL, upstreamProtocolModeDefault)
-		case "http":
-			// HTTP/HTTPS 代理：使用 HTTPProxyDialer（CONNECT 隧道）
-			slog.Debug("tls_fingerprint_transport_http_connect", "proxy", proxyURL.Host)
-			httpDialer := tlsfingerprint.NewHTTPProxyDialer(profile, proxyURL)
-			transport.DialTLSContext = httpDialer.DialTLSContext
-		default:
-			// 未知代理类型，回退到普通代理配置（无 TLS 指纹）
-			slog.Debug("tls_fingerprint_transport_unknown_scheme_fallback", "scheme", scheme)
-			if err := proxyutil.ConfigureTransportProxy(transport, proxyURL); err != nil {
-				return nil, err
-			}
-		}
-	}
-
+	transport.DialTLSContext = dialTLSContext
 	return transport, nil
 }
 

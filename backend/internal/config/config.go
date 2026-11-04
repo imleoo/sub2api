@@ -1101,6 +1101,9 @@ type GatewayConfig struct {
 	OpenAIScheduler GatewayOpenAISchedulerConfig `mapstructure:"openai_scheduler"`
 	// OpenAIHTTP2: OpenAI HTTP 上游协议策略（默认启用 HTTP/2，可按代理能力回退 HTTP/1.1）
 	OpenAIHTTP2 GatewayOpenAIHTTP2Config `mapstructure:"openai_http2"`
+	// OpenAICodexTLSFingerprint: OpenAI Codex OAuth 出站 TLS 指纹伪装配置
+	// （默认启用，utls 模拟 rustls/reqwest 指纹，可通过 env 一键回滚）
+	OpenAICodexTLSFingerprint GatewayOpenAICodexTLSFingerprintConfig `mapstructure:"openai_codex_tls_fingerprint"`
 	// OpenAIProxyStreamCircuit: Responses SSE 代理断流熔断策略。
 	OpenAIProxyStreamCircuit GatewayOpenAIProxyStreamCircuitConfig `mapstructure:"openai_proxy_stream_circuit"`
 	// ImageConcurrency: 图片生成独立并发限制配置（默认关闭）
@@ -1232,6 +1235,15 @@ type GatewayCNProvidersConfig struct {
 	BalanceCheckEnabled         bool    `mapstructure:"balance_check_enabled"`
 	BalanceThreshold            float64 `mapstructure:"balance_threshold"`
 	BalanceCheckIntervalMinutes int     `mapstructure:"balance_check_interval_minutes"`
+}
+
+// GatewayOpenAICodexTLSFingerprintConfig OpenAI Codex OAuth 出站 TLS 指纹伪装配置。
+// 默认启用：出站请求用 utls 模拟官方 codex CLI 的实测 ClientHello
+// （native-tls/OpenSSL 形态，与 UA 声称的 codex_cli_rs 客户端一致），
+// 消除 Go 默认 crypto/tls 指纹与客户端身份不匹配的风控破绽。
+type GatewayOpenAICodexTLSFingerprintConfig struct {
+	// Enabled: 是否启用 OpenAI Codex 出站 TLS 指纹伪装
+	Enabled bool `mapstructure:"enabled"`
 }
 
 type GatewayLiveConfig struct {
@@ -2555,6 +2567,7 @@ func setDefaults() {
 	viper.SetDefault("gateway.openai_ws.scheduler_score_weights.session_sticky", 3.0)
 	// OpenAI HTTP upstream protocol strategy
 	viper.SetDefault("gateway.openai_http2.enabled", true)
+	viper.SetDefault("gateway.openai_codex_tls_fingerprint.enabled", true)
 	viper.SetDefault("gateway.openai_http2.allow_proxy_fallback_to_http1", true)
 	viper.SetDefault("gateway.openai_http2.fallback_error_threshold", 2)
 	viper.SetDefault("gateway.openai_http2.fallback_window_seconds", 60)

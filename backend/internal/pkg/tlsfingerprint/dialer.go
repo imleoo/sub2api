@@ -5,6 +5,7 @@ package tlsfingerprint
 import (
 	"bufio"
 	"context"
+	crypto_tls "crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"log/slog"
@@ -295,7 +296,10 @@ func performTLSHandshake(ctx context.Context, conn net.Conn, profile *Profile, a
 		"cipher_suite", state.CipherSuite,
 		"alpn", state.NegotiatedProtocol)
 
-	return tlsConn, nil
+	// 用 h2TLSConn 包装：当上层是 http2.Transport 时需要 crypto/tls.ConnectionState
+	// 形态的 ConnectionState()（x/net/http2 的 connectionStater 接口），utls 自有类型
+	// 无法直接满足；包装不改变 net.Conn 语义，对其他调用方透明。
+	return &h2TLSConn{UConn: tlsConn}, nil
 }
 
 // toUTLSCurves converts uint16 slice to utls.CurveID slice.
@@ -463,4 +467,27 @@ func toUint8s(vals []uint16) []uint8 {
 		out[i] = uint8(v)
 	}
 	return out
+}
+
+// h2TLSConn 包装 utls.UConn，使其 ConnectionState() 返回 crypto/tls.ConnectionState，
+// 满足 golang.org/x/net/http2 的 connectionStater 接口（utls 1.8.x 的自有
+// ConnectionState 类型无公开转换 helper）。其余方法经嵌入透传，net.Conn 语义不变。
+type h2TLSConn struct {
+	*utls.UConn
+}
+
+func (c *h2TLSConn) ConnectionState() crypto_tls.ConnectionState {
+	s := c.UConn.ConnectionState()
+	return crypto_tls.ConnectionState{
+		Version:                     s.Version,
+		HandshakeComplete:           s.HandshakeComplete,
+		DidResume:                   s.DidResume,
+		CipherSuite:                 s.CipherSuite,
+		NegotiatedProtocol:          s.NegotiatedProtocol,
+		ServerName:                  s.ServerName,
+		PeerCertificates:            s.PeerCertificates,
+		VerifiedChains:              s.VerifiedChains,
+		SignedCertificateTimestamps: s.SignedCertificateTimestamps,
+		OCSPResponse:                s.OCSPResponse,
+	}
 }

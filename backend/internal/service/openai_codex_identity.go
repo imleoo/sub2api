@@ -1,6 +1,8 @@
 package service
 
 import (
+	"crypto/sha256"
+	"encoding/binary"
 	"net/http"
 	"regexp"
 	"strings"
@@ -172,6 +174,37 @@ func codexClientVersionFromUA(ua string) string {
 		return codexCLIVersion
 	}
 	return version
+}
+
+// codexUASuffixPool 账号未显式配置 UA 时的 OS/终端后缀池，形态与 codexCLIUserAgentSuffix
+// 同构（{OS} {OS_version}; {arch}) {terminal}）。OS 版本号沿用 os_info crate 的语义化
+// 解析结果（Ubuntu VERSION_ID="22.04" → "22.4.0"，"24.04" → "24.4.0"），终端取真实
+// Linux 环境常见取值。保守不收录 macOS 形态（终端段多样，未经真实抓包确认）。
+// 全部账号共用同一后缀是可聚合的机器人特征，按账号确定性分散可降低同质性。
+var codexUASuffixPool = []string{
+	" (Ubuntu 22.4.0; x86_64) xterm-256color",
+	" (Ubuntu 24.4.0; x86_64) xterm-256color",
+	" (Ubuntu 22.4.0; x86_64) screen",
+	" (Ubuntu 24.4.0; x86_64) tmux-256color",
+}
+
+// codexIdentitySuffixForAccount 按账号命名空间确定性选取 UA 环境后缀。
+// namespace 来自上游凭据（chatgpt_account_id/user_id）或账号种子，跨本地行稳定、
+// 同账号跨请求恒定；namespace 为空（非 OAuth-like 账号）时回退默认后缀。
+func codexIdentitySuffixForAccount(account *Account) string {
+	namespace := codexAccountIdentityNamespace(account)
+	if namespace == "" {
+		return codexCLIUserAgentSuffix
+	}
+	sum := sha256.Sum256([]byte("sub2api:codex-ua-suffix:v1:" + namespace))
+	return codexUASuffixPool[int(binary.BigEndian.Uint32(sum[:4]))%len(codexUASuffixPool)]
+}
+
+// codexIdentityUserAgentForAccount 为账号拼出 UA：规范版本号 + 账号派生环境后缀。
+// 版本号取当前生效规范版本（面板/自动同步/内置常量），与 version 头同源；
+// 最终出站身份仍经 resolveCodexOutboundIdentity 配对重建，此处只需形态正确。
+func codexIdentityUserAgentForAccount(account *Account) string {
+	return openai.CodexDefaultOriginator + "/" + CodexCanonicalClientVersion() + codexIdentitySuffixForAccount(account)
 }
 
 // ensureCodexIdentityHeaders 补齐 OAuth（ChatGPT 内部接口）出站请求所需的 Codex 身份头。

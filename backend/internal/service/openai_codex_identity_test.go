@@ -346,3 +346,38 @@ func TestCodexCanonicalUserAgentFallsBackWithoutResolver(t *testing.T) {
 	require.Equal(t, codexCLIUserAgent, CodexCanonicalUserAgent())
 	require.Equal(t, codexCLIVersion, CodexCanonicalClientVersion())
 }
+
+func TestCodexIdentitySuffixForAccount(t *testing.T) {
+	// 同账号跨请求恒定，且不依赖本地 row id。
+	accountA1 := &Account{ID: 11, Platform: PlatformOpenAI, Type: AccountTypeOAuth, Credentials: map[string]any{"chatgpt_account_id": "acct-a"}}
+	accountA2 := &Account{ID: 99, Platform: PlatformOpenAI, Type: AccountTypeOAuth, Credentials: map[string]any{"chatgpt_account_id": "acct-a"}}
+	require.Equal(t, codexIdentitySuffixForAccount(accountA1), codexIdentitySuffixForAccount(accountA2))
+
+	// 不同账号可派生不同后缀（存在不同结果即可，不要求必然两两不同）。
+	accountB := &Account{ID: 12, Platform: PlatformOpenAI, Type: AccountTypeOAuth, Credentials: map[string]any{"chatgpt_account_id": "acct-b"}}
+	pool := map[string]bool{}
+	for _, acct := range []*Account{accountA1, accountB} {
+		suffix := codexIdentitySuffixForAccount(acct)
+		require.Contains(t, codexUASuffixPool, suffix)
+		pool[suffix] = true
+	}
+	require.NotEmpty(t, pool)
+
+	// namespace 为空（非 OAuth-like / 无凭据）回退默认后缀。
+	require.Equal(t, codexCLIUserAgentSuffix, codexIdentitySuffixForAccount(nil))
+	require.Equal(t, codexCLIUserAgentSuffix, codexIdentitySuffixForAccount(&Account{ID: 13, Platform: PlatformOpenAI, Type: AccountTypeOAuth}))
+}
+
+func TestCodexIdentityUserAgentForAccountPairsWithOriginator(t *testing.T) {
+	SetCodexCanonicalUserAgentResolver(nil)
+	t.Cleanup(func() { SetCodexCanonicalUserAgentResolver(nil) })
+
+	account := &Account{ID: 11, Platform: PlatformOpenAI, Type: AccountTypeOAuth, Credentials: map[string]any{"chatgpt_account_id": "acct-ua"}}
+	ua := codexIdentityUserAgentForAccount(account)
+	// 派生 UA 必须能被身份配对链接受，且版本段被重建为当前生效规范版本。
+	identity := resolveCodexOutboundIdentity(ua)
+	require.Equal(t, openai.CodexDefaultOriginator, identity.originator)
+	require.Equal(t, codexCLIVersion, identity.version)
+	require.Contains(t, identity.userAgent, identity.version)
+	require.Contains(t, identity.userAgent, codexIdentitySuffixForAccount(account))
+}
