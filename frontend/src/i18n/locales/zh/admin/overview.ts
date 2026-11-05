@@ -1083,7 +1083,7 @@ export default {
         batchSectionHint: '批量生图仅影响批量任务：结算价格会叠加批量折扣倍率，提交时冻结金额按普通生图原价 × 批量冻结价格比例计算。参考图也会产生上游输入 token 消耗，建议批量生图折扣倍率设置大于 0.5。',
         batchDisabledHint: '请先开启当前分组生图，才能开启批量生图。',
         batchGeminiOnlyHint: '批量生图当前仅支持 Gemini 分组。',
-        modeHint: '默认关闭独立倍率时，图片费用 = 图片价格 × 当前分组有效倍率；开启独立倍率后，图片费用 = 图片价格 × 生图独立倍率。',
+        modeHint: 'token 计费优先：为模型配置 token 单价（模型定价）后，上游返回 token 用量时按 token 计费，按张价仅作无 token 数据时的兜底；费用 = 图片价格 × 倍率（默认分组有效倍率，开启独立倍率后用生图独立倍率）。',
         finalPricePreview: '最终单张价格预览',
         notConfigured: '未配置'
       },
@@ -1096,7 +1096,7 @@ export default {
         independentMultiplier: '视频倍率独立',
         videoMultiplier: '视频独立倍率',
         modeHint:
-          '视频按秒计费：费用 = 每秒价格 × 时长（1-15 秒，未指定默认 8 秒）。默认叠加当前分组有效倍率；开启独立倍率后改用视频独立倍率。',
+          'token 计费优先：为模型配置 token 单价（模型定价）后，上游返回 token 用量时按 token 计费（Seedance 等返回 completion tokens）；Grok 视频上游不返回 token，兜底按秒计费 = 每秒价格 × 时长（1-15 秒，未指定默认 8 秒）。倍率默认取当前分组有效倍率；开启独立倍率后改用视频独立倍率。',
         finalPricePreview: '最终每秒价格预览',
         notConfigured: '未配置'
       },

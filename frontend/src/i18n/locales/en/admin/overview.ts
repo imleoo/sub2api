@@ -1086,7 +1086,7 @@ export default {
         batchSectionHint: 'Batch image settings only apply to batch jobs: settlement applies the batch discount, and the upfront hold is normal image price × batch hold price ratio. Reference images also create upstream input-token usage, so a batch image discount above 0.5 is recommended.',
         batchDisabledHint: 'Enable image generation for this group before enabling batch image generation.',
         batchGeminiOnlyHint: 'Batch image generation is currently available only for Gemini groups.',
-        modeHint: 'By default, image billing uses image price × current effective group multiplier. Independent mode uses image price × image multiplier.',
+        modeHint: 'Token billing takes priority: once a model has token prices configured (model pricing), requests with upstream token usage are billed by token, and per-image prices only serve as the fallback when no token data is returned. Otherwise image cost = image price × multiplier (effective group multiplier by default, image multiplier in independent mode).',
         finalPricePreview: 'Final per-image price preview',
         notConfigured: 'Not configured'
       },
@@ -1099,7 +1099,7 @@ export default {
         independentMultiplier: 'Use independent video multiplier',
         videoMultiplier: 'Video multiplier',
         modeHint:
-          'Videos are billed per second: per-second price × duration (1-15s, default 8s). By default the current effective group multiplier applies; independent mode uses the video multiplier instead.',
+          'Token billing takes priority: once a model has token prices configured (model pricing), requests with upstream token usage are billed by token (Seedance and similar report completion tokens). Grok video upstream returns no tokens and falls back to per-second billing = per-second price × duration (1-15s, default 8s). The effective group multiplier applies by default; independent mode uses the video multiplier instead.',
         finalPricePreview: 'Final per-second price preview',
         notConfigured: 'Not configured'
       },

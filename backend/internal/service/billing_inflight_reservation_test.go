@@ -498,3 +498,39 @@ func TestInflightEstimate_AccountMappingNoNegativeCaching(t *testing.T) {
 	require.True(t, priced, "new mapping (incl. wildcard) visible on next request")
 	require.Greater(t, est, 0.0)
 }
+
+// 生图/生视频 token 计费优先后，预留口径适配：图片取按张与 token 粗估的较大者；
+// 视频 token 模式且无按秒价时用 token 粗估兜底，避免 fail-open 不预留。
+
+func TestInflightEstimate_ImagePrefersMaxOfPerImageAndToken(t *testing.T) {
+	groupID := int64(31)
+	p4k := 0.001
+	in, out := 1e-6, 1e-3
+	group := &Group{ID: groupID, Platform: PlatformOpenAI, RateMultiplier: 1, ImagePrice4K: &p4k, ModelPricing: []ChannelModelPricing{
+		{Models: []string{"tok-*"}, BillingMode: BillingModeToken, InputPrice: &in, OutputPrice: &out},
+	}}
+	svc := newInflightEstimateGateway(t, nil)
+	apiKey := &APIKey{User: &User{ID: 1}, GroupID: &groupID, Group: group}
+
+	// body 4000 bytes → 1000 input tokens；MaxTokens 1000 → 1000 output tokens。
+	// 按张三档 max = 0.001×2；token 粗估 = 1000×1e-6 + 1000×1e-3 = 1.001，取较大者。
+	est, priced := svc.EstimateInflightReservation(context.Background(), apiKey, InflightEstimateRequest{Model: "tok-image", Kind: InflightEstimateImage, Units: 2, BodyBytes: 4000, MaxTokens: 1000})
+	require.True(t, priced)
+	require.InDelta(t, 1000*in+1000*out, est, 1e-12)
+}
+
+func TestInflightEstimate_VideoTokenPricingWithoutPerSecondPrice(t *testing.T) {
+	groupID := int64(32)
+	in, out := 1e-6, 2e-6
+	group := &Group{ID: groupID, Platform: PlatformOpenAI, RateMultiplier: 1, ModelPricing: []ChannelModelPricing{
+		{Models: []string{"seedance-pro"}, BillingMode: BillingModeToken, InputPrice: &in, OutputPrice: &out},
+	}}
+	svc := newInflightEstimateGateway(t, nil)
+	apiKey := &APIKey{User: &User{ID: 1}, GroupID: &groupID, Group: group}
+
+	// 视频估算分层：按秒默认价卡对未知模型也有价（0.201/s × 8s）优先预留；
+	// token 粗估仅在按秒口径完全无价时兜底，任何情况下不再 fail-open 不预留。
+	est, priced := svc.EstimateInflightReservation(context.Background(), apiKey, InflightEstimateRequest{Model: "seedance-pro", Kind: InflightEstimateVideo, VideoResolution: "720p", VideoDurationSeconds: 8, BodyBytes: 4000, MaxTokens: 1000})
+	require.True(t, priced)
+	require.Greater(t, est, 1000*in+1000*out, "按秒默认价卡预留应不低于 token 粗估")
+}

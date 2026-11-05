@@ -84,7 +84,9 @@ func appendUsageLogBillingModeWhereConditionWithAlias(conditions []string, args 
 	case service.BillingModeImage:
 		conditions = append(conditions, fmt.Sprintf("(%s = %s OR ((%s IS NULL OR %s = '') AND COALESCE(%s, 0) > 0))", column("billing_mode"), placeholder, column("billing_mode"), column("billing_mode"), column("image_count")))
 	case service.BillingModeVideo:
-		conditions = append(conditions, fmt.Sprintf("%s = %s", column("billing_mode"), placeholder))
+		// video 精确行 + token 计费的视频行：token 计费优先改造后，视频/图片模型
+		// 走 token 路径时落 billing_mode='token'，仅精确匹配会漏掉这些行。
+		conditions = append(conditions, fmt.Sprintf("(%s = %s OR (%s = 'token' AND COALESCE(%s, 0) > 0))", column("billing_mode"), placeholder, column("billing_mode"), column("video_count")))
 	case service.BillingModeToken:
 		conditions = append(conditions, fmt.Sprintf("(%s = %s OR ((%s IS NULL OR %s = '') AND COALESCE(%s, 0) <= 0))", column("billing_mode"), placeholder, column("billing_mode"), column("billing_mode"), column("image_count")))
 	default:

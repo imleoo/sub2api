@@ -585,8 +585,10 @@ func (d inflightEstimateDeps) estimateOne(ctx context.Context, apiKey *APIKey, m
 				}
 			}
 		}
-		if cost <= 0 {
-			cost = tokenCost()
+		// 图片/视频 token 计费优先（上游返回 token 用量时按 token 实扣），预留取
+		// 按张与 token 粗估的较大者，避免 token 实扣高于按张预留导致短暂低估。
+		if b := tokenCost(); b > cost {
+			cost = b
 		}
 	case InflightEstimateVideo:
 		if perRequestMode {
@@ -595,6 +597,13 @@ func (d inflightEstimateDeps) estimateOne(ctx context.Context, apiKey *APIKey, m
 		if d.billing != nil {
 			if b := d.billing.CalculateVideoCost(model, req.VideoResolution, units, req.VideoDurationSeconds, videoPriceConfigFromAPIKey(apiKey), math.Max(textRate, imageRate)); b != nil && b.ActualCost > cost {
 				cost = b.ActualCost
+			}
+		}
+		// token 模式且无分组/渠道按秒价时 cost=0 会 fail-open；用 token 粗估兜底
+		// （金额偏小但优于不预留），强拦截依赖既有 fail_closed_on_unpriced 配置。
+		if !validCost(cost) {
+			if b := tokenCost(); validCost(b) {
+				cost = b
 			}
 		}
 	case InflightEstimateAudio:

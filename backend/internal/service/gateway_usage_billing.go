@@ -1020,13 +1020,14 @@ func (s *GatewayService) calculateRecordUsageCost(
 	imageMultiplier float64,
 	pricingAt time.Time,
 ) *CostBreakdown {
-	// 图片生成：渠道定价为 token 计费时走 token 路径，否则走图片计费。
+	// 图片生成 token 计费优先：有 token 用量且 token 定价可解析（分组/渠道 token 定价
+	// 或目录确定性价）时走 token 路径；否则兜底按张。
 	// 分组按张计费开关只对专用图片端点生效，混合请求仍按 token 计费。
 	if result.ImageCount > 0 {
-		if !imageCountBillingApplies(apiKey, result.ImageEndpoint) {
-			if resolved := s.resolveChannelPricing(ctx, billingModel, apiKey); resolved != nil && resolved.Mode == BillingModeToken {
-				return s.calculateTokenCost(ctx, result, apiKey, billingModel, multiplier, pricingAt)
-			}
+		if !imageCountBillingApplies(apiKey, result.ImageEndpoint) &&
+			mediaHasTokenUsage(result.Usage) &&
+			s.hasResolvableMediaTokenPricing(ctx, billingModel, apiKey) {
+			return s.calculateTokenCost(ctx, result, apiKey, billingModel, multiplier, pricingAt)
 		}
 		return s.calculateImageCost(ctx, result, apiKey, billingModel, imageMultiplier)
 	}
@@ -1132,6 +1133,26 @@ func (s *GatewayService) hasResolvableTokenPricing(ctx context.Context, model st
 	return err == nil
 }
 
+// mediaHasTokenUsage 上游是否返回了可用于 token 计费的用量。
+// 部分媒体端点上游不返回 token，必须兜底按张，绝不能带着全 0 token
+// 进 token 路径按 0 费用结算。
+func mediaHasTokenUsage(u ClaudeUsage) bool {
+	return u.InputTokens > 0 || u.OutputTokens > 0 || u.ImageOutputTokens > 0
+}
+
+// hasResolvableMediaTokenPricing 判断模型能否解析出 token 定价：分组/渠道 token
+// 定价，或价格表中能被确定性识别的条目（刻意排除按子串猜系列的兜底价，
+// 口径与 HasIdentifiedTokenPricing 一致）。
+func (s *GatewayService) hasResolvableMediaTokenPricing(ctx context.Context, model string, apiKey *APIKey) bool {
+	if strings.TrimSpace(model) == "" {
+		return false
+	}
+	if resolved := s.resolveChannelPricing(ctx, model, apiKey); resolved != nil && resolved.Mode == BillingModeToken {
+		return true
+	}
+	return s.billingService.HasIdentifiedTokenPricing(model)
+}
+
 // hasIdentifiedResponseModelPricing 判断上游自报的响应模型是否可以作为计费基准，
 // 并回传它是否解析到了渠道级定价（供 responseModelBillingAdoptable 的跨定价源守卫使用，
 // 避免为此再解析一次）。
@@ -1221,8 +1242,9 @@ func (s *GatewayService) calculateImageCost(
 				return &CostBreakdown{ActualCost: 0}
 			}
 			return cost
-		case !forcePerImage:
-			// token 模式且开关未强制按张：保持原 token 计费。
+		case !forcePerImage && mediaHasTokenUsage(result.Usage):
+			// token 模式且开关未强制按张：保持原 token 计费。上游未返回任何 token
+			// 时进这里会算出 $0，必须落回按张兜底，不能按 0 费用结算。
 			gid := apiKey.Group.ID
 			cost, err := s.billingService.CalculateCostUnified(CostInput{
 				Ctx:             ctx,

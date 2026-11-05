@@ -3298,3 +3298,336 @@ func TestOpenAIGatewayServiceRecordUsage_ServiceTierNeverRaisedByUpstreamRespons
 	require.NoError(t, calcErr)
 	require.InDelta(t, baseCost.TotalCost, usageRepo.lastLog.TotalCost, 1e-10)
 }
+
+// ---------------------------------------------------------------------------
+// 生图/生视频 token 计费优先：有 token 用量且 token 价可解析时走 token 路径；
+// 上游不返回 token（Grok 视频/部分图片端点）或无 token 价时兜底按秒/按张，
+// 绝不能带着全 0 token 进 token 路径按 0 费用结算。
+// ---------------------------------------------------------------------------
+
+func TestOpenAIGatewayServiceRecordUsage_GrokVideoTokenPricingWithoutUsageFallsBackToPerSecond(t *testing.T) {
+	groupID := int64(140)
+	usageRepo := &openAIRecordUsageLogRepoStub{inserted: true}
+	svc := newOpenAIRecordUsageServiceForTest(usageRepo, &openAIRecordUsageUserRepoStub{}, &openAIRecordUsageSubRepoStub{}, nil)
+	svc.resolver = newOpenAITokenImageChannelPricingResolverForTest(t, groupID, "grok-imagine-video")
+
+	err := svc.RecordUsage(context.Background(), &OpenAIRecordUsageInput{
+		Result: &OpenAIForwardResult{
+			RequestID:            "resp_grok_video_token_mode_zero_tokens",
+			Model:                "grok-imagine-video",
+			BillingModel:         "grok-imagine-video",
+			VideoCount:           1,
+			VideoResolution:      VideoBillingResolution720P,
+			VideoDurationSeconds: 8,
+			Duration:             time.Second,
+			// Grok 视频上游不返回 usage token。
+		},
+		APIKey: &APIKey{
+			ID:      10140,
+			GroupID: i64p(groupID),
+			Group:   &Group{ID: groupID, Platform: PlatformGrok, RateMultiplier: 1},
+		},
+		User:    &User{ID: 20140},
+		Account: &Account{ID: 30140, Platform: PlatformGrok},
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, usageRepo.lastLog)
+	// 兜底按秒：默认价卡 720p $0.07/s × 8s，绝不 0 费用。
+	require.InDelta(t, 0.07*8, usageRepo.lastLog.TotalCost, 1e-12)
+	require.InDelta(t, 0.07*8, usageRepo.lastLog.ActualCost, 1e-12)
+	require.NotNil(t, usageRepo.lastLog.BillingMode)
+	require.Equal(t, string(BillingModeVideo), *usageRepo.lastLog.BillingMode)
+}
+
+func TestOpenAIGatewayServiceRecordUsage_VideoWithTokensAndTokenPricingBilledByToken(t *testing.T) {
+	groupID := int64(141)
+	usageRepo := &openAIRecordUsageLogRepoStub{inserted: true}
+	svc := newOpenAIRecordUsageServiceForTest(usageRepo, &openAIRecordUsageUserRepoStub{}, &openAIRecordUsageSubRepoStub{}, nil)
+	svc.resolver = newOpenAITokenImageChannelPricingResolverForTest(t, groupID, "seedance-pro")
+
+	err := svc.RecordUsage(context.Background(), &OpenAIRecordUsageInput{
+		Result: &OpenAIForwardResult{
+			RequestID:            "resp_seedance_video_token_billed",
+			Model:                "seedance-pro",
+			BillingModel:         "seedance-pro",
+			VideoCount:           1,
+			VideoResolution:      VideoBillingResolution1080P,
+			VideoDurationSeconds: 5,
+			Duration:             time.Second,
+			// Seedance/Ark 上游返回 completion tokens。
+			Usage: OpenAIUsage{OutputTokens: 1000},
+		},
+		APIKey: &APIKey{
+			ID:      10141,
+			GroupID: i64p(groupID),
+			Group:   &Group{ID: groupID, Platform: PlatformOpenAI, RateMultiplier: 1},
+		},
+		User:    &User{ID: 20141},
+		Account: &Account{ID: 30141, Platform: PlatformOpenAI},
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, usageRepo.lastLog)
+	// token 计费优先：1000 output tokens × $15e-6。
+	require.InDelta(t, 1000*15e-6, usageRepo.lastLog.TotalCost, 1e-12)
+	require.InDelta(t, 1000*15e-6, usageRepo.lastLog.ActualCost, 1e-12)
+	require.NotNil(t, usageRepo.lastLog.BillingMode)
+	require.Equal(t, string(BillingModeToken), *usageRepo.lastLog.BillingMode)
+}
+
+func TestOpenAIGatewayServiceRecordUsage_VideoWithTokensButNoTokenPricingFallsBackToPerSecond(t *testing.T) {
+	groupID := int64(142)
+	usageRepo := &openAIRecordUsageLogRepoStub{inserted: true}
+	svc := newOpenAIRecordUsageServiceForTest(usageRepo, &openAIRecordUsageUserRepoStub{}, &openAIRecordUsageSubRepoStub{}, nil)
+	groupVideoPrice480P := 0.02
+
+	err := svc.RecordUsage(context.Background(), &OpenAIRecordUsageInput{
+		Result: &OpenAIForwardResult{
+			RequestID:            "resp_video_no_token_pricing",
+			Model:                "zz-unpriced-video-model",
+			BillingModel:         "zz-unpriced-video-model",
+			VideoCount:           1,
+			VideoResolution:      VideoBillingResolution480P,
+			VideoDurationSeconds: 2,
+			Duration:             time.Second,
+			Usage:                OpenAIUsage{OutputTokens: 500},
+		},
+		APIKey: &APIKey{
+			ID:      10142,
+			GroupID: i64p(groupID),
+			Group: &Group{
+				ID:                   groupID,
+				Platform:             PlatformOpenAI,
+				RateMultiplier:       1,
+				VideoRateIndependent: true,
+				VideoRateMultiplier:  1,
+				VideoPrice480P:       &groupVideoPrice480P,
+			},
+		},
+		User:    &User{ID: 20142},
+		Account: &Account{ID: 30142, Platform: PlatformOpenAI},
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, usageRepo.lastLog)
+	require.InDelta(t, 0.02*2, usageRepo.lastLog.TotalCost, 1e-12)
+	require.InDelta(t, 0.02*2, usageRepo.lastLog.ActualCost, 1e-12)
+	require.NotNil(t, usageRepo.lastLog.BillingMode)
+	require.Equal(t, string(BillingModeVideo), *usageRepo.lastLog.BillingMode)
+}
+
+func TestOpenAIGatewayServiceRecordUsage_ImageTokenPricingWithoutUsageFallsBackToPerImage(t *testing.T) {
+	groupID := int64(143)
+	groupImagePrice2K := 0.021
+	usageRepo := &openAIRecordUsageLogRepoStub{inserted: true}
+	svc := newOpenAIRecordUsageServiceForTest(usageRepo, &openAIRecordUsageUserRepoStub{}, &openAIRecordUsageSubRepoStub{}, nil)
+	svc.resolver = newOpenAITokenImageChannelPricingResolverForTest(t, groupID, "grok-imagine-image-quality")
+
+	err := svc.RecordUsage(context.Background(), &OpenAIRecordUsageInput{
+		Result: &OpenAIForwardResult{
+			RequestID:     "resp_image_token_mode_zero_tokens",
+			Model:         "grok-imagine-image-quality",
+			BillingModel:  "grok-imagine-image-quality",
+			ImageCount:    1,
+			ImageSize:     ImageBillingSize2K,
+			ImageEndpoint: true,
+			Duration:      time.Second,
+			// 图片端点上游不返回 usage token。
+		},
+		APIKey: &APIKey{
+			ID:      10143,
+			GroupID: i64p(groupID),
+			Group: &Group{
+				ID:                   groupID,
+				Platform:             PlatformGrok,
+				RateMultiplier:       1,
+				ImageRateIndependent: true,
+				ImageRateMultiplier:  1,
+				ImagePrice2K:         &groupImagePrice2K,
+			},
+		},
+		User:    &User{ID: 20143},
+		Account: &Account{ID: 30143, Platform: PlatformGrok},
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, usageRepo.lastLog)
+	// 兜底按张：分组 2K 单价，绝不 0 费用。
+	require.InDelta(t, 0.021, usageRepo.lastLog.TotalCost, 1e-12)
+	require.InDelta(t, 0.021, usageRepo.lastLog.ActualCost, 1e-12)
+	require.NotNil(t, usageRepo.lastLog.BillingMode)
+	require.Equal(t, string(BillingModeImage), *usageRepo.lastLog.BillingMode)
+}
+
+func TestOpenAIGatewayServiceRecordUsage_ImageWithTokensAndTokenPricingBilledByToken(t *testing.T) {
+	groupID := int64(144)
+	groupImagePrice2K := 0.021
+	usageRepo := &openAIRecordUsageLogRepoStub{inserted: true}
+	svc := newOpenAIRecordUsageServiceForTest(usageRepo, &openAIRecordUsageUserRepoStub{}, &openAIRecordUsageSubRepoStub{}, nil)
+	svc.resolver = newOpenAITokenImageChannelPricingResolverForTest(t, groupID, "gemini-3-pro-image-preview")
+
+	err := svc.RecordUsage(context.Background(), &OpenAIRecordUsageInput{
+		Result: &OpenAIForwardResult{
+			RequestID:     "resp_image_token_billed",
+			Model:         "gemini-3-pro-image-preview",
+			BillingModel:  "gemini-3-pro-image-preview",
+			ImageCount:    1,
+			ImageSize:     ImageBillingSize2K,
+			ImageEndpoint: true,
+			Duration:      time.Second,
+			Usage:         OpenAIUsage{ImageOutputTokens: 100},
+		},
+		APIKey: &APIKey{
+			ID:      10144,
+			GroupID: i64p(groupID),
+			Group: &Group{
+				ID:                   groupID,
+				Platform:             PlatformOpenAI,
+				RateMultiplier:       1,
+				ImageRateIndependent: true,
+				ImageRateMultiplier:  1,
+				ImagePrice2K:         &groupImagePrice2K,
+			},
+		},
+		User:    &User{ID: 20144},
+		Account: &Account{ID: 30144, Platform: PlatformOpenAI},
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, usageRepo.lastLog)
+	// token 计费优先于分组按张价：100 image output tokens × $15e-6。
+	require.InDelta(t, 100*15e-6, usageRepo.lastLog.TotalCost, 1e-12)
+	require.InDelta(t, 100*15e-6, usageRepo.lastLog.ActualCost, 1e-12)
+	require.NotNil(t, usageRepo.lastLog.BillingMode)
+	require.Equal(t, string(BillingModeToken), *usageRepo.lastLog.BillingMode)
+}
+
+func TestOpenAIGatewayServiceRecordUsage_ImageCountBillingForcesPerImageDespiteTokens(t *testing.T) {
+	groupID := int64(145)
+	groupImagePrice2K := 0.021
+	usageRepo := &openAIRecordUsageLogRepoStub{inserted: true}
+	svc := newOpenAIRecordUsageServiceForTest(usageRepo, &openAIRecordUsageUserRepoStub{}, &openAIRecordUsageSubRepoStub{}, nil)
+	svc.resolver = newOpenAITokenImageChannelPricingResolverForTest(t, groupID, "gemini-3-pro-image-preview")
+
+	err := svc.RecordUsage(context.Background(), &OpenAIRecordUsageInput{
+		Result: &OpenAIForwardResult{
+			RequestID:     "resp_image_count_billing_forced",
+			Model:         "gemini-3-pro-image-preview",
+			BillingModel:  "gemini-3-pro-image-preview",
+			ImageCount:    1,
+			ImageSize:     ImageBillingSize2K,
+			ImageEndpoint: true,
+			Duration:      time.Second,
+			Usage:         OpenAIUsage{ImageOutputTokens: 100},
+		},
+		APIKey: &APIKey{
+			ID:      10145,
+			GroupID: i64p(groupID),
+			Group: &Group{
+				ID:                   groupID,
+				Platform:             PlatformOpenAI,
+				RateMultiplier:       1,
+				ImageCountBilling:    true,
+				ImageRateIndependent: true,
+				ImageRateMultiplier:  1,
+				ImagePrice2K:         &groupImagePrice2K,
+			},
+		},
+		User:    &User{ID: 20145},
+		Account: &Account{ID: 30145, Platform: PlatformOpenAI},
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, usageRepo.lastLog)
+	// 管理员显式开启按张计费：即便有 token 用量与 token 价仍强制按张。
+	require.InDelta(t, 0.021, usageRepo.lastLog.TotalCost, 1e-12)
+	require.InDelta(t, 0.021, usageRepo.lastLog.ActualCost, 1e-12)
+	require.NotNil(t, usageRepo.lastLog.BillingMode)
+	require.Equal(t, string(BillingModeImage), *usageRepo.lastLog.BillingMode)
+}
+
+func TestGatewayServiceCalculateRecordUsageCost_ImageTokenUsagePrefersTokenPricing(t *testing.T) {
+	groupID := int64(146)
+	svc := &GatewayService{
+		billingService: NewBillingService(&config.Config{}, nil),
+		resolver:       newOpenAITokenImageChannelPricingResolverForTest(t, groupID, "gemini-3-pro-image"),
+	}
+
+	cost := svc.calculateRecordUsageCost(
+		context.Background(),
+		&ForwardResult{
+			Model:      "gemini-3-pro-image",
+			ImageCount: 2,
+			ImageSize:  "2K",
+			// OutputTokens 为含图片输出 token 的总量：文本输出 = 205 - 200 = 5。
+			Usage:      ClaudeUsage{InputTokens: 10, OutputTokens: 205, ImageOutputTokens: 200},
+		},
+		&APIKey{GroupID: i64p(groupID), Group: &Group{ID: groupID, RateMultiplier: 1}},
+		"gemini-3-pro-image",
+		1.0,
+		1.0,
+		time.Now(),
+	)
+
+	// token 计费优先：10×3e-6 + 5×15e-6 + 200×15e-6。
+	require.InDelta(t, 10*3e-6+5*15e-6+200*15e-6, cost.TotalCost, 1e-12)
+	require.Equal(t, string(BillingModeToken), cost.BillingMode)
+}
+
+func TestGatewayServiceCalculateRecordUsageCost_ImageWithoutTokenUsageFallsBackToPerImage(t *testing.T) {
+	groupID := int64(147)
+	groupImagePrice2K := 0.021
+	svc := &GatewayService{
+		billingService: NewBillingService(&config.Config{}, nil),
+		resolver:       newOpenAITokenImageChannelPricingResolverForTest(t, groupID, "gemini-3-pro-image"),
+	}
+
+	cost := svc.calculateRecordUsageCost(
+		context.Background(),
+		&ForwardResult{
+			Model:      "gemini-3-pro-image",
+			ImageCount: 2,
+			ImageSize:  "2K",
+			// 上游未返回任何 token。
+		},
+		&APIKey{GroupID: i64p(groupID), Group: &Group{ID: groupID, RateMultiplier: 1, ImagePrice2K: &groupImagePrice2K}},
+		"gemini-3-pro-image",
+		1.0,
+		1.0,
+		time.Now(),
+	)
+
+	// 兜底按张：分组 2K 单价 × 2 张，绝不 0 费用。
+	require.InDelta(t, 0.021*2, cost.TotalCost, 1e-12)
+	require.Equal(t, string(BillingModeImage), cost.BillingMode)
+}
+
+func TestGatewayServiceCalculateRecordUsageCost_ImageCountBillingForcesPerImage(t *testing.T) {
+	groupID := int64(148)
+	groupImagePrice2K := 0.021
+	svc := &GatewayService{
+		billingService: NewBillingService(&config.Config{}, nil),
+		resolver:       newOpenAITokenImageChannelPricingResolverForTest(t, groupID, "gemini-3-pro-image"),
+	}
+
+	cost := svc.calculateRecordUsageCost(
+		context.Background(),
+		&ForwardResult{
+			Model:         "gemini-3-pro-image",
+			ImageCount:    2,
+			ImageSize:     "2K",
+			ImageEndpoint: true,
+			Usage:         ClaudeUsage{InputTokens: 10, OutputTokens: 5, ImageOutputTokens: 200},
+		},
+		&APIKey{GroupID: i64p(groupID), Group: &Group{ID: groupID, RateMultiplier: 1, ImageCountBilling: true, ImagePrice2K: &groupImagePrice2K}},
+		"gemini-3-pro-image",
+		1.0,
+		1.0,
+		time.Now(),
+	)
+
+	// 分组按张开关 + 专用图片端点：强制按张。
+	require.InDelta(t, 0.021*2, cost.TotalCost, 1e-12)
+	require.Equal(t, string(BillingModeImage), cost.BillingMode)
+}

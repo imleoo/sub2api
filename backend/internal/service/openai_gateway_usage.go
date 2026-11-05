@@ -599,7 +599,11 @@ func (s *OpenAIGatewayService) calculateOpenAIRecordUsageCost(
 		return s.billingService.CalculateWebSearchCost(result.WebSearchCalls, webSearchPricePerCallFromAPIKey(apiKey), webSearchMultiplier), nil
 	}
 	if isGrokVideoUsageResult(result, billingModels) {
-		if resolved := s.resolveOpenAIChannelPricing(ctx, billingModel, apiKey); resolved == nil || resolved.Mode != BillingModeToken {
+		// token 计费优先：有 token 用量（Seedance/Ark 返回 completion tokens）且 token
+		// 定价可解析（分组/渠道 token 定价或目录确定性价）时落 token 路径；
+		// 无 token 用量（Grok 视频上游不返回 usage）或无 token 价时兜底按秒，
+		// 绝不能带着全 0 token 进 token 路径按 0 费用结算。
+		if !openAIMediaHasTokenUsage(result, tokens) || !s.hasResolvableMediaTokenPricing(ctx, billingModels, apiKey) {
 			return s.calculateOpenAIVideoCost(ctx, billingModel, apiKey, result, videoMultiplier), nil
 		}
 	}
@@ -619,12 +623,15 @@ func (s *OpenAIGatewayService) calculateOpenAIRecordUsageCost(
 	}
 
 	if result != nil && result.ImageCount > 0 {
-		// 分组显式开启按张计费且来自图片端点时强制走图片计费；否则渠道 token 定价优先。
-		// 混合的 Responses/Chat/WS 请求即使产出了图片，也不能因开关丢失文本 token 费用。
+		// 分组显式开启按张计费且来自图片端点时强制走图片计费；混合的 Responses/Chat/WS
+		// 请求即使产出了图片，也不能因开关丢失文本 token 费用。
 		if imageCountBillingApplies(apiKey, result.ImageEndpoint) {
 			return s.calculateOpenAIImageCost(ctx, billingModel, apiKey, result, imageMultiplier), nil
 		}
-		if resolved := s.resolveOpenAIChannelPricing(ctx, billingModel, apiKey); resolved == nil || resolved.Mode != BillingModeToken {
+		// token 计费优先：有 token 用量且 token 定价可解析（分组 token > 渠道 token >
+		// 目录确定性价）时走 token 路径，token 路径天然包含文本 token 分项；
+		// 上游不返回 token（部分媒体端点）或无 token 价时兜底按张，绝不 0 费用。
+		if !openAIMediaHasTokenUsage(result, tokens) || !s.hasResolvableMediaTokenPricing(ctx, billingModels, apiKey) {
 			return s.calculateOpenAIImageCost(ctx, billingModel, apiKey, result, imageMultiplier), nil
 		}
 	}
@@ -704,6 +711,37 @@ func (s *OpenAIGatewayService) calculateOpenAIRecordUsageCost(
 
 func isGrokVideoBillingModel(model string) bool {
 	return strings.HasPrefix(strings.ToLower(strings.TrimSpace(model)), "grok-imagine-video")
+}
+
+// openAIMediaHasTokenUsage 是否有可用于 token 计费的用量。混合 Chat/Responses 请求的
+// token 统计在独立的 tokens 参数里（result.Usage 可能为空），两者任一非 0 即可。
+// Grok 图片/视频、部分媒体端点上游不返回 token，必须兜底按张/按秒，
+// 绝不能带着全 0 token 进 token 路径按 0 费用结算。
+func openAIMediaHasTokenUsage(result *OpenAIForwardResult, tokens UsageTokens) bool {
+	if tokens.OutputTokens > 0 || tokens.ImageOutputTokens > 0 || tokens.ImageInputTokens > 0 {
+		return true
+	}
+	return result != nil && (result.Usage.OutputTokens > 0 ||
+		result.Usage.ImageOutputTokens > 0 || result.Usage.ImageInputTokens > 0)
+}
+
+// hasResolvableMediaTokenPricing 任一计费模型候选能解析出 token 定价即视为可用：
+// 分组/渠道 token 定价，或价格表中能被确定性识别的条目（刻意排除按子串猜系列的
+// 兜底价，口径与 HasIdentifiedTokenPricing 一致）。
+func (s *OpenAIGatewayService) hasResolvableMediaTokenPricing(ctx context.Context, models []string, apiKey *APIKey) bool {
+	for _, model := range models {
+		model = strings.TrimSpace(model)
+		if model == "" {
+			continue
+		}
+		if resolved := s.resolveOpenAIChannelPricing(ctx, model, apiKey); resolved != nil && resolved.Mode == BillingModeToken {
+			return true
+		}
+		if s.billingService.HasIdentifiedTokenPricing(model) {
+			return true
+		}
+	}
+	return false
 }
 
 func isGrokVideoUsageResult(result *OpenAIForwardResult, billingModels []string) bool {
