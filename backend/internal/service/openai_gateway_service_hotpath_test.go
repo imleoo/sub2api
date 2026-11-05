@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 )
 
 func TestOpenAIRequestView_ExtractsRawScalars(t *testing.T) {
@@ -1102,4 +1103,102 @@ func TestSanitizeEmptyBase64InputImagesInOpenAIBody(t *testing.T) {
 			]}
 		]
 	}`, string(body))
+}
+
+// Codex OAuth 出站 instructions 强制统一：客户端自带的自定义提示词是非官方客户端的
+// 行为指纹，默认强制替换为官方 base instructions；关闭开关时保留客户端原样。
+func TestOpenAIGatewayService_Forward_CodexOAuthEnforcesOfficialInstructions(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	runForward := func(t *testing.T, account *Account, cfg *config.Config, body []byte) string {
+		t.Helper()
+		upstream := &httpUpstreamRecorder{
+			resp: &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     http.Header{"Content-Type": []string{"application/json"}},
+				Body:       io.NopCloser(strings.NewReader(`{"usage":{"input_tokens":1,"output_tokens":2}}`)),
+			},
+		}
+		cfg.Security.URLAllowlist.Enabled = false
+		svc := &OpenAIGatewayService{cfg: cfg, httpUpstream: upstream}
+		rec := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(rec)
+		c.Request = httptest.NewRequest(http.MethodPost, "/openai/v1/responses", nil)
+		SetOpenAIClientTransport(c, OpenAIClientTransportHTTP)
+
+		result, err := svc.Forward(context.Background(), c, account, body)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		return string(upstream.lastBody)
+	}
+
+	newOAuthAccount := func() *Account {
+		return &Account{
+			ID:          7,
+			Name:        "codex-oauth",
+			Platform:    PlatformOpenAI,
+			Type:        AccountTypeOAuth,
+			Concurrency: 1,
+			Credentials: map[string]any{"access_token": "oauth-token"},
+		}
+	}
+
+	t.Run("强制统一：自定义 instructions 替换为官方模板", func(t *testing.T) {
+		cfg := &config.Config{}
+		cfg.Gateway.OpenAICodexInstructionsEnforce.Enabled = true
+		account := newOAuthAccount()
+		body := []byte(`{"model":"gpt-5.4","stream":false,"instructions":"You are a custom probe script.","input":[{"type":"message","content":"hi"}]}`)
+		out := runForward(t, account, cfg, body)
+		require.Equal(t, defaultCodexSynthInstructions("gpt-5.4"), gjson.Get(out, "instructions").String())
+		require.NotContains(t, gjson.Get(out, "instructions").String(), "custom probe script")
+	})
+
+	t.Run("与官方模板一致时不做无谓改写", func(t *testing.T) {
+		cfg := &config.Config{}
+		cfg.Gateway.OpenAICodexInstructionsEnforce.Enabled = true
+		account := newOAuthAccount()
+		official := defaultCodexSynthInstructions("gpt-5.4")
+		body, err := sjson.SetBytes([]byte(`{"model":"gpt-5.4","stream":false,"input":[{"type":"message","content":"hi"}]}`), "instructions", official)
+		require.NoError(t, err)
+		out := runForward(t, account, cfg, body)
+		require.Equal(t, official, gjson.Get(out, "instructions").String())
+	})
+
+	t.Run("开关关闭时保留客户端 instructions 原样", func(t *testing.T) {
+		cfg := &config.Config{}
+		cfg.Gateway.OpenAICodexInstructionsEnforce.Enabled = false
+		account := newOAuthAccount()
+		body := []byte(`{"model":"gpt-5.4","stream":false,"instructions":"You are a custom probe script.","input":[{"type":"message","content":"hi"}]}`)
+		out := runForward(t, account, cfg, body)
+		require.Equal(t, "You are a custom probe script.", gjson.Get(out, "instructions").String())
+	})
+
+	t.Run("instructions 为空时注入官方模板（既有行为不变）", func(t *testing.T) {
+		cfg := &config.Config{}
+		cfg.Gateway.OpenAICodexInstructionsEnforce.Enabled = false
+		account := newOAuthAccount()
+		body := []byte(`{"model":"gpt-5.4","stream":false,"input":[{"type":"message","content":"hi"}]}`)
+		out := runForward(t, account, cfg, body)
+		require.Equal(t, defaultCodexSynthInstructions("gpt-5.4"), gjson.Get(out, "instructions").String())
+	})
+
+	t.Run("API Key 账号不受强制统一影响", func(t *testing.T) {
+		cfg := &config.Config{}
+		cfg.Gateway.OpenAICodexInstructionsEnforce.Enabled = true
+		account := &Account{
+			ID:          8,
+			Name:        "openai-apikey",
+			Platform:    PlatformOpenAI,
+			Type:        AccountTypeAPIKey,
+			Concurrency: 1,
+			Credentials: map[string]any{
+				"api_key":  "sk-test",
+				"base_url": "https://example.com",
+			},
+			Extra: map[string]any{"openai_responses_supported": true},
+		}
+		body := []byte(`{"model":"gpt-5.4","stream":false,"instructions":"You are a custom probe script.","input":[{"type":"message","content":"hi"}]}`)
+		out := runForward(t, account, cfg, body)
+		require.Equal(t, "You are a custom probe script.", gjson.Get(out, "instructions").String())
+	})
 }

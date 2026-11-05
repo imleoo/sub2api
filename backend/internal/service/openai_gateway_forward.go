@@ -381,8 +381,20 @@ func (s *OpenAIGatewayService) Forward(ctx context.Context, c *gin.Context, acco
 	}
 	instructions := gjson.GetBytes(body, "instructions")
 	instructionsEmpty := !instructions.Exists() || instructions.Type != gjson.String || strings.TrimSpace(instructions.String()) == ""
-	if instructionsEmpty && account.UsesOpenAICodexProtocol() && !compatMessagesBridge && !nativeCNResponses {
-		markPatchSet("instructions", defaultCodexSynthInstructions(upstreamModel))
+	if account.UsesOpenAICodexProtocol() && !compatMessagesBridge && !nativeCNResponses {
+		officialInstructions := defaultCodexSynthInstructions(upstreamModel)
+		switch {
+		case instructionsEmpty:
+			markPatchSet("instructions", officialInstructions)
+		case s.cfg == nil || s.cfg.Gateway.OpenAICodexInstructionsEnforce.Enabled:
+			// 强制统一出站 instructions：客户端自带的自定义提示词（WorkBuddy、探测脚本等
+			// 非官方 Codex 客户端）是风控可识别的行为指纹，即使传输层指纹（TLS/UA/session_id）
+			// 已对齐也会触发账号级降智。与官方模板一致时不做无谓改写。
+			if strings.TrimSpace(instructions.String()) != officialInstructions {
+				markPatchSet("instructions", officialInstructions)
+				logger.LegacyPrintf("service.openai_gateway", "[OpenAI] Enforced official Codex instructions (account: %s, model: %s, client_len: %d)", account.Name, upstreamModel, len(instructions.String()))
+			}
+		}
 	}
 	if billingModel != requestedModel {
 		logger.LegacyPrintf("service.openai_gateway", "[OpenAI] Model mapping applied: %s -> %s (account: %s, isCodexCLI: %v)", requestedModel, billingModel, account.Name, isCodexCLI)

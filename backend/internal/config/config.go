@@ -1104,6 +1104,10 @@ type GatewayConfig struct {
 	// OpenAICodexTLSFingerprint: OpenAI Codex OAuth 出站 TLS 指纹伪装配置
 	// （默认启用，utls 模拟 rustls/reqwest 指纹，可通过 env 一键回滚）
 	OpenAICodexTLSFingerprint GatewayOpenAICodexTLSFingerprintConfig `mapstructure:"openai_codex_tls_fingerprint"`
+	// OpenAICodexInstructionsEnforce: OpenAI Codex OAuth 出站 instructions 强制统一配置
+	// （默认启用：客户端自带非空 instructions 时也替换为官方 base instructions，
+	// 消除非官方提示词的行为指纹，可通过 env 一键回滚）
+	OpenAICodexInstructionsEnforce GatewayOpenAICodexInstructionsEnforceConfig `mapstructure:"openai_codex_instructions_enforce"`
 	// OpenAIProxyStreamCircuit: Responses SSE 代理断流熔断策略。
 	OpenAIProxyStreamCircuit GatewayOpenAIProxyStreamCircuitConfig `mapstructure:"openai_proxy_stream_circuit"`
 	// ImageConcurrency: 图片生成独立并发限制配置（默认关闭）
@@ -1243,6 +1247,15 @@ type GatewayCNProvidersConfig struct {
 // 消除 Go 默认 crypto/tls 指纹与客户端身份不匹配的风控破绽。
 type GatewayOpenAICodexTLSFingerprintConfig struct {
 	// Enabled: 是否启用 OpenAI Codex 出站 TLS 指纹伪装
+	Enabled bool `mapstructure:"enabled"`
+}
+
+// GatewayOpenAICodexInstructionsEnforceConfig OpenAI Codex OAuth 出站 instructions 强制统一配置。
+// 默认启用：UsesOpenAICodexProtocol 账号的出站请求统一改写为官方 base instructions。
+// 客户端自带的自定义提示词（WorkBuddy、探测脚本等非官方 Codex 客户端）是风控可识别的
+// 行为指纹，即使传输层指纹（TLS/UA/session_id）已对齐也会触发账号级降智。
+type GatewayOpenAICodexInstructionsEnforceConfig struct {
+	// Enabled: 是否强制统一 Codex 出站 instructions
 	Enabled bool `mapstructure:"enabled"`
 }
 
@@ -2568,6 +2581,7 @@ func setDefaults() {
 	// OpenAI HTTP upstream protocol strategy
 	viper.SetDefault("gateway.openai_http2.enabled", true)
 	viper.SetDefault("gateway.openai_codex_tls_fingerprint.enabled", true)
+	viper.SetDefault("gateway.openai_codex_instructions_enforce.enabled", true)
 	viper.SetDefault("gateway.openai_http2.allow_proxy_fallback_to_http1", true)
 	viper.SetDefault("gateway.openai_http2.fallback_error_threshold", 2)
 	viper.SetDefault("gateway.openai_http2.fallback_window_seconds", 60)
