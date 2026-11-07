@@ -1212,6 +1212,7 @@ func (s *OpenAIGatewayService) proxyResponsesWebSocketV2Passthrough(
 						CacheCreationInputTokens: turn.Usage.CacheCreationInputTokens,
 						CacheReadInputTokens:     turn.Usage.CacheReadInputTokens,
 						ImageOutputTokens:        turn.Usage.ImageOutputTokens,
+						ReasoningTokens:          turn.Usage.ReasoningTokens,
 					},
 					Model:                         turnRequestModel,
 					UpstreamModel:                 openAIWSDifferentModel(turnRequestModel, turnUpstreamModel),

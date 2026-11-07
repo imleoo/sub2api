@@ -164,6 +164,10 @@ func (s *OpenAIGatewayService) RecordUsage(ctx context.Context, input *OpenAIRec
 		s.rateLimitService.ResetOpenAI403Counter(ctx, input.Account.ID)
 	}
 
+	// 降智检测与自动切号（best-effort）：effort≥high 且 reasoning_tokens=0 时
+	// 熔断账号 30 分钟并双写 999 记录；不影响后续正常用量记录与计费。
+	s.handleOpenAIDegradedSwitch(ctx, input)
+
 	apiKey := input.APIKey
 	user := input.User
 	account := input.Account

@@ -231,6 +231,9 @@ type OpenAIUsage struct {
 	CacheCreationInputTokens int `json:"cache_creation_input_tokens,omitempty"`
 	CacheReadInputTokens     int `json:"cache_read_input_tokens,omitempty"`
 	ImageOutputTokens        int `json:"image_output_tokens,omitempty"`
+	// ReasoningTokens 是上游 usage 中 output_tokens_details.reasoning_tokens
+	// 的原始值（仅观测用：降智检测；不参与计费）。
+	ReasoningTokens int `json:"reasoning_tokens,omitempty"`
 }
 
 // OpenAIForwardResult represents the result of forwarding
@@ -473,6 +476,7 @@ type OpenAIGatewayService struct {
 	channelService        *ChannelService
 	balanceNotifyService  *BalanceNotifyService
 	settingService        *SettingService
+	opsService            *OpsService
 	userPlatformQuotaRepo UserPlatformQuotaRepository
 	liveAttestation       liveattestation.Provider
 	liveAttestationCipher SecretEncryptor
@@ -592,6 +596,15 @@ func NewOpenAIGatewayService(
 	}
 	svc.logOpenAIWSModeBootstrap()
 	return svc
+}
+
+// SetOpsService 注入 OpsService（降智切号写 ops_error_logs 用）。OpsService 构造
+// 依赖 OpenAIGatewayService，存在环，故走 setter 而非构造参数（wire_gen 手工注入）。
+func (s *OpenAIGatewayService) SetOpsService(ops *OpsService) {
+	if s == nil {
+		return
+	}
+	s.opsService = ops
 }
 
 // ResolveChannelMapping 解析渠道级模型映射（代理到 ChannelService）

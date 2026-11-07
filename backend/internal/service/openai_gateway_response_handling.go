@@ -1563,6 +1563,7 @@ func openAIUsageFromGJSON(value gjson.Result) (OpenAIUsage, bool) {
 		CacheCreationInputTokens: cacheCreationTokens,
 		CacheReadInputTokens:     cacheReadTokens,
 		ImageOutputTokens:        int(imageOutputTokens),
+		ReasoningTokens:          reasoningTokens,
 	}, true
 }
 

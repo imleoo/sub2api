@@ -407,6 +407,7 @@ export default {
     compactionOnly: 'Compaction Only',
     cyber: 'Cyber',
     live: 'Live',
+    degradedSwitch: 'Degraded (switched, 999)',
     unknown: 'Unknown',
     in: 'In',
     out: 'Out',

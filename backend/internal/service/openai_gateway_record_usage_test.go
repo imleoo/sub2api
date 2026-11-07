@@ -19,12 +19,14 @@ type openAIRecordUsageLogRepoStub struct {
 	err        error
 	calls      int
 	lastLog    *UsageLog
+	logs       []*UsageLog
 	lastCtxErr error
 }
 
 func (s *openAIRecordUsageLogRepoStub) Create(ctx context.Context, log *UsageLog) (bool, error) {
 	s.calls++
 	s.lastLog = log
+	s.logs = append(s.logs, log)
 	s.lastCtxErr = ctx.Err()
 	return s.inserted, s.err
 }

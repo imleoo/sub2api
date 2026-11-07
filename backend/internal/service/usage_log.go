@@ -20,11 +20,12 @@ const (
 	RequestTypeWSV2         RequestType = 3
 	RequestTypeCyberBlocked RequestType = 4 // cyber_policy 命中（透传但被上游安全策略拒绝）
 	RequestTypeLive         RequestType = 5
+	RequestTypeDegradedSwitch RequestType = 6 // Codex 高 effort 但 reasoning_tokens=0，判定降智，触发账号切号
 )
 
 func (t RequestType) IsValid() bool {
 	switch t {
-	case RequestTypeUnknown, RequestTypeSync, RequestTypeStream, RequestTypeWSV2, RequestTypeCyberBlocked, RequestTypeLive:
+	case RequestTypeUnknown, RequestTypeSync, RequestTypeStream, RequestTypeWSV2, RequestTypeCyberBlocked, RequestTypeLive, RequestTypeDegradedSwitch:
 		return true
 	default:
 		return false
@@ -50,6 +51,8 @@ func (t RequestType) String() string {
 		return "cyber"
 	case RequestTypeLive:
 		return "live"
+	case RequestTypeDegradedSwitch:
+		return "degraded_switch"
 	default:
 		return "unknown"
 	}
@@ -73,8 +76,10 @@ func ParseUsageRequestType(value string) (RequestType, error) {
 		return RequestTypeCyberBlocked, nil
 	case "live":
 		return RequestTypeLive, nil
+	case "degraded_switch":
+		return RequestTypeDegradedSwitch, nil
 	default:
-		return RequestTypeUnknown, fmt.Errorf("invalid request_type, allowed values: unknown, sync, stream, ws_v2, cyber, live")
+		return RequestTypeUnknown, fmt.Errorf("invalid request_type, allowed values: unknown, sync, stream, ws_v2, cyber, live, degraded_switch")
 	}
 }
 

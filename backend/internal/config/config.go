@@ -1108,6 +1108,10 @@ type GatewayConfig struct {
 	// （默认启用：客户端自带非空 instructions 时也替换为官方 base instructions，
 	// 消除非官方提示词的行为指纹，可通过 env 一键回滚）
 	OpenAICodexInstructionsEnforce GatewayOpenAICodexInstructionsEnforceConfig `mapstructure:"openai_codex_instructions_enforce"`
+	// OpenAIDegradedSwitch: OpenAI Codex OAuth 降智检测与自动切号配置
+	// （默认启用：出站 reasoning effort 为 high/xhigh/max 且上游 reasoning_tokens=0 时
+	// 判定账号被降智，熔断 30 分钟调度并将流量切到同组其他账号，错误码 999）
+	OpenAIDegradedSwitch GatewayOpenAIDegradedSwitchConfig `mapstructure:"openai_degraded_switch"`
 	// OpenAIProxyStreamCircuit: Responses SSE 代理断流熔断策略。
 	OpenAIProxyStreamCircuit GatewayOpenAIProxyStreamCircuitConfig `mapstructure:"openai_proxy_stream_circuit"`
 	// ImageConcurrency: 图片生成独立并发限制配置（默认关闭）
@@ -1257,6 +1261,18 @@ type GatewayOpenAICodexTLSFingerprintConfig struct {
 type GatewayOpenAICodexInstructionsEnforceConfig struct {
 	// Enabled: 是否强制统一 Codex 出站 instructions
 	Enabled bool `mapstructure:"enabled"`
+}
+
+// GatewayOpenAIDegradedSwitchConfig OpenAI Codex OAuth 降智检测与自动切号配置。
+// 出站 reasoning effort 为 high/xhigh/max 且上游 usage.reasoning_tokens==0 时，
+// 判定该账号被降智：内存+持久化冷却（默认 30 分钟）调度熔断，流量自动切到
+// 同组其他账号；usage_logs 记 RequestType=degraded_switch 标记行，
+// ops_error_logs 记 status_code=999 错误。
+type GatewayOpenAIDegradedSwitchConfig struct {
+	// Enabled: 是否启用降智检测与自动切号
+	Enabled bool `mapstructure:"enabled"`
+	// CooldownMinutes: 判定降智后的账号调度熔断时长（分钟）
+	CooldownMinutes int `mapstructure:"cooldown_minutes"`
 }
 
 type GatewayLiveConfig struct {
@@ -2582,6 +2598,8 @@ func setDefaults() {
 	viper.SetDefault("gateway.openai_http2.enabled", true)
 	viper.SetDefault("gateway.openai_codex_tls_fingerprint.enabled", true)
 	viper.SetDefault("gateway.openai_codex_instructions_enforce.enabled", true)
+	viper.SetDefault("gateway.openai_degraded_switch.enabled", true)
+	viper.SetDefault("gateway.openai_degraded_switch.cooldown_minutes", 30)
 	viper.SetDefault("gateway.openai_http2.allow_proxy_fallback_to_http1", true)
 	viper.SetDefault("gateway.openai_http2.fallback_error_threshold", 2)
 	viper.SetDefault("gateway.openai_http2.fallback_window_seconds", 60)

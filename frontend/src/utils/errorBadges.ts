@@ -15,9 +15,10 @@ export function statusCodeBadgeClass(code: number): string {
   return 'bg-gray-100 text-gray-800 dark:bg-dark-700 dark:text-gray-200'
 }
 
-/** 请求类型徽章配色(cyber 红、live 绿、ws 紫、stream 蓝、sync 灰、未知琥珀) */
+/** 请求类型徽章配色(cyber 红、degraded_switch 橙、live 绿、ws 紫、stream 蓝、sync 灰、未知琥珀) */
 export function requestTypeBadgeClass(kind: UsageRequestKind): string {
   if (kind === 'cyber') return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+  if (kind === 'degraded_switch') return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
   if (kind === 'live') return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200'
   if (kind === 'ws_v2') return 'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200'
   if (kind === 'stream') return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
@@ -28,6 +29,7 @@ export function requestTypeBadgeClass(kind: UsageRequestKind): string {
 /** 请求类型 i18n 键(展示方自行 t()) */
 export function requestTypeLabelKey(kind: UsageRequestKind): string {
   if (kind === 'cyber') return 'usage.cyber'
+  if (kind === 'degraded_switch') return 'usage.degradedSwitch'
   if (kind === 'live') return 'usage.live'
   if (kind === 'ws_v2') return 'usage.ws'
   if (kind === 'stream') return 'usage.stream'
@@ -46,6 +48,7 @@ export function numericRequestTypeKind(
   const rt = requestType ?? (stream == null ? 0 : stream ? 2 : 1)
   if (rt === 3) return 'ws_v2'
   if (rt === 5) return 'live'
+  if (rt === 6) return 'degraded_switch'
   if (rt === 2) return 'stream'
   if (rt === 1) return 'sync'
   return null
@@ -61,4 +64,4 @@ export function mapErrorSortKey(key: string): string {
  * 用固定列表而非「当前页出现过的码」派生,避免目标状态码只在后续页/筛选外时无法选中
  * ——后端 status_code 过滤对全量数据生效,选项不应被当前页数据限制。
  */
-export const COMMON_ERROR_STATUS_CODES = [400, 401, 403, 404, 408, 413, 429, 499, 500, 502, 503, 504, 529]
+export const COMMON_ERROR_STATUS_CODES = [400, 401, 403, 404, 408, 413, 429, 499, 500, 502, 503, 504, 529, 999]
