@@ -240,3 +240,32 @@ func TestMigration173AllowsCyberBlockedUsageRequestType(t *testing.T) {
 	require.Contains(t, sql, "ADD CONSTRAINT usage_logs_request_type_check")
 	require.Contains(t, sql, "CHECK (request_type IN (0, 1, 2, 3, 4)) NOT VALID")
 }
+
+// TestMigration200_AllowsDegradedSwitchUsageRequestType 确保 degraded_switch(6)
+// 被 usage_logs_request_type_check 放行（防降智切号 marker 行被约束拒绝）。
+func TestMigration200_AllowsDegradedSwitchUsageRequestType(t *testing.T) {
+	entries, err := FS.ReadDir(".")
+	require.NoError(t, err)
+
+	currentIndex := -1
+	previousIndex := -1
+	for i, entry := range entries {
+		switch entry.Name() {
+		case "188_allow_live_usage_request_type.sql":
+			previousIndex = i
+		case "200_allow_degraded_switch_usage_request_type.sql":
+			currentIndex = i
+		}
+	}
+	require.NotEqual(t, -1, previousIndex)
+	require.NotEqual(t, -1, currentIndex)
+	require.Less(t, previousIndex, currentIndex)
+
+	content, err := FS.ReadFile("200_allow_degraded_switch_usage_request_type.sql")
+	require.NoError(t, err)
+
+	sql := string(content)
+	require.Contains(t, sql, "DROP CONSTRAINT IF EXISTS usage_logs_request_type_check")
+	require.Contains(t, sql, "ADD CONSTRAINT usage_logs_request_type_check")
+	require.Contains(t, sql, "CHECK (request_type IN (0, 1, 2, 3, 4, 5, 6)) NOT VALID")
+}
